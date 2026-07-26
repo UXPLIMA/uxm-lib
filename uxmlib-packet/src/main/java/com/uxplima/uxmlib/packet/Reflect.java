@@ -2,6 +2,8 @@ package com.uxplima.uxmlib.packet;
 
 import java.util.Objects;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Reads a server static field by its Mojang-mapped name. The data-watcher accessors a metadata packet needs
  * ({@code EntityDataAccessor} objects on {@code Display}/{@code TextDisplay} and friends) are package-private
@@ -15,6 +17,20 @@ import java.util.Objects;
 public final class Reflect {
 
     private Reflect() {}
+
+    /**
+     * Resolve the first available class from candidate FQCNs, or return null if none are available on the classpath.
+     */
+    public static @Nullable Class<?> findClass(String... candidateNames) {
+        for (String candidate : candidateNames) {
+            try {
+                return Class.forName(candidate);
+            } catch (ClassNotFoundException ignored) {
+                // Try next candidate
+            }
+        }
+        return null;
+    }
 
     /**
      * Read the static field {@code field} declared on {@code owner} and return it as {@code T}.
@@ -37,5 +53,20 @@ public final class Reflect {
             throw new IllegalStateException(
                     "Static field " + owner.getName() + "#" + field + " is unavailable on this server", e);
         }
+    }
+
+    /**
+     * Read the static field {@code field} declared on the first available class among {@code candidateClassNames}.
+     *
+     * @throws IllegalStateException if none of the candidate classes exist or the field is unreadable
+     */
+    @SuppressWarnings({"unchecked", "TypeParameterUnusedInFormals"})
+    public static <T> T accessorByClass(String field, String... candidateClassNames) {
+        Class<?> owner = findClass(candidateClassNames);
+        if (owner == null) {
+            throw new IllegalStateException("None of the candidate classes [" + String.join(", ", candidateClassNames)
+                    + "] exist on this server");
+        }
+        return accessor(owner, field);
     }
 }

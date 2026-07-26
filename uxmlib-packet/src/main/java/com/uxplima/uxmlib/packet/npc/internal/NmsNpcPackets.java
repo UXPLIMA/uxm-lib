@@ -98,7 +98,6 @@ import net.minecraft.world.entity.animal.wolf.WolfVariant;
 import net.minecraft.world.entity.decoration.ArmorStand;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.Shulker;
-import net.minecraft.world.entity.monster.Slime;
 import net.minecraft.world.entity.monster.Vex;
 import net.minecraft.world.entity.monster.Zoglin;
 import net.minecraft.world.entity.monster.piglin.Piglin;
@@ -336,7 +335,10 @@ public final class NmsNpcPackets implements NpcPackets {
         this.zombieBabyAccessor = Reflect.accessor(Zombie.class, "DATA_BABY_ID");
         this.piglinBabyAccessor = Reflect.accessor(Piglin.class, "DATA_BABY_ID");
         this.zoglinBabyAccessor = Reflect.accessor(Zoglin.class, "DATA_BABY_ID");
-        this.slimeSizeAccessor = Reflect.accessor(Slime.class, "ID_SIZE");
+        this.slimeSizeAccessor = Reflect.accessorByClass(
+                "ID_SIZE",
+                "net.minecraft.world.entity.monster.Slime",
+                "net.minecraft.world.entity.monster.cubemob.Slime");
         this.chargedAccessor = Reflect.accessor(Creeper.class, "DATA_IS_POWERED");
         this.villagerDataAccessor = Reflect.accessor(Villager.class, "DATA_VILLAGER_DATA");
         // The animal-variant accessors, each on the class that owns it, read once like the rest. The horse packs
