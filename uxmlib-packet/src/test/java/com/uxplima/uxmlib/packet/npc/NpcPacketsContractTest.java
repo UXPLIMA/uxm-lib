@@ -214,20 +214,21 @@ class NpcPacketsContractTest {
     }
 
     @Test
-    void collidableCarriesTheTeamMemberColourAndRule() {
+    void teamCarriesTheMemberColourRuleAndNametagVisibility() {
         FakeNpcPackets packets = new FakeNpcPackets();
 
-        FakeNpcPackets.Collidable on =
-                (FakeNpcPackets.Collidable) packets.collidable("uxmnpc_guide", "guide", NamedColor.RED, true);
-        FakeNpcPackets.Collidable off =
-                (FakeNpcPackets.Collidable) packets.collidable("uxmnpc_guide", "guide", null, false);
+        FakeNpcPackets.TeamSet on =
+                (FakeNpcPackets.TeamSet) packets.team("uxmnpc_guide", "guide", NamedColor.RED, true, false);
+        FakeNpcPackets.TeamSet off = (FakeNpcPackets.TeamSet) packets.team("uxmnpc_guide", "guide", null, false, true);
 
         assertThat(on.teamName()).isEqualTo("uxmnpc_guide");
         assertThat(on.memberName()).isEqualTo("guide");
         assertThat(on.color()).isEqualTo(NamedColor.RED);
         assertThat(on.collidable()).isTrue();
+        assertThat(on.hideNametag()).isFalse();
         assertThat(off.color()).isNull();
         assertThat(off.collidable()).isFalse();
+        assertThat(off.hideNametag()).isTrue();
     }
 
     @Test
@@ -788,7 +789,12 @@ class NpcPacketsContractTest {
 
         record Silent(int entityId, boolean silent) {}
 
-        record Collidable(String teamName, String memberName, @Nullable NamedColor color, boolean collidable) {}
+        record TeamSet(
+                String teamName,
+                String memberName,
+                @Nullable NamedColor color,
+                boolean collidable,
+                boolean hideNametag) {}
 
         record PoseSet(int entityId, NpcPose pose) {}
 
@@ -988,8 +994,13 @@ class NpcPacketsContractTest {
         }
 
         @Override
-        public Object collidable(String teamName, String memberName, @Nullable NamedColor color, boolean collidable) {
-            return new Collidable(teamName, memberName, color, collidable);
+        public Object team(
+                String teamName,
+                String memberName,
+                @Nullable NamedColor color,
+                boolean collidable,
+                boolean hideNametag) {
+            return new TeamSet(teamName, memberName, color, collidable, hideNametag);
         }
 
         @Override

@@ -1086,15 +1086,18 @@ public final class NmsNpcPackets implements NpcPackets {
     }
 
     @Override
-    public Object collidable(String teamName, String memberName, @Nullable NamedColor color, boolean collidable) {
+    public Object team(
+            String teamName, String memberName, @Nullable NamedColor color, boolean collidable, boolean hideNametag) {
         Objects.requireNonNull(teamName, "teamName");
         Objects.requireNonNull(memberName, "memberName");
-        // The client honours the team's collision rule and outline colour for an entity whose name is on the team,
-        // the same team mechanism glowColor tints through; ALWAYS collides, NEVER passes through. Both ride one
-        // packet because an entity is on only one team. A throwaway scoreboard is fine — the packet copies the
-        // team's parameters and member list off it.
+        // The client honours the team's collision rule, outline colour and nametag visibility for an entity whose
+        // name is on the team, the same team mechanism glowColor tints through; ALWAYS collides, NEVER passes
+        // through, and NEVER visibility stops the nametag being drawn at all. All three ride one packet because an
+        // entity is on only one team. A throwaway scoreboard is fine: the packet copies the team's parameters and
+        // member list off it.
         PlayerTeam team = new PlayerTeam(new Scoreboard(), teamName);
         team.setCollisionRule(collidable ? Team.CollisionRule.ALWAYS : Team.CollisionRule.NEVER);
+        team.setNameTagVisibility(hideNametag ? Team.Visibility.NEVER : Team.Visibility.ALWAYS);
         if (color != null) {
             team.setColor(ChatFormatting.valueOf(color.name()));
         }

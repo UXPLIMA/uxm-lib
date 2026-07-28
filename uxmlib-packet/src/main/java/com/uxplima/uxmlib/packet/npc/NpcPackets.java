@@ -129,21 +129,28 @@ public interface NpcPackets {
     Object silent(int entityId, boolean silent);
 
     /**
-     * Build the scoreboard-team packet that sets the NPC's collision rule <em>and</em> its glow colour on one team,
-     * mirroring the {@link #glowColor} team approach: the client honours both the {@code collisionRule} and the
-     * outline colour of the team an entity's name is on, and an entity can be on only one team, so the two must
-     * travel on a single packet rather than two that overwrite each other. This creates (or modifies) a team named
-     * {@code teamName}, sets its collision rule to {@code ALWAYS} when {@code collidable} or {@code NEVER} when not,
-     * tints it {@code color} (or leaves it the default white when {@code null}), and seats {@code memberName} as a
-     * member. The caller uses this in place of {@link #glowColor} whenever the NPC overrides collision, folding any
-     * glow colour in; {@link #glowColorRemove} still clears the team on despawn either way.
+     * Build the scoreboard-team packet carrying every team-scoped property of one NPC at once: its collision rule,
+     * its glow colour, and whether its nametag renders. The client honours all three for an entity whose name is on
+     * the team, and an entity can be on only one team, so they must travel on a single packet rather than on several
+     * that overwrite each other. This creates (or modifies) a team named {@code teamName}, sets its collision rule to
+     * {@code ALWAYS} when {@code collidable} or {@code NEVER} when not, tints it {@code color} (or leaves it the
+     * default white when {@code null}), sets its nametag visibility to {@code NEVER} when {@code hideNametag} or
+     * {@code ALWAYS} when not, and seats {@code memberName} as a member. The caller uses this in place of
+     * {@link #glowColor} whenever the NPC overrides any of the three; {@link #glowColorRemove} still clears the team
+     * on despawn either way.
+     *
+     * <p>Hiding the nametag through the team is the one mechanism that works for a fake player, whose nametag is its
+     * player-info profile name rather than a custom-name field: the profile name stays the NPC's real name (so the
+     * team membership and the tab entry stay well-formed) and the client is told not to draw it.
      *
      * @param teamName the team name to create or modify (the same per-NPC team {@link #glowColor} uses)
      * @param memberName the NPC's profile name, seated as the team's member
      * @param color the glow colour, or {@code null} for the default white outline
      * @param collidable whether the NPC collides with players (team collision rule {@code ALWAYS} vs {@code NEVER})
+     * @param hideNametag whether the NPC's nametag is hidden (team nametag visibility {@code NEVER} vs {@code ALWAYS})
      */
-    Object collidable(String teamName, String memberName, @Nullable NamedColor color, boolean collidable);
+    Object team(
+            String teamName, String memberName, @Nullable NamedColor color, boolean collidable, boolean hideNametag);
 
     /**
      * Build the metadata packet that freezes the NPC in {@code pose} through the entity's {@code DATA_POSE} field.
