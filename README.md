@@ -139,7 +139,9 @@ uxmLib is published through [JitPack](https://jitpack.io/#UXPLIMA/uxmLib). Add t
 (plus Paper's, since the modules compile against the Paper API), then the modules you need. JitPack serves
 each module under the group `com.github.UXPLIMA.uxmLib` with the git tag as the version.
 
-> Replace `VERSION` with the latest released tag — the version shown on the JitPack badge above.
+> Replace `VERSION` with the latest released tag, the version shown on the JitPack badge above.
+> There is no `com.github.UXPLIMA:uxmLib` artifact: the group carries the repository name after a
+> dot, and the coordinate always ends in a module.
 
 ### Gradle (Kotlin DSL)
 
@@ -156,6 +158,16 @@ dependencies {
     implementation("com.github.UXPLIMA.uxmLib:uxmlib-command:VERSION")
     // ...and uxmlib-common / uxmlib-storage / uxmlib-integration / uxmlib-hud /
     // uxmlib-update / uxmlib-condition as needed
+}
+```
+
+### Want the whole surface in one line
+
+`uxmlib-all` depends on every module, so declaring it pulls them all in:
+
+```kotlin
+dependencies {
+    implementation("com.github.UXPLIMA.uxmLib:uxmlib-all:VERSION")
 }
 ```
 

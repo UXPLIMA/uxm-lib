@@ -1,11 +1,13 @@
 plugins {
     id("uxmlib.java-conventions")
+    id("uxmlib.publish-conventions")
     alias(libs.plugins.shadow)
 }
 
 // The aggregate: every module on the API surface, plus a thin JavaPlugin so uxmlib can also be dropped
-// onto a server as a single standalone dependency jar (the "both" distribution choice). Consumers who
-// prefer to shade pull the individual uxmlib-* artifacts instead.
+// onto a server as a single standalone dependency jar (the "both" distribution choice). It is published
+// too, so a consumer who wants the whole surface declares this one artifact and lets Gradle pull the
+// modules in as transitive api dependencies, rather than listing thirteen coordinates by hand.
 dependencies {
     api(project(":uxmlib-common"))
     api(project(":uxmlib-item"))
