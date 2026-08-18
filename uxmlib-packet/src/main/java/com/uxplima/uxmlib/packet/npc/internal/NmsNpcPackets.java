@@ -442,8 +442,8 @@ public final class NmsNpcPackets implements NpcPackets {
         this.offHandFlag = (byte) offHand;
         int spinAttack = Reflect.accessor(LivingEntity.class, "LIVING_ENTITY_FLAG_SPIN_ATTACK");
         this.spinAttackFlag = (byte) spinAttack;
-        this.sleepingPosAccessor =
-                Reflect.accessor(net.minecraft.world.entity.player.Player.class, "DATA_SLEEPING_POS_ID");
+        // The sleeping position lives on LivingEntity, not on Player: any living thing can be laid in a bed.
+        this.sleepingPosAccessor = Reflect.accessor(LivingEntity.class, "SLEEPING_POS_ID");
         this.frozenTicksAccessor = Reflect.accessor(Entity.class, "DATA_TICKS_FROZEN");
     }
 
