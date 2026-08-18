@@ -379,6 +379,16 @@ class NpcPacketsContractTest {
     }
 
     @Test
+    void shulkerAttachFaceCarriesTheEntityAndDirection() {
+        FakeNpcPackets packets = new FakeNpcPackets();
+
+        FakeNpcPackets.ShulkerAttachFace face = (FakeNpcPackets.ShulkerAttachFace) packets.shulkerAttachFace(10, "up");
+
+        assertThat(face.entityId()).isEqualTo(10);
+        assertThat(face.face()).isEqualTo("up");
+    }
+
+    @Test
     void pandaGeneCarriesTheEntityAndGene() {
         FakeNpcPackets packets = new FakeNpcPackets();
 
@@ -826,6 +836,8 @@ class NpcPacketsContractTest {
 
         record ShulkerPeek(int entityId, int peek) {}
 
+        record ShulkerAttachFace(int entityId, String face) {}
+
         record PandaGene(int entityId, int gene) {}
 
         record GoatScreaming(int entityId, boolean screaming) {}
@@ -1076,6 +1088,11 @@ class NpcPacketsContractTest {
         @Override
         public Object shulkerPeek(int entityId, int peek) {
             return new ShulkerPeek(entityId, peek);
+        }
+
+        @Override
+        public Object shulkerAttachFace(int entityId, String face) {
+            return new ShulkerAttachFace(entityId, face);
         }
 
         @Override

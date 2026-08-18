@@ -3,6 +3,7 @@ package com.uxplima.uxmlib.packet.npc.internal;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -33,6 +34,7 @@ import com.uxplima.uxmlib.packet.npc.NpcPackets;
 import com.uxplima.uxmlib.packet.npc.NpcPose;
 import com.uxplima.uxmlib.packet.tablist.TabSkin;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
 import net.minecraft.core.Rotations;
@@ -201,6 +203,8 @@ public final class NmsNpcPackets implements NpcPackets {
     private final EntityDataAccessor<Byte> shulkerColorAccessor;
     /** The {@code Byte} peek data item on {@code Shulker} (0 closed, 100 open); read once. */
     private final EntityDataAccessor<Byte> shulkerPeekAccessor;
+
+    private final EntityDataAccessor<Direction> shulkerAttachFaceAccessor;
     /** The {@code Byte} main (visible) gene data item on {@code Panda} (0–6); read once. */
     private final EntityDataAccessor<Byte> pandaMainGeneAccessor;
     /** The {@code Byte} hidden gene data item on {@code Panda} (0–6); set alongside the main gene so it renders. */
@@ -350,6 +354,7 @@ public final class NmsNpcPackets implements NpcPackets {
         this.wolfCollarAccessor = Reflect.accessor(Wolf.class, "DATA_COLLAR_COLOR");
         this.shulkerColorAccessor = Reflect.accessor(Shulker.class, "DATA_COLOR_ID");
         this.shulkerPeekAccessor = Reflect.accessor(Shulker.class, "DATA_PEEK_ID");
+        this.shulkerAttachFaceAccessor = Reflect.accessor(Shulker.class, "DATA_ATTACH_FACE_ID");
         this.pandaMainGeneAccessor = Reflect.accessor(Panda.class, "MAIN_GENE_ID");
         this.pandaHiddenGeneAccessor = Reflect.accessor(Panda.class, "HIDDEN_GENE_ID");
         this.goatScreamingAccessor = Reflect.accessor(Goat.class, "DATA_IS_SCREAMING_GOAT");
@@ -686,6 +691,16 @@ public final class NmsNpcPackets implements NpcPackets {
     @Override
     public Object shulkerPeek(int entityId, int peek) {
         return dataPacket(entityId, SynchedEntityData.DataValue.create(shulkerPeekAccessor, (byte) peek));
+    }
+
+    @Override
+    public Object shulkerAttachFace(int entityId, String face) {
+        Objects.requireNonNull(face, "face");
+        Direction direction = Direction.byName(face.toLowerCase(Locale.ROOT));
+        if (direction == null) {
+            throw new IllegalArgumentException("no such direction: " + face);
+        }
+        return dataPacket(entityId, SynchedEntityData.DataValue.create(shulkerAttachFaceAccessor, direction));
     }
 
     @Override

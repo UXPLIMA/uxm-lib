@@ -286,6 +286,19 @@ public interface NpcPackets {
     Object shulkerPeek(int entityId, int peek);
 
     /**
+     * Build the metadata packet that sets which face a shulker clings to through its {@code DATA_ATTACH_FACE_ID}
+     * direction. The attach face decides which way the shulker's collision box grows from its position, so it is
+     * the knob a caller reaches for when the shulker is being used as a solid box rather than as a mob: a shulker
+     * attached to {@code UP} hangs from above, which puts its box over the position it was spawned at. Send this
+     * only to a shulker; any other type has no direction at that index.
+     *
+     * @param face the direction name, case-insensitive ({@code up}, {@code down}, {@code north}, {@code south},
+     *     {@code east}, {@code west})
+     * @throws IllegalArgumentException if {@code face} names no direction
+     */
+    Object shulkerAttachFace(int entityId, String face);
+
+    /**
      * Build the metadata packet that sets a panda's gene (its visible face and temperament) through the panda's
      * {@code MAIN_GENE_ID} and {@code HIDDEN_GENE_ID} bytes — the gene id (0–6: normal, lazy, worried, playful,
      * brown, weak, aggressive). Both genes are set to the same id so a recessive gene (brown or weak) renders its
