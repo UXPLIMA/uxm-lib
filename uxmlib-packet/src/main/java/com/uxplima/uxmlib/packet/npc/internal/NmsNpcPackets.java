@@ -34,6 +34,7 @@ import com.uxplima.uxmlib.packet.npc.NpcPackets;
 import com.uxplima.uxmlib.packet.npc.NpcPose;
 import com.uxplima.uxmlib.packet.tablist.TabSkin;
 import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
 import net.minecraft.core.Registry;
@@ -309,6 +310,9 @@ public final class NmsNpcPackets implements NpcPackets {
     /** {@code LivingEntity.DATA_LIVING_ENTITY_FLAGS} and the item-use/off-hand bit masks composed into it. */
     private final EntityDataAccessor<Byte> livingEntityFlagsAccessor;
 
+    private final byte spinAttackFlag;
+    private final EntityDataAccessor<Optional<BlockPos>> sleepingPosAccessor;
+
     private final byte usingItemFlag;
     private final byte offHandFlag;
     /** {@code Entity.DATA_TICKS_FROZEN}; a value past the freeze threshold renders the shivering overlay. */
@@ -436,6 +440,10 @@ public final class NmsNpcPackets implements NpcPackets {
         this.usingItemFlag = (byte) usingItem;
         int offHand = Reflect.accessor(LivingEntity.class, "LIVING_ENTITY_FLAG_OFF_HAND");
         this.offHandFlag = (byte) offHand;
+        int spinAttack = Reflect.accessor(LivingEntity.class, "LIVING_ENTITY_FLAG_SPIN_ATTACK");
+        this.spinAttackFlag = (byte) spinAttack;
+        this.sleepingPosAccessor =
+                Reflect.accessor(net.minecraft.world.entity.player.Player.class, "DATA_SLEEPING_POS_ID");
         this.frozenTicksAccessor = Reflect.accessor(Entity.class, "DATA_TICKS_FROZEN");
     }
 
@@ -966,6 +974,26 @@ public final class NmsNpcPackets implements NpcPackets {
             flags |= offHandFlag;
         }
         return dataPacket(entityId, SynchedEntityData.DataValue.create(livingEntityFlagsAccessor, flags));
+    }
+
+    @Override
+    public Object spinAttack(int entityId, boolean spinning) {
+        byte flags = spinning ? spinAttackFlag : 0;
+        return dataPacket(entityId, SynchedEntityData.DataValue.create(livingEntityFlagsAccessor, flags));
+    }
+
+    @Override
+    public Object sleepingPosition(int entityId, int x, int y, int z) {
+        SynchedEntityData.DataValue<Optional<BlockPos>> value =
+                SynchedEntityData.DataValue.create(sleepingPosAccessor, Optional.of(new BlockPos(x, y, z)));
+        return dataPacket(entityId, value);
+    }
+
+    @Override
+    public Object noSleepingPosition(int entityId) {
+        SynchedEntityData.DataValue<Optional<BlockPos>> value =
+                SynchedEntityData.DataValue.create(sleepingPosAccessor, Optional.empty());
+        return dataPacket(entityId, value);
     }
 
     @Override

@@ -601,6 +601,26 @@ public interface NpcPackets {
     Object frozenTicks(int entityId, int ticks);
 
     /**
+     * Build the metadata packet that puts the NPC into the riptide spin through the living-entity flag the trident
+     * enchantment uses. The client spins the model on its own for as long as the flag is set, so this needs no
+     * per-tick rotation to keep going; pair it with {@link NpcPose#SPIN_ATTACK} so the body is laid out for the
+     * spin rather than standing. Send this only to a player or humanoid NPC.
+     */
+    Object spinAttack(int entityId, boolean spinning);
+
+    /**
+     * Build the metadata packet that tells the client which block the NPC is sleeping in, through the player's
+     * sleeping-position field. It is what turns {@link NpcPose#SLEEPING} from a body lying in an arbitrary
+     * direction into one laid out along a real bed: the client reads the bed's facing at that position to orient
+     * the model. The caller is expected to make sure the client actually sees a bed there, sending it a
+     * client-only block change if the world has none. Send this only to a player NPC.
+     */
+    Object sleepingPosition(int entityId, int x, int y, int z);
+
+    /** Build the metadata packet that clears the NPC's sleeping position, undoing {@link #sleepingPosition}. */
+    Object noSleepingPosition(int entityId);
+
+    /**
      * Build the scoreboard-team packet that tints the NPC's glow to {@code color}. The client colours a glowing
      * entity's outline with the colour of the team its name is a member of, so this packet creates (or modifies) a
      * team named {@code teamName}, sets its colour, and seats {@code memberName} as a member. For a fake player

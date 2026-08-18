@@ -379,6 +379,28 @@ class NpcPacketsContractTest {
     }
 
     @Test
+    void spinAttackCarriesTheEntityAndFlag() {
+        FakeNpcPackets packets = new FakeNpcPackets();
+
+        FakeNpcPackets.SpinAttack spin = (FakeNpcPackets.SpinAttack) packets.spinAttack(11, true);
+
+        assertThat(spin.entityId()).isEqualTo(11);
+        assertThat(spin.spinning()).isTrue();
+    }
+
+    @Test
+    void sleepingPositionCarriesTheEntityAndBlock() {
+        FakeNpcPackets packets = new FakeNpcPackets();
+
+        FakeNpcPackets.SleepingPosition bed = (FakeNpcPackets.SleepingPosition) packets.sleepingPosition(12, 3, -64, 7);
+
+        assertThat(bed.entityId()).isEqualTo(12);
+        assertThat(bed.x()).isEqualTo(3);
+        assertThat(bed.y()).isEqualTo(-64);
+        assertThat(bed.z()).isEqualTo(7);
+    }
+
+    @Test
     void shulkerAttachFaceCarriesTheEntityAndDirection() {
         FakeNpcPackets packets = new FakeNpcPackets();
 
@@ -838,6 +860,10 @@ class NpcPacketsContractTest {
 
         record ShulkerAttachFace(int entityId, String face) {}
 
+        record SpinAttack(int entityId, boolean spinning) {}
+
+        record SleepingPosition(int entityId, int x, int y, int z) {}
+
         record PandaGene(int entityId, int gene) {}
 
         record GoatScreaming(int entityId, boolean screaming) {}
@@ -1093,6 +1119,21 @@ class NpcPacketsContractTest {
         @Override
         public Object shulkerAttachFace(int entityId, String face) {
             return new ShulkerAttachFace(entityId, face);
+        }
+
+        @Override
+        public Object spinAttack(int entityId, boolean spinning) {
+            return new SpinAttack(entityId, spinning);
+        }
+
+        @Override
+        public Object sleepingPosition(int entityId, int x, int y, int z) {
+            return new SleepingPosition(entityId, x, y, z);
+        }
+
+        @Override
+        public Object noSleepingPosition(int entityId) {
+            return new SleepingPosition(entityId, 0, 0, 0);
         }
 
         @Override
