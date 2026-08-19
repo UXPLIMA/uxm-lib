@@ -133,10 +133,10 @@ import org.jspecify.annotations.Nullable;
  *       entity-type registry rather than off a constant, since the class those constants live on is one of the
  *       few internals that has been renamed across lines. A fake player passes the player type and the profile
  *       id as the spawn UUID, which must equal the id from the player-info ADD entry or the client will not
- *       link the skin to the entity; a mob passes the type for its key and an opaque UUID with no skin to bind. That public constructor packs the
- *       raw degree rotations itself (via {@code Mth.packDegrees}), so spawn passes raw floats; the standalone
- *       look and teleport packets instead take a pre-packed byte, which {@link ByteAngle} produces with the same
- *       {@code floor} math so the two stay in step.
+ *       link the skin to the entity; a mob passes the type for its key and an opaque UUID with no skin to
+ *       bind. That public constructor packs the raw degree rotations itself (via {@code Mth.packDegrees}), so
+ *       spawn passes raw floats; the standalone look and teleport packets instead take a pre-packed byte,
+ *       which {@link ByteAngle} produces with the same {@code floor} math so the two stay in step.
  *   <li><b>Head rotation.</b> {@code ClientboundRotateHeadPacket} exposes only an {@code Entity}-bound public
  *       constructor and a private buffer one, so it is built through its public stream codec exactly like the
  *       passenger packet in {@code NmsNametagPackets} — write the wire form (entity id, head-yaw byte), decode.

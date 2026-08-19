@@ -28,8 +28,9 @@ public final class VanillaEntityTypes {
         Identifier id = key.indexOf(Identifier.NAMESPACE_SEPARATOR) < 0
                 ? Identifier.withDefaultNamespace(key)
                 : Identifier.tryParse(key);
-        EntityType<?> type =
-                id == null ? null : BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null);
+        EntityType<?> type = id == null
+                ? null
+                : BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null);
         if (type == null) {
             throw new IllegalArgumentException("Unknown entity type key: " + key);
         }
