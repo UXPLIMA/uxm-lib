@@ -3,6 +3,8 @@ package com.uxplima.uxmlib.common;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import org.bukkit.Bukkit;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -10,6 +12,20 @@ import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 
 class ServerVersionTest {
+
+    @Test
+    void parsesTheYearBasedSchemeAndOrdersItAboveTheOldLine() {
+        // Minecraft left "1.x.y" behind after 1.21.11 and now ships "26.1", "26.2", … Nothing about the
+        // parse or the compare needs to know that: the year simply lands in `major`, and because 26 > 1
+        // every release on the new line still orders above every release on the old one.
+        ServerVersion yearBased = ServerVersion.parse("26.2");
+        assertThat(yearBased.major()).isEqualTo(26);
+        assertThat(yearBased.minor()).isEqualTo(2);
+        assertThat(yearBased.patch()).isZero();
+        assertThat(yearBased).isGreaterThan(ServerVersion.parse("1.21.11"));
+        assertThat(yearBased.isAtLeast(1, 21, 0)).isTrue();
+        assertThat(ServerVersion.parse("26.1.2")).isLessThan(yearBased);
+    }
 
     @Test
     void parsesMajorMinorPatch() {
@@ -84,8 +100,11 @@ class ServerVersionTest {
         @Test
         void readsTheRunningVersionFromBukkit() {
             ServerVersion current = ServerVersion.current();
+            assertThat(current).isEqualTo(ServerVersion.parse(Bukkit.getMinecraftVersion()));
+            // True on both supported lines, and for opposite reasons: 1.21.x clears the gate on its patch,
+            // 26.x clears it because the year-based scheme starts far above the old major. Asserting a
+            // literal major here would pin the test to whichever line the build happens to target.
             assertThat(current.isAtLeast(1, 21, 0)).isTrue();
-            assertThat(current.major()).isEqualTo(1);
         }
 
         @Test

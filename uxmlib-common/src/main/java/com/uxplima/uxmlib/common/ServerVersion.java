@@ -8,15 +8,19 @@ import org.bukkit.Bukkit;
 
 /**
  * The running Minecraft version as an ordered {@code (major, minor, patch)} key, with an
- * {@link #isAtLeast(int, int, int)} gate for the rare 1.21.x sub-patch where an API symbol only appeared
- * mid-line. We are 1.21+ only, so this carries none of the old multi-version baggage — just a tiny compare.
+ * {@link #isAtLeast(int, int, int)} gate for the rare sub-patch where an API symbol only appeared mid-line.
+ * We are 1.21+ only, so this carries none of the old multi-version baggage — just a tiny compare.
+ *
+ * <p>Minecraft dropped the {@code 1.x.y} scheme after 1.21.11 and now releases as {@code 26.1}, {@code 26.2},
+ * … The year lands in {@code major} and nothing else changes: 26 sorts above 1, so a version from the new
+ * line still compares greater than every version from the old one, and existing gates keep their meaning.
  *
  * <p>The live value is read once from {@link Bukkit#getMinecraftVersion()} and cached; {@link #isFolia()}
  * is a separate, reflective probe for the Folia marker class. Neither holds mutable state callers can change.
  */
 public final class ServerVersion implements Comparable<ServerVersion> {
 
-    // "1.21" or "1.21.4"; any trailing qualifier ("-R0.1-SNAPSHOT", "-pre2") is ignored.
+    // "1.21", "1.21.4" or "26.2"; any trailing qualifier ("-R0.1-SNAPSHOT", "-pre2") is ignored.
     private static final Pattern VERSION = Pattern.compile("^(\\d+)\\.(\\d+)(?:\\.(\\d+))?");
 
     // Folia ships this server class; plain Paper does not. The matching event lives in paper-api, the
@@ -42,8 +46,8 @@ public final class ServerVersion implements Comparable<ServerVersion> {
     }
 
     /**
-     * Parse a version string such as {@code "1.21"}, {@code "1.21.4"} or {@code "1.21.11-R0.1-SNAPSHOT"}. A
-     * missing patch counts as {@code 0}; any trailing qualifier is dropped.
+     * Parse a version string such as {@code "1.21"}, {@code "1.21.4"}, {@code "1.21.11-R0.1-SNAPSHOT"} or the
+     * year-based {@code "26.2"}. A missing patch counts as {@code 0}; any trailing qualifier is dropped.
      *
      * @throws IllegalArgumentException if {@code text} does not start with a {@code major.minor} pair
      */
