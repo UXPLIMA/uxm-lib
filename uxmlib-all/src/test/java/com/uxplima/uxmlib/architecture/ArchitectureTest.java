@@ -77,8 +77,7 @@ class ArchitectureTest {
             .resideOutsideOfPackage("com.uxplima.uxmlib.packet.compat..")
             .should()
             .dependOnClassesThat()
-            .resideInAnyPackage(
-                    "com.uxplima.uxmlib.packet.compat.mc1_21..", "com.uxplima.uxmlib.packet.compat.mc26..")
+            .resideInAnyPackage("com.uxplima.uxmlib.packet.compat.mc1_21..", "com.uxplima.uxmlib.packet.compat.mc26..")
             .because("the running server picks an adapter through ServerCompats; nothing else may name one");
 
     /** The gui module stays UI-only: PlaceholderAPI/integration glue is an injected seam, not a dependency. */
