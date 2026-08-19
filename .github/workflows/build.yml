@@ -1,0 +1,94 @@
+name: build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # The line the library is developed against — everything, NMS modules included.
+          - name: Paper 26.x
+            line: modern
+            tasks: build
+
+          # The oldest line the published jar must keep running on. One jar serves both, so this run is
+          # what keeps that a checked fact: anything reaching for a 26.x-only symbol fails here. The NMS
+          # modules compile against a single line's Mojang mappings and cannot take part, so the covered
+          # modules are listed rather than excluded (uxmlib-all pulls them in transitively).
+          - name: Paper 1.21.x
+            line: legacy
+            tasks: >-
+              -PmcTarget=1.21
+              :uxmlib-common:build :uxmlib-item:build :uxmlib-gui:build :uxmlib-hud:build
+              :uxmlib-command:build :uxmlib-condition:build :uxmlib-update:build
+              :uxmlib-storage:build :uxmlib-integration:build :uxmlib-redis:build
+              :uxmlib-npc:build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 25 to compile, not to target: paper-api 26.x ships Java 25 class files that an older compiler
+      # cannot read, while the build still emits Java 21 bytecode for the 1.21.x line.
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # Building the NMS modules decompiles the whole server jar, which takes minutes and needs several
+      # gigabytes. The result only changes when the Paper version does, so key the cache on the catalog.
+      - name: Cache the decompiled server sources
+        if: matrix.line == 'modern'
+        uses: actions/cache@v4
+        with:
+          path: ~/.gradle/caches/paperweight-userdev
+          key: paperweight-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+
+      - name: Build
+        run: ./gradlew ${{ matrix.tasks }}
+
+      # The whole cross-version promise rests on the jars being Java 21 even though they are compiled
+      # against Paper 26.x, and that is one `options.release` away from silently regressing.
+      - name: Check the published bytecode still targets Java 21
+        if: matrix.line == 'modern'
+        run: |
+          status=0
+          for jar in uxmlib-*/build/libs/*.jar; do
+            case "$jar" in *-sources.jar|*-javadoc.jar) continue ;; esac
+            entry=$(unzip -Z1 "$jar" | grep -m1 '^com/uxplima/uxmlib/.*\.class$' || true)
+            if [ -z "$entry" ]; then
+              continue
+            fi
+            major=$(unzip -p "$jar" "$entry" | od -An -tu1 -N8 | awk '{print $8}')
+            if [ "$major" = "65" ]; then
+              echo "ok: $jar targets Java 21"
+            else
+              echo "::error file=$jar::class file major version $major, expected 65 (Java 21)"
+              status=1
+            fi
+          done
+          exit $status
+
+      - name: Upload the test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.line }}
+          path: '**/build/reports/tests/test'
+          retention-days: 7
