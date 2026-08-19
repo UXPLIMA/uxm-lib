@@ -3,6 +3,17 @@ plugins {
     id("uxmlib.publish-conventions")
 }
 
+// WorldGuard, through WorldEdit, publishes `strictly` constraints on Guava, Gson and fastutil, pinned to
+// whatever an older server shipped and justified as "Mojang provides Guava". Paper 26.x ships newer ones,
+// and two strict pins that disagree make the classpath unresolvable rather than merely awkward. Nothing in
+// this module compiles against any of the three, and the server supplies all of them at runtime, so drop
+// them from WorldGuard's graph and let Paper pick the versions.
+fun ExternalModuleDependency.withoutServerProvidedLibraries() {
+    exclude(group = "com.google.guava")
+    exclude(group = "com.google.code.gson")
+    exclude(group = "it.unimi.dsi")
+}
+
 dependencies {
     api(project(":uxmlib-common"))
     compileOnly(libs.paper.api)
@@ -12,7 +23,7 @@ dependencies {
     compileOnly(libs.vault.api)
     compileOnly(libs.vaultunlocked.api)
     compileOnly(libs.placeholderapi)
-    compileOnly(libs.worldguard.bukkit)
+    compileOnly(libs.worldguard.bukkit) { withoutServerProvidedLibraries() }
     compileOnly(libs.towny)
 
     // Tests exercise the absent-plugin path (MockBukkit) and the pure JSON/spec logic (plain JUnit).
@@ -27,6 +38,6 @@ dependencies {
     testImplementation(libs.vaultunlocked.api)
     // WorldGuard and Towny on the test runtime let the region adapter classes load so the present-guard
     // (no plugin under MockBukkit -> empty) is asserted; production still treats both as compileOnly.
-    testImplementation(libs.worldguard.bukkit)
+    testImplementation(libs.worldguard.bukkit) { withoutServerProvidedLibraries() }
     testImplementation(libs.towny)
 }
