@@ -38,14 +38,14 @@ jobs:
               :uxmlib-npc:build
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Two JDKs, on purpose. The compiler has to be 25 — paper-api 26.x ships Java 25 class files that an
       # older one cannot read — while the emitted bytecode stays at 21 for the 1.21.x line. Gradle itself,
       # though, runs on 21: Palantir's formatter reaches into javac internals that changed in 25. Listing 21
       # last is what points JAVA_HOME, and with it the daemon, at 21.
       - name: Set up the JDKs
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: |
@@ -53,13 +53,13 @@ jobs:
             21
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       # Building the NMS modules decompiles the whole server jar, which takes minutes and needs several
       # gigabytes. The result only changes when the Paper version does, so key the cache on the catalog.
       - name: Cache the decompiled server sources
         if: matrix.line == 'modern'
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.gradle/caches/paperweight-userdev
           key: paperweight-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
@@ -92,7 +92,7 @@ jobs:
 
       - name: Upload the test reports
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports-${{ matrix.line }}
           path: '**/build/reports/tests/test'
