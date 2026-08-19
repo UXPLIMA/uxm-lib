@@ -48,9 +48,9 @@ paperweight {
     addServerDependencyTo.set(listOf(configurations.compileOnly.get()))
 }
 
-// The sources belong to the packet modules and are formatted there. Formatting them from here as well would
-// have two projects writing the same files.
-tasks.matching { it.name.startsWith("spotless") }.configureEach { enabled = false }
+// The java sources belong to the packet modules and are formatted there. Formatting them from here as well
+// would have two projects writing the same files; this module's own build script stays covered.
+tasks.matching { it.name.startsWith("spotlessJava") }.configureEach { enabled = false }
 
 // A second copy of the same javadoc is pure build time for a module that publishes nothing.
 tasks.named<Javadoc>("javadoc") { enabled = false }
