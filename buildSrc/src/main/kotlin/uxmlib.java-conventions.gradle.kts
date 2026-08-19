@@ -10,9 +10,12 @@ plugins {
 
 val libs = the<org.gradle.accessors.dm.LibrariesForLibs>()
 
+// The compiler and the bytecode target are deliberately different versions. Paper 26.x ships Java 25
+// class files, so nothing older than a Java 25 compiler can even read paper-api; the emitted bytecode
+// stays at Java 21 so a single published jar keeps running on the 1.21.x line, which is still Java 21.
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
+        languageVersion = JavaLanguageVersion.of(libs.versions.java.toolchain.get().toInt())
         vendor = JvmVendorSpec.ADOPTIUM
     }
     // A published library ships sources and javadoc alongside the binary.
@@ -32,8 +35,59 @@ dependencies {
     "testRuntimeOnly"("org.junit.platform:junit-platform-launcher")
 }
 
+// The library is published as one jar for two server lines, so nothing outside the NMS modules may touch
+// API that exists on only one of them. `-PmcTarget=1.21` is how that stays a checked fact rather than an
+// assumption: it rebuilds and retests against the oldest supported line, and anything reaching for a
+// 26.x-only symbol fails there. The NMS modules are pinned to one line's Mojang mappings by nature and are
+// excluded from such a run (`-x :uxmlib-packet:build -x :uxmlib-nametags:build`).
+if (providers.gradleProperty("mcTarget").orNull == "1.21") {
+    // Paper bundles Adventure, so the line under test decides that version too. The BOM is what pins it:
+    // it lists exactly the core artifacts and nothing from the separately versioned adventure-platform
+    // line, which MockBukkit drags in and which must keep its own versions.
+    dependencies {
+        val adventureBom = "net.kyori:adventure-bom:" + libs.versions.legacy.adventure.get()
+        "compileOnly"(enforcedPlatform(adventureBom))
+        "testImplementation"(enforcedPlatform(adventureBom))
+    }
+    configurations.configureEach {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "io.papermc.paper" && requested.name == "paper-api") {
+                useVersion(libs.versions.legacy.paper.get())
+            }
+        }
+        // MockBukkit ships one artifact per server line rather than one artifact with many versions.
+        resolutionStrategy.dependencySubstitution {
+            substitute(module("org.mockbukkit.mockbukkit:mockbukkit-v26.2"))
+                .using(
+                    module("org.mockbukkit.mockbukkit:mockbukkit-v1.21:" + libs.versions.legacy.mockbukkit.get()),
+                )
+        }
+    }
+}
+
+// Gradle resolves dependencies by variant, and paper-api 26.x publishes metadata declaring it needs a
+// Java 25 runtime. Matched against `options.release = 21` that looks like an incompatibility and the
+// dependency is rejected outright. The declared level constrains the bytecode this project *emits*;
+// it says nothing about what the compiler can *read*, and a JDK 25 javac reads Java 25 class files
+// while still emitting Java 21. Widen what these classpaths accept, and leave the target alone.
+listOf(
+    configurations.compileClasspath,
+    configurations.runtimeClasspath,
+    configurations.testCompileClasspath,
+    configurations.testRuntimeClasspath,
+).forEach { classpath ->
+    classpath.configure {
+        attributes {
+            attribute(
+                org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE,
+                libs.versions.java.toolchain.get().toInt(),
+            )
+        }
+    }
+}
+
 tasks.withType<JavaCompile>().configureEach {
-    options.release = 21
+    options.release = libs.versions.java.release.get().toInt()
     options.encoding = "UTF-8"
     options.compilerArgs.addAll(
         listOf(
