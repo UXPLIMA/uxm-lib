@@ -26,7 +26,7 @@ import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.entity.Display;
-import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
@@ -87,7 +87,7 @@ public final class NmsNametagPackets implements NametagPackets {
     @Override
     public Object spawnPacket(int entityId, double x, double y, double z) {
         return new ClientboundAddEntityPacket(
-                entityId, new UUID(0L, entityId), x, y, z, 0.0f, 0.0f, EntityType.TEXT_DISPLAY, 0, Vec3.ZERO, 0.0);
+                entityId, new UUID(0L, entityId), x, y, z, 0.0f, 0.0f, EntityTypes.TEXT_DISPLAY, 0, Vec3.ZERO, 0.0);
     }
 
     @Override
