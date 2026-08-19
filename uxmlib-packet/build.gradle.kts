@@ -22,7 +22,7 @@ dependencies {
     // org.bukkit.craftbukkit) the packet construction needs; it replaces the plain paper-api compile
     // dependency for the main source set. Paper's runtime remapper maps the Mojang-mapped classes back
     // to the server mappings at load when the consumer ships the namespace manifest attribute.
-    paperweight.paperDevBundle(libs.versions.paper.get())
+    paperweight.devBundle(libs.devbundle.modern)
     compileOnly(libs.bundles.adventure) // Paper ships Adventure at runtime
     // Paper bundles Netty at runtime but does not export it through its POM; the channel/pipeline types are
     // a compileOnly dependency pinned to the version the server ships. Infra dep; the consumer never shades it.

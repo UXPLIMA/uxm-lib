@@ -10,7 +10,7 @@ plugins {
 dependencies {
     api(project(":uxmlib-packet-compat"))
 
-    paperweight.paperDevBundle(libs.versions.paper.get())
+    paperweight.devBundle(libs.devbundle.modern)
 }
 
 paperweight {

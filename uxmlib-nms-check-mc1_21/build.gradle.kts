@@ -28,7 +28,7 @@ fun ModuleDependency.withoutPaperApi() {
 }
 
 dependencies {
-    paperweight.paperDevBundle(libs.versions.legacy.paper.get())
+    paperweight.devBundle(libs.devbundle.legacy)
 
     compileOnly(project(":uxmlib-common")) { withoutPaperApi() }
     compileOnly(project(":uxmlib-npc")) { withoutPaperApi() }
@@ -39,7 +39,7 @@ dependencies {
     // Paper bundles Adventure, so the line under test decides that version too — and on the oldest line it is
     // older than what the rest of the build compiles against. Pinning it here means this run also proves the
     // packet sources stay inside the Adventure API that line actually ships.
-    compileOnly(enforcedPlatform("net.kyori:adventure-bom:" + libs.versions.legacy.adventure.get()))
+    compileOnly(enforcedPlatform(libs.adventure.bom.legacy))
     compileOnly(libs.bundles.adventure)
     compileOnly(libs.netty.transport)
 }

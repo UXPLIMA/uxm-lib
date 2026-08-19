@@ -12,7 +12,7 @@ plugins {
 // only types that exist on every supported line. If a future line ever renames one of those, the method has
 // to change shape here first, which is exactly where such a break should surface.
 dependencies {
-    paperweight.paperDevBundle(libs.versions.paper.get())
+    paperweight.devBundle(libs.devbundle.modern)
 }
 
 // The dev bundle stays on compileOnly: the server supplies these classes at runtime, and pulling the whole

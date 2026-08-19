@@ -46,9 +46,8 @@ if (providers.gradleProperty("mcTarget").orNull == "1.21") {
     // it lists exactly the core artifacts and nothing from the separately versioned adventure-platform
     // line, which MockBukkit drags in and which must keep its own versions.
     dependencies {
-        val adventureBom = "net.kyori:adventure-bom:" + libs.versions.legacy.adventure.get()
-        "compileOnly"(enforcedPlatform(adventureBom))
-        "testImplementation"(enforcedPlatform(adventureBom))
+        "compileOnly"(enforcedPlatform(libs.adventure.bom.legacy))
+        "testImplementation"(enforcedPlatform(libs.adventure.bom.legacy))
     }
     configurations.configureEach {
         resolutionStrategy.eachDependency {
