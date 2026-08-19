@@ -67,7 +67,13 @@ lettuce = "7.6.0.RELEASE"   # io.lettuce:lettuce-core
 
 [libraries]
 paper-api         = { module = "io.papermc.paper:paper-api",            version.ref = "paper" }
+# The Mojang-mapped dev bundle, one entry per server line the library builds against. Naming them here
+# rather than assembling the coordinate in a build script keeps this file the only place a line is pinned.
+devbundle-modern  = { module = "io.papermc.paper:dev-bundle",           version.ref = "paper" }
+devbundle-legacy  = { module = "io.papermc.paper:dev-bundle",           version.ref = "legacy-paper" }
 adventure-api     = { module = "net.kyori:adventure-api",                     version.ref = "adventure" }
+# The BOM pins every core Adventure artifact at once; only the older line needs it named explicitly.
+adventure-bom-legacy = { module = "net.kyori:adventure-bom",                  version.ref = "legacy-adventure" }
 adventure-mini    = { module = "net.kyori:adventure-text-minimessage",        version.ref = "adventure" }
 adventure-plain   = { module = "net.kyori:adventure-text-serializer-plain",   version.ref = "adventure" }
 configurate-hocon = { module = "org.spongepowered:configurate-hocon",   version.ref = "configurate" }

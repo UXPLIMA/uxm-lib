@@ -82,7 +82,7 @@ and depend on it as a normal plugin. Both work.
 
 | | |
 | --- | --- |
-| Server | Paper **1.21+** (developed against `1.21.11`) |
+| Server | Paper **1.21+**, including the year-based line (developed against `26.2`, built and tested against `1.21.11` too) |
 | Java | **21** |
 | Build (consumers) | Gradle or Maven; the modules are plain Maven artifacts |
 
@@ -109,6 +109,7 @@ what you use. Modules marked **experimental** are previews with unstable APIs (s
 | `uxmlib-condition` | A declarative condition engine (operand comparison + placeholder resolution + failure policy) and its natural pair, a config-driven action engine (`[message]`, `[console]`, `[title]`, … parsed once into closures). |
 | `uxmlib-npc` | **Experimental.** A from-scratch, MIT-clean Netty pipeline foundation — channel resolve, idempotent inject/eject, a self-healing reorder watchdog, and a fail-open listener seam. Groundwork for the packet layer; no NPC yet. |
 | `uxmlib-packet` | **Experimental.** The shared Mojang-mapped packet helpers (Adventure→vanilla component conversion, bundling, the stream-codec buffer trick, guarded reflection, entity-id allocation) plus per-viewer tab-list, NPC, and text-display packet ports built on them. |
+| `uxmlib-packet-compat` | **Experimental.** The seam for the few server internals that are not spelled the same on every supported Minecraft line, with one adapter artifact per line (`-mc1_21`, `-mc26`). Pulled in transitively by `uxmlib-packet`; consumers never name it. |
 | `uxmlib-nametags` | **Experimental.** A from-scratch per-viewer nametag renderer (different prefixes/colours/visibility per viewer) over scoreboard-team and metadata packets, without touching the server-side scoreboard. |
 | `uxmlib-bom` | A bill of materials so a consumer can align every `uxmlib-*` artifact to one version with a single platform import. |
 | `uxmlib-all` | The aggregate of every module on the API surface, and the standalone server-side plugin jar. |
@@ -128,6 +129,7 @@ graph TD
     redis[uxmlib-redis]
     npc[uxmlib-npc] --> common
     packet[uxmlib-packet] --> npc
+    packet --> compat[uxmlib-packet-compat]
     nametags[uxmlib-nametags] --> common
     nametags --> npc
     nametags --> packet
@@ -566,6 +568,12 @@ for the things the public API cannot do per viewer — different nametag colours
 for different players. PacketEvents (the off-the-shelf choice) is GPL, so none of it is borrowed; the Netty
 plumbing is re-implemented for Paper 1.21+ and the unavoidable NMS is quarantined to single, named classes
 behind pure ports built against the Mojang-mapped dev bundle.
+
+Those classes are compiled against the newest supported server and are expected to keep loading on the oldest
+one, which holds because almost nothing they touch has moved between the two. The exceptions live behind
+`uxmlib-packet-compat`, one small adapter per line, each compiled against that line's own server; the rest of
+the sources are recompiled against the oldest line on every build, so a server internal that stops existing
+there fails the build rather than someone's server.
 
 These modules have **unstable APIs** and parts are still landing. Treat them as a preview; the stable
 toolkit above does not depend on them.

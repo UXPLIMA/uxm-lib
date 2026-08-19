@@ -19,6 +19,7 @@ import com.uxplima.uxmlib.packet.Codecs;
 import com.uxplima.uxmlib.packet.Components;
 import com.uxplima.uxmlib.packet.EntityIds;
 import com.uxplima.uxmlib.packet.Reflect;
+import com.uxplima.uxmlib.packet.VanillaEntityTypes;
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundRemoveEntitiesPacket;
 import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket;
@@ -26,7 +27,7 @@ import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.world.entity.Display;
-import net.minecraft.world.entity.EntityTypes;
+import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector3f;
 
@@ -60,9 +61,14 @@ public final class NmsNametagPackets implements NametagPackets {
     private final EntityDataAccessor<org.joml.Vector3fc> scaleAccessor;
     private final EntityDataAccessor<Integer> interpolationDurationAccessor;
     private final EntityDataAccessor<Integer> interpolationStartDeltaAccessor;
+    /** The registry's own text-display type, read once rather than named as a constant. */
+    private final EntityType<?> textDisplayType;
 
     public NmsNametagPackets(PacketSender sender) {
         this.sender = Objects.requireNonNull(sender, "sender");
+        // Off the registry, not off a constant: the class the entity-type constants live on has been renamed
+        // across Minecraft lines, while the registry key has not.
+        this.textDisplayType = VanillaEntityTypes.of("text_display");
         // Read each accessor once here and hold it in a final field, keeping the reflection off every hot path.
         this.textAccessor = Reflect.accessor(Display.TextDisplay.class, "DATA_TEXT_ID");
         this.billboardAccessor = Reflect.accessor(Display.class, "DATA_BILLBOARD_RENDER_CONSTRAINTS_ID");
@@ -87,7 +93,7 @@ public final class NmsNametagPackets implements NametagPackets {
     @Override
     public Object spawnPacket(int entityId, double x, double y, double z) {
         return new ClientboundAddEntityPacket(
-                entityId, new UUID(0L, entityId), x, y, z, 0.0f, 0.0f, EntityTypes.TEXT_DISPLAY, 0, Vec3.ZERO, 0.0);
+                entityId, new UUID(0L, entityId), x, y, z, 0.0f, 0.0f, textDisplayType, 0, Vec3.ZERO, 0.0);
     }
 
     @Override

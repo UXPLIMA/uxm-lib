@@ -11,12 +11,18 @@ plugins {
 // Netty plumbing (channel resolve, packet send) comes from uxmlib-npc.
 dependencies {
     api(project(":uxmlib-npc"))
+    // The seam for the handful of server internals that are not the same on every supported line, plus one
+    // adapter per line. All of the adapters ship: only the one matching the running server is ever loaded,
+    // and each is compiled against its own line's server so neither side of the seam is taken on faith.
+    api(project(":uxmlib-packet-compat"))
+    implementation(project(":uxmlib-packet-compat-mc1_21"))
+    implementation(project(":uxmlib-packet-compat-mc26"))
 
     // The Mojang-mapped dev bundle supplies the Paper API *and* the server internals (net.minecraft,
     // org.bukkit.craftbukkit) the packet construction needs; it replaces the plain paper-api compile
     // dependency for the main source set. Paper's runtime remapper maps the Mojang-mapped classes back
     // to the server mappings at load when the consumer ships the namespace manifest attribute.
-    paperweight.paperDevBundle(libs.versions.paper.get())
+    paperweight.devBundle(libs.devbundle.modern)
     compileOnly(libs.bundles.adventure) // Paper ships Adventure at runtime
     // Paper bundles Netty at runtime but does not export it through its POM; the channel/pipeline types are
     // a compileOnly dependency pinned to the version the server ships. Infra dep; the consumer never shades it.

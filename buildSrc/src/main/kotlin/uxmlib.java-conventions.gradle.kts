@@ -35,19 +35,19 @@ dependencies {
     "testRuntimeOnly"("org.junit.platform:junit-platform-launcher")
 }
 
-// The library is published as one jar for two server lines, so nothing outside the NMS modules may touch
-// API that exists on only one of them. `-PmcTarget=1.21` is how that stays a checked fact rather than an
-// assumption: it rebuilds and retests against the oldest supported line, and anything reaching for a
-// 26.x-only symbol fails there. The NMS modules are pinned to one line's Mojang mappings by nature and are
-// excluded from such a run (`-x :uxmlib-packet:build -x :uxmlib-nametags:build`).
+// The library is published as one jar for two server lines, so nothing may touch API that exists on only one
+// of them. `-PmcTarget=1.21` is how that stays a checked fact rather than an assumption: it rebuilds and
+// retests the platform-neutral modules against the oldest supported line, and anything reaching for a 26.x-only
+// symbol fails there. The modules that reach into the server cannot take part in such a run, because a dev
+// bundle is pinned to one line by nature; `:uxmlib-nms-check-mc1_21` covers them instead by recompiling their
+// sources against the older bundle, and the compat seam covers what genuinely differs.
 if (providers.gradleProperty("mcTarget").orNull == "1.21") {
     // Paper bundles Adventure, so the line under test decides that version too. The BOM is what pins it:
     // it lists exactly the core artifacts and nothing from the separately versioned adventure-platform
     // line, which MockBukkit drags in and which must keep its own versions.
     dependencies {
-        val adventureBom = "net.kyori:adventure-bom:" + libs.versions.legacy.adventure.get()
-        "compileOnly"(enforcedPlatform(adventureBom))
-        "testImplementation"(enforcedPlatform(adventureBom))
+        "compileOnly"(enforcedPlatform(libs.adventure.bom.legacy))
+        "testImplementation"(enforcedPlatform(libs.adventure.bom.legacy))
     }
     configurations.configureEach {
         resolutionStrategy.eachDependency {
