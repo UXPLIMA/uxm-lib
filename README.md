@@ -1,5 +1,6 @@
 # uxmLib
 
+[![build](https://github.com/UXPLIMA/uxmLib/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/UXPLIMA/uxmLib/actions/workflows/build.yml)
 [![JitPack](https://jitpack.io/v/UXPLIMA/uxmLib.svg)](https://jitpack.io/#UXPLIMA/uxmLib)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Java 21](https://img.shields.io/badge/Java-21-orange.svg)](https://adoptium.net/)
