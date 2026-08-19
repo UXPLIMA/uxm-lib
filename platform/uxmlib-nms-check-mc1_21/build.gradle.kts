@@ -13,8 +13,8 @@ sourceSets {
     main {
         java.setSrcDirs(
             listOf(
-                "../uxmlib-packet/src/main/java",
-                "../uxmlib-nametags/src/main/java",
+                "../../uxmlib-packet/src/main/java",
+                "../../uxmlib-nametags/src/main/java",
             ),
         )
         resources.setSrcDirs(emptyList<String>())
