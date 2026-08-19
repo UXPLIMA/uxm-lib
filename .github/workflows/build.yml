@@ -40,13 +40,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # 25 to compile, not to target: paper-api 26.x ships Java 25 class files that an older compiler
-      # cannot read, while the build still emits Java 21 bytecode for the 1.21.x line.
-      - name: Set up JDK 25
+      # Two JDKs, on purpose. The compiler has to be 25 — paper-api 26.x ships Java 25 class files that an
+      # older one cannot read — while the emitted bytecode stays at 21 for the 1.21.x line. Gradle itself,
+      # though, runs on 21: Palantir's formatter reaches into javac internals that changed in 25. Listing 21
+      # last is what points JAVA_HOME, and with it the daemon, at 21.
+      - name: Set up the JDKs
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '25'
+          java-version: |
+            25
+            21
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -60,8 +64,9 @@ jobs:
           path: ~/.gradle/caches/paperweight-userdev
           key: paperweight-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
 
+      # The 25 toolchain lives outside JAVA_HOME here, so Gradle is told where to look for it.
       - name: Build
-        run: ./gradlew ${{ matrix.tasks }}
+        run: ./gradlew -Dorg.gradle.java.installations.fromEnv=JAVA_HOME_25_X64 ${{ matrix.tasks }}
 
       # The whole cross-version promise rests on the jars being Java 21 even though they are compiled
       # against Paper 26.x, and that is one `options.release` away from silently regressing.
