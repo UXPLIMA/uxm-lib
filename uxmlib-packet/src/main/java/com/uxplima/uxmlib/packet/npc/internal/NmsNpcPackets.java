@@ -25,6 +25,8 @@ import com.uxplima.uxmlib.packet.Components;
 import com.uxplima.uxmlib.packet.EntityIds;
 import com.uxplima.uxmlib.packet.GameProfiles;
 import com.uxplima.uxmlib.packet.Reflect;
+import com.uxplima.uxmlib.packet.ServerCompats;
+import com.uxplima.uxmlib.packet.VanillaEntityTypes;
 import com.uxplima.uxmlib.packet.npc.ArmorStandPart;
 import com.uxplima.uxmlib.packet.npc.ByteAngle;
 import com.uxplima.uxmlib.packet.npc.EquipmentSlot;
@@ -62,7 +64,6 @@ import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Interaction;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
@@ -112,7 +113,6 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.Team;
-import net.minecraft.world.scores.TeamColor;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
 import org.jspecify.annotations.Nullable;
@@ -129,10 +129,11 @@ import org.jspecify.annotations.Nullable;
  * <ul>
  *   <li><b>Spawning an entity.</b> Since 1.20.2 there is no separate add-player packet; every NPC — a fake
  *       player or a mob — spawns through {@code ClientboundAddEntityPacket}, so both spawn methods share one
- *       builder that differs only in the {@code EntityType} and the spawn UUID. A fake player passes {@code
- *       EntityTypes.PLAYER} and the profile id as the spawn UUID, which must equal the id from the player-info
- *       ADD entry or the client will not link the skin to the entity; a mob passes the type resolved from the
- *       entity-type registry and an opaque entity UUID with no skin to bind. That public constructor packs the
+ *       builder that differs only in the {@code EntityType} and the spawn UUID. Both types come out of the
+ *       entity-type registry rather than off a constant, since the class those constants live on is one of the
+ *       few internals that has been renamed across lines. A fake player passes the player type and the profile
+ *       id as the spawn UUID, which must equal the id from the player-info ADD entry or the client will not
+ *       link the skin to the entity; a mob passes the type for its key and an opaque UUID with no skin to bind. That public constructor packs the
  *       raw degree rotations itself (via {@code Mth.packDegrees}), so spawn passes raw floats; the standalone
  *       look and teleport packets instead take a pre-packed byte, which {@link ByteAngle} produces with the same
  *       {@code floor} math so the two stay in step.
@@ -159,8 +160,9 @@ import org.jspecify.annotations.Nullable;
  *       packet sets that single byte.
  *   <li><b>Glow colour.</b> The client tints a glowing outline with the colour of the team the entity's name is
  *       on, so a colour is a {@code ClientboundSetPlayerTeamPacket.createAddOrModifyPacket} over a throwaway
- *       {@code PlayerTeam} carrying the {@code TeamColor} and the NPC's profile name as its member —
- *       the approach FancyNpcs uses.
+ *       {@code PlayerTeam} carrying the colour and the NPC's profile name as its member — the approach
+ *       FancyNpcs uses. Which enum a team's colour is depends on the line, so it is set through the compat
+ *       seam rather than here.
  * </ul>
  */
 public final class NmsNpcPackets implements NpcPackets {
@@ -318,9 +320,12 @@ public final class NmsNpcPackets implements NpcPackets {
     private final byte offHandFlag;
     /** {@code Entity.DATA_TICKS_FROZEN}; a value past the freeze threshold renders the shivering overlay. */
     private final EntityDataAccessor<Integer> frozenTicksAccessor;
+    /** The registry's own player type, read once rather than named as a constant (see VanillaEntityTypes). */
+    private final EntityType<?> playerType;
 
     public NmsNpcPackets(PacketSender sender) {
         this.sender = Objects.requireNonNull(sender, "sender");
+        this.playerType = VanillaEntityTypes.of("player");
         // Read the shared-flags and pose accessors and the glowing bit index once here, off every hot path.
         // FLAG_GLOWING is the bit position (6); the wire value is the byte with that one bit set.
         this.sharedFlagsAccessor = Reflect.accessor(Entity.class, "DATA_SHARED_FLAGS_ID");
@@ -480,8 +485,8 @@ public final class NmsNpcPackets implements NpcPackets {
     public Object spawnPlayer(int entityId, UUID profileId, double x, double y, double z, float yaw, float pitch) {
         Objects.requireNonNull(profileId, "profileId");
         // The spawn UUID is the profile id so the client links the skin; the head yaw matches the body yaw so the
-        // NPC faces one way on spawn. PLAYER is the specialisation of the generic add-entity build below.
-        return addEntity(entityId, profileId, EntityTypes.PLAYER, x, y, z, yaw, pitch);
+        // NPC faces one way on spawn. The player type is the specialisation of the generic build below.
+        return addEntity(entityId, profileId, playerType, x, y, z, yaw, pitch);
     }
 
     @Override
@@ -492,7 +497,7 @@ public final class NmsNpcPackets implements NpcPackets {
         // A mob has no player-info entry, so entityUuid is just the opaque spawn UUID. Resolve the server entity
         // type from the key off the entity-type registry; an unresolved key is a guard failure (the plugin
         // validates first).
-        return addEntity(entityId, entityUuid, resolveType(entityTypeKey), x, y, z, yaw, pitch);
+        return addEntity(entityId, entityUuid, VanillaEntityTypes.of(entityTypeKey), x, y, z, yaw, pitch);
     }
 
     /**
@@ -504,24 +509,6 @@ public final class NmsNpcPackets implements NpcPackets {
     private static ClientboundAddEntityPacket addEntity(
             int entityId, UUID spawnUuid, EntityType<?> type, double x, double y, double z, float yaw, float pitch) {
         return new ClientboundAddEntityPacket(entityId, spawnUuid, x, y, z, pitch, yaw, type, 0, Vec3.ZERO, yaw);
-    }
-
-    /**
-     * Resolve a namespaced-or-plain entity-type key to the server {@link EntityType}. {@code "villager"} is
-     * defaulted to the {@code minecraft} namespace; an unparseable or unknown key resolves to nothing and is
-     * rejected, matching the port's documented guard.
-     */
-    private static EntityType<?> resolveType(String entityTypeKey) {
-        Identifier id = entityTypeKey.indexOf(Identifier.NAMESPACE_SEPARATOR) < 0
-                ? Identifier.withDefaultNamespace(entityTypeKey)
-                : Identifier.tryParse(entityTypeKey);
-        EntityType<?> type = id == null
-                ? null
-                : BuiltInRegistries.ENTITY_TYPE.getOptional(id).orElse(null);
-        if (type == null) {
-            throw new IllegalArgumentException("Unknown entity type key: " + entityTypeKey);
-        }
-        return type;
     }
 
     @Override
@@ -1114,7 +1101,7 @@ public final class NmsNpcPackets implements NpcPackets {
         // PlayerTeam needs a Scoreboard only to construct.
         PlayerTeam team = new PlayerTeam(new Scoreboard(), teamName);
         if (color != null) {
-            team.setColor(Optional.of(TeamColor.valueOf(color.name())));
+            ServerCompats.current().applyTeamColor(team, color.name());
         }
         team.getPlayers().add(memberName);
         return ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(team, true);
@@ -1143,7 +1130,7 @@ public final class NmsNpcPackets implements NpcPackets {
         team.setCollisionRule(collidable ? Team.CollisionRule.ALWAYS : Team.CollisionRule.NEVER);
         team.setNameTagVisibility(hideNametag ? Team.Visibility.NEVER : Team.Visibility.ALWAYS);
         if (color != null) {
-            team.setColor(Optional.of(TeamColor.valueOf(color.name())));
+            ServerCompats.current().applyTeamColor(team, color.name());
         }
         team.getPlayers().add(memberName);
         return ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(team, true);

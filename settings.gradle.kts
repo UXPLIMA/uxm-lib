@@ -25,6 +25,10 @@ include(
     ":uxmlib-condition",
     ":uxmlib-npc",
     ":uxmlib-packet",
+    ":uxmlib-packet-compat",
+    ":uxmlib-packet-compat-mc1_21",
+    ":uxmlib-packet-compat-mc26",
     ":uxmlib-nametags",
+    ":uxmlib-nms-check-mc1_21",
     ":uxmlib-all",
 )
