@@ -58,7 +58,7 @@ class HelpPaginationTest {
     void eachLineSuggestsItsCommandOnClick() {
         List<HelpRenderer.Entry> entries = List.of(new HelpRenderer.Entry("create", "Found a town", ""));
         Component page = HelpRenderer.render("town", entries, 1, HelpRenderer.PER_PAGE);
-        assertThat(clickValues(page)).contains("/town create");
+        assertThat(hasClick(page, ClickEvent.suggestCommand("/town create"))).isTrue();
     }
 
     @Test
@@ -67,7 +67,7 @@ class HelpPaginationTest {
         String text = PlainTextComponentSerializer.plainText().serialize(page1);
         assertThat(text).contains("(1/3)").contains("next");
         // The next button runs the help command for page 2.
-        assertThat(clickValues(page1)).contains("/town help 2");
+        assertThat(hasClick(page1, ClickEvent.runCommand("/town help 2"))).isTrue();
     }
 
     @Test
@@ -80,23 +80,25 @@ class HelpPaginationTest {
     @Test
     void aSinglePageHasNoFooter() {
         Component page = HelpRenderer.render("town", many(2), 1, HelpRenderer.PER_PAGE);
-        assertThat(clickValues(page)).noneMatch(v -> v.contains("help "));
+        assertThat(hasClick(page, ClickEvent.runCommand("/town help 2"))).isFalse();
     }
 
-    /** The values of every click event in the component tree, in pre-order. */
-    private static List<String> clickValues(Component component) {
-        List<String> values = new java.util.ArrayList<>();
-        collectClicks(component, values);
-        return values;
-    }
-
-    private static void collectClicks(Component component, List<String> into) {
-        ClickEvent click = component.clickEvent();
-        if (click != null && click.payload() instanceof ClickEvent.Payload.Text text) {
-            into.add(text.value());
+    /**
+     * Whether any component in the tree carries exactly {@code expected} as its click event. Comparing whole
+     * events rather than reading a value back off one keeps this readable across Adventure lines: 5.x gave
+     * ClickEvent a type parameter and swapped {@code value()} for a typed payload, while the factories and
+     * {@code equals} behave identically on both. {@code Object} for the same reason — a declared
+     * {@code ClickEvent} would be a raw type on 5.x and an over-specified one on 4.x.
+     */
+    private static boolean hasClick(Component component, Object expected) {
+        if (expected.equals(component.clickEvent())) {
+            return true;
         }
         for (Component child : component.children()) {
-            collectClicks(child, into);
+            if (hasClick(child, expected)) {
+                return true;
+            }
         }
+        return false;
     }
 }

@@ -2,8 +2,6 @@ package com.uxplima.uxmlib.update;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Optional;
-
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 
@@ -24,24 +22,24 @@ class UpdateMessagesTest {
     @Test
     void notificationCarriesAClickableOpenUrlToTheRelease() {
         Component message = UpdateMessages.notification("uxmLib", "1.4.0", RELEASE);
-        assertThat(clickUrlOf(message)).contains(RELEASE.url());
+        assertThat(hasClick(message, ClickEvent.openUrl(RELEASE.url()))).isTrue();
     }
 
-    // ClickEvent#value() is the URL accessor on the compile-time Adventure; a transitively-newer Adventure on the
-    // test runtime marks it deprecated, so suppress the warning here rather than depend on a version-specific payload
-    // API.
-    @SuppressWarnings("deprecation")
-    private static Optional<String> clickUrlOf(Component component) {
-        ClickEvent click = component.clickEvent();
-        if (click != null && click.action() == ClickEvent.Action.OPEN_URL) {
-            return Optional.of(click.value());
+    /**
+     * Whether any component in the tree carries exactly {@code expected} as its click event. Adventure 5
+     * removed {@code ClickEvent#value()} in favour of a typed payload, so reading the URL back off the event
+     * only compiles against one line at a time; comparing whole events works on both. {@code Object} because a
+     * declared {@code ClickEvent} would be a raw type on 5.x, where the class gained a type parameter.
+     */
+    private static boolean hasClick(Component component, Object expected) {
+        if (expected.equals(component.clickEvent())) {
+            return true;
         }
         for (Component child : component.children()) {
-            Optional<String> found = clickUrlOf(child);
-            if (found.isPresent()) {
-                return found;
+            if (hasClick(child, expected)) {
+                return true;
             }
         }
-        return Optional.empty();
+        return false;
     }
 }
