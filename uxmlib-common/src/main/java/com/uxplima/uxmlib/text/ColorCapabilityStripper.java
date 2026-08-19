@@ -66,11 +66,6 @@ public final class ColorCapabilityStripper {
     private static final Pattern HEX_BODY = Pattern.compile("[0-9a-fA-F]{3,8}");
 
     /**
-     * Strip every tag whose {@link ColorCapability} is NOT in {@code allowed}.
-     * Returns {@code text} verbatim when {@code allowed} contains every
-     * capability (full freedom — no scan needed).
-     */
-    /**
      * Strip every recognised styling tag (named colour, hex, gradient,
      * rainbow, formatting) from {@code text}, returning the visible /
      * "plain" form. Unknown tags (placeholders, structural tags) are
@@ -110,6 +105,11 @@ public final class ColorCapabilityStripper {
                 || cat == ColorCapability.RAINBOW;
     }
 
+    /**
+     * Strip every tag whose {@link ColorCapability} is NOT in {@code allowed}.
+     * Returns {@code text} verbatim when {@code allowed} contains every
+     * capability (full freedom — no scan needed).
+     */
     public static String strip(String text, Set<ColorCapability> allowed) {
         Objects.requireNonNull(text, "text");
         Objects.requireNonNull(allowed, "allowed");
