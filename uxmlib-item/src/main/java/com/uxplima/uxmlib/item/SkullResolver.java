@@ -36,7 +36,7 @@ public final class SkullResolver {
     private final RateLimiter limiter;
     private final long negativeTtlMillis;
     private final LongSupplier clock;
-    private final Map<String, Entry> cache;
+    private final Map<String, CacheEntry> cache;
 
     /** A resolver backed by the live Paper completer, 1024 cached entries and 600 lookups/minute. */
     public static SkullResolver create(Scheduler scheduler) {
@@ -115,12 +115,12 @@ public final class SkullResolver {
 
     private CompletableFuture<Optional<SkullData>> resolve(String key) {
         synchronized (cache) {
-            Entry cached = cache.get(key);
+            CacheEntry cached = cache.get(key);
             if (cached != null && !isExpiredNegative(cached)) {
                 return cached.future();
             }
             CompletableFuture<Optional<SkullData>> pending = new CompletableFuture<>();
-            cache.put(key, new Entry(pending, clock.getAsLong()));
+            cache.put(key, new CacheEntry(pending, clock.getAsLong()));
             scheduler.async(() -> fetchInto(key, pending));
             return pending;
         }
@@ -128,7 +128,7 @@ public final class SkullResolver {
 
     // A negative entry expires once its remembered miss is older than the TTL, so the next lookup re-fetches.
     // A positive (present) result, and any still-in-flight future, never expire this way.
-    private boolean isExpiredNegative(Entry entry) {
+    private boolean isExpiredNegative(CacheEntry entry) {
         CompletableFuture<Optional<SkullData>> future = entry.future();
         if (!future.isDone() || future.isCompletedExceptionally()) {
             return false;
@@ -162,15 +162,15 @@ public final class SkullResolver {
         }
     }
 
-    private static Map<String, Entry> boundedLru(int maxEntries) {
+    private static Map<String, CacheEntry> boundedLru(int maxEntries) {
         return new LinkedHashMap<>(16, 0.75f, true) {
             @Override
-            protected boolean removeEldestEntry(Map.Entry<String, Entry> eldest) {
+            protected boolean removeEldestEntry(Map.Entry<String, CacheEntry> eldest) {
                 return size() > maxEntries;
             }
         };
     }
 
     // A cached future plus the wall-clock millis it was stored, so a negative result can age out.
-    private record Entry(CompletableFuture<Optional<SkullData>> future, long storedAt) {}
+    private record CacheEntry(CompletableFuture<Optional<SkullData>> future, long storedAt) {}
 }
