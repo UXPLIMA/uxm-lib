@@ -33,7 +33,6 @@ import com.uxplima.uxmlib.packet.npc.NamedColor;
 import com.uxplima.uxmlib.packet.npc.NpcPackets;
 import com.uxplima.uxmlib.packet.npc.NpcPose;
 import com.uxplima.uxmlib.packet.tablist.TabSkin;
-import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Holder;
@@ -63,6 +62,7 @@ import net.minecraft.world.entity.AgeableMob;
 import net.minecraft.world.entity.Display;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.Interaction;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.Pose;
@@ -112,6 +112,7 @@ import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.scores.PlayerTeam;
 import net.minecraft.world.scores.Scoreboard;
 import net.minecraft.world.scores.Team;
+import net.minecraft.world.scores.TeamColor;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
 import org.jspecify.annotations.Nullable;
@@ -129,7 +130,7 @@ import org.jspecify.annotations.Nullable;
  *   <li><b>Spawning an entity.</b> Since 1.20.2 there is no separate add-player packet; every NPC — a fake
  *       player or a mob — spawns through {@code ClientboundAddEntityPacket}, so both spawn methods share one
  *       builder that differs only in the {@code EntityType} and the spawn UUID. A fake player passes {@code
- *       EntityType.PLAYER} and the profile id as the spawn UUID, which must equal the id from the player-info
+ *       EntityTypes.PLAYER} and the profile id as the spawn UUID, which must equal the id from the player-info
  *       ADD entry or the client will not link the skin to the entity; a mob passes the type resolved from the
  *       entity-type registry and an opaque entity UUID with no skin to bind. That public constructor packs the
  *       raw degree rotations itself (via {@code Mth.packDegrees}), so spawn passes raw floats; the standalone
@@ -158,7 +159,7 @@ import org.jspecify.annotations.Nullable;
  *       packet sets that single byte.
  *   <li><b>Glow colour.</b> The client tints a glowing outline with the colour of the team the entity's name is
  *       on, so a colour is a {@code ClientboundSetPlayerTeamPacket.createAddOrModifyPacket} over a throwaway
- *       {@code PlayerTeam} carrying the {@code ChatFormatting} colour and the NPC's profile name as its member —
+ *       {@code PlayerTeam} carrying the {@code TeamColor} and the NPC's profile name as its member —
  *       the approach FancyNpcs uses.
  * </ul>
  */
@@ -480,7 +481,7 @@ public final class NmsNpcPackets implements NpcPackets {
         Objects.requireNonNull(profileId, "profileId");
         // The spawn UUID is the profile id so the client links the skin; the head yaw matches the body yaw so the
         // NPC faces one way on spawn. PLAYER is the specialisation of the generic add-entity build below.
-        return addEntity(entityId, profileId, EntityType.PLAYER, x, y, z, yaw, pitch);
+        return addEntity(entityId, profileId, EntityTypes.PLAYER, x, y, z, yaw, pitch);
     }
 
     @Override
@@ -1113,7 +1114,7 @@ public final class NmsNpcPackets implements NpcPackets {
         // PlayerTeam needs a Scoreboard only to construct.
         PlayerTeam team = new PlayerTeam(new Scoreboard(), teamName);
         if (color != null) {
-            team.setColor(ChatFormatting.valueOf(color.name()));
+            team.setColor(Optional.of(TeamColor.valueOf(color.name())));
         }
         team.getPlayers().add(memberName);
         return ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(team, true);
@@ -1142,7 +1143,7 @@ public final class NmsNpcPackets implements NpcPackets {
         team.setCollisionRule(collidable ? Team.CollisionRule.ALWAYS : Team.CollisionRule.NEVER);
         team.setNameTagVisibility(hideNametag ? Team.Visibility.NEVER : Team.Visibility.ALWAYS);
         if (color != null) {
-            team.setColor(ChatFormatting.valueOf(color.name()));
+            team.setColor(Optional.of(TeamColor.valueOf(color.name())));
         }
         team.getPlayers().add(memberName);
         return ClientboundSetPlayerTeamPacket.createAddOrModifyPacket(team, true);
