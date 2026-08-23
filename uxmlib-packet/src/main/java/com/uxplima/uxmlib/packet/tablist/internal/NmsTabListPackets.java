@@ -1,9 +1,11 @@
 package com.uxplima.uxmlib.packet.tablist.internal;
 
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 
 import org.bukkit.entity.Player;
 
@@ -13,6 +15,10 @@ import com.mojang.authlib.GameProfile;
 import com.uxplima.uxmlib.npc.PacketSender;
 import com.uxplima.uxmlib.packet.Components;
 import com.uxplima.uxmlib.packet.GameProfiles;
+import com.uxplima.uxmlib.packet.tablist.PlayerInfoEntry;
+import com.uxplima.uxmlib.packet.tablist.PlayerInfoGameMode;
+import com.uxplima.uxmlib.packet.tablist.PlayerInfoPackets;
+import com.uxplima.uxmlib.packet.tablist.PlayerInfoValue;
 import com.uxplima.uxmlib.packet.tablist.TabEntry;
 import com.uxplima.uxmlib.packet.tablist.TabListPackets;
 import com.uxplima.uxmlib.packet.tablist.TabSkin;
@@ -39,7 +45,7 @@ import org.jspecify.annotations.Nullable;
  * components are written in their declared order; the actions {@code EnumSet} tells the client which of them to
  * read, so unused components are filled with harmless defaults.
  */
-public final class NmsTabListPackets implements TabListPackets {
+public final class NmsTabListPackets implements TabListPackets, PlayerInfoPackets {
 
     private final PacketSender sender;
 
@@ -49,65 +55,111 @@ public final class NmsTabListPackets implements TabListPackets {
 
     @Override
     public Object addOrUpdate(TabEntry entry) {
-        Objects.requireNonNull(entry, "entry");
+        return addOrUpdate(List.of(Objects.requireNonNull(entry, "entry").toPlayerInfoEntry()));
+    }
+
+    @Override
+    public Object addOrUpdate(List<PlayerInfoEntry> entries) {
+        List<PlayerInfoEntry> values = List.copyOf(Objects.requireNonNull(entries, "entries"));
         EnumSet<Action> actions = EnumSet.of(
-                Action.ADD_PLAYER, Action.UPDATE_LISTED, Action.UPDATE_DISPLAY_NAME, Action.UPDATE_LIST_ORDER);
-        Entry built = new Entry(
-                entry.id(),
-                profileFor(entry),
-                true,
-                0,
-                GameType.DEFAULT_MODE,
-                Components.asVanilla(entry.displayName()),
-                true,
-                entry.listOrder(),
-                null);
+                Action.ADD_PLAYER,
+                Action.UPDATE_LISTED,
+                Action.UPDATE_LATENCY,
+                Action.UPDATE_GAME_MODE,
+                Action.UPDATE_DISPLAY_NAME,
+                Action.UPDATE_LIST_ORDER,
+                Action.UPDATE_HAT);
+        List<Entry> built = new ArrayList<>(values.size());
+        for (PlayerInfoEntry entry : values) {
+            built.add(new Entry(
+                    entry.id(),
+                    profileFor(entry),
+                    entry.listed(),
+                    entry.latency(),
+                    gameType(entry.gameMode()),
+                    Components.asVanilla(entry.displayName()),
+                    entry.showHat(),
+                    entry.listOrder(),
+                    null));
+        }
         return packet(actions, built);
     }
 
     @Override
     public Object displayName(UUID id, Component name) {
-        Objects.requireNonNull(id, "id");
-        Objects.requireNonNull(name, "name");
-        Entry built = entry(id, b -> b.displayName(Components.asVanilla(name)));
-        return packet(EnumSet.of(Action.UPDATE_DISPLAY_NAME), built);
+        return displayNames(List.of(PlayerInfoValue.of(id, name)));
     }
 
     @Override
     public Object listOrder(UUID id, int order) {
-        Objects.requireNonNull(id, "id");
-        Entry built = entry(id, b -> b.listOrder(order));
-        return packet(EnumSet.of(Action.UPDATE_LIST_ORDER), built);
+        return listOrders(List.of(PlayerInfoValue.of(id, order)));
     }
 
     @Override
     public Object remove(List<UUID> ids) {
-        Objects.requireNonNull(ids, "ids");
-        return new ClientboundPlayerInfoRemovePacket(List.copyOf(ids));
+        return removeEntries(ids);
     }
 
     @Override
     public Object relist(List<UUID> ids, boolean listed) {
         Objects.requireNonNull(ids, "ids");
-        List<Entry> entries = new java.util.ArrayList<>(ids.size());
+        List<PlayerInfoValue<Boolean>> values = new ArrayList<>(ids.size());
         for (UUID id : ids) {
-            // The lone UPDATE_LISTED action means the client reads only the listed flag and leaves the existing
-            // row's profile, skin, name, and order intact; the other components carry the same harmless defaults
-            // Paper's package-private (UUID, listed) shorthand would fill in, since that shorthand isn't reachable
-            // from here.
-            entries.add(new Entry(
-                    Objects.requireNonNull(id, "id"), null, listed, 0, GameType.DEFAULT_MODE, null, true, 0, null));
+            values.add(PlayerInfoValue.of(id, listed));
         }
-        return new ClientboundPlayerInfoUpdatePacket(EnumSet.of(Action.UPDATE_LISTED), entries);
+        return listed(values);
     }
 
     @Override
     public void send(Player viewer, Object packet) {
+        sendPacket(viewer, packet);
+    }
+
+    @Override
+    public Object displayNames(List<PlayerInfoValue<Component>> entries) {
+        return update(
+                Action.UPDATE_DISPLAY_NAME,
+                entries,
+                (fields, value) -> fields.displayName(Components.asVanilla(value)));
+    }
+
+    @Override
+    public Object listOrders(List<PlayerInfoValue<Integer>> entries) {
+        return update(Action.UPDATE_LIST_ORDER, entries, EntryFields::listOrder);
+    }
+
+    @Override
+    public Object listed(List<PlayerInfoValue<Boolean>> entries) {
+        return update(Action.UPDATE_LISTED, entries, EntryFields::listed);
+    }
+
+    @Override
+    public Object latencies(List<PlayerInfoValue<Integer>> entries) {
+        return update(Action.UPDATE_LATENCY, entries, EntryFields::latency);
+    }
+
+    @Override
+    public Object gameModes(List<PlayerInfoValue<PlayerInfoGameMode>> entries) {
+        return update(Action.UPDATE_GAME_MODE, entries, (fields, value) -> fields.gameMode(gameType(value)));
+    }
+
+    @Override
+    public Object showHat(List<PlayerInfoValue<Boolean>> entries) {
+        return update(Action.UPDATE_HAT, entries, EntryFields::showHat);
+    }
+
+    @Override
+    public Object removeEntries(List<UUID> ids) {
+        return new ClientboundPlayerInfoRemovePacket(List.copyOf(Objects.requireNonNull(ids, "ids")));
+    }
+
+    @Override
+    public void sendPacket(Player viewer, Object packet) {
         sender.send(viewer, packet);
     }
 
-    /** The {@code GameProfile} for an add-entry, carrying the skin as a {@code textures} property when present. */
-    private static GameProfile profileFor(TabEntry entry) {
+    /** The profile carried by a complete synthetic player-info entry. */
+    private static GameProfile profileFor(PlayerInfoEntry entry) {
         TabSkin skin = entry.skin();
         if (skin == null) {
             return GameProfiles.plain(entry.id(), entry.profileName());
@@ -115,24 +167,43 @@ public final class NmsTabListPackets implements TabListPackets {
         return GameProfiles.withTextures(entry.id(), entry.profileName(), skin.textureValue(), skin.signature());
     }
 
-    /** Build a single-entry update packet through Paper's public {@code (actions, entry)} list constructor. */
-    private static ClientboundPlayerInfoUpdatePacket packet(EnumSet<Action> actions, Entry entry) {
-        return new ClientboundPlayerInfoUpdatePacket(actions, List.of(entry));
+    /** Build a multi-entry update packet without leaking the NMS entry type through the public port. */
+    private static ClientboundPlayerInfoUpdatePacket packet(EnumSet<Action> actions, List<Entry> entries) {
+        return new ClientboundPlayerInfoUpdatePacket(actions, entries);
+    }
+
+    private static <T> ClientboundPlayerInfoUpdatePacket update(
+            Action action, List<PlayerInfoValue<T>> entries, BiConsumer<EntryFields, T> mutator) {
+        List<PlayerInfoValue<T>> values = List.copyOf(Objects.requireNonNull(entries, "entries"));
+        List<Entry> built = new ArrayList<>(values.size());
+        for (PlayerInfoValue<T> value : values) {
+            EntryFields fields = new EntryFields(value.id());
+            mutator.accept(fields, value.value());
+            built.add(fields.build());
+        }
+        return packet(EnumSet.of(action), built);
+    }
+
+    private static GameType gameType(PlayerInfoGameMode gameMode) {
+        return switch (Objects.requireNonNull(gameMode, "gameMode")) {
+            case SURVIVAL -> GameType.SURVIVAL;
+            case CREATIVE -> GameType.CREATIVE;
+            case ADVENTURE -> GameType.ADVENTURE;
+            case SPECTATOR -> GameType.SPECTATOR;
+        };
     }
 
     /**
-     * An {@code Entry} for {@code id} that only an update-single action will read: the unread components carry
-     * vanilla defaults ({@code listed=true}, latency 0, default game mode, no chat session), and {@code mutator}
-     * sets the one field the action does read.
+     * A tiny mutable holder for homogeneous update packets. Unread components retain vanilla defaults; the
+     * packet's action set makes the client consume only the field the caller changed.
      */
-    private static Entry entry(UUID id, java.util.function.UnaryOperator<EntryFields> mutator) {
-        return mutator.apply(new EntryFields(id)).build();
-    }
-
-    /** A tiny mutable holder so the per-action builders read as one expression without re-listing nine fields. */
     private static final class EntryFields {
         private final UUID id;
+        private boolean listed = true;
+        private int latency;
+        private GameType gameMode = GameType.DEFAULT_MODE;
         private net.minecraft.network.chat.@Nullable Component displayName;
+        private boolean showHat = true;
         private int listOrder;
 
         private EntryFields(UUID id) {
@@ -144,13 +215,33 @@ public final class NmsTabListPackets implements TabListPackets {
             return this;
         }
 
+        private EntryFields listed(boolean value) {
+            this.listed = value;
+            return this;
+        }
+
+        private EntryFields latency(int value) {
+            this.latency = value;
+            return this;
+        }
+
+        private EntryFields gameMode(GameType value) {
+            this.gameMode = value;
+            return this;
+        }
+
+        private EntryFields showHat(boolean value) {
+            this.showHat = value;
+            return this;
+        }
+
         private EntryFields listOrder(int value) {
             this.listOrder = value;
             return this;
         }
 
         private Entry build() {
-            return new Entry(id, null, true, 0, GameType.DEFAULT_MODE, displayName, true, listOrder, null);
+            return new Entry(id, null, listed, latency, gameMode, displayName, showHat, listOrder, null);
         }
     }
 }

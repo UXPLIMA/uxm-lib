@@ -4,6 +4,8 @@ import java.util.Objects;
 
 import io.papermc.paper.adventure.PaperAdventure;
 
+import org.jspecify.annotations.Nullable;
+
 /**
  * Converts an Adventure {@link net.kyori.adventure.text.Component} into the vanilla
  * {@link net.minecraft.network.chat.Component} that data-watcher values and packet fields expect. The
@@ -18,5 +20,17 @@ public final class Components {
     public static net.minecraft.network.chat.Component asVanilla(net.kyori.adventure.text.Component component) {
         Objects.requireNonNull(component, "component");
         return PaperAdventure.asVanilla(component);
+    }
+
+    /** Convert a nullable vanilla component to its nullable Adventure counterpart. */
+    public static net.kyori.adventure.text.@Nullable Component asAdventure(
+            net.minecraft.network.chat.@Nullable Component component) {
+        return component == null ? null : PaperAdventure.asAdventure(component);
+    }
+
+    /** Convert a nullable Adventure component to its nullable vanilla counterpart. */
+    public static net.minecraft.network.chat.@Nullable Component asVanillaNullable(
+            net.kyori.adventure.text.@Nullable Component component) {
+        return component == null ? null : PaperAdventure.asVanilla(component);
     }
 }

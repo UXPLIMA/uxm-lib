@@ -74,4 +74,19 @@ public final class PlayerInfoUpdates {
         Objects.requireNonNull(suppress, "suppress");
         return NmsPlayerInfoUpdates.forceUnlisted(packet, suppress);
     }
+
+    /**
+     * Rewrite selected fields of every entry in an outbound player-info packet without losing its profile or
+     * secure-chat session. Returns {@code null} when {@code packet} is not a player-info update or the transformer
+     * changed nothing, allowing an interceptor to forward the original object without allocating a duplicate.
+     *
+     * <p>The transform may change listed state, latency, game mode, display name, hat visibility and list order.
+     * The profile id is selection-only and must remain unchanged. Whenever a field changes, the implementation
+     * adds that field's update action to the rebuilt packet so the client cannot silently ignore the new value.
+     */
+    public static @Nullable Object rewrite(Object packet, PlayerInfoTransformer transformer) {
+        Objects.requireNonNull(packet, "packet");
+        Objects.requireNonNull(transformer, "transformer");
+        return NmsPlayerInfoUpdates.rewrite(packet, transformer);
+    }
 }

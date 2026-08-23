@@ -61,4 +61,9 @@ public record TabEntry(UUID id, Component displayName, int listOrder, @Nullable 
         String resolved = name != null ? name : id.toString();
         return resolved.length() <= MAX_PROFILE_NAME_LENGTH ? resolved : resolved.substring(0, MAX_PROFILE_NAME_LENGTH);
     }
+
+    /** Convert this legacy convenience value into the complete player-info entry model. */
+    public PlayerInfoEntry toPlayerInfoEntry() {
+        return PlayerInfoEntry.from(this);
+    }
 }

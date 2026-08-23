@@ -220,11 +220,11 @@ public interface NpcPackets {
     Object villagerData(int entityId, String type, String profession, int level);
 
     /**
-     * Build the metadata packet that sets a slime's (or magma cube's) size through the {@code ID_SIZE} field — an
-     * integer where larger is bigger and the body's collision box and render scale follow it. The protocol stores
-     * the size as {@code size}; the client renders a {@code size}-block-ish cube. Send this only to a slime or
-     * magma cube; any other type has no size field at that index. The plugin clamps the value to a sane range
-     * before calling — this builder only guards against the impossible.
+     * Build the metadata packet that sets a slime's (or magma cube's) size through the cube mob {@code ID_SIZE}
+     * field — an integer where larger is bigger and the body's collision box and render scale follow it. The
+     * protocol stores the size as {@code size}; the client renders a {@code size}-block-ish cube. Send this only to
+     * a slime or magma cube; any other type has no size field at that index. The plugin clamps the value to a sane
+     * range before calling — this builder only guards against the impossible.
      *
      * @param size the slime size (the plugin clamps it; 1 is the smallest natural slime)
      * @throws IllegalArgumentException if {@code size} is below 1, which the slime size field cannot represent

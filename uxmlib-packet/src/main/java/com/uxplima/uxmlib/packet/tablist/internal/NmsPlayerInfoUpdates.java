@@ -4,13 +4,20 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
 
+import com.uxplima.uxmlib.packet.Components;
+import com.uxplima.uxmlib.packet.tablist.PlayerInfoAction;
+import com.uxplima.uxmlib.packet.tablist.PlayerInfoGameMode;
+import com.uxplima.uxmlib.packet.tablist.PlayerInfoState;
+import com.uxplima.uxmlib.packet.tablist.PlayerInfoTransformer;
 import com.uxplima.uxmlib.packet.tablist.PlayerInfoUpdates;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Action;
 import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket.Entry;
+import net.minecraft.world.level.GameType;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -50,6 +57,41 @@ public final class NmsPlayerInfoUpdates {
         return rewritten == null ? null : new ClientboundPlayerInfoUpdatePacket(actions, rewritten);
     }
 
+    /** The NMS implementation behind {@link PlayerInfoUpdates#rewrite}. */
+    public static @Nullable Object rewrite(Object packet, PlayerInfoTransformer transformer) {
+        Objects.requireNonNull(packet, "packet");
+        Objects.requireNonNull(transformer, "transformer");
+        if (!(packet instanceof ClientboundPlayerInfoUpdatePacket update)) {
+            return null;
+        }
+
+        EnumSet<Action> actions = update.actions();
+        Set<PlayerInfoAction> publicActions = publicActions(actions);
+        EnumSet<Action> rewrittenActions = EnumSet.noneOf(Action.class);
+        rewrittenActions.addAll(actions);
+        List<Entry> rewritten = new ArrayList<>(update.entries().size());
+        boolean changed = false;
+
+        for (Entry entry : update.entries()) {
+            PlayerInfoState original = state(entry);
+            PlayerInfoState replacement =
+                    Objects.requireNonNull(transformer.transform(original, publicActions), "transformer result");
+            if (!entry.profileId().equals(replacement.id())) {
+                throw new IllegalArgumentException("A player-info transformer cannot change the profile id");
+            }
+            if (original.equals(replacement)) {
+                rewritten.add(entry);
+                continue;
+            }
+
+            addChangedActions(rewrittenActions, original, replacement);
+            rewritten.add(rewriteEntry(entry, replacement));
+            changed = true;
+        }
+
+        return changed ? new ClientboundPlayerInfoUpdatePacket(rewrittenActions, rewritten) : null;
+    }
+
     /**
      * Build the rewritten entry list, or {@code null} when no entry matched (so the caller forwards the original
      * untouched rather than rebuilding an identical packet). A matched entry is reconstructed with
@@ -82,6 +124,78 @@ public final class NmsPlayerInfoUpdates {
                 entry.showHat(),
                 entry.listOrder(),
                 entry.chatSession());
+    }
+
+    private static PlayerInfoState state(Entry entry) {
+        return new PlayerInfoState(
+                entry.profileId(),
+                entry.listed(),
+                entry.latency(),
+                gameMode(entry.gameMode()),
+                Components.asAdventure(entry.displayName()),
+                entry.showHat(),
+                entry.listOrder());
+    }
+
+    private static Entry rewriteEntry(Entry entry, PlayerInfoState state) {
+        return new Entry(
+                entry.profileId(),
+                entry.profile(),
+                state.listed(),
+                state.latency(),
+                gameType(state.gameMode()),
+                Components.asVanillaNullable(state.displayName()),
+                state.showHat(),
+                state.listOrder(),
+                entry.chatSession());
+    }
+
+    private static void addChangedActions(
+            EnumSet<Action> actions, PlayerInfoState original, PlayerInfoState replacement) {
+        if (original.listed() != replacement.listed()) {
+            actions.add(Action.UPDATE_LISTED);
+        }
+        if (original.latency() != replacement.latency()) {
+            actions.add(Action.UPDATE_LATENCY);
+        }
+        if (original.gameMode() != replacement.gameMode()) {
+            actions.add(Action.UPDATE_GAME_MODE);
+        }
+        if (!Objects.equals(original.displayName(), replacement.displayName())) {
+            actions.add(Action.UPDATE_DISPLAY_NAME);
+        }
+        if (original.showHat() != replacement.showHat()) {
+            actions.add(Action.UPDATE_HAT);
+        }
+        if (original.listOrder() != replacement.listOrder()) {
+            actions.add(Action.UPDATE_LIST_ORDER);
+        }
+    }
+
+    private static Set<PlayerInfoAction> publicActions(EnumSet<Action> actions) {
+        java.util.EnumSet<PlayerInfoAction> result = java.util.EnumSet.noneOf(PlayerInfoAction.class);
+        for (Action action : actions) {
+            result.add(PlayerInfoAction.valueOf(action.name()));
+        }
+        return Set.copyOf(result);
+    }
+
+    private static PlayerInfoGameMode gameMode(GameType gameType) {
+        return switch (gameType) {
+            case SURVIVAL -> PlayerInfoGameMode.SURVIVAL;
+            case CREATIVE -> PlayerInfoGameMode.CREATIVE;
+            case ADVENTURE -> PlayerInfoGameMode.ADVENTURE;
+            case SPECTATOR -> PlayerInfoGameMode.SPECTATOR;
+        };
+    }
+
+    private static GameType gameType(PlayerInfoGameMode gameMode) {
+        return switch (gameMode) {
+            case SURVIVAL -> GameType.SURVIVAL;
+            case CREATIVE -> GameType.CREATIVE;
+            case ADVENTURE -> GameType.ADVENTURE;
+            case SPECTATOR -> GameType.SPECTATOR;
+        };
     }
 
     private static List<String> actionNames(EnumSet<Action> actions) {

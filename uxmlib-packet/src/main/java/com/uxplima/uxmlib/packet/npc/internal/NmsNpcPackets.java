@@ -351,8 +351,8 @@ public final class NmsNpcPackets implements NpcPackets {
         this.zoglinBabyAccessor = Reflect.accessor(Zoglin.class, "DATA_BABY_ID");
         this.slimeSizeAccessor = Reflect.accessorByClass(
                 "ID_SIZE",
-                "net.minecraft.world.entity.monster.Slime",
-                "net.minecraft.world.entity.monster.cubemob.Slime");
+                "net.minecraft.world.entity.monster.cubemob.AbstractCubeMob",
+                "net.minecraft.world.entity.monster.Slime");
         this.chargedAccessor = Reflect.accessor(Creeper.class, "DATA_IS_POWERED");
         this.villagerDataAccessor = Reflect.accessor(Villager.class, "DATA_VILLAGER_DATA");
         // The animal-variant accessors, each on the class that owns it, read once like the rest. The horse packs
