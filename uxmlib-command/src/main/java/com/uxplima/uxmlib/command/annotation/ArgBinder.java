@@ -198,7 +198,8 @@ final class ArgBinder {
 
     /** Whether {@code node} is the argument node called {@code name}, and not a literal that shares its name. */
     private static boolean isArgumentNamed(ParsedCommandNode<CommandSourceStack> node, String name) {
-        return node.getNode() instanceof ArgumentCommandNode<?, ?> && node.getNode().getName().equals(name);
+        return node.getNode() instanceof ArgumentCommandNode<?, ?>
+                && node.getNode().getName().equals(name);
     }
 
     private static @Nullable Object zeroValue(Class<?> type) {
