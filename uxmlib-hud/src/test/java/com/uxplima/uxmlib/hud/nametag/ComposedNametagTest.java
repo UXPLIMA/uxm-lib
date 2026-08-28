@@ -23,16 +23,15 @@ class ComposedNametagTest {
 
     @Test
     void partsComposeInPriorityOrderWithTheSeparatorBetweenThem() {
-        ComposedNametag name = ComposedNametag.compose(
-                List.of(prefix("tags", 200, "[VIP]"), prefix("clans", 100, "[Wolves]")), " ");
+        ComposedNametag name =
+                ComposedNametag.compose(List.of(prefix("tags", 200, "[VIP]"), prefix("clans", 100, "[Wolves]")), " ");
 
         assertThat(Text.plain(name.prefix())).isEqualTo("[Wolves] [VIP]");
     }
 
     @Test
     void theSeparatorIsWhateverTheRegistryWasGiven() {
-        ComposedNametag name =
-                ComposedNametag.compose(List.of(prefix("a", 1, "x"), prefix("b", 2, "y")), " | ");
+        ComposedNametag name = ComposedNametag.compose(List.of(prefix("a", 1, "x"), prefix("b", 2, "y")), " | ");
 
         assertThat(Text.plain(name.prefix())).isEqualTo("x | y");
     }
@@ -40,9 +39,7 @@ class ComposedNametagTest {
     @Test
     void aSuffixComposesTheSameWayAndIndependently() {
         ComposedNametag name = ComposedNametag.compose(
-                List.of(
-                        NametagContribution.suffix("level", 100, Component.text("(42)")),
-                        prefix("tags", 100, "[VIP]")),
+                List.of(NametagContribution.suffix("level", 100, Component.text("(42)")), prefix("tags", 100, "[VIP]")),
                 " ");
 
         assertThat(Text.plain(name.prefix())).isEqualTo("[VIP]");
