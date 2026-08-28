@@ -2,7 +2,11 @@ package com.uxplima.uxmlib.text;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Optional;
+
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 
 import org.junit.jupiter.api.Test;
 
@@ -25,6 +29,45 @@ class TextTest {
     void resolvesAComponentPlaceholder() {
         Component parsed = Text.mini("Welcome <who>", Text.component("who", Component.text("Alice")));
         assertThat(Text.plain(parsed)).isEqualTo("Welcome Alice");
+    }
+
+    @Test
+    void paintsAComponentWithoutParsingIt() {
+        Component painted = Text.paint(Component.text("hi"), "<red>");
+        assertThat(Text.plain(painted)).isEqualTo("hi");
+        assertThat(firstColor(painted)).contains(NamedTextColor.RED);
+    }
+
+    @Test
+    void paintedTextNeverBecomesAClickEvent() {
+        // The shape of the exploit: a player types a tag and expects the server to run it for them.
+        String hostile = "<click:run_command:/op me>free rank</click>";
+        Component painted = Text.paint(hostile, "<gray>");
+        assertThat(Text.plain(painted)).isEqualTo(hostile);
+        assertThat(hasClickEvent(painted)).isFalse();
+    }
+
+    @Test
+    void paintedTextSurvivesALegacySectionSign() {
+        // Fed to MiniMessage this throws ("Legacy formatting codes have been detected") and eats the message.
+        Component painted = Text.paint("\u00a7cred", "<gray>");
+        assertThat(Text.plain(painted)).isEqualTo("\u00a7cred");
+    }
+
+    /** The colour of the outermost node that carries one, which is where the painted style lands. */
+    private static Optional<TextColor> firstColor(Component component) {
+        TextColor color = component.color();
+        if (color != null) {
+            return Optional.of(color);
+        }
+        return component.children().stream()
+                .map(TextTest::firstColor)
+                .flatMap(Optional::stream)
+                .findFirst();
+    }
+
+    private static boolean hasClickEvent(Component component) {
+        return component.clickEvent() != null || component.children().stream().anyMatch(TextTest::hasClickEvent);
     }
 
     @Test

@@ -296,6 +296,9 @@ public final class HoconConfig {
     /**
      * Map each child of the section at {@code path} onto {@code type}, keyed by child name — for a table
      * of named entries (e.g. {@code kits { starter {...} vip {...} }}). Empty when the section is absent.
+     *
+     * <p>The returned map iterates in the same order as {@link #keys(String)}, which is not the order the
+     * entries appear in the file; see there.
      */
     public <T> java.util.Map<String, T> getSection(String path, Class<T> type) {
         Objects.requireNonNull(type, "type");
@@ -315,14 +318,23 @@ public final class HoconConfig {
     /**
      * Map each child of the section at {@code path} onto {@code type}, skipping any child that fails to
      * deserialize rather than aborting the whole read. See {@link #getSection(String, Class)} for the strict
-     * variant; this one keeps every well-formed entry and reports the rest in the {@link LenientResult}.
+     * variant, and for the caveat on entry order; this one keeps every well-formed entry and reports the rest
+     * in the {@link LenientResult}.
      */
     public <T> LenientResult<java.util.Map<String, T>> getSectionLenient(String path, Class<T> type) {
         Objects.requireNonNull(type, "type");
         return ConfigSections.sectionLenient(node(path), path, type);
     }
 
-    /** The child key names directly under {@code path} (a section's entries). */
+    /**
+     * The child key names directly under {@code path} (a section's entries).
+     *
+     * <p><strong>Not in file order.</strong> A HOCON object is a hash map by the time any of this code sees
+     * it — the parser we build on keeps its entries in a {@code HashMap}, so the order the operator wrote is
+     * gone before the tree is built and no setting here can bring it back. The order is stable for a given
+     * set of keys and otherwise arbitrary. If the order matters to what you are building — laying out a menu,
+     * numbering a list — give each entry an explicit field to sort on rather than trusting this.
+     */
     public List<String> keys(String path) {
         return ConfigSections.keys(node(path));
     }

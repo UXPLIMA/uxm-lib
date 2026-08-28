@@ -30,6 +30,8 @@ class H2DialectTest {
         sql = new Sql(database);
         sql.execute("CREATE TABLE players (uuid VARCHAR PRIMARY KEY, name VARCHAR NOT NULL, coins INT NOT NULL)");
         sql.execute("CREATE TABLE accounts (id INT AUTO_INCREMENT PRIMARY KEY, name VARCHAR NOT NULL)");
+        sql.execute("CREATE TABLE grants (player_uuid VARCHAR, tag_id VARCHAR, granted_at BIGINT NOT NULL, "
+                + "PRIMARY KEY (player_uuid, tag_id))");
     }
 
     @AfterEach
@@ -63,6 +65,33 @@ class H2DialectTest {
         Optional<Integer> coins = sql.queryFirst(
                 "SELECT coins FROM players WHERE uuid = ?", ps -> ps.setString(1, "a"), row -> row.getInt(1));
         assertThat(coins).contains(2);
+    }
+
+    @Test
+    void compositeKeyUpsertUpdatesTheMatchingRowRatherThanAddingOne() {
+        String upsert = Dialect.H2.upsert(
+                "grants", List.of("player_uuid", "tag_id"), List.of("player_uuid", "tag_id", "granted_at"));
+
+        sql.update(upsert, ps -> {
+            ps.setString(1, "a");
+            ps.setString(2, "vip");
+            ps.setLong(3, 100L);
+        });
+        sql.update(upsert, ps -> {
+            ps.setString(1, "a");
+            ps.setString(2, "vip");
+            ps.setLong(3, 200L);
+        });
+        // Same player, different tag: a second row, not an overwrite.
+        sql.update(upsert, ps -> {
+            ps.setString(1, "a");
+            ps.setString(2, "mvp");
+            ps.setLong(3, 300L);
+        });
+
+        List<Long> stamps =
+                sql.query("SELECT granted_at FROM grants ORDER BY tag_id", StatementBinder.NONE, row -> row.getLong(1));
+        assertThat(stamps).containsExactly(300L, 200L);
     }
 
     @Test

@@ -306,6 +306,13 @@ String plain = Text.plain(title);     // strip formatting for logs
 String mm    = Text.serialize(title); // round-trip back to MiniMessage
 ```
 
+Text a player typed is never a MiniMessage string. `paint` applies a style from your config to a body that
+stays literal, so a chat message reading `<click:run_command:/op me>free rank</click>` is shown, not run:
+
+```java
+Component line = Text.paint(message, config.getString("chat.format-style")); // e.g. "<gray>"
+```
+
 ### Scheduling (Folia-ready)
 
 One `Scheduler` interface covers Paper's four schedulers; build it once and inject it everywhere. Every
