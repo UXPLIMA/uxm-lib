@@ -45,6 +45,16 @@ class EconomyBridgeTest {
     }
 
     @Test
+    void noneIsANoOpEconomyWithoutLookingForABackend() {
+        EconomyBridge economy = EconomyBridge.none();
+        var player = MockBukkit.getMock().addPlayer();
+
+        assertThat(economy.isPresent()).isFalse();
+        assertThat(economy.balance(player)).isZero();
+        assertThat(economy.deposit(player, 100)).isFalse();
+    }
+
+    @Test
     void dummyFormatsAPlainNumberAndHasNoCurrencyNames() {
         EconomyBridge economy = EconomyBridge.orDummy();
 
