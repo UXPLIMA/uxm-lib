@@ -12,8 +12,8 @@ import com.uxplima.uxmlib.command.annotation.annotations.Arg;
 /**
  * Resolves an enum parameter from a lower-cased constant name. Pure Java enums have no native client
  * argument type, so it parses a word and matches it case-insensitively against the constants, failing
- * with a clear message naming the allowed values. Tab-completion offers the constant names via
- * {@link #suggestions()}.
+ * with a clear message naming the allowed values in the same lower case that tab-completion offers them in
+ * via {@link #suggestions()}.
  */
 final class EnumResolver implements ParamResolver<Enum<?>> {
 
@@ -36,7 +36,9 @@ final class EnumResolver implements ParamResolver<Enum<?>> {
                 return constant;
             }
         }
-        throw new IllegalArgumentException("expected one of " + java.util.Arrays.toString(constants) + ", got " + raw);
+        // Named the way completion offers them: telling a player to type SURVIVAL when the only thing they
+        // were ever shown is "survival" sends them looking for a value that does not exist.
+        throw new IllegalArgumentException("expected one of " + String.join(", ", suggestions()) + ", got " + raw);
     }
 
     @Override
