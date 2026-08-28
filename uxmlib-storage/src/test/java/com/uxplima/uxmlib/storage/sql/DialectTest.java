@@ -90,7 +90,7 @@ class DialectTest {
 
     @Test
     void genericDialectHasNoPortableUpsert() {
-        assertThatThrownBy(() -> Dialect.GENERIC.upsert("t", "id", COLUMNS))
+        assertThatThrownBy(() -> Dialect.GENERIC.upsert("t", "uuid", COLUMNS))
                 .isInstanceOf(UnsupportedOperationException.class);
     }
 
