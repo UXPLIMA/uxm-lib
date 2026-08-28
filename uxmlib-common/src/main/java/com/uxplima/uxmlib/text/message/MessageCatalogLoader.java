@@ -10,10 +10,15 @@ import org.spongepowered.configurate.ConfigurationNode;
 
 /**
  * Builds a {@link MessageCatalog} from one Configurate tree per locale, flattening each tree into the
- * {@code path -> template} map the catalog resolves against. A tree is walked depth-first; every leaf node
- * with a string value becomes one entry whose path is its dotted key chain (so {@code join { welcome = "..." }}
- * yields the path {@code join.welcome}). Non-string leaves are skipped, which lets a lang file carry the
- * richer {@code {type, text}} channel section without breaking the flat lookup.
+ * {@code path -> template} map the catalog resolves against. A tree is walked depth-first; every leaf becomes
+ * one entry whose path is its dotted key chain, so {@code join { welcome = "..." }} yields the path
+ * {@code join.welcome}.
+ *
+ * <p>A leaf is read through Configurate's own coercion, so it need not be quoted: {@code count = 7} and
+ * {@code flag = true} become the templates {@code "7"} and {@code "true"}. Only a section contributes no
+ * entry of its own — {@code channel { type = ..., text = ... }} yields {@code channel.type} and
+ * {@code channel.text}, and nothing answers to {@code channel}. A lang file may therefore carry a structured
+ * section beside its messages, but the flat lookup reaches its leaves, never the section itself.
  */
 public final class MessageCatalogLoader {
 

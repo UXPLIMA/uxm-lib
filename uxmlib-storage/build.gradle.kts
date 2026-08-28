@@ -5,7 +5,11 @@ plugins {
 
 dependencies {
     api(project(":uxmlib-common"))
-    api(libs.hikari)
+    // Hikari 6.2.1 still declares slf4j-api 1.7.36. Every server this runs on already has slf4j 2.x on the
+    // classpath, so exporting the old API only gives a consumer who shades us a second, binding-less copy
+    // next to the server's -- and a second copy with no binding behind it makes logging go quiet instead of
+    // failing, which is the worst way for it to break. The server's copy is the one Hikari logs through.
+    api(libs.hikari) { exclude(group = "org.slf4j", module = "slf4j-api") }
     api(libs.caffeine)
 
     // The Component column codec in SqlType serializes through Adventure + MiniMessage. Paper bundles both
@@ -28,6 +32,9 @@ dependencies {
 
     // Storage is pure infra (no Paper). Tests run a real in-memory SQLite, so they are plain JUnit. The
     // SqlType Component codec needs Adventure + MiniMessage on the test runtime since they are compileOnly.
+    // Hikari logs through slf4j at runtime, so the tests that open a real pool need an API on the classpath.
+    // The server provides it in production; here it is a test dependency like any other.
+    testRuntimeOnly(libs.slf4j.api)
     testImplementation(libs.sqlite.jdbc)
     testImplementation(libs.bundles.adventure)
     // The H2 dialect round-trip test runs against a real in-memory H2, so the driver is on the test runtime.

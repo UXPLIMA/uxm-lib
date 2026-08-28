@@ -24,6 +24,12 @@ public final class PlaceholderExpansions {
     /**
      * Register {@code registry}'s providers under the default {@code uxm} identifier. Returns whether the
      * expansion registered (false when PlaceholderAPI is absent or PlaceholderAPI rejected it).
+     *
+     * <p><strong>Use this only if yours is the one plugin on the server registering it.</strong>
+     * PlaceholderAPI keeps a single expansion per identifier, so on a server running two plugins that both
+     * take the default, the first one wins and the second's placeholders quietly resolve to nothing. A
+     * plugin that ships to servers it does not control should name its own identifier through
+     * {@link #register(String, PlaceholderRegistry, String, String)} — one per plugin, not one per library.
      */
     public static boolean register(PlaceholderRegistry registry, String author, String version) {
         return register(DEFAULT_IDENTIFIER, registry, author, version);
