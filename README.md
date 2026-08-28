@@ -105,7 +105,7 @@ what you use. Modules marked **experimental** are previews with unstable APIs (s
 | `uxmlib-storage` | Plain-JDBC persistence: a HikariCP-pooled `Database` (SQLite default; MySQL/MariaDB, PostgreSQL, H2 opt-in), an injection-safe `SelectBuilder`, parameterised `Sql`/`TxSql`, versioned migrations, a Caffeine-backed write-through / write-behind cache, a two-tier player-profile cache, and cross-server row sync. |
 | `uxmlib-redis` | A low-level binary (`byte[]`) Redis pub/sub bus for fanning an opaque frame across the server nodes sharing one Redis — fail-degraded publish, per-subscription auto-reconnect — with no relational dependencies (Lettuce is a compile-only soft-dependency). |
 | `uxmlib-integration` | Soft-dependency hooks reached only past a present-guard: PlaceholderAPI (read **and** expansion registration), Vault and VaultUnlocked economy, Vault permissions, LuckPerms, WorldGuard/Towny region queries, a transient advancement-toast API, an online-data lifecycle manager, a dependency-free Discord webhook, and native-`Display` [holograms](#holograms). |
-| `uxmlib-hud` | Adventure-native HUD overlays, all through the public player API: a flicker-free diffing sidebar, title/subtitle, a sticky action bar, boss bars with a mode enum (permanent/filling/countdown/dynamic), tablist header/footer, and per-tick text animators. |
+| `uxmlib-hud` | Adventure-native HUD overlays, all through the public player API: a flicker-free diffing sidebar, title/subtitle, a sticky action bar, boss bars with a mode enum (permanent/filling/countdown/dynamic), tablist header/footer, per-tick text animators, and a nametag registry that composes several plugins' prefixes, suffixes and colours onto the one team a player may belong to. |
 | `uxmlib-update` | A notify-only release update checker (GitHub / Modrinth providers) that compares a build-time version constant against the latest release and surfaces a permission-gated clickable join message. It never self-downloads. |
 | `uxmlib-condition` | A declarative condition engine (operand comparison + placeholder resolution + failure policy) and its natural pair, a config-driven action engine (`[message]`, `[console]`, `[title]`, … parsed once into closures). |
 | `uxmlib-npc` | **Experimental.** A from-scratch, MIT-clean Netty pipeline foundation — channel resolve, idempotent inject/eject, a self-healing reorder watchdog, and a fail-open listener seam. Groundwork for the packet layer; no NPC yet. |
@@ -567,6 +567,29 @@ new Tablist().set(player, header, footer);
 new ActionBarManager(scheduler, server).show(player, Text.mini("<yellow>Saved!"), Duration.ofSeconds(3));
 new BossBarManager(scheduler, server).countdown(player, Text.mini("<red>Event"), Duration.ofMinutes(1));
 ```
+
+A player may belong to exactly one scoreboard team, so plugins that each create their own teams overwrite
+one another's nametags without saying so. `NametagRegistry` owns the team instead, and every plugin hands it
+a contribution:
+
+```java
+NametagRegistry nametags = new NametagRegistry(
+        new ScoreboardNametagSink(Bukkit.getScoreboardManager().getMainScoreboard(), getLogger()),
+        getLogger(),
+        " ",        // what goes between two contributed parts
+        scheduler); // the scoreboard belongs to the global region
+
+nametags.contribute(player, NametagContribution.prefix("uxmTags", priorityFromConfig, Text.mini("<gold>[VIP]")));
+nametags.contribute(player, NametagContribution.color("uxmGlow", priorityFromConfig, NamedTextColor.RED));
+
+nametags.withdraw("uxmTags"); // onDisable: take back only your own parts
+```
+
+Prefixes and suffixes compose in priority order — smaller is earlier — and the name's single colour goes to
+the first contribution that asks for it, with both claimants named once in the log so an operator can
+re-order them. Read your priority from your own config: which of two plugins comes first is an operator's
+decision. A team uxmLib did not create is never touched, so a third-party plugin managing its own teams is
+left alone.
 
 ### Conditions & actions
 

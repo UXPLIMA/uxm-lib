@@ -18,6 +18,7 @@ public final class FakeScheduler implements Scheduler {
     private boolean cancelled;
     private int starts;
     private int laters;
+    private final java.util.List<Runnable> globals = new java.util.ArrayList<>();
 
     private final TaskHandle handle = new TaskHandle() {
         @Override
@@ -67,11 +68,25 @@ public final class FakeScheduler implements Scheduler {
         return laters;
     }
 
-    // Unused Scheduler members for these tests.
+    /** Run every task handed to {@link #global(Runnable)} so far, in the order it arrived. */
+    public void runGlobals() {
+        java.util.List<Runnable> pending = new java.util.ArrayList<>(globals);
+        globals.clear();
+        pending.forEach(Runnable::run);
+    }
+
+    /** How many tasks have been handed to {@link #global(Runnable)} and not yet run. */
+    public int pendingGlobals() {
+        return globals.size();
+    }
+
     @Override
     public TaskHandle global(Runnable task) {
-        throw new UnsupportedOperationException();
+        globals.add(task);
+        return handle;
     }
+
+    // Unused Scheduler members for these tests.
 
     @Override
     public TaskHandle globalLater(Duration delay, Runnable task) {
