@@ -17,6 +17,9 @@ public final class Text {
 
     private static final MiniMessage MINI = MiniMessage.miniMessage();
 
+    /** The placeholder {@link #paint} inserts the body through. Namespaced so a style string cannot shadow it. */
+    private static final String BODY = "uxmlib_body";
+
     private Text() {}
 
     /** Parse a MiniMessage string into a component. */
@@ -54,6 +57,30 @@ public final class Text {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(value, "value");
         return Placeholder.component(key, value);
+    }
+
+    /**
+     * Apply a MiniMessage style to text that must never be parsed — a chat message, a nickname, the line on a
+     * sign. {@code style} is the opening tags alone ({@code "<red><bold>"}, {@code "<gradient:red:blue>"}) and
+     * comes from your config; {@code body} is inserted as-is and keeps no meaning it did not already have.
+     *
+     * <p>The obvious alternative, pasting the two together and parsing the result, hands the parser to whoever
+     * typed the body: {@code <click:run_command:/op me>} in a chat message becomes a real click event, and a
+     * legacy section sign makes MiniMessage refuse the whole string. Neither can happen here.
+     *
+     * <p>Legacy codes already in the body are preserved verbatim, which the client still renders as colour.
+     * Strip them at the inbound boundary with {@link LegacyCodeSanitizer} if the body is player input.
+     */
+    public static Component paint(String body, String style) {
+        Objects.requireNonNull(body, "body");
+        return paint(Component.text(body), style);
+    }
+
+    /** Apply a MiniMessage style to an already-built component. See {@link #paint(String, String)}. */
+    public static Component paint(Component body, String style) {
+        Objects.requireNonNull(body, "body");
+        Objects.requireNonNull(style, "style");
+        return MINI.deserialize(style + '<' + BODY + '>', Placeholder.component(BODY, body));
     }
 
     /** Flatten a component to plain text, dropping all formatting. */
