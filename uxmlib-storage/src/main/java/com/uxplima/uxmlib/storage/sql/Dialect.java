@@ -70,7 +70,8 @@ public enum Dialect {
         String columnList = String.join(", ", columns);
         String keyList = String.join(", ", keyColumns);
         String insert = "INSERT INTO " + table + " (" + columnList + ") VALUES (" + placeholders + ")";
-        List<String> updates = columns.stream().filter(c -> !keyColumns.contains(c)).toList();
+        List<String> updates =
+                columns.stream().filter(c -> !keyColumns.contains(c)).toList();
         return switch (this) {
             case SQLITE, POSTGRES -> insert + onConflict(keyList, updates);
             case MYSQL -> insert + onDuplicateKey(updates, keyColumns.get(0));

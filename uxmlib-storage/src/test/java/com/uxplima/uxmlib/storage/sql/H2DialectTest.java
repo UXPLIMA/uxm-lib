@@ -89,8 +89,8 @@ class H2DialectTest {
             ps.setLong(3, 300L);
         });
 
-        List<Long> stamps = sql.query(
-                "SELECT granted_at FROM grants ORDER BY tag_id", StatementBinder.NONE, row -> row.getLong(1));
+        List<Long> stamps =
+                sql.query("SELECT granted_at FROM grants ORDER BY tag_id", StatementBinder.NONE, row -> row.getLong(1));
         assertThat(stamps).containsExactly(300L, 200L);
     }
 
