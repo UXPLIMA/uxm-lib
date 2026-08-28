@@ -1,7 +1,7 @@
 # uxmLib
 
-[![build](https://github.com/UXPLIMA/uxmLib/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/UXPLIMA/uxmLib/actions/workflows/build.yml)
-[![JitPack](https://jitpack.io/v/UXPLIMA/uxmLib.svg)](https://jitpack.io/#UXPLIMA/uxmLib)
+[![build](https://github.com/UXPLIMA/uxm-lib/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/UXPLIMA/uxm-lib/actions/workflows/build.yml)
+[![JitPack](https://jitpack.io/v/UXPLIMA/uxm-lib.svg)](https://jitpack.io/#UXPLIMA/uxm-lib)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Java 21](https://img.shields.io/badge/Java-21-orange.svg)](https://adoptium.net/)
 [![Paper 1.21+](https://img.shields.io/badge/Paper-1.21%2B-brightgreen.svg)](https://papermc.io/)
@@ -92,7 +92,7 @@ compile time only and never ships them.
 
 ## Modules
 
-Every module is published separately under the JitPack group `com.github.UXPLIMA.uxmLib`; pull only
+Every module is published separately under the JitPack group `com.github.UXPLIMA.uxm-lib`; pull only
 what you use. Modules marked **experimental** are previews with unstable APIs (see
 [Versioning & stability](#versioning--stability)).
 
@@ -138,13 +138,20 @@ graph TD
 
 ## Installation
 
-uxmLib is published through [JitPack](https://jitpack.io/#UXPLIMA/uxmLib). Add the JitPack repository
+uxmLib is published through [JitPack](https://jitpack.io/#UXPLIMA/uxm-lib). Add the JitPack repository
 (plus Paper's, since the modules compile against the Paper API), then the modules you need. JitPack serves
-each module under the group `com.github.UXPLIMA.uxmLib` with the git tag as the version.
+each module under the group `com.github.UXPLIMA.uxm-lib` with the git tag as the version.
 
 > Replace `VERSION` with the latest released tag, the version shown on the JitPack badge above.
-> There is no `com.github.UXPLIMA:uxmLib` artifact: the group carries the repository name after a
+> There is no `com.github.UXPLIMA:uxm-lib` artifact: the group carries the repository name after a
 > dot, and the coordinate always ends in a module.
+
+> **The repository used to be called `uxmLib`.** Builds that ask for the old group
+> `com.github.UXPLIMA.uxmLib` still resolve: GitHub redirects the old repository path, JitPack follows
+> it, and every version built before the rename stays served from its cache. New builds should use
+> `com.github.UXPLIMA.uxm-lib`. The old group works, but it rests on that redirect, and the redirect
+> would be lost the moment anything else claimed the name `uxmLib` under this account, so nothing
+> should ever be published under that name again.
 
 ### Gradle (Kotlin DSL)
 
@@ -156,9 +163,9 @@ repositories {
 }
 
 dependencies {
-    implementation("com.github.UXPLIMA.uxmLib:uxmlib-gui:VERSION")
-    implementation("com.github.UXPLIMA.uxmLib:uxmlib-item:VERSION")
-    implementation("com.github.UXPLIMA.uxmLib:uxmlib-command:VERSION")
+    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-gui:VERSION")
+    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-item:VERSION")
+    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-command:VERSION")
     // ...and uxmlib-common / uxmlib-storage / uxmlib-integration / uxmlib-hud /
     // uxmlib-update / uxmlib-condition as needed
 }
@@ -170,7 +177,7 @@ dependencies {
 
 ```kotlin
 dependencies {
-    implementation("com.github.UXPLIMA.uxmLib:uxmlib-all:VERSION")
+    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-all:VERSION")
 }
 ```
 
@@ -184,8 +191,8 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.github.UXPLIMA.uxmLib:uxmlib-gui:VERSION'
-    implementation 'com.github.UXPLIMA.uxmLib:uxmlib-item:VERSION'
+    implementation 'com.github.UXPLIMA.uxm-lib:uxmlib-gui:VERSION'
+    implementation 'com.github.UXPLIMA.uxm-lib:uxmlib-item:VERSION'
 }
 ```
 
@@ -204,7 +211,7 @@ dependencies {
 </repositories>
 
 <dependency>
-  <groupId>com.github.UXPLIMA.uxmLib</groupId>
+  <groupId>com.github.UXPLIMA.uxm-lib</groupId>
   <artifactId>uxmlib-gui</artifactId>
   <version>VERSION</version>
 </dependency>
@@ -216,11 +223,11 @@ Importing the BOM lets you list modules without repeating the version on each on
 
 ```kotlin
 dependencies {
-    implementation(platform("com.github.UXPLIMA.uxmLib:uxmlib-bom:VERSION"))
+    implementation(platform("com.github.UXPLIMA.uxm-lib:uxmlib-bom:VERSION"))
 
-    implementation("com.github.UXPLIMA.uxmLib:uxmlib-gui")
-    implementation("com.github.UXPLIMA.uxmLib:uxmlib-item")
-    implementation("com.github.UXPLIMA.uxmLib:uxmlib-storage")
+    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-gui")
+    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-item")
+    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-storage")
 }
 ```
 

@@ -1,6 +1,6 @@
 # JitPack build configuration. JitPack builds a tag on first request and serves the artifacts.
 # Build on a JDK 21 toolchain (the library targets Java 21), and publish every module to the local
-# Maven repo with the requested tag as the version, so consumers resolve com.github.UXPLIMA.uxmLib:<module>:<tag>.
+# Maven repo with the requested tag as the version, so consumers resolve com.github.UXPLIMA.uxm-lib:<module>:<tag>.
 jdk:
   - openjdk21
 install:

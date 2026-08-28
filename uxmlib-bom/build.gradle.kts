@@ -32,7 +32,7 @@ publishing {
             pom {
                 name.set("uxmlib-bom")
                 description.set("Bill of materials aligning all uxmlib-* module versions")
-                url.set("https://github.com/UXPLIMA/uxmLib")
+                url.set("https://github.com/UXPLIMA/uxm-lib")
                 licenses {
                     license {
                         name.set("MIT License")

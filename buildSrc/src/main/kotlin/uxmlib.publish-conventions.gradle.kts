@@ -11,8 +11,8 @@ publishing {
             from(components["java"])
             pom {
                 name.set(project.name)
-                description.set("uxmLib — a modern toolkit library for Paper 1.21+ plugins")
-                url.set("https://github.com/UXPLIMA/uxmLib")
+                description.set("uxmLib: a modern toolkit library for Paper 1.21+ plugins")
+                url.set("https://github.com/UXPLIMA/uxm-lib")
                 licenses {
                     license {
                         name.set("MIT License")
@@ -26,9 +26,9 @@ publishing {
                     }
                 }
                 scm {
-                    url.set("https://github.com/UXPLIMA/uxmLib")
-                    connection.set("scm:git:https://github.com/UXPLIMA/uxmLib.git")
-                    developerConnection.set("scm:git:git@github.com:UXPLIMA/uxmLib.git")
+                    url.set("https://github.com/UXPLIMA/uxm-lib")
+                    connection.set("scm:git:https://github.com/UXPLIMA/uxm-lib.git")
+                    developerConnection.set("scm:git:git@github.com:UXPLIMA/uxm-lib.git")
                 }
             }
         }
