@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -87,11 +88,14 @@ class HoconConfigTest {
         java.util.concurrent.atomic.AtomicBoolean saveCompleted = new java.util.concurrent.atomic.AtomicBoolean();
         java.util.concurrent.atomic.AtomicBoolean saveSeenInsideListener =
                 new java.util.concurrent.atomic.AtomicBoolean(true);
+        java.util.concurrent.atomic.AtomicReference<Thread> started =
+                new java.util.concurrent.atomic.AtomicReference<>();
         config.onReload(() -> {
             Thread saver = new Thread(() -> {
                 config.save();
                 saveCompleted.set(true);
             });
+            started.set(saver);
             saver.start();
             try {
                 // The saver is blocked on the config monitor reload holds; give it ample time to (not) run.
@@ -106,6 +110,9 @@ class HoconConfigTest {
         config.reload();
         // The saver could not have acquired the lock while the listener (inside reload's monitor) ran.
         assertThat(saveSeenInsideListener).isFalse();
+        // It does get the lock once reload releases it, and then writes into the temp directory. Wait for
+        // that write here: leaving it running raced JUnit deleting the directory out from under it.
+        Objects.requireNonNull(started.get(), "the reload listener never ran").join(5_000L);
     }
 
     @Test
