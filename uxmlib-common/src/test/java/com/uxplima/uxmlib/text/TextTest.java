@@ -2,6 +2,8 @@ package com.uxplima.uxmlib.text;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Optional;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextColor;
@@ -33,7 +35,7 @@ class TextTest {
     void paintsAComponentWithoutParsingIt() {
         Component painted = Text.paint(Component.text("hi"), "<red>");
         assertThat(Text.plain(painted)).isEqualTo("hi");
-        assertThat(firstColor(painted)).isEqualTo(NamedTextColor.RED);
+        assertThat(firstColor(painted)).contains(NamedTextColor.RED);
     }
 
     @Test
@@ -52,17 +54,16 @@ class TextTest {
         assertThat(Text.plain(painted)).isEqualTo("\u00a7cred");
     }
 
-    private static TextColor firstColor(Component component) {
-        if (component.color() != null) {
-            return component.color();
+    /** The colour of the outermost node that carries one, which is where the painted style lands. */
+    private static Optional<TextColor> firstColor(Component component) {
+        TextColor color = component.color();
+        if (color != null) {
+            return Optional.of(color);
         }
-        for (Component child : component.children()) {
-            TextColor found = firstColor(child);
-            if (found != null) {
-                return found;
-            }
-        }
-        return null;
+        return component.children().stream()
+                .map(TextTest::firstColor)
+                .flatMap(Optional::stream)
+                .findFirst();
     }
 
     private static boolean hasClickEvent(Component component) {
