@@ -64,4 +64,14 @@ public interface EconomyBridge {
     static EconomyBridge orDummy() {
         return find().orElseGet(DummyEconomy::new);
     }
+
+    /**
+     * A no-op economy, unconditionally: every balance reads zero and every transaction fails. Where
+     * {@link #orDummy()} prefers a real backend when one is installed, this one never looks for it — for a
+     * test, for a feature an operator turned off, or as the seed of a bridge that rebinds later. Writing
+     * these nine methods by hand is the thing it saves.
+     */
+    static EconomyBridge none() {
+        return new DummyEconomy();
+    }
 }
