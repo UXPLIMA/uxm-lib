@@ -113,7 +113,7 @@ what you use. Modules marked **experimental** are previews with unstable APIs (s
 | `uxmlib-packet-compat` | **Experimental.** The seam for the few server internals that are not spelled the same on every supported Minecraft line, with one adapter artifact per line (`-mc1_21`, `-mc26`). Pulled in transitively by `uxmlib-packet`; consumers never name it. Together with the build-only recompile check it lives under `platform/`, since those are the only sources tied to a specific server. |
 | `uxmlib-nametags` | **Experimental.** A from-scratch per-viewer nametag renderer (different prefixes/colours/visibility per viewer) over scoreboard-team and metadata packets, without touching the server-side scoreboard. |
 | `uxmlib-bom` | A bill of materials so a consumer can align every `uxmlib-*` artifact to one version with a single platform import. |
-| `uxmlib-all` | The aggregate of every module on the API surface, and the standalone server-side plugin jar. |
+| `uxmlib-all` | The aggregate of every module on the API surface. The same module also builds the standalone server-side plugin jar, published beside it under the `standalone` classifier. |
 
 ```mermaid
 graph TD
@@ -233,7 +233,7 @@ dependencies {
 
 ### Standalone plugin jar
 
-Prefer not to shade? Drop the aggregate `uxmlib-all` jar in the server's `plugins/` folder and have your
+Prefer not to shade? Take the standalone jar, drop it in the server's `plugins/` folder, and have your
 plugins depend on it as a normal Paper dependency:
 
 ```yaml
@@ -244,6 +244,22 @@ depend:
 
 The standalone jar registers only the handful of listeners whose behaviour is driven entirely by item
 persistent data; the rest of the library is consumed as an API.
+
+It is a separate artifact from the aggregate you compile against — same module and version, `standalone`
+classifier — because it bundles Configurate, HikariCP and Caffeine under relocated package names. Compiling
+against relocated types would put classes on your compile classpath that no consumer can produce. Grab it
+from the release assets, from Maven, or build it yourself:
+
+```kotlin
+// only if you need the file itself, e.g. to copy it into a server image
+dependencies {
+    runtimeOnly("com.github.UXPLIMA.uxm-lib:uxmlib-all:VERSION:standalone")
+}
+```
+
+```bash
+./gradlew :uxmlib-all:shadowJar   # build/libs/uxmlib-all-VERSION-standalone.jar
+```
 
 ### Shading and relocation
 
@@ -606,7 +622,7 @@ Requires a JDK 21 toolchain (Gradle provisions it via the Foojay resolver if nee
 ```bash
 ./gradlew build                   # compile, format check, static analysis, tests
 ./gradlew spotlessApply           # auto-format before checking
-./gradlew :uxmlib-all:shadowJar   # the standalone plugin jar
+./gradlew :uxmlib-all:shadowJar   # the standalone plugin jar (-standalone classifier)
 ./gradlew publishToMavenLocal     # install every module to ~/.m2 to try locally
 ```
 
