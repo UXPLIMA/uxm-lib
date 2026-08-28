@@ -447,7 +447,9 @@ List<String> leaders = sql.query(top, row -> row.getString("uuid"));
 
 Switch to a network backend by giving the builder a JDBC URL and credentials (`jdbcUrl(...)`,
 `username(...)`, `password(...)`) and adding the matching driver — MariaDB/MySQL, PostgreSQL, and H2 are
-opt-in. Higher-level helpers add a write-through / write-behind cache, a two-tier player-profile cache, and
+opt-in. The URL decides the backend: hand `jdbcUrl(...)` a `jdbc:sqlite:` file and you get the same
+single-writer pool, WAL journal and lock timeout `sqlite(...)` gives you, so exposing one `jdbc-url` setting
+to your operators is safe whichever backend they point it at. Higher-level helpers add a write-through / write-behind cache, a two-tier player-profile cache, and
 cross-server row sync.
 
 ### Integrations

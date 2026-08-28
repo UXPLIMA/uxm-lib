@@ -30,7 +30,6 @@ public final class DatabaseBuilder {
     private int busyTimeoutMs = DEFAULT_BUSY_TIMEOUT_MS;
     private JournalMode journalMode = JournalMode.WAL;
     private String poolName = "uxmlib-pool";
-    private boolean sqlite;
 
     DatabaseBuilder() {}
 
@@ -64,21 +63,22 @@ public final class DatabaseBuilder {
     public DatabaseBuilder sqlite(Path file) {
         Objects.requireNonNull(file, "file");
         this.jdbcUrl = "jdbc:sqlite:" + file;
-        this.sqlite = true;
         return this;
     }
 
     /** Use an in-memory SQLite database (for tests). */
     public DatabaseBuilder sqliteInMemory() {
         this.jdbcUrl = "jdbc:sqlite::memory:";
-        this.sqlite = true;
         return this;
     }
 
-    /** Use an explicit JDBC URL (e.g. {@code jdbc:mariadb://host:3306/db}) for a network backend. */
+    /**
+     * Use an explicit JDBC URL (e.g. {@code jdbc:mariadb://host:3306/db}) for a network backend. A
+     * {@code jdbc:sqlite:} URL is accepted too and opens exactly the database {@link #sqlite(Path)} would,
+     * with the same single-writer settings — the URL decides the backend, not which setter was called.
+     */
     public DatabaseBuilder jdbcUrl(String url) {
         this.jdbcUrl = Objects.requireNonNull(url, "url");
-        this.sqlite = false;
         return this;
     }
 
@@ -146,6 +146,12 @@ public final class DatabaseBuilder {
             throw new IllegalStateException(
                     "a backend must be set: call sqlite(...), sqliteInMemory(), or jdbcUrl(...)");
         }
+        // The URL decides the backend, and it is the only thing that may. This used to be a flag that only
+        // sqlite(Path) and sqliteInMemory() set, so the two halves of this method disagreed: the dialect below
+        // read the URL and saw SQLite while the branch here read the flag and saw a network database. A file
+        // handed to jdbcUrl(...) — the shape an operator's own "storage.jdbc-url" setting takes — then opened
+        // with ten connections against a database that accepts one writer and with the lock wait switched off.
+        Dialect dialect = Dialect.fromJdbcUrl(url);
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl(url);
         config.setPoolName(poolName);
@@ -156,7 +162,7 @@ public final class DatabaseBuilder {
         if (password != null) {
             config.setPassword(password);
         }
-        if (sqlite) {
+        if (dialect == Dialect.SQLITE) {
             config.setMaximumPoolSize(SQLITE_POOL_SIZE);
             // WAL + NORMAL sync is the standard durable-but-fast setup for an embedded single-writer file; the
             // journal mode is configurable for the cases that want MEMORY/OFF speed over crash durability.
@@ -170,7 +176,7 @@ public final class DatabaseBuilder {
         }
         HikariDataSource dataSource = new HikariDataSource(config);
         try {
-            return new Database(dataSource, Dialect.fromJdbcUrl(url), true);
+            return new Database(dataSource, dialect, true);
         } catch (RuntimeException failure) {
             // Don't leak the just-opened pool if wrapping it fails for any reason.
             dataSource.close();

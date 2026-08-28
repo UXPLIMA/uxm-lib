@@ -3,12 +3,15 @@ package com.uxplima.uxmlib.storage.sql;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 class DatabaseBuilderTest {
 
@@ -91,6 +94,34 @@ class DatabaseBuilderTest {
     @SuppressWarnings("NullAway") // intentionally passes null to assert the requireNonNull guard fires
     void rejectsANullJournalMode() {
         assertThatThrownBy(() -> Database.builder().journalMode(null)).isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void aSqliteUrlKeepsItsSettingsWhicheverSetterOpenedIt(@TempDir Path directory) throws SQLException {
+        // The shape an operator's own "storage.jdbc-url" setting takes: a SQLite file, handed to the setter
+        // meant for network backends. It must still open as the single-writer database it is.
+        Path file = directory.resolve("data.db");
+        try (Database db = Database.builder()
+                .jdbcUrl("jdbc:sqlite:" + file)
+                .maxPoolSize(10)
+                .build()) {
+            assertThat(db.dialect()).isEqualTo(Dialect.SQLITE);
+            assertThat(readJournalMode(db)).isEqualToIgnoringCase("wal");
+            assertThat(readBusyTimeout(db)).isPositive();
+            assertThat(((HikariDataSource) db.dataSource()).getMaximumPoolSize()).isEqualTo(1);
+        }
+    }
+
+    @Test
+    void aNetworkUrlStillTakesTheConfiguredPoolSize() {
+        // The counterpart: nothing about the fix may narrow a real network pool down to one connection.
+        try (Database db = Database.builder()
+                .jdbcUrl("jdbc:h2:mem:uxmlibpool;DB_CLOSE_DELAY=-1")
+                .maxPoolSize(4)
+                .build()) {
+            assertThat(db.dialect()).isEqualTo(Dialect.H2);
+            assertThat(((HikariDataSource) db.dataSource()).getMaximumPoolSize()).isEqualTo(4);
+        }
     }
 
     private static String readJournalMode(Database db) throws SQLException {
