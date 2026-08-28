@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -148,6 +149,7 @@ class CooldownConditionTest {
     private static CommandContext<CommandSourceStack> playerContext(UUID uuid) {
         Player player = mock(Player.class);
         when(player.getUniqueId()).thenReturn(uuid);
+        when(player.locale()).thenReturn(Locale.ENGLISH); // a real Player always has one; a mock does not
         return contextWithSender(player);
     }
 
