@@ -9,8 +9,10 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.jar.Attributes;
 import java.util.jar.JarEntry;
 import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 
 import com.uxplima.uxmlib.storage.sql.Database;
 import org.junit.jupiter.api.Test;
@@ -39,8 +41,44 @@ class MigrationResourcesTest {
 
     @Test
     void loadsMigrationsFromInsideAJar(@TempDir Path tmp) throws IOException {
-        Path jar = tmp.resolve("migrations.jar");
-        try (JarOutputStream out = new JarOutputStream(Files.newOutputStream(jar))) {
+        List<Migration> migrations = loadFromJar(tmp.resolve("migrations.jar"), null);
+        assertThat(migrations).extracting(Migration::version).containsExactly(1, 2);
+        assertThat(migrations.get(1).description()).isEqualTo("beta");
+        assertThat(migrations.get(0).sql()).contains("CREATE TABLE alpha");
+    }
+
+    @Test
+    void loadsMigrationsFromInsideAMultiReleaseJar(@TempDir Path tmp) throws IOException {
+        // Every shaded consumer jar is one of these: Shadow merges the manifests of HikariCP and sqlite-jdbc,
+        // and both declare Multi-Release, so the attribute lands in the plugin jar. The JDK then hands back a
+        // directory resource whose entry name already ends in a slash, which is the whole of the bug.
+        Manifest manifest = new Manifest();
+        manifest.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        manifest.getMainAttributes().putValue("Multi-Release", "true");
+
+        List<Migration> migrations = loadFromJar(tmp.resolve("multirelease.jar"), manifest);
+
+        assertThat(migrations).extracting(Migration::version).containsExactly(1, 2);
+        assertThat(migrations.get(1).description()).isEqualTo("beta");
+        assertThat(migrations.get(0).sql()).contains("CREATE TABLE alpha");
+    }
+
+    @Test
+    void theManifestDoesNotChangeWhatIsFound(@TempDir Path tmp) throws IOException {
+        Manifest multiRelease = new Manifest();
+        multiRelease.getMainAttributes().put(Attributes.Name.MANIFEST_VERSION, "1.0");
+        multiRelease.getMainAttributes().putValue("Multi-Release", "true");
+
+        assertThat(loadFromJar(tmp.resolve("with.jar"), multiRelease))
+                .isEqualTo(loadFromJar(tmp.resolve("without.jar"), null));
+    }
+
+    /** Build a jar holding the same three entries, optionally with {@code manifest}, and load through it. */
+    private static List<Migration> loadFromJar(Path jar, @org.jspecify.annotations.Nullable Manifest manifest)
+            throws IOException {
+        try (JarOutputStream out = manifest == null
+                ? new JarOutputStream(Files.newOutputStream(jar))
+                : new JarOutputStream(Files.newOutputStream(jar), manifest)) {
             putEntry(out, "db/", "");
             putEntry(out, "db/migration/", "");
             putEntry(out, "db/migration/V1__alpha.sql", "CREATE TABLE alpha (id INTEGER);");
@@ -48,10 +86,7 @@ class MigrationResourcesTest {
             putEntry(out, "db/migration/README.txt", "ignore me");
         }
         try (URLClassLoader cl = new URLClassLoader(new URL[] {jar.toUri().toURL()}, null)) {
-            List<Migration> migrations = MigrationResources.load(cl, "db/migration");
-            assertThat(migrations).extracting(Migration::version).containsExactly(1, 2);
-            assertThat(migrations.get(1).description()).isEqualTo("beta");
-            assertThat(migrations.get(0).sql()).contains("CREATE TABLE alpha");
+            return MigrationResources.load(cl, "db/migration");
         }
     }
 
