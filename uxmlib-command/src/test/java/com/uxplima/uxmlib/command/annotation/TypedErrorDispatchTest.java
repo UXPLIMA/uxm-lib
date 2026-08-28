@@ -54,6 +54,8 @@ class TypedErrorDispatchTest {
         ArgumentCaptor<Component> reply = ArgumentCaptor.forClass(Component.class);
         org.mockito.Mockito.verify(sender).sendMessage(reply.capture());
         String text = PlainTextComponentSerializer.plainText().serialize(reply.getValue());
-        assertThat(text).contains("mode").contains("banana");
+        // The subcommand literal is also called "mode": the quoted input has to be the value the sender got
+        // wrong, not the literal that shares the argument's name.
+        assertThat(text).isEqualTo("Invalid value 'banana' for <mode>: expected one of survival, creative");
     }
 }
