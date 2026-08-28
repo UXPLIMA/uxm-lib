@@ -66,13 +66,15 @@ class CooldownConditionTest {
     @Test
     void noAnnotationYieldsNoCondition() {
         ParamResolvers resolvers = resolversWith(new Cooldowns());
-        assertThat(CooldownCondition.forBranch(branch("free"), "kit free", resolvers)).isNull();
+        CommandCondition condition = CooldownCondition.forBranch(branch("free"), "kit free", resolvers);
+        assertThat(condition).isNull();
     }
 
     @Test
     void aMethodLevelCooldownDerivesACondition() {
         ParamResolvers resolvers = resolversWith(new Cooldowns());
-        assertThat(CooldownCondition.forBranch(branch("daily"), "kit daily", resolvers)).isNotNull();
+        CommandCondition condition = CooldownCondition.forBranch(branch("daily"), "kit daily", resolvers);
+        assertThat(condition).isNotNull();
     }
 
     @Test
@@ -128,7 +130,8 @@ class CooldownConditionTest {
 
     private static CommandCondition cooldownCondition(Cooldowns cooldowns) {
         ParamResolvers resolvers = resolversWith(cooldowns);
-        return java.util.Objects.requireNonNull(CooldownCondition.forBranch(branch("daily"), "kit daily", resolvers));
+        CommandCondition condition = CooldownCondition.forBranch(branch("daily"), "kit daily", resolvers);
+        return java.util.Objects.requireNonNull(condition);
     }
 
     private static ParamResolvers resolversWith(Cooldowns cooldowns) {

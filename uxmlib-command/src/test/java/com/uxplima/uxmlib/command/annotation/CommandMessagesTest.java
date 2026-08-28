@@ -121,7 +121,8 @@ class CommandMessagesTest {
     @Test
     void aRegistryCarriesTheMessagesAndLocaleSourceItWasGiven() {
         CommandMessages messages = new TurkishMessages();
-        ParamResolvers resolvers = ParamResolvers.withDefaults().messages(messages).locales(LocaleSource.ofDefault(TR));
+        ParamResolvers resolvers =
+                ParamResolvers.withDefaults().messages(messages).locales(LocaleSource.ofDefault(TR));
 
         assertThat(resolvers.messages()).isSameAs(messages);
         assertThat(resolvers.locales().defaultLocale()).isEqualTo(TR);

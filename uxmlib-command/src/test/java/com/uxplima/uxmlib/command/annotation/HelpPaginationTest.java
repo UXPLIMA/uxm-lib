@@ -111,9 +111,11 @@ class HelpPaginationTest {
         Component page = HelpRenderer.render("town", entries, 1, HelpRenderer.PER_PAGE, messages, turkish);
 
         String text = PlainTextComponentSerializer.plainText().serialize(page);
+        Component fillHint = Component.text("Doldurmak için tıkla");
+        Component pageHint = Component.text("Sayfa 2");
         assertThat(text).startsWith("/town yardım (1/3)");
-        assertThat(hasHover(page, HoverEvent.showText(Component.text("Doldurmak için tıkla")))).isTrue();
-        assertThat(hasHover(page, HoverEvent.showText(Component.text("Sayfa 2")))).isTrue();
+        assertThat(hasHover(page, HoverEvent.showText(fillHint))).isTrue();
+        assertThat(hasHover(page, HoverEvent.showText(pageHint))).isTrue();
     }
 
     @Test
@@ -121,8 +123,9 @@ class HelpPaginationTest {
         Component page = HelpRenderer.render("town", many(20), 1, HelpRenderer.PER_PAGE);
 
         String text = PlainTextComponentSerializer.plainText().serialize(page);
+        Component pageHint = Component.text("Page 2");
         assertThat(text).startsWith("/town help (1/3)");
-        assertThat(hasHover(page, HoverEvent.showText(Component.text("Page 2")))).isTrue();
+        assertThat(hasHover(page, HoverEvent.showText(pageHint))).isTrue();
     }
 
     /** Whether any component in the tree carries exactly {@code expected} as its hover event. */

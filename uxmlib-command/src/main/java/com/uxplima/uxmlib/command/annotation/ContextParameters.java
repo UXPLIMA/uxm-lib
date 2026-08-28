@@ -38,6 +38,7 @@ final class ContextParameters {
             return player;
         }
         Locale locale = resolvers.locales().localeOf(ctx.getSource().getSender());
-        throw new CommandCondition.CommandConditionException(resolvers.messages().playerOnly(locale));
+        throw new CommandCondition.CommandConditionException(
+                resolvers.messages().playerOnly(locale));
     }
 }
