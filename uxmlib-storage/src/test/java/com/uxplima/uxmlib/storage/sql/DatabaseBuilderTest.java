@@ -108,7 +108,8 @@ class DatabaseBuilderTest {
             assertThat(db.dialect()).isEqualTo(Dialect.SQLITE);
             assertThat(readJournalMode(db)).isEqualToIgnoringCase("wal");
             assertThat(readBusyTimeout(db)).isPositive();
-            assertThat(((HikariDataSource) db.dataSource()).getMaximumPoolSize()).isEqualTo(1);
+            assertThat(((HikariDataSource) db.dataSource()).getMaximumPoolSize())
+                    .isEqualTo(1);
         }
     }
 
@@ -120,7 +121,8 @@ class DatabaseBuilderTest {
                 .maxPoolSize(4)
                 .build()) {
             assertThat(db.dialect()).isEqualTo(Dialect.H2);
-            assertThat(((HikariDataSource) db.dataSource()).getMaximumPoolSize()).isEqualTo(4);
+            assertThat(((HikariDataSource) db.dataSource()).getMaximumPoolSize())
+                    .isEqualTo(4);
         }
     }
 
