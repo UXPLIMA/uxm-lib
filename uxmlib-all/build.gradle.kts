@@ -56,8 +56,6 @@ tasks.assemble {
     dependsOn(tasks.shadowJar)
 }
 
-// The server plugin still ships from Maven, now as a classified artifact next to the aggregate rather than
-// in place of it: com.github.UXPLIMA.uxm-lib:uxmlib-all:VERSION:standalone.
-publishing.publications.named<MavenPublication>("maven") {
-    artifact(tasks.shadowJar)
-}
+// Giving it a classifier is also what publishes it: Shadow adds its variant to the java component only when
+// the classifier is non-empty (otherwise it would collide with the plain jar), so the plugin now ships from
+// Maven beside the aggregate as com.github.UXPLIMA.uxm-lib:uxmlib-all:VERSION:standalone.
