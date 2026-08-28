@@ -50,6 +50,29 @@ class MessageCatalogTest {
     }
 
     @Test
+    void findStopsAtTheLocaleItWasAskedFor() {
+        MessageCatalog catalog = catalog(Map.of(Locale.ENGLISH, Map.of("join.welcome", "<green>Welcome, friend")));
+
+        // template() would answer the English text here; find() says plainly that German supplies nothing.
+        assertThat(catalog.find(WELCOME, GERMAN)).isEmpty();
+        assertThat(catalog.find(WELCOME, Locale.ENGLISH)).contains("<green>Welcome, friend");
+    }
+
+    @Test
+    void findStillHonoursTheLanguageOnlyFileOfARegionLocale() {
+        MessageCatalog catalog = catalog(Map.of(GERMAN, Map.of("join.welcome", "<green>Willkommen")));
+
+        assertThat(catalog.find(WELCOME, GERMANY)).contains("<green>Willkommen");
+    }
+
+    @Test
+    void findReportsADeliberatelyEmptyValueAsPresent() {
+        MessageCatalog catalog = catalog(Map.of(GERMAN, Map.of("join.welcome", "")));
+
+        assertThat(catalog.find(WELCOME, GERMAN)).contains("");
+    }
+
+    @Test
     void isTranslatedReflectsWhetherAnyFileSuppliesTheKey() {
         MessageCatalog translated = catalog(Map.of(GERMAN, Map.of("join.welcome", "x")));
         MessageCatalog untranslated = catalog(Map.of(Locale.ENGLISH, Map.of()));

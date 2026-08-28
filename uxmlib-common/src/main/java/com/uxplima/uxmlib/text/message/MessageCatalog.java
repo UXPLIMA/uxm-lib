@@ -76,7 +76,19 @@ public final class MessageCatalog {
     public boolean isTranslated(MessageKey key, Locale locale) {
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(locale, "locale");
-        return lookup(key.path(), locale) != null || lookup(key.path(), defaultLocale) != null;
+        return find(key, locale).isPresent() || find(key, defaultLocale).isPresent();
+    }
+
+    /**
+     * The template {@code locale}'s own lang file supplies for {@code key} (or its language-only file), or
+     * empty when that language has none. Unlike {@link #template} this stops at the one tier asked for: no
+     * default locale, no built-in default. It is what a caller needs to tell one language's answer from
+     * another's — a message made of two halves, say, that must not take one from each.
+     */
+    public Optional<String> find(MessageKey key, Locale locale) {
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(locale, "locale");
+        return Optional.ofNullable(lookup(key.path(), locale));
     }
 
     // Exact locale first, then a language-only locale, so a translator can ship one en.conf and still serve
