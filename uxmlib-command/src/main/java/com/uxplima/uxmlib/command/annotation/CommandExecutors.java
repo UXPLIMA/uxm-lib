@@ -8,9 +8,9 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
-import net.kyori.adventure.text.Component;
-
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+
+import net.kyori.adventure.text.Component;
 
 import com.mojang.brigadier.context.CommandContext;
 import com.uxplima.uxmlib.command.Cmd;

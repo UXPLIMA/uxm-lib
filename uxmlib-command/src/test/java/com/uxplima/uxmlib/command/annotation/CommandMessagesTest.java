@@ -66,8 +66,8 @@ class CommandMessagesTest {
 
         @Override
         public Component notOneOf(Locale locale, String argument, String input, List<String> allowed) {
-            return Component.text("<" + argument + "> şunlardan biri olmalı: " + String.join(", ", allowed)
-                    + " ('" + input + "' değil)");
+            String list = String.join(", ", allowed);
+            return Component.text("<" + argument + "> şunlardan biri olmalı: " + list + " ('" + input + "' değil)");
         }
     }
 

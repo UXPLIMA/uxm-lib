@@ -1,5 +1,7 @@
 package com.uxplima.uxmlib.command.annotation;
 
+import java.util.Locale;
+
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -35,7 +37,7 @@ final class ContextParameters {
         if (ctx.getSource().getSender() instanceof Player player) {
             return player;
         }
-        throw new CommandCondition.CommandConditionException(
-                resolvers.messages().playerOnly(resolvers.locales().localeOf(ctx.getSource().getSender())));
+        Locale locale = resolvers.locales().localeOf(ctx.getSource().getSender());
+        throw new CommandCondition.CommandConditionException(resolvers.messages().playerOnly(locale));
     }
 }

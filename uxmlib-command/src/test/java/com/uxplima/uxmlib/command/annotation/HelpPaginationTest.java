@@ -106,12 +106,13 @@ class HelpPaginationTest {
         List<HelpRenderer.Entry> entries = new java.util.ArrayList<>(many(20));
         entries.add(0, new HelpRenderer.Entry("create", "", "")); // no description: the hover is the library's
 
-        Component page = HelpRenderer.render(
-                "town", entries, 1, HelpRenderer.PER_PAGE, messages, Locale.forLanguageTag("tr"));
+        Locale turkish = Locale.forLanguageTag("tr");
 
-        assertThat(PlainTextComponentSerializer.plainText().serialize(page)).startsWith("/town yardım (1/3)");
-        assertThat(hasHover(page, HoverEvent.showText(Component.text("Doldurmak için tıkla"))))
-                .isTrue();
+        Component page = HelpRenderer.render("town", entries, 1, HelpRenderer.PER_PAGE, messages, turkish);
+
+        String text = PlainTextComponentSerializer.plainText().serialize(page);
+        assertThat(text).startsWith("/town yardım (1/3)");
+        assertThat(hasHover(page, HoverEvent.showText(Component.text("Doldurmak için tıkla")))).isTrue();
         assertThat(hasHover(page, HoverEvent.showText(Component.text("Sayfa 2")))).isTrue();
     }
 
@@ -119,7 +120,8 @@ class HelpPaginationTest {
     void aPageRenderedWithoutAMessageLayerKeepsTheEnglishChrome() {
         Component page = HelpRenderer.render("town", many(20), 1, HelpRenderer.PER_PAGE);
 
-        assertThat(PlainTextComponentSerializer.plainText().serialize(page)).startsWith("/town help (1/3)");
+        String text = PlainTextComponentSerializer.plainText().serialize(page);
+        assertThat(text).startsWith("/town help (1/3)");
         assertThat(hasHover(page, HoverEvent.showText(Component.text("Page 2")))).isTrue();
     }
 
