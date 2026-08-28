@@ -75,7 +75,7 @@ jobs:
         run: |
           status=0
           for jar in uxmlib-*/build/libs/*.jar; do
-            case "$jar" in *-sources.jar|*-javadoc.jar) continue ;; esac
+            case "$jar" in *-sources.jar|*-javadoc.jar|*-standalone.jar) continue ;; esac
             entry=$(unzip -Z1 "$jar" | grep -m1 '^com/uxplima/uxmlib/.*\.class$' || true)
             if [ -z "$entry" ]; then
               continue
@@ -89,6 +89,36 @@ jobs:
             fi
           done
           exit $status
+
+      # uxmlib-all publishes two jars that used to be one file, and the plain one silently turning back into
+      # the shaded one is exactly the regression that shipped in 0.5.0: consumers compiled against relocated
+      # Configurate types they had no way to produce.
+      - name: Check the aggregate jar carries no bundled libraries
+        if: matrix.line == 'modern'
+        run: |
+          plain=$(ls uxmlib-all/build/libs/*.jar | grep -v -e '-sources\.jar$' -e '-javadoc\.jar$' -e '-standalone\.jar$')
+          shaded=$(ls uxmlib-all/build/libs/*-standalone.jar)
+          if unzip -Z1 "$plain" | grep -q '^com/uxplima/uxmlib/libs/'; then
+            echo "::error file=$plain::the aggregate jar contains relocated third-party classes"
+            exit 1
+          fi
+          if ! unzip -Z1 "$shaded" | grep -q '^com/uxplima/uxmlib/libs/configurate/'; then
+            echo "::error file=$shaded::the standalone jar is missing its bundled libraries"
+            exit 1
+          fi
+          echo "ok: $plain is the API aggregate, $shaded is the plugin"
+
+      # And that the standalone jar is actually published beside the aggregate rather than only built.
+      - name: Check both jars reach a repository
+        if: matrix.line == 'modern'
+        run: |
+          ./gradlew -Dorg.gradle.java.installations.fromEnv=JAVA_HOME_25_X64 :uxmlib-all:publishToMavenLocal
+          dir=$(ls -d ~/.m2/repository/com/uxplima/uxmlib/uxmlib-all/*/)
+          ls -1 "$dir"
+          ls "$dir" | grep -q -e '-standalone\.jar$' || {
+            echo "::error::the standalone jar is missing from the published artifacts"
+            exit 1
+          }
 
       - name: Upload the test reports
         if: failure()

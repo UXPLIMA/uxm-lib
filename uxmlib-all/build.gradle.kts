@@ -36,8 +36,14 @@ tasks.processResources {
     filesMatching("paper-plugin.yml") { expand(props) }
 }
 
+// This module wears two hats, and they must not share a file name. The plain jar is the API aggregate a
+// consumer compiles against: it carries no third-party code, so the module signatures it exposes are the
+// real ones. The shaded jar is the standalone server plugin, and it relocates its bundled libraries — which
+// rewrites those same signatures. Publishing both without a classifier made the shaded one overwrite the
+// plain one on disk, so consumers compiled against relocated types (a Map<Locale, ConfigurationNode> they
+// had no way to produce) while the POM also pulled every module in cleanly beside it.
 tasks.shadowJar {
-    archiveClassifier.set("")
+    archiveClassifier.set("standalone")
     // Relocate the bundled infra libs under a per-library namespace so two plugins that both ship the
     // standalone jar (or shade it) never clash on the classpath. Our own com.uxplima.uxmlib stays put.
     relocate("org.spongepowered.configurate", "com.uxplima.uxmlib.libs.configurate")
@@ -49,3 +55,7 @@ tasks.shadowJar {
 tasks.assemble {
     dependsOn(tasks.shadowJar)
 }
+
+// Giving it a classifier is also what publishes it: Shadow adds its variant to the java component only when
+// the classifier is non-empty (otherwise it would collide with the plain jar), so the plugin now ships from
+// Maven beside the aggregate as com.github.UXPLIMA.uxm-lib:uxmlib-all:VERSION:standalone.
