@@ -30,14 +30,14 @@ final class CooldownCondition {
      *
      * @throws CommandParseException if the {@code @Cooldown} duration is not a valid human duration
      */
-    static @Nullable CommandCondition forBranch(BranchModel branch, String commandPath, Cooldowns cooldowns) {
+    static @Nullable CommandCondition forBranch(BranchModel branch, String commandPath, ParamResolvers resolvers) {
         Cooldown cooldown = effective(branch);
         if (cooldown == null) {
             return null;
         }
         long durationMillis = parse(cooldown, branch.method());
         String keyPrefix = commandPath + '|';
-        return ctx -> test(ctx, keyPrefix, durationMillis, cooldowns);
+        return ctx -> test(ctx, keyPrefix, durationMillis, resolvers);
     }
 
     private static @Nullable Cooldown effective(BranchModel branch) {
@@ -55,14 +55,17 @@ final class CooldownCondition {
     }
 
     private static void test(
-            CommandContext<CommandSourceStack> ctx, String keyPrefix, long durationMillis, Cooldowns cooldowns) {
+            CommandContext<CommandSourceStack> ctx, String keyPrefix, long durationMillis, ParamResolvers resolvers) {
         if (!(ctx.getSource().getSender() instanceof Player player)) {
             return; // the console and command blocks have no per-player identity to rate-limit
         }
-        long remaining = cooldowns.check(keyPrefix + player.getUniqueId(), durationMillis);
+        long remaining = resolvers.cooldowns().check(keyPrefix + player.getUniqueId(), durationMillis);
         if (remaining > 0L) {
-            throw new CommandCondition.CommandConditionException(
-                    "You must wait " + Durations.format(Duration.ofMillis(remaining)) + " before using this again.");
+            // The time left travels as a Duration, not as "3m 20s": no two languages spell or order the parts
+            // the same way, so the wording is the message layer's to choose.
+            throw new CommandCondition.CommandConditionException(resolvers
+                    .messages()
+                    .onCooldown(resolvers.locales().localeOf(player), Duration.ofMillis(remaining)));
         }
     }
 }

@@ -425,6 +425,22 @@ The annotation layer also covers `@Range`/`@Length` bounds, `@Cooldown` rate lim
 and switches, async execution, and paginated help — with SPIs for custom argument resolvers, validators,
 and conditions.
 
+Everything the command layer says on its own behalf — the refusals, the argument rejections, the help
+chrome — goes through `CommandMessages`, so a translated plugin answers each player in that player's own
+language:
+
+```java
+ParamResolvers resolvers = ParamResolvers.withDefaults()
+        .messages(myMessages)                                   // implement only the lines you care about
+        .locales(LocaleSource.ofDefault(Locale.forLanguageTag("tr")));
+
+AnnotatedCommands.register(plugin, new HomeCommand(), resolvers);
+```
+
+Each method receives the sender's locale and the *values* — the bad input, the allowed ones, the time left
+— never a finished English sentence, since no other language puts those words in the same order. Every
+method has a default, so a plugin that ignores the seam keeps the English it always had.
+
 ### Configuration
 
 Typed configuration over Configurate (HOCON) — config is data with IDE support, not string-keyed lookups.

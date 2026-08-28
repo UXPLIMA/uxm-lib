@@ -2,6 +2,8 @@ package com.uxplima.uxmlib.command.annotation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Locale;
+
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
@@ -9,26 +11,32 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Covers the typed {@link ErrorContext}: a per-argument failure carries which argument failed, the raw input
- * the sender gave, and why, and renders to a clear Adventure message naming the argument and the input. The
- * record and its rendering are pure, so they are exercised directly.
+ * the sender gave, and why. The record is pure, so it and the default wording it feeds are exercised
+ * directly.
  */
 class ErrorContextTest {
+
+    private static final CommandMessages MESSAGES = CommandMessages.english();
 
     private static String plain(Component component) {
         return PlainTextComponentSerializer.plainText().serialize(component);
     }
 
+    private static String render(ErrorContext error) {
+        return plain(MESSAGES.invalidValue(Locale.ENGLISH, error.argument(), error.input(), error.reason()));
+    }
+
     @Test
     void namesTheArgumentTheRawInputAndTheReason() {
         ErrorContext error = new ErrorContext("amount", "abc", "not a number");
-        String rendered = plain(error.toComponent());
+        String rendered = render(error);
         assertThat(rendered).contains("amount").contains("abc").contains("not a number");
     }
 
     @Test
     void aFailureWithoutAReasonStillNamesTheArgument() {
         ErrorContext error = new ErrorContext("target", "Steve", "");
-        String rendered = plain(error.toComponent());
+        String rendered = render(error);
         assertThat(rendered).contains("target").contains("Steve");
     }
 

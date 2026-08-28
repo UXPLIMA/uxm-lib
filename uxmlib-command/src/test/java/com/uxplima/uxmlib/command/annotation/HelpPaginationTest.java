@@ -3,11 +3,13 @@ package com.uxplima.uxmlib.command.annotation;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Locale;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 import com.mojang.brigadier.tree.CommandNode;
@@ -81,6 +83,57 @@ class HelpPaginationTest {
     void aSinglePageHasNoFooter() {
         Component page = HelpRenderer.render("town", many(2), 1, HelpRenderer.PER_PAGE);
         assertThat(hasClick(page, ClickEvent.runCommand("/town help 2"))).isFalse();
+    }
+
+    @Test
+    void theHelpChromeIsWordedByTheMessagesItIsGiven() {
+        CommandMessages messages = new CommandMessages() {
+            @Override
+            public Component helpHeader(Locale locale, String command, int page, int pages) {
+                return Component.text("/" + command + " yardım (" + page + "/" + pages + ")");
+            }
+
+            @Override
+            public Component helpFillHint(Locale locale) {
+                return Component.text("Doldurmak için tıkla");
+            }
+
+            @Override
+            public Component helpPageHint(Locale locale, int page) {
+                return Component.text("Sayfa " + page);
+            }
+        };
+        List<HelpRenderer.Entry> entries = new java.util.ArrayList<>(many(20));
+        entries.add(0, new HelpRenderer.Entry("create", "", "")); // no description: the hover is the library's
+
+        Component page = HelpRenderer.render(
+                "town", entries, 1, HelpRenderer.PER_PAGE, messages, Locale.forLanguageTag("tr"));
+
+        assertThat(PlainTextComponentSerializer.plainText().serialize(page)).startsWith("/town yardım (1/3)");
+        assertThat(hasHover(page, HoverEvent.showText(Component.text("Doldurmak için tıkla"))))
+                .isTrue();
+        assertThat(hasHover(page, HoverEvent.showText(Component.text("Sayfa 2")))).isTrue();
+    }
+
+    @Test
+    void aPageRenderedWithoutAMessageLayerKeepsTheEnglishChrome() {
+        Component page = HelpRenderer.render("town", many(20), 1, HelpRenderer.PER_PAGE);
+
+        assertThat(PlainTextComponentSerializer.plainText().serialize(page)).startsWith("/town help (1/3)");
+        assertThat(hasHover(page, HoverEvent.showText(Component.text("Page 2")))).isTrue();
+    }
+
+    /** Whether any component in the tree carries exactly {@code expected} as its hover event. */
+    private static boolean hasHover(Component component, Object expected) {
+        if (expected.equals(component.hoverEvent())) {
+            return true;
+        }
+        for (Component child : component.children()) {
+            if (hasHover(child, expected)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

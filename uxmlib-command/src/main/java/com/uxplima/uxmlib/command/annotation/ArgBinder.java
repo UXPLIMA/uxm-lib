@@ -127,6 +127,13 @@ final class ArgBinder {
             return value;
         } catch (ArgumentResolveException alreadyTyped) {
             throw alreadyTyped;
+        } catch (NotOneOfException notOneOf) {
+            // The resolver knows the whole accepted set; carry it through so the reply can be worded in the
+            // sender's language rather than translated out of the English sentence.
+            throw new ArgumentResolveException(
+                    new ErrorContext(
+                            pa.name(), rawInput(ctx, pa.name()), reasonOf(notOneOf), notOneOf.allowed()),
+                    notOneOf);
         } catch (IllegalArgumentException rejected) {
             // Re-throw with which argument failed and the raw input the sender gave, so the reply can point at
             // the exact argument rather than a flat message. The original message becomes the typed reason.

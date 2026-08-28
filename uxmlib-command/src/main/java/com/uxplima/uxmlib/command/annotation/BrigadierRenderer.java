@@ -44,7 +44,7 @@ final class BrigadierRenderer {
             attachBranch(root, model.handler(), branch, command.name());
         }
         if (command.help()) {
-            root.then(HelpRenderer.helpLiteral(command.name(), model.branches()));
+            root.then(HelpRenderer.helpLiteral(command.name(), model.branches(), resolvers));
         }
         return root.build();
     }

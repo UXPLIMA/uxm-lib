@@ -2,6 +2,7 @@ package com.uxplima.uxmlib.command.annotation;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 
@@ -38,12 +39,14 @@ final class HelpRenderer {
     record Entry(String usage, String description, String permission) {}
 
     /** A {@code help [page]} node that lists the visible branches of {@code root}, paginated, when run. */
-    static LiteralArgumentBuilder<CommandSourceStack> helpLiteral(String root, List<BranchModel> branches) {
+    static LiteralArgumentBuilder<CommandSourceStack> helpLiteral(
+            String root, List<BranchModel> branches, ParamResolvers resolvers) {
         List<Entry> entries = entriesOf(branches);
         return Cmd.literal("help")
-                .executes(ctx -> show(ctx, root, entries, 1))
+                .executes(ctx -> show(ctx, root, entries, 1, resolvers))
                 .then(Cmd.argument("page", IntegerArgumentType.integer(1))
-                        .executes(ctx -> show(ctx, root, entries, IntegerArgumentType.getInteger(ctx, "page"))));
+                        .executes(ctx ->
+                                show(ctx, root, entries, IntegerArgumentType.getInteger(ctx, "page"), resolvers)));
     }
 
     /**
@@ -80,10 +83,16 @@ final class HelpRenderer {
     }
 
     /** Filter the entries the sender may use, render the requested page, and send it. */
-    private static int show(CommandContext<CommandSourceStack> ctx, String root, List<Entry> entries, int page) {
+    private static int show(
+            CommandContext<CommandSourceStack> ctx,
+            String root,
+            List<Entry> entries,
+            int page,
+            ParamResolvers resolvers) {
         CommandSourceStack source = ctx.getSource();
         List<Entry> visible = visibleTo(source, entries);
-        Sender.of(source).send(render(root, visible, page, PER_PAGE));
+        Locale locale = resolvers.locales().localeOf(source.getSender());
+        Sender.of(source).send(render(root, visible, page, PER_PAGE, resolvers.messages(), locale));
         return Cmd.OK;
     }
 
@@ -103,54 +112,63 @@ final class HelpRenderer {
      * layout (clickable lines, page footer) is unit-tested directly.
      */
     static Component render(String root, List<Entry> entries, int page, int perPage) {
+        return render(root, entries, page, perPage, CommandMessages.english(), Locale.ENGLISH);
+    }
+
+    /** The same page, with the chrome (header and hovers) rendered through {@code messages} for {@code locale}. */
+    static Component render(
+            String root, List<Entry> entries, int page, int perPage, CommandMessages messages, Locale locale) {
         int clamped = HelpPages.clamp(page, entries.size(), perPage);
         int pages = HelpPages.pageCount(entries.size(), perPage);
-        Component message = Component.text("/" + root + " help (" + clamped + "/" + pages + ")", NamedTextColor.YELLOW);
+        Component message = messages.helpHeader(locale, root, clamped, pages);
         for (Entry entry : HelpPages.slice(entries, clamped, perPage)) {
-            message = message.append(line(root, entry));
+            message = message.append(line(root, entry, messages, locale));
         }
-        Component footer = footer(root, clamped, pages);
+        Component footer = footer(root, clamped, pages, messages, locale);
         return footer == null ? message : message.append(footer);
     }
 
     /** One clickable help line: suggests its command on click and shows the description on hover. */
-    private static Component line(String root, Entry entry) {
+    private static Component line(String root, Entry entry, CommandMessages messages, Locale locale) {
         String command = "/" + root + (entry.usage().isEmpty() ? "" : " " + entry.usage());
         Component usage = Component.text("\n" + command, NamedTextColor.WHITE)
                 .clickEvent(ClickEvent.suggestCommand(command))
-                .hoverEvent(HoverEvent.showText(hoverText(entry)));
+                .hoverEvent(HoverEvent.showText(hoverText(entry, messages, locale)));
         if (entry.description().isEmpty()) {
             return usage;
         }
         return usage.append(Component.text(" — " + entry.description(), NamedTextColor.GRAY));
     }
 
-    private static Component hoverText(Entry entry) {
-        String hover = entry.description().isEmpty() ? "Click to fill in this command" : entry.description();
-        return Component.text(hover);
+    private static Component hoverText(Entry entry, CommandMessages messages, Locale locale) {
+        // The description is the consumer's own text and is shown as written; only the stand-in for a missing
+        // one belongs to the library, so only that one goes through the message layer.
+        return entry.description().isEmpty() ? messages.helpFillHint(locale) : Component.text(entry.description());
     }
 
     /** A previous/next footer that re-runs {@code /root help <page>}; {@code null} for a single-page list. */
-    private static @org.jspecify.annotations.Nullable Component footer(String root, int page, int pages) {
+    private static @org.jspecify.annotations.Nullable Component footer(
+            String root, int page, int pages, CommandMessages messages, Locale locale) {
         if (pages <= 1) {
             return null;
         }
         Component footer = Component.text("\n", NamedTextColor.DARK_GRAY);
         if (page > 1) {
-            footer = footer.append(pageButton(root, "« prev", page - 1, NamedTextColor.AQUA));
+            footer = footer.append(pageButton(root, "« prev", page - 1, messages, locale));
         }
         if (page > 1 && page < pages) {
             footer = footer.append(Component.text("  ", NamedTextColor.DARK_GRAY));
         }
         if (page < pages) {
-            footer = footer.append(pageButton(root, "next »", page + 1, NamedTextColor.AQUA));
+            footer = footer.append(pageButton(root, "next »", page + 1, messages, locale));
         }
         return footer;
     }
 
-    private static Component pageButton(String root, String label, int target, NamedTextColor color) {
-        return Component.text(label, color)
+    private static Component pageButton(
+            String root, String label, int target, CommandMessages messages, Locale locale) {
+        return Component.text(label, NamedTextColor.AQUA)
                 .clickEvent(ClickEvent.runCommand("/" + root + " help " + target))
-                .hoverEvent(HoverEvent.showText(Component.text("Page " + target)));
+                .hoverEvent(HoverEvent.showText(messages.helpPageHint(locale, target)));
     }
 }

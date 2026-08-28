@@ -3,9 +3,11 @@ package com.uxplima.uxmlib.command.annotation;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import com.uxplima.uxmlib.text.message.LocaleSource;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -25,6 +27,8 @@ public final class ParamResolvers {
     private final List<CommandCondition> conditions = new ArrayList<>();
     private Cooldowns cooldowns = new Cooldowns();
     private Replacers replacers = Replacers.none();
+    private CommandMessages messages = CommandMessages.english();
+    private LocaleSource locales = LocaleSource.ofDefault(Locale.ENGLISH);
 
     private ParamResolvers() {}
 
@@ -134,6 +138,35 @@ public final class ParamResolvers {
     /** The registered annotation replacers; the empty registry when none was added. */
     Replacers replacers() {
         return replacers;
+    }
+
+    /**
+     * Answer senders through {@code messages} instead of the built-in English, for branches built with this
+     * registry. Pair it with {@link #locales(LocaleSource)} so each sender is answered in their own language.
+     * Returns this for chaining.
+     */
+    public ParamResolvers messages(CommandMessages messages) {
+        this.messages = Objects.requireNonNull(messages, "messages");
+        return this;
+    }
+
+    /** The message source the command layer speaks through; the built-in English when none was set. */
+    CommandMessages messages() {
+        return messages;
+    }
+
+    /**
+     * Resolve the locale each sender is answered in through {@code locales}. Defaults to a source that reads
+     * a player's own client locale and falls back to English for the console. Returns this for chaining.
+     */
+    public ParamResolvers locales(LocaleSource locales) {
+        this.locales = Objects.requireNonNull(locales, "locales");
+        return this;
+    }
+
+    /** The locale source; a player's client locale with an English fallback when none was set. */
+    LocaleSource locales() {
+        return locales;
     }
 
     /** Whether some resolver handles {@code type} (directly, or as an enum). */
