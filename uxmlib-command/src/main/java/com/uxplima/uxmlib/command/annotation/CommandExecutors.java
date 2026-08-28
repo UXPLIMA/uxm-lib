@@ -4,10 +4,13 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.logging.Level;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+
+import net.kyori.adventure.text.Component;
 
 import com.mojang.brigadier.context.CommandContext;
 import com.uxplima.uxmlib.command.Cmd;
@@ -43,28 +46,51 @@ final class CommandExecutors {
         Method method = branch.method();
         List<CommandCondition> conditions = conditionsFor(branch, resolvers, commandPath);
         boolean async = AsyncCompletion.isAsync(method.getReturnType());
+        CommandMessages messages = resolvers.messages();
         return ctx -> {
+            Locale locale = localeOf(resolvers, ctx);
             try {
                 checkConditions(conditions, ctx);
             } catch (CommandCondition.CommandConditionException vetoed) {
-                replyRed(ctx, vetoed.reason());
+                reply(ctx, vetoed.message());
                 return 0;
             }
             Object[] callArgs;
             try {
                 callArgs = ArgBinder.bind(ctx, method, args, flags, resolvers);
+            } catch (CommandCondition.CommandConditionException vetoed) {
+                // A context parameter or resolver refused outright rather than rejecting one value.
+                reply(ctx, vetoed.message());
+                return 0;
             } catch (ArgumentResolveException typed) {
                 // A resolver/validator rejected one argument; reply naming which argument and the bad input.
-                Sender.of(ctx.getSource()).send(typed.context().toComponent());
+                reply(ctx, rejection(messages, locale, typed.context()));
                 return 0;
             } catch (IllegalArgumentException badArgument) {
                 // A rejection with no per-argument context (a flag value, say). Reply with its flat message
                 // rather than letting it surface as a server error.
-                replyRed(ctx, badArgument.getMessage() == null ? "Invalid argument." : badArgument.getMessage());
+                String detail = badArgument.getMessage();
+                reply(ctx, messages.invalidArgument(locale, detail == null ? "" : detail));
                 return 0;
             }
-            return invoke(handler, method, callArgs, ctx, async, scheduler);
+            return invoke(handler, method, callArgs, ctx, async, scheduler, messages, locale);
         };
+    }
+
+    /** The locale the sender of this dispatch is answered in. */
+    private static Locale localeOf(ParamResolvers resolvers, CommandContext<CommandSourceStack> ctx) {
+        return resolvers.locales().localeOf(ctx.getSource().getSender());
+    }
+
+    /**
+     * Render a per-argument rejection. A rejection that knows the whole accepted set is handed to the
+     * dedicated method, so a message layer words "not one of these" itself rather than translating a sentence.
+     */
+    private static Component rejection(CommandMessages messages, Locale locale, ErrorContext context) {
+        if (!context.allowed().isEmpty()) {
+            return messages.notOneOf(locale, context.argument(), context.input(), context.allowed());
+        }
+        return messages.invalidValue(locale, context.argument(), context.input(), context.reason());
     }
 
     private static int invoke(
@@ -73,15 +99,17 @@ final class CommandExecutors {
             Object[] callArgs,
             CommandContext<CommandSourceStack> ctx,
             boolean async,
-            Scheduler scheduler) {
+            Scheduler scheduler,
+            CommandMessages messages,
+            Locale locale) {
         try {
             Object returned = method.invoke(handler, callArgs);
             if (async) {
-                routeAsync(returned, method, ctx, scheduler);
+                routeAsync(returned, method, ctx, scheduler, messages, locale);
             }
             return Cmd.OK;
         } catch (InvocationTargetException thrownByHandler) {
-            reportError(method, ctx, thrownByHandler.getCause(), thrownByHandler);
+            reportError(method, ctx, thrownByHandler.getCause(), thrownByHandler, messages, locale);
             return 0;
         } catch (IllegalAccessException unreachable) {
             // setAccessible(true) ran at registration, so this cannot happen for a registered handler.
@@ -96,7 +124,12 @@ final class CommandExecutors {
      * off before a genuinely async future settled) never erases the operator's record of the failure.
      */
     private static void routeAsync(
-            Object returned, Method method, CommandContext<CommandSourceStack> ctx, Scheduler scheduler) {
+            Object returned,
+            Method method,
+            CommandContext<CommandSourceStack> ctx,
+            Scheduler scheduler,
+            CommandMessages messages,
+            Locale locale) {
         CompletableFuture<?> future = AsyncCompletion.asFuture(returned);
         if (future == null) {
             return;
@@ -106,7 +139,7 @@ final class CommandExecutors {
                 scheduler,
                 ctx.getSource(),
                 cause -> logError(method, ctx, cause, cause),
-                cause -> replyRed(ctx, "An internal error occurred while running this command."));
+                cause -> reply(ctx, messages.internalError(locale)));
     }
 
     /**
@@ -118,9 +151,11 @@ final class CommandExecutors {
             Method method,
             CommandContext<CommandSourceStack> ctx,
             @org.jspecify.annotations.Nullable Throwable cause,
-            Throwable fallback) {
+            Throwable fallback,
+            CommandMessages messages,
+            Locale locale) {
         logError(method, ctx, cause, fallback);
-        replyRed(ctx, "An internal error occurred while running this command.");
+        reply(ctx, messages.internalError(locale));
     }
 
     /** Log the real (sanitized) cause server-side at {@code SEVERE}. Thread-safe; needs no Bukkit API thread. */
@@ -137,11 +172,9 @@ final class CommandExecutors {
                 .log(Level.SEVERE, "Command '" + method.getName() + "' threw an exception", logged);
     }
 
-    /** Send {@code message} to the dispatch's sender in red, the uniform clean-error reply. */
-    private static void replyRed(CommandContext<CommandSourceStack> ctx, String message) {
-        Sender.of(ctx.getSource())
-                .send(net.kyori.adventure.text.Component.text(
-                        message, net.kyori.adventure.text.format.NamedTextColor.RED));
+    /** Send {@code message} to the dispatch's sender: the uniform clean-error reply path. */
+    private static void reply(CommandContext<CommandSourceStack> ctx, Component message) {
+        Sender.of(ctx.getSource()).send(message);
     }
 
     /**
@@ -155,19 +188,20 @@ final class CommandExecutors {
         List<CommandCondition> conditions = new ArrayList<>(resolvers.conditions());
         if (branch.methodView().isPresent(PlayerOnly.class)
                 || branch.classView().isPresent(PlayerOnly.class)) {
-            conditions.add(playerOnlyCondition());
+            conditions.add(playerOnlyCondition(resolvers));
         }
-        CommandCondition cooldown = CooldownCondition.forBranch(branch, commandPath, resolvers.cooldowns());
+        CommandCondition cooldown = CooldownCondition.forBranch(branch, commandPath, resolvers);
         if (cooldown != null) {
             conditions.add(cooldown);
         }
         return conditions;
     }
 
-    private static CommandCondition playerOnlyCondition() {
+    private static CommandCondition playerOnlyCondition(ParamResolvers resolvers) {
         return ctx -> {
             if (!(ctx.getSource().getSender() instanceof org.bukkit.entity.Player)) {
-                throw new CommandCondition.CommandConditionException("Only a player can run this command.");
+                throw new CommandCondition.CommandConditionException(
+                        resolvers.messages().playerOnly(localeOf(resolvers, ctx)));
             }
         };
     }

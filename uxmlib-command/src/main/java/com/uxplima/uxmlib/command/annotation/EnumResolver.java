@@ -1,5 +1,6 @@
 package com.uxplima.uxmlib.command.annotation;
 
+import java.util.List;
 import java.util.Locale;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
@@ -37,8 +38,9 @@ final class EnumResolver implements ParamResolver<Enum<?>> {
             }
         }
         // Named the way completion offers them: telling a player to type SURVIVAL when the only thing they
-        // were ever shown is "survival" sends them looking for a value that does not exist.
-        throw new IllegalArgumentException("expected one of " + String.join(", ", suggestions()) + ", got " + raw);
+        // were ever shown is "survival" sends them looking for a value that does not exist. The typed
+        // rejection carries the list itself, so a translated message layer never has to parse this sentence.
+        throw new NotOneOfException(raw, List.copyOf(suggestions()));
     }
 
     @Override

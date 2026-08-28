@@ -10,6 +10,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.context.ParsedCommandNode;
+import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.uxplima.uxmlib.command.annotation.annotations.Arg;
 import org.jspecify.annotations.Nullable;
 
@@ -127,6 +128,12 @@ final class ArgBinder {
             return value;
         } catch (ArgumentResolveException alreadyTyped) {
             throw alreadyTyped;
+        } catch (NotOneOfException notOneOf) {
+            // The resolver knows the whole accepted set; carry it through so the reply can be worded in the
+            // sender's language rather than translated out of the English sentence.
+            throw new ArgumentResolveException(
+                    new ErrorContext(pa.name(), rawInput(ctx, pa.name()), reasonOf(notOneOf), notOneOf.allowed()),
+                    notOneOf);
         } catch (IllegalArgumentException rejected) {
             // Re-throw with which argument failed and the raw input the sender gave, so the reply can point at
             // the exact argument rather than a flat message. The original message becomes the typed reason.
@@ -139,7 +146,11 @@ final class ArgBinder {
     private static String rawInput(CommandContext<CommandSourceStack> ctx, String name) {
         String input = ctx.getInput();
         for (ParsedCommandNode<CommandSourceStack> node : ctx.getNodes()) {
-            if (node.getNode().getName().equals(name)) {
+            // Only an argument node holds what the sender typed for an argument. A subcommand literal may
+            // carry the same name -- "/game mode <mode>" is the ordinary shape for an enum - and it is
+            // parsed first, so matching on the name alone quoted the literal back at the sender as their
+            // bad input.
+            if (isArgumentNamed(node, name)) {
                 int start = Math.min(node.getRange().getStart(), input.length());
                 int end = Math.min(node.getRange().getEnd(), input.length());
                 return start <= end ? input.substring(start, end) : "";
@@ -178,11 +189,17 @@ final class ArgBinder {
     /** Whether {@code name} was actually parsed in this dispatch (vs an omitted optional). */
     private static boolean hasArgument(CommandContext<CommandSourceStack> ctx, String name) {
         for (ParsedCommandNode<CommandSourceStack> node : ctx.getNodes()) {
-            if (node.getNode().getName().equals(name)) {
+            if (isArgumentNamed(node, name)) {
                 return true;
             }
         }
         return false;
+    }
+
+    /** Whether {@code node} is the argument node called {@code name}, and not a literal that shares its name. */
+    private static boolean isArgumentNamed(ParsedCommandNode<CommandSourceStack> node, String name) {
+        return node.getNode() instanceof ArgumentCommandNode<?, ?>
+                && node.getNode().getName().equals(name);
     }
 
     private static @Nullable Object zeroValue(Class<?> type) {

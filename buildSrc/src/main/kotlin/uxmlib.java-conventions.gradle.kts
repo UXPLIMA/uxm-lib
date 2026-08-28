@@ -1,5 +1,6 @@
 import net.ltgt.gradle.errorprone.errorprone
 import net.ltgt.gradle.nullaway.nullaway
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 
 plugins {
     id("java-library")
@@ -138,5 +139,10 @@ tasks.withType<Test>().configureEach {
     testLogging {
         events("passed", "failed", "skipped")
         showStandardStreams = false
+        // The HTML report a failure points at lives on the CI runner and is gone when the job ends, so a
+        // failing assertion has to say what it actually saw in the console log or nobody can read it.
+        exceptionFormat = TestExceptionFormat.FULL
+        showCauses = true
+        showStackTraces = true
     }
 }

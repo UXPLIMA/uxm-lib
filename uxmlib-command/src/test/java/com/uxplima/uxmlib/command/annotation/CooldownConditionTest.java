@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -65,14 +66,16 @@ class CooldownConditionTest {
 
     @Test
     void noAnnotationYieldsNoCondition() {
-        assertThat(CooldownCondition.forBranch(branch("free"), "kit free", new Cooldowns()))
-                .isNull();
+        ParamResolvers resolvers = resolversWith(new Cooldowns());
+        CommandCondition condition = CooldownCondition.forBranch(branch("free"), "kit free", resolvers);
+        assertThat(condition).isNull();
     }
 
     @Test
     void aMethodLevelCooldownDerivesACondition() {
-        assertThat(CooldownCondition.forBranch(branch("daily"), "kit daily", new Cooldowns()))
-                .isNotNull();
+        ParamResolvers resolvers = resolversWith(new Cooldowns());
+        CommandCondition condition = CooldownCondition.forBranch(branch("daily"), "kit daily", resolvers);
+        assertThat(condition).isNotNull();
     }
 
     @Test
@@ -127,7 +130,13 @@ class CooldownConditionTest {
     }
 
     private static CommandCondition cooldownCondition(Cooldowns cooldowns) {
-        return java.util.Objects.requireNonNull(CooldownCondition.forBranch(branch("daily"), "kit daily", cooldowns));
+        ParamResolvers resolvers = resolversWith(cooldowns);
+        CommandCondition condition = CooldownCondition.forBranch(branch("daily"), "kit daily", resolvers);
+        return java.util.Objects.requireNonNull(condition);
+    }
+
+    private static ParamResolvers resolversWith(Cooldowns cooldowns) {
+        return ParamResolvers.withDefaults().cooldowns(cooldowns);
     }
 
     private static BranchModel branch(String path) {
@@ -140,6 +149,7 @@ class CooldownConditionTest {
     private static CommandContext<CommandSourceStack> playerContext(UUID uuid) {
         Player player = mock(Player.class);
         when(player.getUniqueId()).thenReturn(uuid);
+        when(player.locale()).thenReturn(Locale.ENGLISH); // a real Player always has one; a mock does not
         return contextWithSender(player);
     }
 

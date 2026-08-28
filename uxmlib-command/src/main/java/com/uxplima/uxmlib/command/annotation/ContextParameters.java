@@ -1,5 +1,7 @@
 package com.uxplima.uxmlib.command.annotation;
 
+import java.util.Locale;
+
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -23,14 +25,20 @@ final class ContextParameters {
         r.context(Sender.class, ctx -> Sender.of(ctx.getSource()));
         r.context(CommandSourceStack.class, com.mojang.brigadier.context.CommandContext::getSource);
         r.context(CommandSender.class, ctx -> ctx.getSource().getSender());
-        r.context(Player.class, ContextParameters::requirePlayer);
+        r.context(Player.class, ctx -> requirePlayer(ctx, r));
     }
 
-    /** The sender as a Player, or a rejected-input error (caught and shown to the sender) from console. */
-    private static Player requirePlayer(com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx) {
+    /**
+     * The sender as a Player, or a refusal shown to the sender, from console. It refuses the way a condition
+     * does rather than as a rejected argument, because no argument was wrong: the sender was.
+     */
+    private static Player requirePlayer(
+            com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx, ParamResolvers resolvers) {
         if (ctx.getSource().getSender() instanceof Player player) {
             return player;
         }
-        throw new IllegalArgumentException("Only a player can run this command.");
+        Locale locale = resolvers.locales().localeOf(ctx.getSource().getSender());
+        throw new CommandCondition.CommandConditionException(
+                resolvers.messages().playerOnly(locale));
     }
 }
