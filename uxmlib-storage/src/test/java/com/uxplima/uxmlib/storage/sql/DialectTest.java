@@ -60,6 +60,35 @@ class DialectTest {
     }
 
     @Test
+    void aCompositeKeyNamesEveryKeyColumnInTheConflictClause() {
+        List<String> columns = List.of("player_uuid", "tag_id", "granted_at");
+        List<String> key = List.of("player_uuid", "tag_id");
+
+        assertThat(Dialect.POSTGRES.upsert("grants", key, columns))
+                .isEqualTo("INSERT INTO grants (player_uuid, tag_id, granted_at) VALUES (?, ?, ?) "
+                        + "ON CONFLICT(player_uuid, tag_id) DO UPDATE SET granted_at = excluded.granted_at");
+        assertThat(Dialect.H2.upsert("grants", key, columns))
+                .isEqualTo("MERGE INTO grants (player_uuid, tag_id, granted_at) "
+                        + "KEY(player_uuid, tag_id) VALUES (?, ?, ?)");
+        assertThat(Dialect.MYSQL.upsert("grants", key, columns))
+                .endsWith("ON DUPLICATE KEY UPDATE granted_at = VALUES(granted_at)");
+    }
+
+    @Test
+    void aKeyOnlyCompositeTableDoesNotTryToUpdate() {
+        List<String> key = List.of("a", "b");
+        assertThat(Dialect.SQLITE.upsert("t", key, key)).endsWith("ON CONFLICT(a, b) DO NOTHING");
+    }
+
+    @Test
+    void aKeyColumnThatIsNotBoundIsRejected() {
+        assertThatThrownBy(() -> Dialect.SQLITE.upsert("t", List.of("a", "missing"), List.of("a", "b")))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Dialect.SQLITE.upsert("t", List.of(), List.of("a")))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void genericDialectHasNoPortableUpsert() {
         assertThatThrownBy(() -> Dialect.GENERIC.upsert("t", "id", COLUMNS))
                 .isInstanceOf(UnsupportedOperationException.class);

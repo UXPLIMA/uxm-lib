@@ -45,29 +45,48 @@ public enum Dialect {
      * @throws UnsupportedOperationException if this dialect has no portable upsert (override {@code save})
      */
     public String upsert(String table, String idColumn, List<String> columns) {
-        Objects.requireNonNull(table, "table");
         Objects.requireNonNull(idColumn, "idColumn");
+        return upsert(table, List.of(idColumn), columns);
+    }
+
+    /**
+     * As {@link #upsert(String, String, List)}, for a table whose key is more than one column — a join row
+     * such as {@code (player_uuid, tag_id)}. Every key column must also appear in {@code columns}, since the
+     * insert has to bind it; the columns that are not key columns are the ones the conflict branch updates.
+     *
+     * @throws UnsupportedOperationException if this dialect has no portable upsert (override {@code save})
+     */
+    public String upsert(String table, List<String> keyColumns, List<String> columns) {
+        Objects.requireNonNull(table, "table");
+        Objects.requireNonNull(keyColumns, "keyColumns");
         Objects.requireNonNull(columns, "columns");
+        if (keyColumns.isEmpty()) {
+            throw new IllegalArgumentException("keyColumns must name at least one column");
+        }
+        if (!columns.containsAll(keyColumns)) {
+            throw new IllegalArgumentException("every key column must also be bound: " + keyColumns + " vs " + columns);
+        }
         String placeholders = String.join(", ", Collections.nCopies(columns.size(), "?"));
         String columnList = String.join(", ", columns);
+        String keyList = String.join(", ", keyColumns);
         String insert = "INSERT INTO " + table + " (" + columnList + ") VALUES (" + placeholders + ")";
-        List<String> updates = columns.stream().filter(c -> !c.equals(idColumn)).toList();
+        List<String> updates = columns.stream().filter(c -> !keyColumns.contains(c)).toList();
         return switch (this) {
-            case SQLITE, POSTGRES -> insert + onConflict(idColumn, updates);
-            case MYSQL -> insert + onDuplicateKey(updates, idColumn);
-            case H2 -> "MERGE INTO " + table + " (" + columnList + ") KEY(" + idColumn + ") VALUES (" + placeholders
+            case SQLITE, POSTGRES -> insert + onConflict(keyList, updates);
+            case MYSQL -> insert + onDuplicateKey(updates, keyColumns.get(0));
+            case H2 -> "MERGE INTO " + table + " (" + columnList + ") KEY(" + keyList + ") VALUES (" + placeholders
                     + ")";
             case GENERIC -> throw new UnsupportedOperationException(
                     "no portable upsert for this JDBC backend; override Repository.save()");
         };
     }
 
-    private static String onConflict(String idColumn, List<String> updates) {
+    private static String onConflict(String keyList, List<String> updates) {
         if (updates.isEmpty()) {
-            return " ON CONFLICT(" + idColumn + ") DO NOTHING";
+            return " ON CONFLICT(" + keyList + ") DO NOTHING";
         }
         String set = updates.stream().map(c -> c + " = excluded." + c).collect(Collectors.joining(", "));
-        return " ON CONFLICT(" + idColumn + ") DO UPDATE SET " + set;
+        return " ON CONFLICT(" + keyList + ") DO UPDATE SET " + set;
     }
 
     private static String onDuplicateKey(List<String> updates, String idColumn) {
