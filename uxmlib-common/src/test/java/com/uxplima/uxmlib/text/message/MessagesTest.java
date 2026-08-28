@@ -82,18 +82,111 @@ class MessagesTest {
     @Test
     void aConfiguredTitleChannelRendersBothTitleAndItsSubtitle() {
         // MockBukkit does not round-trip Adventure showTitle into a readable queue, so capture the Title at
-        // the Adventure layer to assert the facade renders the channel's own subtitle template, not empty.
+        // the Adventure layer. With no subtitle in the catalog both halves come from the operator's entry.
         CapturingTitleAudience viewer = new CapturingTitleAudience();
         Message.TitleText channel = new Message.TitleText(
-                "<unused>", "<gray>welcome <name>", Duration.ZERO, Duration.ofSeconds(1), Duration.ZERO);
+                "<yellow>Hello <name>", "<gray>welcome <name>", Duration.ZERO, Duration.ofSeconds(1), Duration.ZERO);
         Map<String, Message> channels = Map.of(WELCOME.path(), channel);
         Messages messages = new Messages(catalog(), LocaleSource.ofDefault(Locale.ENGLISH), channels);
 
         messages.send(viewer, WELCOME, Text.placeholder("name", "Alex"));
 
         net.kyori.adventure.title.Title shown = viewer.shown();
-        assertThat(Text.plain(shown.title())).isEqualTo("Welcome Alex");
+        assertThat(Text.plain(shown.title())).isEqualTo("Hello Alex");
         assertThat(Text.plain(shown.subtitle())).isEqualTo("welcome Alex");
+    }
+
+    private static Message.TitleText titleChannel() {
+        return new Message.TitleText(
+                "<yellow>Hello <name>", "<gray>welcome <name>", Duration.ZERO, Duration.ofSeconds(1), Duration.ZERO);
+    }
+
+    private static Messages germanMessages(MessageCatalog catalog) {
+        Map<String, Message> channels = Map.of(WELCOME.path(), titleChannel());
+        return new Messages(catalog, LocaleSource.ofDefault(Locale.GERMAN), channels);
+    }
+
+    @Test
+    void aTitleWhoseBothHalvesAreTranslatedComesEntirelyFromTheCatalog() {
+        CapturingTitleAudience viewer = new CapturingTitleAudience();
+        MessageCatalog catalog = new MessageCatalog(
+                Map.of(
+                        Locale.GERMAN,
+                        Map.of(
+                                "join.welcome", "<green>Willkommen <name>",
+                                "join.welcome.subtitle", "<gray>schön dich zu sehen")),
+                Locale.GERMAN);
+
+        germanMessages(catalog).send(viewer, WELCOME, Text.placeholder("name", "Alex"));
+
+        net.kyori.adventure.title.Title shown = viewer.shown();
+        assertThat(Text.plain(shown.title())).isEqualTo("Willkommen Alex");
+        assertThat(Text.plain(shown.subtitle())).isEqualTo("schön dich zu sehen");
+    }
+
+    @Test
+    void aTitleTranslatedWithoutItsSubtitleFallsBackWholeRatherThanAnsweringInTwoLanguages() {
+        CapturingTitleAudience viewer = new CapturingTitleAudience();
+        MessageCatalog catalog = new MessageCatalog(
+                Map.of(Locale.GERMAN, Map.of("join.welcome", "<green>Willkommen <name>")), Locale.GERMAN);
+
+        germanMessages(catalog).send(viewer, WELCOME, Text.placeholder("name", "Alex"));
+
+        net.kyori.adventure.title.Title shown = viewer.shown();
+        // Not "Willkommen Alex" over an English subtitle: the title is the unit, so both halves fall back.
+        assertThat(Text.plain(shown.title())).isEqualTo("Hello Alex");
+        assertThat(Text.plain(shown.subtitle())).isEqualTo("welcome Alex");
+    }
+
+    @Test
+    void aDeliberatelyEmptySubtitleInTheCatalogCountsAsTranslated() {
+        CapturingTitleAudience viewer = new CapturingTitleAudience();
+        MessageCatalog catalog = new MessageCatalog(
+                Map.of(
+                        Locale.GERMAN,
+                        Map.of(
+                                "join.welcome", "<green>Willkommen <name>",
+                                "join.welcome.subtitle", "")),
+                Locale.GERMAN);
+
+        germanMessages(catalog).send(viewer, WELCOME, Text.placeholder("name", "Alex"));
+
+        net.kyori.adventure.title.Title shown = viewer.shown();
+        // Empty is a choice a translator made; missing is an omission. They must not look the same.
+        assertThat(Text.plain(shown.title())).isEqualTo("Willkommen Alex");
+        assertThat(Text.plain(shown.subtitle())).isEmpty();
+    }
+
+    @Test
+    void oneLocaleMissingItsSubtitleDoesNotDecideForALocaleThatHasIt() {
+        MessageCatalog catalog = new MessageCatalog(
+                Map.of(
+                        Locale.ENGLISH,
+                        Map.of(
+                                "join.welcome", "<green>Welcome <name>",
+                                "join.welcome.subtitle", "<gray>good to see you"),
+                        Locale.GERMAN,
+                        Map.of(
+                                "join.welcome", "<green>Willkommen <name>",
+                                "join.welcome.subtitle", "<gray>schön dich zu sehen"),
+                        Locale.FRENCH,
+                        Map.of("join.welcome", "<green>Bienvenue <name>")),
+                Locale.ENGLISH);
+        Map<String, Message> channels = Map.of(WELCOME.path(), titleChannel());
+
+        CapturingTitleAudience french = new CapturingTitleAudience();
+        new Messages(catalog, LocaleSource.ofDefault(Locale.FRENCH), channels)
+                .send(french, WELCOME, Text.placeholder("name", "Alex"));
+        CapturingTitleAudience german = new CapturingTitleAudience();
+        new Messages(catalog, LocaleSource.ofDefault(Locale.GERMAN), channels)
+                .send(german, WELCOME, Text.placeholder("name", "Alex"));
+
+        // The half-finished French file costs French its own translation and falls to the default locale as
+        // a pair; the finished German one is untouched by it.
+        assertThat(Text.plain(french.shown().title())).isEqualTo("Welcome Alex");
+        assertThat(Text.plain(french.shown().subtitle())).isEqualTo("good to see you");
+        assertThat(Text.plain(german.shown().title())).isEqualTo("Willkommen Alex");
+        assertThat(Text.plain(german.shown().subtitle())).isEqualTo("schön dich zu sehen");
     }
 
     /** A minimal Audience that records the {@link net.kyori.adventure.title.Title} shown to it. */
