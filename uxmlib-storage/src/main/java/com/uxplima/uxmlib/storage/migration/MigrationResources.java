@@ -48,6 +48,12 @@ public final class MigrationResources {
      * Load every {@code V*.sql} migration directly under {@code directory} on {@code classLoader}, ordered by
      * ascending version. A missing directory yields an empty list (so an absent dialect overlay is a no-op);
      * two files declaring the same version is an error.
+     *
+     * <p>An empty list means nothing was found, which for your main migration directory is a packaging
+     * problem rather than a state to run with — the resources did not reach the jar, or they landed under a
+     * different path. {@link MigrationRunner#apply(List)} cannot tell the two apart and reports zero applied,
+     * so a caller that reads its own schema off the classpath should refuse to start on an empty list rather
+     * than let the first query be the thing that fails.
      */
     public static List<Migration> load(ClassLoader classLoader, String directory) {
         Objects.requireNonNull(classLoader, "classLoader");
@@ -115,19 +121,25 @@ public final class MigrationResources {
         try {
             JarURLConnection connection = (JarURLConnection) url.openConnection();
             connection.setUseCaches(false);
-            String prefix = connection.getEntryName();
-            if (prefix == null) {
+            String entry = connection.getEntryName();
+            if (entry == null) {
                 return List.of();
             }
+            // The entry name of a directory resource may or may not already carry its trailing slash --
+            // a jar whose manifest declares Multi-Release hands back "db/migration/" where a plain one hands
+            // back "db/migration". Appending a slash unconditionally built "db/migration//", which matched
+            // nothing, so every migration inside a shaded plugin jar went unseen and the runner read that
+            // empty list as a finished run. Normalise instead of assuming.
+            String prefix = entry.endsWith("/") ? entry : entry + "/";
             List<String> names = new ArrayList<>();
             try (JarFile jar = connection.getJarFile()) {
                 Enumeration<JarEntry> entries = jar.entries();
                 while (entries.hasMoreElements()) {
                     String entryName = entries.nextElement().getName();
-                    if (!entryName.startsWith(prefix + "/")) {
+                    if (!entryName.startsWith(prefix)) {
                         continue;
                     }
-                    String simple = entryName.substring(prefix.length() + 1);
+                    String simple = entryName.substring(prefix.length());
                     if (!simple.isEmpty() && simple.indexOf('/') < 0) {
                         names.add(simple);
                     }
