@@ -12,11 +12,15 @@ import com.uxplima.uxmlib.hook.Hooks;
 import net.milkbowl.vault2.economy.Economy;
 
 /**
- * A present-guarded view of the VaultUnlocked economy — the {@code net.milkbowl.vault2.economy} provider, a
- * separate plugin from classic Vault with a {@code BigDecimal}, UUID-keyed, multi-currency API. {@link #find()}
- * looks the service up and returns empty when VaultUnlocked (or a provider for it) is absent, so
- * {@link EconomyBridge#find()} can try it after classic Vault and fall through cleanly. The {@code vault2}
- * classes are touched only past the registration check, so a server without VaultUnlocked still loads.
+ * A present-guarded view of the VaultUnlocked economy: the {@code net.milkbowl.vault2.economy} provider, with
+ * a {@code BigDecimal}, UUID-keyed, multi-currency API that classic Vault never had. {@link #find()} looks the
+ * service up and returns empty when that API or a provider for it is absent, so {@link EconomyBridge#find()}
+ * can try it after classic Vault and fall through cleanly. The {@code vault2} classes are touched only past
+ * the guard, so a server without them still loads.
+ *
+ * <p>The guard asks for the class, not for a plugin named {@code VaultUnlocked}. No server ever runs one:
+ * VaultUnlocked is a drop-in replacement, so it declares itself as {@code Vault}. Asking for the name found
+ * nothing on every server, which left this whole path dead.
  *
  * <p>Every vault2 call is keyed by a requesting plugin name; the library passes a stable {@code "uxmlib"}
  * identifier (economy plugins use it only for logging / per-plugin scoping). Amounts cross the {@code double}
@@ -26,15 +30,18 @@ public final class VaultUnlockedEconomy {
 
     private static final String PLUGIN_NAME = "uxmlib";
 
+    /** The type this hook needs, named as text so the guard can ask for it without loading it. */
+    private static final String VAULT2_ECONOMY = "net.milkbowl.vault2.economy.Economy";
+
     private final Economy economy;
 
     private VaultUnlockedEconomy(Economy economy) {
         this.economy = economy;
     }
 
-    /** The registered VaultUnlocked economy, or empty when VaultUnlocked or a provider for it is absent. */
+    /** The registered vault2 economy, or empty when the vault2 API or a provider for it is absent. */
     public static Optional<VaultUnlockedEconomy> find() {
-        if (!Hooks.isPresent("VaultUnlocked")) {
+        if (!Hooks.hasClass(VAULT2_ECONOMY)) {
             return Optional.empty();
         }
         RegisteredServiceProvider<Economy> registration =
@@ -47,7 +54,7 @@ public final class VaultUnlockedEconomy {
         return Optional.of(new VaultUnlockedEconomy(provider));
     }
 
-    /** Wrap an already-resolved {@code economy} — the seam {@link #find()} uses, exposed for tests. */
+    /** Wrap an already-resolved {@code economy}: the seam {@link #find()} uses, exposed for tests. */
     static VaultUnlockedEconomy of(Economy economy) {
         return new VaultUnlockedEconomy(Objects.requireNonNull(economy, "economy"));
     }
