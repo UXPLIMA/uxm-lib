@@ -340,8 +340,11 @@ Menus draw from the same theme: `MenuTitles.centre` pads a window title into the
 `Tiles` puts a tile's title on the first lore line under a blank name (a single space — an empty one makes
 the client fall back to the material's name), `Lore` builds the tooltip in one fixed order, and
 `MenuSounds` reads the three menu sounds from config. Lore an operator wrote in a config file goes through
-`Lore.lines`, which gives it the same column, the same padding and the same closing air — so a plugin that
-ships items never has to write that geometry down as a house rule of its own.
+`Lore.lines`, which reads every line as body text and gives it the same column, padding and closing air as
+lore built here — so a plugin that ships items never has to write that geometry down as a house rule of its
+own. A file that draws its own glyphs and its own margins goes through `Lore.verbatim` instead, which adds
+the padding and the closing air and leaves the geometry alone, so a plugin can still let its buyer write a
+look that is nothing like this one.
 
 The library ships `uxmlib/theme.conf` as a starting file: colours, glyphs, category colours, named
 gradients and which languages take small capitals. A key it leaves out keeps the shipped answer, and naming

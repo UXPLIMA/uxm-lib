@@ -81,11 +81,16 @@ public final class Lore {
     }
 
     /**
-     * A block of lines that were written somewhere other than here — an item's lore in a config file, say.
-     * They get the shape the rest of a tile has: the column a header's words start in, the pad either side,
-     * and the blank line {@link #build()} closes the box with. A blank line in the middle stays a blank
-     * line; blank lines at either end are dropped, because the air around the block is this class's job and
-     * a file that supplies its own would double it.
+     * A block of body lines that were written somewhere other than here — an item's lore in a config file,
+     * say. Every line is treated as body text: it goes in the column a header's words start in, gets the pad
+     * either side, and takes the blank line {@link #build()} closes the box with. A blank line in the middle
+     * stays a blank line; blank lines at either end are dropped, because the air around the block is this
+     * class's job and a file that supplies its own would double it.
+     *
+     * <p>Body text, and nothing else. This does not read a line and decide it is a header: a file whose
+     * lines already carry a glyph and a margin of their own wants {@link #verbatim(List)}, which leaves the
+     * geometry alone, and a tile whose headers should come from the theme wants {@link #description} and
+     * {@link #details}, which draw them.
      *
      * <p>The reason to have this at all is that a plugin whose lore an operator writes would otherwise have
      * to state the indent and the padding as house rules in its own documentation, and a rule in prose
@@ -108,6 +113,32 @@ public final class Lore {
     public Lore lines(Component written) {
         Objects.requireNonNull(written, "written");
         return lines(split(written));
+    }
+
+    /**
+     * A block of lines exactly as they were written, with nothing added but the pad either side and the
+     * blank line that closes the box. The geometry stays the operator's: a file that draws its own glyphs,
+     * its own margin and its own column keeps all three.
+     *
+     * <p>This is what a plugin sold to someone else needs. A customer who wants a lore that is not this
+     * tile shape at all should be able to write one, and a library that indents every line for them has
+     * taken that away. Blank lines at either end are dropped and a blank line in the middle is one space,
+     * which is the only thing here that is not left as written — a tooltip cannot tell the difference, and
+     * it keeps a blank line the same width wherever it came from.
+     */
+    public Lore verbatim(List<Component> written) {
+        Objects.requireNonNull(written, "written");
+        written.forEach(line -> Objects.requireNonNull(line, "line"));
+        for (Component line : trimBlankEnds(written)) {
+            line(Tiles.isBlank(line) ? Component.empty() : line);
+        }
+        return block();
+    }
+
+    /** The same, for lore that arrives as one component with the line breaks written into it. */
+    public Lore verbatim(Component written) {
+        Objects.requireNonNull(written, "written");
+        return verbatim(split(written));
     }
 
     /** The details header. Call {@link #row} or {@link #status} after it. */
