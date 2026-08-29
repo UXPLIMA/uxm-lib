@@ -66,8 +66,8 @@ class LoreTest {
                 Lore.of(theme).description(Component.text("About"), text).build();
 
         assertThat(lines(lore)).hasSize(4);
-        assertThat(lines(lore).get(1)).contains("first");
-        assertThat(lines(lore).get(2)).contains("second");
+        assertThat(lines(lore).get(1)).isEqualTo("    first ");
+        assertThat(lines(lore).get(2)).isEqualTo("    second ");
     }
 
     @Test

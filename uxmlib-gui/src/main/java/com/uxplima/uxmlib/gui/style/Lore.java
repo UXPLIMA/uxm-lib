@@ -3,6 +3,7 @@ package com.uxplima.uxmlib.gui.style;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import net.kyori.adventure.text.Component;
 
@@ -39,6 +40,13 @@ import com.uxplima.uxmlib.text.style.Theme;
  * glyph rather than typed, so a server that configures a wider one keeps the column.
  */
 public final class Lore {
+
+    /**
+     * What a line break looks like once a component has been written back to MiniMessage. It comes back as
+     * the tag and not as the character, so a split that only knows {@code \n} finds nothing and the second
+     * line of a description keeps the first one's indent instead of getting its own.
+     */
+    private static final Pattern LINE_BREAK = Pattern.compile("\\R|<newline>|<br>", Pattern.CASE_INSENSITIVE);
 
     private final Theme theme;
     private final List<List<Component>> blocks = new ArrayList<>();
@@ -232,7 +240,7 @@ public final class Lore {
     /** One component per line of a catalog entry that was written over several lines. */
     private static List<Component> split(Component text) {
         List<Component> lines = new ArrayList<>();
-        for (String line : Text.serialize(text).split("\n", -1)) {
+        for (String line : LINE_BREAK.split(Text.serialize(text), -1)) {
             lines.add(Text.mini(line));
         }
         return lines;
