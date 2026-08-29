@@ -35,8 +35,12 @@ public final class Tiles {
     }
 
     /**
-     * The lore of a tile: the title line, the lore as it was written, then the closing blank. The result is
-     * one component with newlines in it, which the item builder splits into lines.
+     * The lore of a tile: the title line, the lore as it was written, and a blank line to close the box. The
+     * result is one component with newlines in it, which the item builder splits into lines.
+     *
+     * <p>The closing blank is only added when the lore does not already end on one. {@link Lore#build()}
+     * closes its own box, so a tile built the usual way would otherwise end on two blank lines and sit a
+     * line higher than every other tile.
      */
     public static Component titled(Theme theme, Component title, Component lore) {
         Objects.requireNonNull(theme, "theme");
@@ -45,11 +49,8 @@ public final class Tiles {
         if (isBlank(title)) {
             return lore;
         }
-        return head(theme, title)
-                .append(Component.newline())
-                .append(lore)
-                .append(Component.newline())
-                .append(Component.text(PADDING));
+        Component titled = head(theme, title).append(Component.newline()).append(lore);
+        return endsBlank(lore) ? titled : titled.append(Component.newline()).append(Component.text(PADDING));
     }
 
     /** The title line on its own: the theme's title glyph in the icon colour, then the title in bold. */
@@ -60,6 +61,13 @@ public final class Tiles {
                 .append(Component.text(theme.glyph("title") + PADDING, theme.colour("icon")))
                 .append(title.decoration(TextDecoration.BOLD, true))
                 .append(Component.text(PADDING));
+    }
+
+    /** Whether {@code lore} already ends on a blank line, so closing it again would double the air. */
+    private static boolean endsBlank(Component lore) {
+        String plain = PlainTextComponentSerializer.plainText().serialize(lore);
+        int lastBreak = plain.lastIndexOf('\n');
+        return lastBreak >= 0 && plain.substring(lastBreak + 1).isBlank();
     }
 
     /** Whether {@code title} would put a title on a tile, or is the blank a titled tile already carries. */

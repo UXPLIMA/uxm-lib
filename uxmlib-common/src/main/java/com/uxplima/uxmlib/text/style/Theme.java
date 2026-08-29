@@ -230,7 +230,7 @@ public final class Theme {
         glyphs.put("title", "◆");
         glyphs.put("description", "✎");
         glyphs.put("details", "≡");
-        glyphs.put("row", "▪");
+        glyphs.put("row", "•");
         glyphs.put("status", "•");
         glyphs.put("action", "→");
         return Map.copyOf(glyphs);

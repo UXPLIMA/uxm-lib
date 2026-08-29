@@ -21,7 +21,7 @@ import com.uxplima.uxmlib.text.style.Theme;
  *    what it does
  *  (blank)
  *  ≡ details          the header, then the facts
- *    ▪ label value
+ *    • label value
  *  (blank)
  *  → click to do the thing
  * </pre>
@@ -116,9 +116,18 @@ public final class Lore {
         return block();
     }
 
-    /** The lore as one component with a newline between the lines, which the item builder splits. */
+    /**
+     * The lore as one component with a newline between the lines, which the item builder splits.
+     *
+     * <p>It ends on a blank line. The last thing a tile says needs air under it for the same reason the
+     * title needs air above it: text against the bottom edge of the tooltip reads as cut off. An empty lore
+     * stays empty, so a tile that says nothing does not grow a line.
+     */
     public Component build() {
         block();
+        if (blocks.isEmpty()) {
+            return Component.empty();
+        }
         Component out = Component.empty();
         boolean first = true;
         for (List<Component> lines : blocks) {
@@ -133,7 +142,7 @@ public final class Lore {
             }
             first = false;
         }
-        return out;
+        return out.append(Component.newline()).append(Component.text(Tiles.PADDING));
     }
 
     /** A header: one glyph at the left margin, padded either side, then the words it introduces. */

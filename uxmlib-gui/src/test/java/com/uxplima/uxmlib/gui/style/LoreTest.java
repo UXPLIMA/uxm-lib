@@ -34,8 +34,8 @@ class LoreTest {
         assertThat(lines).anySatisfy(line -> assertThat(line).contains("≡").contains("Details"));
         assertThat(lines)
                 .anySatisfy(
-                        line -> assertThat(line).contains("▪").contains("Owned").contains("12"));
-        assertThat(lines.get(lines.size() - 1)).contains("→").contains("Click to wear");
+                        line -> assertThat(line).contains("•").contains("Owned").contains("12"));
+        assertThat(lines.get(lines.size() - 2)).contains("→").contains("Click to wear");
     }
 
     @Test
@@ -44,7 +44,7 @@ class LoreTest {
                 .description(Component.text("About"), Component.text("Text"))
                 .build();
 
-        assertThat(lines(lore)).hasSize(2);
+        assertThat(lines(lore)).hasSize(3); // the header, its line, and the blank that closes the box
     }
 
     @Test
@@ -65,7 +65,7 @@ class LoreTest {
         Component lore =
                 Lore.of(theme).description(Component.text("About"), text).build();
 
-        assertThat(lines(lore)).hasSize(3);
+        assertThat(lines(lore)).hasSize(4);
         assertThat(lines(lore).get(1)).contains("first");
         assertThat(lines(lore).get(2)).contains("second");
     }
@@ -99,7 +99,7 @@ class LoreTest {
         List<String> lines = lines(lore);
         assertThat(lines.get(0)).isEqualTo("    Cosmetic ");
         assertThat(lines).anySatisfy(line -> assertThat(line).isEqualTo("    What it does "));
-        assertThat(lines).anySatisfy(line -> assertThat(line).isEqualTo("    ▪ Owned 12 "));
+        assertThat(lines).anySatisfy(line -> assertThat(line).isEqualTo("    • Owned 12 "));
         assertThat(lines).anySatisfy(line -> assertThat(line).isEqualTo(" ≡ Details "));
     }
 
@@ -114,7 +114,22 @@ class LoreTest {
                 .row(Component.text("Owned"), Component.text("12"))
                 .build();
 
-        assertThat(lines(lore)).anySatisfy(line -> assertThat(line).isEqualTo("     ▪ Owned 12 "));
+        assertThat(lines(lore)).anySatisfy(line -> assertThat(line).isEqualTo("     • Owned 12 "));
+    }
+
+    /** The last thing a tile says needs air under it, or the text reads as cut off by the tooltip edge. */
+    @Test
+    void theLoreEndsOnABlankLine() {
+        Component lore = Lore.of(theme).crumb(Component.text("Cosmetic")).build();
+
+        List<String> lines = lines(lore);
+        assertThat(lines.get(lines.size() - 1)).isBlank();
+        assertThat(lines.get(lines.size() - 2)).contains("Cosmetic");
+    }
+
+    @Test
+    void anEmptyLoreStaysEmptyRatherThanGrowingALine() {
+        assertThat(Lore.of(theme).build()).isEqualTo(Component.empty());
     }
 
     private static List<String> lines(Component lore) {
