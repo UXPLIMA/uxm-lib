@@ -44,7 +44,8 @@ class TilesTest {
     void aLoreThatAlreadyEndsOnAirIsNotGivenMore() {
         Component lore = Lore.of(theme).crumb(Component.text("Cosmetic")).build();
 
-        String[] lines = plain(Tiles.titled(theme, Component.text("Tags"), lore)).split("\n", -1);
+        String[] lines =
+                plain(Tiles.titled(theme, Component.text("Tags"), lore)).split("\n", -1);
 
         assertThat(lines[lines.length - 1]).isBlank();
         assertThat(lines[lines.length - 2]).contains("Cosmetic");
