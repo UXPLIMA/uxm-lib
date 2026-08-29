@@ -1,9 +1,12 @@
 package com.uxplima.uxmlib.text.style;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import net.kyori.adventure.text.format.TextColor;
 
 import org.jspecify.annotations.Nullable;
 
@@ -18,7 +21,8 @@ import org.jspecify.annotations.Nullable;
  *   <li>{@code <tag:'HOME'>} — the category prefix a chat line opens with: the word in bold, coloured by what
  *       the category is about, then the separator glyph in the dim colour;
  *   <li>{@code <etag:'ERROR'>} — the same prefix in the failure colour, whichever feature raised the line;
- *   <li>{@code <h:'REWARDS'>} — the bold accent header a lore block opens with.
+ *   <li>{@code <h:'REWARDS'>} — the bold header a lore block opens with, in the accent colour or in the
+ *       theme's {@code header} gradient when it names one.
  * </ul>
  *
  * <p>The label of a prefix lives in the template rather than here, because it is a word a player reads and a
@@ -32,6 +36,9 @@ public final class StyleTokens {
     /** A labelled token: {@code <tag:'HOME'>}, {@code <tag:HOME>} or {@code <tag:"HOME">}. */
     private static final Pattern LABELLED =
             Pattern.compile("<(tag|etag|h):(?:'([^']*)'|\"([^\"]*)\"|([^>]*))>", Pattern.CASE_INSENSITIVE);
+
+    /** The gradient a {@code <h:>} header is painted with, when the theme names one. */
+    private static final String HEADER = "header";
 
     /** A colour token, opening or closing: {@code <accent>}, {@code </accent>}. */
     private static final Pattern COLOUR = Pattern.compile("</?([a-z]+)>");
@@ -72,8 +79,29 @@ public final class StyleTokens {
         return switch (token) {
             case "tag" -> prefix(text, theme.hex(theme.categoryRole(label)), theme);
             case "etag" -> prefix(text, theme.hex("bad"), theme);
-            default -> bold(text, theme.hex("accent"));
+            default -> header(text, theme);
         };
+    }
+
+    /**
+     * A header: the theme's {@code header} gradient when it names two stops or more, and the flat accent
+     * otherwise. A one-stop gradient is a flat colour, so an operator can switch the effect off by shortening
+     * the list rather than by learning a second key.
+     */
+    private static String header(String text, Theme theme) {
+        List<TextColor> stops = theme.gradient(HEADER);
+        if (stops.size() < 2) {
+            return bold(text, stops.size() == 1 ? hex(stops.get(0)) : theme.hex("accent"));
+        }
+        StringBuilder tag = new StringBuilder("<gradient");
+        for (TextColor stop : stops) {
+            tag.append(':').append(hex(stop));
+        }
+        return tag.append("><b>").append(text).append("</b></gradient>").toString();
+    }
+
+    private static String hex(TextColor colour) {
+        return colour.asHexString().toLowerCase(Locale.ROOT);
     }
 
     /** The word, one ordinary space, then the separator. The gap before the body comes from the catalog. */

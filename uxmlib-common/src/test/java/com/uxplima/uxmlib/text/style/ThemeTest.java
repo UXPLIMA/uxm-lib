@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Locale;
 
 import org.junit.jupiter.api.Test;
@@ -74,6 +75,23 @@ class ThemeTest {
 
         assertThat(Theme.from(legacy).separator()).isEqualTo("»");
         assertThat(Theme.from(both).separator()).isEqualTo("|");
+    }
+
+    @Test
+    void aGradientIsWhateverStopsTheFileNames() throws ConfigurateException {
+        ConfigurationNode node = CommentedConfigurationNode.root();
+        node.node("gradients", "header").setList(String.class, List.of("#48cae4", "#6c8dfb"));
+
+        Theme theme = Theme.from(node);
+
+        assertThat(theme.gradient("header")).hasSize(2);
+        assertThat(theme.gradient("header").get(0).asHexString()).isEqualToIgnoringCase("#48cae4");
+        assertThat(theme.gradient("nothing-is-called-this")).isEmpty();
+    }
+
+    @Test
+    void aThemeWithNoGradientBlockNamesNoGradients() {
+        assertThat(Theme.defaults().gradient("header")).isEmpty();
     }
 
     @Test

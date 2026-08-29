@@ -1,8 +1,10 @@
 package com.uxplima.uxmlib.text.style;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -55,16 +57,19 @@ public final class Theme {
     private static final String SEPARATOR = "separator";
 
     private final Map<String, TextColor> colours;
+    private final Map<String, List<TextColor>> gradients;
     private final Map<String, String> glyphs;
     private final Map<String, String> categories;
     private final Set<String> smallCapsLanguages;
 
     private Theme(
             Map<String, TextColor> colours,
+            Map<String, List<TextColor>> gradients,
             Map<String, String> glyphs,
             Map<String, String> categories,
             Set<String> smallCapsLanguages) {
         this.colours = Map.copyOf(colours);
+        this.gradients = Map.copyOf(gradients);
         this.glyphs = Map.copyOf(glyphs);
         this.categories = Map.copyOf(categories);
         this.smallCapsLanguages = Set.copyOf(smallCapsLanguages);
@@ -74,7 +79,7 @@ public final class Theme {
     public static Theme defaults() {
         Map<String, TextColor> colours = new LinkedHashMap<>();
         DEFAULT_COLOURS.forEach((role, hex) -> colours.put(role, parse(hex)));
-        return new Theme(colours, DEFAULT_GLYPHS, DEFAULT_CATEGORIES, DEFAULT_SMALL_CAPS);
+        return new Theme(colours, Map.of(), DEFAULT_GLYPHS, DEFAULT_CATEGORIES, DEFAULT_SMALL_CAPS);
     }
 
     /**
@@ -87,6 +92,7 @@ public final class Theme {
         Objects.requireNonNull(node, "node");
         return new Theme(
                 colours(node),
+                gradients(node),
                 glyphs(node),
                 categories(node),
                 smallCaps(node.node("small-caps").childrenMap()));
@@ -108,6 +114,18 @@ public final class Theme {
     /** The hex of {@code role} as MiniMessage writes it, for example {@code #38b6ff}. */
     public String hex(String role) {
         return colour(role).asHexString().toLowerCase(Locale.ROOT);
+    }
+
+    /**
+     * The stops of the gradient named {@code name}, in order, or an empty list when the file names none.
+     *
+     * <p>A gradient is how a heading reads as finished rather than as coloured, but it is also the first
+     * thing a server wants to turn off, so nothing here is a gradient unless the file says so. One stop
+     * means a flat colour, which is how an operator switches one off without deleting the key.
+     */
+    public List<TextColor> gradient(String name) {
+        Objects.requireNonNull(name, "name");
+        return gradients.getOrDefault(name, List.of());
     }
 
     /**
@@ -160,6 +178,25 @@ public final class Theme {
             glyphs.put(entry.getKey(), node.node("glyphs", entry.getKey()).getString(shipped));
         }
         return glyphs;
+    }
+
+    /** Every {@code gradients.<name>} the file holds, as a list of stops in the order they are written. */
+    private static Map<String, List<TextColor>> gradients(ConfigurationNode node) {
+        Map<String, List<TextColor>> gradients = new LinkedHashMap<>();
+        for (Map.Entry<Object, ? extends ConfigurationNode> child :
+                node.node("gradients").childrenMap().entrySet()) {
+            List<TextColor> stops = new ArrayList<>();
+            for (ConfigurationNode stop : child.getValue().childrenList()) {
+                String hex = stop.getString();
+                if (hex != null) {
+                    stops.add(parse(hex));
+                }
+            }
+            if (!stops.isEmpty()) {
+                gradients.put(String.valueOf(child.getKey()).toLowerCase(Locale.ROOT), List.copyOf(stops));
+            }
+        }
+        return gradients;
     }
 
     private static Map<String, String> categories(ConfigurationNode node) {

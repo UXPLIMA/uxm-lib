@@ -341,9 +341,11 @@ Menus draw from the same theme: `MenuTitles.centre` pads a window title into the
 the client fall back to the material's name), `Lore` builds the tooltip in one fixed order, and
 `MenuSounds` reads the three menu sounds from config.
 
-The library ships `uxmlib/theme.conf` as a starting file: colours, glyphs, category colours and which
-languages take small capitals. A key it leaves out keeps the shipped answer, and naming one language never
-decides for the others.
+The library ships `uxmlib/theme.conf` as a starting file: colours, glyphs, category colours, named
+gradients and which languages take small capitals. A key it leaves out keeps the shipped answer, and naming
+one language never decides for the others. A `gradients { header = [...] }` block paints every `<h:'…'>`
+header across those stops; leave the block out and headers stay the flat accent colour, which is what the
+shipped file does.
 
 ### Scheduling (Folia-ready)
 
