@@ -39,6 +39,17 @@ class TilesTest {
                 .isTrue();
     }
 
+    /** A lore that closes its own box must not be closed twice, or the tile sits a line higher than the rest. */
+    @Test
+    void aLoreThatAlreadyEndsOnAirIsNotGivenMore() {
+        Component lore = Lore.of(theme).crumb(Component.text("Cosmetic")).build();
+
+        String[] lines = plain(Tiles.titled(theme, Component.text("Tags"), lore)).split("\n", -1);
+
+        assertThat(lines[lines.length - 1]).isBlank();
+        assertThat(lines[lines.length - 2]).contains("Cosmetic");
+    }
+
     @Test
     void aButtonWithNoTitleKeepsItsLoreUntouched() {
         Component lore = Component.text("just a line");
