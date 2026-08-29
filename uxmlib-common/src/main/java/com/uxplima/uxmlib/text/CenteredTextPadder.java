@@ -23,7 +23,7 @@ public final class CenteredTextPadder {
      */
     public static String pad(String plain, boolean bold) {
         Objects.requireNonNull(plain, "plain");
-        int textWidth = widthOf(plain, bold);
+        int textWidth = GlyphWidthTable.widthOf(plain, bold);
         if (textWidth >= CHAT_WIDTH_PX) {
             return "";
         }
@@ -32,13 +32,5 @@ public final class CenteredTextPadder {
         // operator's <bold> only affects the visible content, not the leading whitespace.
         int spaces = leftoverPx / GlyphWidthTable.SPACE_WIDTH;
         return " ".repeat(spaces);
-    }
-
-    private static int widthOf(String plain, boolean bold) {
-        int total = 0;
-        for (int i = 0; i < plain.length(); i++) {
-            total += GlyphWidthTable.widthOf(plain.charAt(i), bold);
-        }
-        return total;
     }
 }
