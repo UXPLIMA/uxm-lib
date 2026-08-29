@@ -37,6 +37,7 @@ and depend on it as a normal plugin. Both work.
   - [Shading and relocation](#shading-and-relocation)
 - [Feature tour](#feature-tour)
   - [Text](#text)
+  - [Style layer](#style-layer)
   - [Scheduling (Folia-ready)](#scheduling-folia-ready)
   - [Items](#items)
   - [GUIs](#guis)
@@ -98,9 +99,9 @@ what you use. Modules marked **experimental** are previews with unstable APIs (s
 
 | Module | What it gives you |
 | --- | --- |
-| `uxmlib-common` | The shared foundation: a Folia-ready `Scheduler`, MiniMessage `Text`, node-based `HoconConfig` and typed-record `RecordConfig` with hot reload and live `ConfigProperty`, a MiniMessage-native i18n message catalog, a ReDoS-guarded `TimedRegex`, type-safe particle spawning, and `Durations`/`Numbers`/`Sounds`/`SemanticVersion`/`ServerVersion` helpers. |
+| `uxmlib-common` | The shared foundation: a Folia-ready `Scheduler`, MiniMessage `Text`, a config-driven style layer (`Theme`/`Styler`/`Typography`/`StyleTokens`), node-based `HoconConfig` and typed-record `RecordConfig` with hot reload and live `ConfigProperty`, a MiniMessage-native i18n message catalog, a ReDoS-guarded `TimedRegex`, type-safe particle spawning, and `Durations`/`Numbers`/`Sounds`/`SemanticVersion`/`ServerVersion` helpers. |
 | `uxmlib-item` | A fluent `ItemBuilder` (name, lore, enchantments, attributes, flags, durability, banners, components, with removers), sealed `SkullData` player heads with an async skin resolver, registry lookups for the 1.21 key-based enchantments/attributes, component-safe and gzip serialization, single-key `isSimilar`, and typed persistent-data helpers. |
-| `uxmlib-gui` | An inventory-menu framework: simple / paginated / scrolling / storage / typed (hopper, dispenser, …) menus; static, animated, dynamic, and per-viewer stateful items; border/row/column/rect fillers; interaction control; multi-screen navigation; menus defined in HOCON; unified anvil/chat/sign text input; and a facade over Paper's server-side Dialogs. |
+| `uxmlib-gui` | An inventory-menu framework: simple / paginated / scrolling / storage / typed (hopper, dispenser, …) menus; static, animated, dynamic, and per-viewer stateful items; border/row/column/rect fillers; interaction control; multi-screen navigation; menus defined in HOCON; unified anvil/chat/sign text input; the tile/lore/title/sound side of the style layer; and a facade over Paper's server-side Dialogs. |
 | `uxmlib-command` | A thin facade over Paper's Brigadier (`Cmd`/`Args`/`Sender`/`CommandRegistrar`) **and** an annotation DSL on top of it: `@Command`/`@Subcommand`/`@Arg`, permissions, `@Range`/`@Length`, `@Cooldown`, flags and switches, async execution, help pagination, and resolver/validator/condition SPIs. |
 | `uxmlib-storage` | Plain-JDBC persistence: a HikariCP-pooled `Database` (SQLite default; MySQL/MariaDB, PostgreSQL, H2 opt-in), an injection-safe `SelectBuilder`, parameterised `Sql`/`TxSql`, versioned migrations, a Caffeine-backed write-through / write-behind cache, a two-tier player-profile cache, and cross-server row sync. |
 | `uxmlib-redis` | A low-level binary (`byte[]`) Redis pub/sub bus for fanning an opaque frame across the server nodes sharing one Redis — fail-degraded publish, per-subscription auto-reconnect — with no relational dependencies (Lettuce is a compile-only soft-dependency). |
@@ -312,6 +313,37 @@ stays literal, so a chat message reading `<click:run_command:/op me>free rank</c
 ```java
 Component line = Text.paint(message, config.getString("chat.format-style")); // e.g. "<gray>"
 ```
+
+### Style layer
+
+A palette, the letters an interface is set in, and the tokens a message file writes instead of colours —
+so a server changes its whole look by editing one file, and no plugin ships a hex code.
+
+```java
+Theme theme = Theme.from(HoconConfig.load(dataFolder.resolve("theme.conf")).root());
+Styler styler = new Styler(theme);
+
+// A catalog line names a role, never a colour:
+//   join.welcome = "<tag:'HOME'><body>Welcome back, <value><player></value>"
+messages.reload(styler.style(catalog, MyKeys.values(), files, Locale.ENGLISH));
+
+// On a /reload, hand the same styler the new palette rather than building a second one:
+styler.reload(Theme.from(reloaded.root()));
+```
+
+`Typography` converts a template to small capitals for the languages the theme says are written that way,
+leaving tags, placeholders and anything inside `<plain>…</plain>` alone — so a translator writes ordinary
+words and nothing rewrites the file they work in. `StyleTokens` then turns `<accent>`/`<value>` into the
+theme's colours and `<tag:'HOME'>` into a bold category prefix. Both run once at load, not per message.
+
+Menus draw from the same theme: `MenuTitles.centre` pads a window title into the middle of the frame,
+`Tiles` puts a tile's title on the first lore line under a blank name (a single space — an empty one makes
+the client fall back to the material's name), `Lore` builds the tooltip in one fixed order, and
+`MenuSounds` reads the three menu sounds from config.
+
+The library ships `uxmlib/theme.conf` as a starting file: colours, glyphs, category colours and which
+languages take small capitals. A key it leaves out keeps the shipped answer, and naming one language never
+decides for the others.
 
 ### Scheduling (Folia-ready)
 
