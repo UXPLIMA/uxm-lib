@@ -33,8 +33,7 @@ public record MenuSounds(Sound open, Sound click, Sound denied) {
 
     /** The shipped set, used when the file says nothing. */
     public static MenuSounds defaults() {
-        return new MenuSounds(
-                sound(OPEN_KEY, 0.7f, 1.2f), sound(CLICK_KEY, 0.6f, 1.5f), sound(DENIED_KEY, 0.6f, 0.9f));
+        return new MenuSounds(sound(OPEN_KEY, 0.7f, 1.2f), sound(CLICK_KEY, 0.6f, 1.5f), sound(DENIED_KEY, 0.6f, 0.9f));
     }
 
     /**

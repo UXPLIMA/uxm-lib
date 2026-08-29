@@ -32,13 +32,17 @@ class LoreTest {
         assertThat(lines.get(0)).contains("Cosmetic");
         assertThat(lines).anySatisfy(line -> assertThat(line).contains("✎").contains("About"));
         assertThat(lines).anySatisfy(line -> assertThat(line).contains("≡").contains("Details"));
-        assertThat(lines).anySatisfy(line -> assertThat(line).contains("▪").contains("Owned").contains("12"));
+        assertThat(lines)
+                .anySatisfy(
+                        line -> assertThat(line).contains("▪").contains("Owned").contains("12"));
         assertThat(lines.get(lines.size() - 1)).contains("→").contains("Click to wear");
     }
 
     @Test
     void aBlockNobodyFilledInTakesNoSpace() {
-        Component lore = Lore.of(theme).description(Component.text("About"), Component.text("Text")).build();
+        Component lore = Lore.of(theme)
+                .description(Component.text("About"), Component.text("Text"))
+                .build();
 
         assertThat(lines(lore)).hasSize(2);
     }
@@ -58,7 +62,8 @@ class LoreTest {
     void aMultiLineDescriptionKeepsTheBreaksTheTranslatorWrote() {
         Component text = Component.text("first").append(Component.newline()).append(Component.text("second"));
 
-        Component lore = Lore.of(theme).description(Component.text("About"), text).build();
+        Component lore =
+                Lore.of(theme).description(Component.text("About"), text).build();
 
         assertThat(lines(lore)).hasSize(3);
         assertThat(lines(lore).get(1)).contains("first");
