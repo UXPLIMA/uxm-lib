@@ -65,7 +65,16 @@ public final class Messages {
         this.content = new Content(catalog, locales, channels, base);
     }
 
-    /** Replace the templates alone, keeping the locale source, channels and base resolver already in use. */
+    /**
+     * Replace the templates alone, keeping the locale source, channels and base resolver already in use.
+     *
+     * <p>Reach for this only when the templates are the only thing that moved. A config that lets an operator
+     * set the server's language is the common case where they are not: the new catalog carries the new words,
+     * but the {@link LocaleSource} kept here still answers with the language the last one was built for, and
+     * a console reading a locale-less audience keeps getting the old one. Pass all four to
+     * {@link #reload(MessageCatalog, LocaleSource, Map, TagResolver)} whenever a reload re-reads a config —
+     * handing it {@code Map.of()} and {@link TagResolver#empty()} is cheaper than finding this out later.
+     */
     public void reload(MessageCatalog catalog) {
         Content current = content;
         reload(catalog, current.locales(), current.channels(), current.base());
