@@ -29,7 +29,14 @@ public final class Tiles {
 
     private Tiles() {}
 
-    /** The name a titled tile carries: one space, never {@link Component#empty()}. */
+    /**
+     * The name a titled tile carries: one space, never {@link Component#empty()}.
+     *
+     * <p>A blank name is a value here rather than the absence of one, which matters to anything that reads
+     * a name from a file: {@code isBlank} answers true for the name a titled tile is supposed to have, so a
+     * reader that treats blank as "not configured" will quietly hand the tile back its material name.
+     * Absent and blank have to be different tests.
+     */
     public static Component blankName() {
         return Component.text(PADDING);
     }
@@ -53,13 +60,22 @@ public final class Tiles {
         return endsBlank(lore) ? titled : titled.append(Component.newline()).append(Component.text(PADDING));
     }
 
-    /** The title line on its own: the theme's title glyph in the icon colour, then the title in bold. */
+    /**
+     * The title line on its own: the theme's title glyph in the icon colour, then the title, bold and
+     * painted the way {@link StyleTokens#header} paints one — the header gradient when the theme names one,
+     * the accent colour when it does not.
+     *
+     * <p>It paints as well as bolds because a catalog that writes a title writes words and nothing else,
+     * which is the right assumption for it to make: this line forces bold, so it owns the look of the line,
+     * and a title left unpainted falls back to the client's own lore colour rather than to the theme. A
+     * title that arrives already carrying a colour — a lobby name, a rank — keeps it.
+     */
     public static Component head(Theme theme, Component title) {
         Objects.requireNonNull(theme, "theme");
         Objects.requireNonNull(title, "title");
         return Component.text(PADDING)
                 .append(Component.text(theme.glyph("title") + PADDING, theme.colour("icon")))
-                .append(title.decoration(TextDecoration.BOLD, true))
+                .append(StyleTokens.header(theme, title).decoration(TextDecoration.BOLD, true))
                 .append(Component.text(PADDING));
     }
 

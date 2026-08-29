@@ -6,8 +6,10 @@ import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
 
+import com.uxplima.uxmlib.text.Text;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -81,6 +83,47 @@ public final class StyleTokens {
             case "etag" -> prefix(text, theme.hex("bad"), theme);
             default -> header(text, theme);
         };
+    }
+
+    /**
+     * A component painted the way a {@code <h:'…'>} token is: across the theme's {@code header} gradient
+     * when it names two stops or more, in the single stop when it names one, and in the accent colour when
+     * it names none.
+     *
+     * <p>A component that already carries a colour anywhere inside it is handed back untouched. A header is
+     * often not a literal — a lobby name, a rank, a player's chosen tag — and a value that arrived with a
+     * colour of its own means it, so painting over it would lose the one thing that made it that value.
+     * The check walks the whole component, because a colour a caller set on a child is just as deliberate
+     * as one set on the root.
+     */
+    public static Component header(Theme theme, Component text) {
+        Objects.requireNonNull(theme, "theme");
+        Objects.requireNonNull(text, "text");
+        if (coloured(text)) {
+            return text;
+        }
+        List<TextColor> stops = theme.gradient(HEADER);
+        if (stops.size() < 2) {
+            return text.color(stops.size() == 1 ? stops.get(0) : theme.colour("accent"));
+        }
+        StringBuilder tag = new StringBuilder("<gradient");
+        for (TextColor stop : stops) {
+            tag.append(':').append(hex(stop));
+        }
+        return Text.mini(tag.append('>').append(Text.serialize(text)).append("</gradient>").toString());
+    }
+
+    /** Whether any part of {@code component} names a colour, root or child. */
+    private static boolean coloured(Component component) {
+        if (component.color() != null) {
+            return true;
+        }
+        for (Component child : component.children()) {
+            if (coloured(child)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
