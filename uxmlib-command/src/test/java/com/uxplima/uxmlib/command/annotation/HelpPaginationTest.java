@@ -10,6 +10,8 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 import com.mojang.brigadier.tree.CommandNode;
@@ -126,6 +128,79 @@ class HelpPaginationTest {
         Component pageHint = Component.text("Page 2");
         assertThat(text).startsWith("/town help (1/3)");
         assertThat(hasHover(page, HoverEvent.showText(pageHint))).isTrue();
+    }
+
+    /**
+     * The line a player actually reads — the command, what separates it from its description, and the
+     * description itself — is the consumer's, not the library's. A generated help page is the one screen a
+     * plugin cannot restyle from its own resources, so all three go through the seam.
+     */
+    @Test
+    void theWholeHelpLineIsRenderedThroughTheMessagesItIsGiven() {
+        TextColor muted = TextColor.color(0x93a4b3);
+        CommandMessages messages = new CommandMessages() {
+            @Override
+            public Component helpCommand(Locale locale, String command) {
+                return Component.text(command, TextColor.color(0xffffff));
+            }
+
+            @Override
+            public Component helpSeparator(Locale locale) {
+                return Component.text(" :: ", muted);
+            }
+
+            @Override
+            public Component helpDescription(Locale locale, String description) {
+                return Component.text(description, muted);
+            }
+        };
+        List<HelpRenderer.Entry> entries = List.of(new HelpRenderer.Entry("create", "Found a town", ""));
+
+        Component page = HelpRenderer.render("town", entries, 1, HelpRenderer.PER_PAGE, messages, Locale.ENGLISH);
+
+        String text = PlainTextComponentSerializer.plainText().serialize(page);
+        assertThat(text).contains("/town create :: Found a town");
+        assertThat(painted(page, muted)).isTrue();
+        assertThat(painted(page, NamedTextColor.GRAY)).isFalse();
+    }
+
+    /**
+     * The default separator a consumer inherits is a plain hyphen. It used to be an em dash, which is a
+     * character several style guides ban outright and none of them can strip from text that lives in a jar.
+     */
+    @Test
+    void theDefaultLineSeparatesTheDescriptionWithAPlainHyphen() {
+        List<HelpRenderer.Entry> entries = List.of(new HelpRenderer.Entry("create", "Found a town", ""));
+
+        Component page = HelpRenderer.render("town", entries, 1, HelpRenderer.PER_PAGE);
+
+        String text = PlainTextComponentSerializer.plainText().serialize(page);
+        assertThat(text).contains("/town create - Found a town");
+        assertThat(text).doesNotContain("\u2014");
+    }
+
+    /** The description a branch declared is what the hover shows, so the two never disagree. */
+    @Test
+    void theHoverShowsTheSameDescriptionTheLineDoes() {
+        List<HelpRenderer.Entry> entries = List.of(new HelpRenderer.Entry("create", "Found a town", ""));
+
+        Component page = HelpRenderer.render("town", entries, 1, HelpRenderer.PER_PAGE);
+
+        Component described = CommandMessages.english().helpDescription(Locale.ENGLISH, "Found a town");
+        assertThat(hasHover(page, HoverEvent.showText(described))).isTrue();
+    }
+
+    /** Whether any component in the tree is painted {@code color}. */
+    private static boolean painted(Component component, TextColor color) {
+        if (color.equals(component.color())) {
+            return true;
+        }
+        for (Component child : component.children()) {
+            if (painted(child, color)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Whether any component in the tree carries exactly {@code expected} as its hover event. */

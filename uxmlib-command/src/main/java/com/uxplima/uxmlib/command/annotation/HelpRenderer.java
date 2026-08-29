@@ -128,22 +128,30 @@ final class HelpRenderer {
         return footer == null ? message : message.append(footer);
     }
 
-    /** One clickable help line: suggests its command on click and shows the description on hover. */
+    /**
+     * One clickable help line: suggests its command on click and shows the description on hover. Only the
+     * newline and the two events are the renderer's own; the command, the separator and the description are
+     * rendered by {@code messages}, so a consumer decides how its own help page reads and how it is painted.
+     */
     private static Component line(String root, Entry entry, CommandMessages messages, Locale locale) {
         String command = "/" + root + (entry.usage().isEmpty() ? "" : " " + entry.usage());
-        Component usage = Component.text("\n" + command, NamedTextColor.WHITE)
+        Component usage = messages.helpCommand(locale, command)
                 .clickEvent(ClickEvent.suggestCommand(command))
                 .hoverEvent(HoverEvent.showText(hoverText(entry, messages, locale)));
+        Component line = Component.text("\n").append(usage);
         if (entry.description().isEmpty()) {
-            return usage;
+            return line;
         }
-        return usage.append(Component.text(" — " + entry.description(), NamedTextColor.GRAY));
+        Component described = messages.helpDescription(locale, entry.description());
+        return line.append(messages.helpSeparator(locale)).append(described);
     }
 
     private static Component hoverText(Entry entry, CommandMessages messages, Locale locale) {
-        // The description is the consumer's own text and is shown as written; only the stand-in for a missing
-        // one belongs to the library, so only that one goes through the message layer.
-        return entry.description().isEmpty() ? messages.helpFillHint(locale) : Component.text(entry.description());
+        // The description's words are the consumer's own and are shown as written; the stand-in for a missing
+        // one, and the styling of both, belong to the message layer.
+        return entry.description().isEmpty()
+                ? messages.helpFillHint(locale)
+                : messages.helpDescription(locale, entry.description());
     }
 
     /** A previous/next footer that re-runs {@code /root help <page>}; {@code null} for a single-page list. */
