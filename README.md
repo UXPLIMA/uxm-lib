@@ -493,8 +493,8 @@ ParamResolvers resolvers = ParamResolvers.withDefaults()
 AnnotatedCommands.register(plugin, new HomeCommand(), resolvers);
 ```
 
-Each method receives the sender's locale and the *values*: the bad input, the allowed ones, the time left
-never a finished English sentence, since no other language puts those words in the same order. Every
+Each method receives the sender's locale and the *values*: the bad input, the allowed ones, the time left.
+Never a finished English sentence, since no other language puts those words in the same order. Every
 method has a default, so a plugin that ignores the seam keeps the English it always had.
 
 The help page is worth overriding even in an English-only plugin: `helpCommand`, `helpSeparator` and
