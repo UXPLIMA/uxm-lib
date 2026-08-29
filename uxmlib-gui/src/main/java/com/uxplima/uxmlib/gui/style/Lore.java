@@ -6,6 +6,7 @@ import java.util.Objects;
 
 import net.kyori.adventure.text.Component;
 
+import com.uxplima.uxmlib.text.GlyphWidthTable;
 import com.uxplima.uxmlib.text.Text;
 import com.uxplima.uxmlib.text.style.Theme;
 
@@ -17,9 +18,10 @@ import com.uxplima.uxmlib.text.style.Theme;
  *    breadcrumb
  *  (blank)
  *  ✎ description      the header, then the sentences
+ *    what it does
  *  (blank)
  *  ≡ details          the header, then the facts
- *  ▪ label value
+ *    ▪ label value
  *  (blank)
  *  → click to do the thing
  * </pre>
@@ -31,10 +33,12 @@ import com.uxplima.uxmlib.text.style.Theme;
  *
  * <p>Blocks are separated by a blank line, and a block a caller never fills in takes no space. A description
  * a translator wrote over several lines is broken again here, so the line breaks are theirs.
+ *
+ * <p>Everything under a header lines up with the header's words, not with its glyph: a breadcrumb, a
+ * description line and a bullet all start where the text above them starts. The indent is measured from the
+ * glyph rather than typed, so a server that configures a wider one keeps the column.
  */
 public final class Lore {
-
-    private static final String INDENT = "   ";
 
     private final Theme theme;
     private final List<List<Component>> blocks = new ArrayList<>();
@@ -52,7 +56,7 @@ public final class Lore {
     /** The category or type line that sits under the title. */
     public Lore crumb(Component crumb) {
         Objects.requireNonNull(crumb, "crumb");
-        line(Component.text(INDENT).append(crumb.colorIfAbsent(theme.colour("crumb"))));
+        line(Component.text(indentUnder("title")).append(crumb.colorIfAbsent(theme.colour("crumb"))));
         return block();
     }
 
@@ -61,8 +65,9 @@ public final class Lore {
         Objects.requireNonNull(header, "header");
         Objects.requireNonNull(text, "text");
         header("description", header);
+        String indent = indentUnder("description");
         for (Component sentence : split(text)) {
-            line(Component.text(INDENT).append(sentence.colorIfAbsent(theme.colour("subtext"))));
+            line(Component.text(indent).append(sentence.colorIfAbsent(theme.colour("subtext"))));
         }
         return block();
     }
@@ -78,7 +83,7 @@ public final class Lore {
     public Lore row(Component label, Component value) {
         Objects.requireNonNull(label, "label");
         Objects.requireNonNull(value, "value");
-        line(glyph("row")
+        line(bullet("row")
                 .append(label.colorIfAbsent(theme.colour("muted")))
                 .append(Component.text(" "))
                 .append(value.colorIfAbsent(theme.colour("value"))));
@@ -89,7 +94,7 @@ public final class Lore {
     public Lore status(Component label, Component value) {
         Objects.requireNonNull(label, "label");
         Objects.requireNonNull(value, "value");
-        line(glyph("status")
+        line(bullet("status")
                 .append(label.colorIfAbsent(theme.colour("muted")))
                 .append(Component.text(" "))
                 .append(value));
@@ -131,13 +136,33 @@ public final class Lore {
         return out;
     }
 
+    /** A header: one glyph at the left margin, padded either side, then the words it introduces. */
     private void header(String name, Component header) {
         line(glyph(name).append(header.colorIfAbsent(theme.colour("info"))));
+    }
+
+    /**
+     * A fact or a state. Its bullet sits where the header's <em>words</em> start rather than where the
+     * header's glyph does, so the facts read as one column under the header instead of as a second margin.
+     */
+    private Component bullet(String name) {
+        return Component.text(indentUnder("details") + theme.glyph(name) + " ", theme.colour("icon"));
     }
 
     /** One glyph of the theme, padded either side, in the colour furniture is drawn in. */
     private Component glyph(String name) {
         return Component.text(" " + theme.glyph(name) + " ", theme.colour("icon"));
+    }
+
+    /**
+     * The leading spaces that land a line under the words of a header drawn with {@code glyphName}. A header
+     * spends one space, its glyph and one more space before its text, and a lore line can only be indented
+     * in whole spaces, so this is that width in spaces, rounded. Measured rather than typed: a server that
+     * configures a wider glyph moves the column, and the indent follows it instead of being left behind.
+     */
+    private String indentUnder(String glyphName) {
+        int prefix = 2 * GlyphWidthTable.SPACE_WIDTH + GlyphWidthTable.widthOf(theme.glyph(glyphName), false);
+        return " ".repeat(Math.max(1, Math.round(prefix / (float) GlyphWidthTable.SPACE_WIDTH)));
     }
 
     private void line(Component line) {
