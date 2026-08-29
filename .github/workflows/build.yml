@@ -40,6 +40,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      # The house style bans the long dash in every file this repository publishes, and the guards that
+      # enforce it live in the plugin repositories, where this text only ever arrives inside a jar. The
+      # check runs beside the build rather than inside it, so a publish never fails on wording.
+      - name: Check the writing style
+        if: matrix.line == 'modern'
+        run: bash scripts/check-style.sh
+
       # Two JDKs, on purpose. The compiler has to be 25: paper-api 26.x ships Java 25 class files that an
       # older one cannot read, while the emitted bytecode stays at 21 for the 1.21.x line. Gradle itself,
       # though, runs on 21: Palantir's formatter reaches into javac internals that changed in 25. Listing 21
