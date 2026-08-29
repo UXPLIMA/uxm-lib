@@ -8,7 +8,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.plugin.RegisteredServiceProvider;
 
-import com.uxplima.uxmlib.hook.Hooks;
 import net.milkbowl.vault2.economy.Economy;
 
 /**
@@ -20,7 +19,8 @@ import net.milkbowl.vault2.economy.Economy;
  *
  * <p>The guard asks for the class, not for a plugin named {@code VaultUnlocked}. No server ever runs one:
  * VaultUnlocked is a drop-in replacement, so it declares itself as {@code Vault}. Asking for the name found
- * nothing on every server, which left this whole path dead.
+ * nothing on every server, which left this whole path dead. The check stays private here, beside the type it
+ * guards, rather than becoming library surface for a single caller.
  *
  * <p>Every vault2 call is keyed by a requesting plugin name; the library passes a stable {@code "uxmlib"}
  * identifier (economy plugins use it only for logging / per-plugin scoping). Amounts cross the {@code double}
@@ -33,6 +33,16 @@ public final class VaultUnlockedEconomy {
     /** The type this hook needs, named as text so the guard can ask for it without loading it. */
     private static final String VAULT2_ECONOMY = "net.milkbowl.vault2.economy.Economy";
 
+    /** Whether the vault2 API is on this plugin's class path: the condition the JVM applies one line later. */
+    private static boolean apiPresent() {
+        try {
+            Class.forName(VAULT2_ECONOMY, false, VaultUnlockedEconomy.class.getClassLoader());
+            return true;
+        } catch (ClassNotFoundException | LinkageError absent) {
+            return false;
+        }
+    }
+
     private final Economy economy;
 
     private VaultUnlockedEconomy(Economy economy) {
@@ -41,7 +51,7 @@ public final class VaultUnlockedEconomy {
 
     /** The registered vault2 economy, or empty when the vault2 API or a provider for it is absent. */
     public static Optional<VaultUnlockedEconomy> find() {
-        if (!Hooks.hasClass(VAULT2_ECONOMY)) {
+        if (!apiPresent()) {
             return Optional.empty();
         }
         RegisteredServiceProvider<Economy> registration =

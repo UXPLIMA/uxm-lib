@@ -48,12 +48,6 @@ class HooksTest {
         assertThat(VaultUnlockedEconomy.find()).isEmpty();
     }
 
-    @Test
-    void reportsAClassOnThePathAndOneThatIsNotThere() {
-        assertThat(Hooks.hasClass("net.milkbowl.vault2.economy.Economy")).isTrue();
-        assertThat(Hooks.hasClass("net.milkbowl.vault9.economy.Economy")).isFalse();
-    }
-
     /**
      * The guard the vault2 hook used to carry. It is kept as a test rather than as a comment, because it is
      * the reason that hook was dead: VaultUnlocked declares itself as {@code Vault}, so no server has ever
