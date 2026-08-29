@@ -58,7 +58,9 @@ class CommandMessagesTest {
     @Test
     void theDefaultHelpSeparatorIsAPlainHyphen() {
         assertThat(plain(EN.helpSeparator(Locale.ENGLISH))).isEqualTo(" - ");
-        assertThat(plain(EN.helpSeparator(Locale.ENGLISH))).doesNotContain("\u2014").doesNotContain("\u2013");
+        assertThat(plain(EN.helpSeparator(Locale.ENGLISH)))
+                .doesNotContain("\u2014")
+                .doesNotContain("\u2013");
     }
 
     @Test
