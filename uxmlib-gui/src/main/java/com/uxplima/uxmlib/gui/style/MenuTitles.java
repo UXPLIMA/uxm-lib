@@ -38,16 +38,8 @@ public final class MenuTitles {
         if (plain.isBlank()) {
             return title;
         }
-        int free = WINDOW_WIDTH - 2 * TITLE_ORIGIN - widthOf(plain);
+        int free = WINDOW_WIDTH - 2 * TITLE_ORIGIN - GlyphWidthTable.widthOf(plain, false);
         int spaces = Math.round(free / (2f * GlyphWidthTable.SPACE_WIDTH));
         return Component.text(spaces <= 0 ? plain : SPACE.repeat(spaces) + plain);
-    }
-
-    private static int widthOf(String plain) {
-        int total = 0;
-        for (int index = 0; index < plain.length(); index++) {
-            total += GlyphWidthTable.widthOf(plain.charAt(index), false);
-        }
-        return total;
     }
 }
