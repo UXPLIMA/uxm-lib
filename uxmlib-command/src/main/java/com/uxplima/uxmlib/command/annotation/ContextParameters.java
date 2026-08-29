@@ -11,7 +11,7 @@ import com.uxplima.uxmlib.command.Sender;
 
 /**
  * The context parameters shipped with the DSL: the four sender-shaped types a handler may inject without an
- * {@code @}{@link com.uxplima.uxmlib.command.annotation.annotations.Arg} — the library {@link Sender}, the
+ * {@code @}{@link com.uxplima.uxmlib.command.annotation.annotations.Arg}: the library {@link Sender}, the
  * raw {@link CommandSourceStack}, the Bukkit {@link CommandSender}, and the executing {@link Player}.
  * Installed into a {@link ParamResolvers} by {@link ParamResolvers#withDefaults()} so the injection set is an
  * open registry rather than a hardcoded {@code instanceof} ladder; a consumer adds its own with

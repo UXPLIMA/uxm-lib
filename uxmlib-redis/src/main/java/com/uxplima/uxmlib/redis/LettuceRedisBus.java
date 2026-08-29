@@ -17,10 +17,10 @@ import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
  *
  * <p>One {@link StatefulRedisPubSubConnection} carries outbound PUBLISH; each {@link #subscribe} opens its
  * own pub/sub connection so Lettuce's automatic reconnect re-establishes the subscription transparently
- * after a Redis blip. A failed publish (Redis down) is fail-degraded — handed to the {@code warn} sink,
- * never thrown — so a transient outage never propagates into the caller's path.
+ * after a Redis blip. A failed publish (Redis down) is fail-degraded: handed to the {@code warn} sink,
+ * never thrown, so a transient outage never propagates into the caller's path.
  *
- * <p>Threading: Lettuce runs all I/O on its own event loop — no {@code new Thread}, no platform scheduler.
+ * <p>Threading: Lettuce runs all I/O on its own event loop: no {@code new Thread}, no platform scheduler.
  * Inbound messages are handed to the registered {@link Consumer} on that event-loop thread.
  *
  * <p>A flapping Redis would otherwise fire {@code warn} on every failed publish future; the warn path is
@@ -61,7 +61,7 @@ public final class LettuceRedisBus implements RedisBus {
         Objects.requireNonNull(frame, "frame");
         byte[] topic = channel.getBytes(StandardCharsets.UTF_8);
         // Fire-and-forget on the event loop; never blocks the caller. A failed publish (Redis down) is
-        // fail-degraded — reported (rate-limited), never thrown.
+        // fail-degraded: reported (rate-limited), never thrown.
         publishConnection.async().publish(topic, frame).exceptionally(failure -> {
             warner.warn("redis publish to " + channel + " failed: " + failure.getMessage());
             return null;
@@ -84,7 +84,7 @@ public final class LettuceRedisBus implements RedisBus {
         subscriptions.add(connection);
         connection.addListener(new FrameListener(onFrame));
         // Synchronous SUBSCRIBE: runs at wiring time on the setup thread (never a latency-sensitive one), and
-        // blocking here guarantees the subscription is active before the caller starts publishing — Redis
+        // blocking here guarantees the subscription is active before the caller starts publishing: Redis
         // pub/sub has no buffering, so a message sent before SUBSCRIBE confirms is lost.
         connection.sync().subscribe(channel.getBytes(StandardCharsets.UTF_8));
     }

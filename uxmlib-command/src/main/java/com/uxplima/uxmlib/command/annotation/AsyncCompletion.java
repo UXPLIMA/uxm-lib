@@ -16,14 +16,14 @@ import org.jspecify.annotations.Nullable;
  * Routes the completion of an async command handler back onto a Bukkit-safe thread. When a {@code @}{@link
  * com.uxplima.uxmlib.command.annotation.annotations.Subcommand} method returns a {@link CompletableFuture}
  * the heavy work runs wherever the handler put it (typically {@link Scheduler#async}); the framework's only
- * job is to make <em>completion</em> safe — its continuation must never touch the Bukkit API off-thread. So
+ * job is to make <em>completion</em> safe: its continuation must never touch the Bukkit API off-thread. So
  * when the future settles we hop back through the library {@link Scheduler}: onto the region owning the
  * player sender ({@link Scheduler#entity}) when one ran the command, otherwise onto the global region
  * ({@link Scheduler#global}). A future that completes exceptionally is reported through the same clean-error
  * path a thrown handler uses, not as a Brigadier stacktrace.
  *
- * <p>The server-side log of the failure runs <em>synchronously</em> on whatever thread settled the future —
- * logging is thread-safe and needs no Bukkit API — while only the player-facing reply hops onto the sender's
+ * <p>The server-side log of the failure runs <em>synchronously</em> on whatever thread settled the future:
+ * logging is thread-safe and needs no Bukkit API, while only the player-facing reply hops onto the sender's
  * region. That split matters when the player has already disconnected by the time a genuinely async future
  * settles: the entity scheduler refuses to schedule a retired entity, so a hop-only design would silently
  * drop both the log and the reply, erasing the operator's record of the error. Logging first guarantees the

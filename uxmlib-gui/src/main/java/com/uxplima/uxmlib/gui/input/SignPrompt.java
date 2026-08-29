@@ -21,7 +21,7 @@ import net.kyori.adventure.text.Component;
  * The native, packet-free sign backend for {@link PlayerInput}. It places a transient sign block, opens its
  * editor for the player, and restores the original block when the typed lines come back through
  * {@link org.bukkit.event.block.SignChangeEvent SignChangeEvent}. {@code openSign} needs a real
- * {@link Sign} block-state, so the block is briefly written to the world and immediately restored — no NMS,
+ * {@link Sign} block-state, so the block is briefly written to the world and immediately restored: no NMS,
  * no packets.
  *
  * <p>One instance per {@link PlayerInput}; the per-player saved-block map lives here, not statically.

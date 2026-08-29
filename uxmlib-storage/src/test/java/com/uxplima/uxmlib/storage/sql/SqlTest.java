@@ -12,7 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 /**
- * Exercises the JDBC helpers against a real in-memory SQLite database — no Paper, no MockBukkit, just
+ * Exercises the JDBC helpers against a real in-memory SQLite database: no Paper, no MockBukkit, just
  * a driver on the classpath. The same connection-backed schema is created per test.
  */
 class SqlTest {

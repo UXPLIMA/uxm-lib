@@ -15,7 +15,7 @@ import com.uxplima.uxmlib.common.Durations;
  * A MiniMessage placeholder for the time a timed HUD surface has left. Given a supplier of the remaining
  * {@link Duration}, it builds a {@link TagResolver} whose tag inserts that value formatted through uxmlib
  * {@link Durations} (so {@code "1m 30s"}, the same vocabulary as cooldowns and bans). A boss-bar or
- * action-bar title can carry the tag — {@code "<red>Ends in <time>"} — and re-render it each tick to show a
+ * action-bar title can carry the tag ({@code "<red>Ends in <time>"}), and re-render it each tick to show a
  * live countdown.
  *
  * <p>The supplier is read lazily, once per render and only if the tag actually appears in the template, so a

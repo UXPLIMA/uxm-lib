@@ -10,7 +10,7 @@ import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.jupiter.api.Test;
 
 /**
- * Exercises the real pipeline splice/eject/reorder against an {@link EmbeddedChannel} — the path MockBukkit
+ * Exercises the real pipeline splice/eject/reorder against an {@link EmbeddedChannel}: the path MockBukkit
  * cannot reach because it has no Netty channel. A foreign {@code "decoder"} handler stands in for the vanilla
  * anchor; the package-private channel seam ({@code inject}/{@code eject}/{@code reorder} on a {@link
  * io.netty.channel.Channel}) lets these drive the netty mutation directly.

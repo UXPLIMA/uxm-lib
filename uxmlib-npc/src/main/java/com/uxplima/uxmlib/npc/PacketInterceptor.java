@@ -23,7 +23,7 @@ import org.jspecify.annotations.Nullable;
  * strand a player's connection.
  *
  * <p>The owning player's id is read through an injected {@link Supplier} rather than captured at construction,
- * because the channel exists before login names the connection — early in the handshake the supplier returns
+ * because the channel exists before login names the connection: early in the handshake the supplier returns
  * {@code null}, which listeners receive as the {@code player} argument.
  *
  * <p>Marked {@code @Sharable}? No: one instance is created per channel (per player), so it is not shared
@@ -65,7 +65,7 @@ public final class PacketInterceptor extends ChannelDuplexHandler {
         PacketListenerRegistry.Dispatch dispatch =
                 report(registry.dispatch(PacketDirection.OUTBOUND, ownerId.get(), msg));
         if (dispatch.cancelled()) {
-            return; // cancelled — drop the outbound packet by not forwarding it.
+            return; // cancelled: drop the outbound packet by not forwarding it.
         }
         // A rewrite forwards the replacement in place of the original; otherwise forward the original unchanged.
         Object replacement = dispatch.replacement();
@@ -77,7 +77,7 @@ public final class PacketInterceptor extends ChannelDuplexHandler {
         if (passes(PacketDirection.INBOUND, msg)) {
             super.channelRead(ctx, msg);
         }
-        // else: cancelled — drop the inbound packet by not forwarding it (rewrite is outbound-only, ignored here).
+        // else: cancelled: drop the inbound packet by not forwarding it (rewrite is outbound-only, ignored here).
     }
 
     /** Dispatch and fold; report faults to the sink. Returns whether the packet should be forwarded. */

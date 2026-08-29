@@ -12,11 +12,11 @@ import net.kyori.adventure.text.Component;
 import org.junit.jupiter.api.Test;
 
 /**
- * The interface-level contract of {@link TabListPackets#relist(List, boolean)} — the seam plugin code consumes
+ * The interface-level contract of {@link TabListPackets#relist(List, boolean)}: the seam plugin code consumes
  * when a viewer leaves a synthetic-tab "suppress real players" mode and the real players must be re-listed. Like
  * {@link PlayerInfoUpdatesTest}, the real {@code ClientboundPlayerInfoUpdatePacket} construction is compile-gated
  * against the dev bundle (the {@code Entry} record cannot be built on the unit-test classpath) and is covered by
- * the plugin boot smoke; this proves the part that is testable off a live server — that {@code relist} carries the
+ * the plugin boot smoke; this proves the part that is testable off a live server: that {@code relist} carries the
  * caller's ids and the {@code listed} flag straight through, so a caller can trust those reach the NMS builder.
  */
 class TabListPacketsRelistTest {

@@ -99,7 +99,7 @@ final class GuiViewing {
 
     /**
      * Schedule a reopen of {@code gui} for {@code viewer} on the next tick. Returns whether the reopen was
-     * scheduled — it needs the Scheduler-aware install, so with no scheduler the close proceeds normally
+     * scheduled: it needs the Scheduler-aware install, so with no scheduler the close proceeds normally
      * rather than silently swallowing it.
      */
     private boolean reopenAfterClose(AbstractGui gui, HumanEntity viewer) {

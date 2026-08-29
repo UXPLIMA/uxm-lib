@@ -5,14 +5,14 @@ import java.util.OptionalLong;
 /**
  * An optional persistence seam behind {@link Cooldowns}. The default cooldown gate keeps its windows in
  * memory, which is fine for short rate-limits but loses long ones (a daily kit, a weekly reward) across a
- * restart. A consumer that wants those to survive supplies a {@code CooldownStore} — typically backed by
- * {@code uxmlib-storage} — and {@link Cooldowns} reads through it on a cold key and writes through it when a
+ * restart. A consumer that wants those to survive supplies a {@code CooldownStore}: typically backed by
+ * {@code uxmlib-storage}, and {@link Cooldowns} reads through it on a cold key and writes through it when a
  * window is armed.
  *
  * <p>The contract is deliberately tiny so the command module never depends on storage: the store maps an
  * opaque key to the epoch-millis at which that key's window expires. It owns its own threading and durability;
  * implementations should be fast (they sit on the command path) and may keep their own cache. This module
- * ships no implementation — the in-memory default needs none — so a persisted store is entirely the
+ * ships no implementation (the in-memory default needs none), so a persisted store is entirely the
  * consumer's to provide.
  */
 public interface CooldownStore {

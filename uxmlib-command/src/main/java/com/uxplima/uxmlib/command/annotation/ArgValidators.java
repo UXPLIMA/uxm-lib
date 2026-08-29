@@ -11,8 +11,8 @@ import org.jspecify.annotations.Nullable;
  * rejects an out-of-range number before it reaches the server (the numeric argument type is built with the
  * bounds), but a non-Brigadier dispatch or a crafted packet could bypass that, and string length has no
  * native argument type at all. So after a value is resolved this re-checks it against the parameter's
- * annotations and throws an {@link IllegalArgumentException} — caught on the same clean-error path a rejected
- * argument uses — when it is out of bounds. Pure metadata read off the parameter; no behaviour of its own.
+ * annotations and throws an {@link IllegalArgumentException}: caught on the same clean-error path a rejected
+ * argument uses, when it is out of bounds. Pure metadata read off the parameter; no behaviour of its own.
  */
 final class ArgValidators {
 

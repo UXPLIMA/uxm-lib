@@ -9,8 +9,8 @@ import org.spongepowered.configurate.serialize.SerializationException;
 /**
  * The parse-validate-set core behind {@link ConfigEditorGui}, kept separate so it is unit-testable with no
  * server and so the menu class stays within its size cap. Given the dotted {@code path} of a scalar config
- * key and the raw text a player typed, it coerces the text to the key's existing scalar type — an integer
- * stays an integer, a flag stays a boolean — then writes it and saves the file. Coercing to the current type
+ * key and the raw text a player typed, it coerces the text to the key's existing scalar type: an integer
+ * stays an integer, a flag stays a boolean, then writes it and saves the file. Coercing to the current type
  * keeps a numeric setting numeric so later typed reads ({@code getInt}, {@code getBoolean}) still resolve.
  */
 public final class ConfigValueEditor {
@@ -24,7 +24,7 @@ public final class ConfigValueEditor {
     /**
      * Coerce {@code input} to the type the value at {@code path} currently holds and store it. Returns the
      * parsed value on success, or throws {@link IllegalArgumentException} when the input does not fit the type
-     * (so the caller can tell the player and reopen the prompt). Does not save — see {@link #setAndSave}.
+     * (so the caller can tell the player and reopen the prompt). Does not save: see {@link #setAndSave}.
      */
     public Object coerceAndSet(String path, String input) {
         Objects.requireNonNull(path, "path");

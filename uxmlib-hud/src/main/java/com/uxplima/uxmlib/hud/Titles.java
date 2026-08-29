@@ -11,7 +11,7 @@ import net.kyori.adventure.title.Title;
 /**
  * Title and subtitle delivery over Adventure. A single {@link #show} call renders a title with sensible
  * default fade/stay timing; the {@code times} overload lets a caller tune the animation. Vanilla titles
- * are transient, so there is no per-player state to keep here — this is a stateless helper.
+ * are transient, so there is no per-player state to keep here: this is a stateless helper.
  *
  * <p>The defaults (half-second fade in, three-second hold, half-second fade out) match what most plugins
  * want for a "pop a notice" title and mirror Adventure's own {@link Title#DEFAULT_TIMES}.

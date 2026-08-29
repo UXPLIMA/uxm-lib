@@ -43,7 +43,7 @@ import org.spongepowered.configurate.serialize.SerializationException;
  * <p>An item may instead declare an ordered {@code states} map keyed by a state name; each state carries an
  * icon spec and a named {@code condition} resolved from a {@link MenuConditions} registry. The first state
  * whose condition passes for the viewer renders (this maps onto a {@link GuiItem.Stateful} item), so the
- * same slot can look and behave differently per player — pass the conditions registry to
+ * same slot can look and behave differently per player: pass the conditions registry to
  * {@link #load(ConfigurationNode, MenuActions, MenuConditions)}.
  *
  * <pre>{@code
@@ -78,7 +78,7 @@ public final class MenuConfig {
     /**
      * As {@link #load(ConfigurationNode, MenuActions, MenuConditions)}, but with an i18n {@link MessageCatalog}
      * so an icon may draw its name/lore from a lang file by key (a {@code name-key}/{@code lore-key} field)
-     * rather than inline its display text — translation then lives in the lang file, the layout in the menu
+     * rather than inline its display text: translation then lives in the lang file, the layout in the menu
      * config. Keyed text resolves against the catalog's default locale at build time.
      *
      * <p>Before reading, the node is run through {@link #migrate} so a config written with older key names is

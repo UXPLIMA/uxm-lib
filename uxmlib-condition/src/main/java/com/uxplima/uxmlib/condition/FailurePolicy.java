@@ -19,7 +19,7 @@ public enum FailurePolicy {
      */
     CANCEL(true, true, false, false),
 
-    /** Fail without recording any message and keep evaluating — a quiet, message-free required check. */
+    /** Fail without recording any message and keep evaluating: a quiet, message-free required check. */
     SILENCE(false, false, false, false),
 
     /**
@@ -32,7 +32,7 @@ public enum FailurePolicy {
      * Dispatch the entry's configured command list and keep evaluating, recording no message and not
      * cancelling on its own. The commands are {@code [console]}/{@code [player]} action strings parsed once
      * with the entry (see {@link ConditionList.Builder#runCommands}); they run through the request's command
-     * sinks — the same {@code CommandSink} seam the action engine uses — so production routes the dispatch
+     * sinks (the same {@code CommandSink} seam the action engine uses), so production routes the dispatch
      * through the library {@code Scheduler} rather than calling Bukkit on whatever thread evaluated the list.
      * Combine with {@link #CANCEL}-style intent by wiring a {@code [console]} command, or pair this entry with
      * a separate {@link #SEND_MESSAGE} one when both a message and a command are wanted.

@@ -11,7 +11,7 @@ import java.util.concurrent.atomic.AtomicLong;
  *
  * <p>The count is an instance field (no static mutable state); a plugin holds one clock and reads it from any
  * thread via an {@link AtomicLong}. Advancing runs on the global region timer, so the value the main thread
- * reads is consistent. {@link #start} is idempotent — a second call is ignored, keeping a single timer.
+ * reads is consistent. {@link #start} is idempotent: a second call is ignored, keeping a single timer.
  */
 public final class TickClock {
 

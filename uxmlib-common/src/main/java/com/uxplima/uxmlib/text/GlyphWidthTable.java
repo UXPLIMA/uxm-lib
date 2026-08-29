@@ -21,7 +21,7 @@ import java.util.Objects;
  * the font.
  *
  * <p>A code point the file does not name advances {@value #DEFAULT_WIDTH} pixels. That is right for most of
- * the font and wrong for the glyphs a fallback provider draws, so centring stays what it has always been —
+ * the font and wrong for the glyphs a fallback provider draws, so centring stays what it has always been:
  * cosmetic arithmetic that is close rather than exact.
  *
  * <p>Measure by code point. {@link #widthOf(char, boolean)} cannot see an emoji: its two surrogates are not
@@ -73,7 +73,7 @@ public final class GlyphWidthTable {
     }
 
     /**
-     * The measured table, or the handful of narrow ASCII glyphs when the resource is not on the classpath —
+     * The measured table, or the handful of narrow ASCII glyphs when the resource is not on the classpath:
      * a consumer whose shade configuration drops resources keeps working, with the widths the library
      * answered before the table was measured.
      */

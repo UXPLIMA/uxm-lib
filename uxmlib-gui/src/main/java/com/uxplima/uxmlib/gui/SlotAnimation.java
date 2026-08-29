@@ -16,7 +16,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>The writes are guarded on every frame: a slot is lit only when it is free or still shows this overlay's
  * own highlight, and cleared only when it still shows that highlight. A button placed onto a lit slot after
- * the fact loses ownership, so the overlay never re-paints over it nor later clears it — the guarantee holds
+ * the fact loses ownership, so the overlay never re-paints over it nor later clears it: the guarantee holds
  * even when an item is placed under the path after the animation lit it. The actual inventory writes go
  * through a {@link Sink}, so the frame/diff bookkeeping is testable without a live inventory and the menu
  * supplies the real write.
@@ -101,7 +101,7 @@ public final class SlotAnimation {
         boolean isFree(int slot);
 
         /**
-         * Whether {@code slot} currently still shows the overlay's {@code icon} — i.e. nothing has been placed
+         * Whether {@code slot} currently still shows the overlay's {@code icon}: i.e. nothing has been placed
          * over the highlight since it was lit. The overlay may re-light or clear only such a slot.
          */
         boolean holdsIcon(int slot, ItemStack icon);

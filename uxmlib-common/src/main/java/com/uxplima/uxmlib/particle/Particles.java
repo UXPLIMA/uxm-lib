@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 /**
  * Spawns a {@link ParticleOptions} value through Bukkit's {@code spawnParticle}. Because the options already
  * carry the correct {@link ParticleOptions#particle()} and {@link ParticleOptions#data()}, this facade only
- * has to forward them to the right overload — the type-safety work is done at the call site by choosing the
+ * has to forward them to the right overload: the type-safety work is done at the call site by choosing the
  * right record. A {@link World} call shows the particle to everyone in range; a {@link Player} call shows it
  * only to that player.
  */

@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
  * Drives the pure two-set lifecycle: INTENT (whom the consumer asked to show) versus VISIBILITY (who is
  * actually rendered after the gate). {@code show}/{@code hide} only touch intent; an idempotent
  * {@code reconcile} recomputes visibility from intent plus a gate predicate and emits only the transition,
- * mirroring the pool's show/hide delta. No Bukkit is needed — the gate is supplied as a plain boolean per
+ * mirroring the pool's show/hide delta. No Bukkit is needed: the gate is supplied as a plain boolean per
  * viewer.
  */
 class ViewerLifecycleTest {

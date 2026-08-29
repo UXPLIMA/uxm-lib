@@ -17,7 +17,7 @@ import com.uxplima.uxmlib.scheduler.Scheduler;
  * Pops transient advancement toasts. The trick (mirrored from CMILib's {@code CMIAdvancement}, re-built on
  * the native Bukkit API) is to register a one-criterion synthetic advancement through the data-pack loader,
  * award that criterion to make the client animate the toast, then revoke and unregister it a couple of ticks
- * later so it never lingers in the player's advancement screen. No packets and no NMS — just
+ * later so it never lingers in the player's advancement screen. No packets and no NMS: just
  * {@link org.bukkit.UnsafeValues#loadAdvancement} / {@link org.bukkit.UnsafeValues#removeAdvancement} and
  * {@link org.bukkit.advancement.AdvancementProgress}.
  *
@@ -82,7 +82,7 @@ public final class Toasts {
         // The revoke mutates the live player, so it must run on the player's own region thread (Folia routes
         // entity tasks there); the entity scheduler silently drops it if the player has logged off, which is
         // exactly the case where there is nothing left to revoke. The registry removal touches global server
-        // state, so it always runs on the global region and is scheduled independently of the player task —
+        // state, so it always runs on the global region and is scheduled independently of the player task:
         // that way the synthetic advancement is unregistered even when the player is already gone.
         scheduler.entityLater(player, CLEANUP_DELAY, () -> Advancements.revoke(player, advancement));
         scheduler.globalLater(CLEANUP_DELAY, () -> removeQuietly(key));

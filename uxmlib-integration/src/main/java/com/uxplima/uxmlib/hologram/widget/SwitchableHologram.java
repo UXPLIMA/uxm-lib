@@ -11,11 +11,11 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * A per-player conditional hologram: several overlapping content states live at one location and each viewer
- * sees whichever state's condition passes first for it — the "conditional pages" widget, generalising
+ * sees whichever state's condition passes first for it: the "conditional pages" widget, generalising
  * {@link PagedHologram} from an index to an arbitrary {@link SwitchSelection}. {@link #refresh} re-evaluates a
  * viewer's state from a {@link ViewerContext} (its UUID plus a stat lookup, so a state can switch on a
  * permission tier, a balance or a score) and, when the selected state changed, hides the state the viewer was
- * on and shows the new one — for that viewer only, mirroring the GUI {@code Stateful} item.
+ * on and shows the new one, for that viewer only, mirroring the GUI {@code Stateful} item.
  *
  * <p>The first-match logic is the pure {@link SwitchSelection}; the show/hide goes through a
  * {@link StatePresenter} so the widget is unit-testable with no live entity. It implements

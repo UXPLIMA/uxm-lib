@@ -3,7 +3,7 @@ package com.uxplima.uxmlib.hologram;
 import java.util.UUID;
 
 /**
- * The per-widget lifecycle SPI. A hologram widget — a paged board, a leaderboard, a switchable view — keeps
+ * The per-widget lifecycle SPI. A hologram widget (a paged board, a leaderboard, a switchable view) keeps
  * per-player state (which page a player is on, what stat they picked) that must be reset when the player
  * joins, quits, respawns or changes world. Rather than each widget registering its own Bukkit listener, it
  * registers a {@code HologramLifecycle} with the {@link HologramManager}; the manager owns the single
@@ -20,7 +20,7 @@ public interface HologramLifecycle {
     /** The player joined the server. */
     default void onJoin(UUID player) {}
 
-    /** The player left the server — drop any per-player state held for it so it cannot leak. */
+    /** The player left the server: drop any per-player state held for it so it cannot leak. */
     default void onQuit(UUID player) {}
 
     /** The player changed world; cached visibility computed for the old world is no longer valid. */

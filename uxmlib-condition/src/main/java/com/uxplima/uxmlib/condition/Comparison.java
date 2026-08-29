@@ -11,7 +11,7 @@ import org.jspecify.annotations.Nullable;
  * <p>Evaluation rules, fixed and documented so config authors can rely on them:
  *
  * <ul>
- *   <li>If <b>both</b> operands parse as <em>finite</em> decimal numbers, the comparison is numeric — so
+ *   <li>If <b>both</b> operands parse as <em>finite</em> decimal numbers, the comparison is numeric, so
  *       {@code "1.0" == "1"} and {@code "10" >= "9"} are both true. The numeric test is stricter than {@link
  *       Double#parseDouble}: a Java float-literal suffix ({@code "1d"}, {@code "10F"}), a hex-float form
  *       ({@code "0x1p4"}), and the {@code NaN}/{@code Infinity} tokens are <b>not</b> numbers and fall back to
@@ -19,7 +19,7 @@ import org.jspecify.annotations.Nullable;
  *   <li>Otherwise {@link Operator#EQUAL}/{@link Operator#NOT_EQUAL} fall back to case-sensitive string
  *       equality after trimming surrounding whitespace.
  *   <li>An ordering operator ({@code >=}, {@code >}, {@code <=}, {@code <}) with a non-numeric operand on
- *       either side evaluates to {@code false} — it never throws and never silently equates strings.
+ *       either side evaluates to {@code false}: it never throws and never silently equates strings.
  * </ul>
  *
  * <p>This type holds only the operator; operands are passed to {@link #test(String, String)} so one parsed
@@ -163,8 +163,8 @@ public final class Comparison {
     /**
      * Parse a {@code left <op> right} expression where the operator is one of {@link Operator}'s symbols.
      * The first operator symbol found by a longest-match scan splits the two operands. A {@code %...%}
-     * placeholder span — a pair of {@code %} markers with no whitespace between them, the PlaceholderAPI
-     * shape — is skipped whole, so an operator character inside a placeholder body (such as the {@code <} in
+     * placeholder span: a pair of {@code %} markers with no whitespace between them, the PlaceholderAPI
+     * shape, is skipped whole, so an operator character inside a placeholder body (such as the {@code <} in
      * {@code %math_2<3%}) never splits the expression. A bare {@code %} that is not part of such a span (a
      * literal percent sign like {@code 50%}) is treated as an ordinary character. Throws {@link
      * IllegalArgumentException} if no known operator appears.

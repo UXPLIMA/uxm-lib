@@ -160,7 +160,7 @@ class WriteBehindStorageTest {
         assertThat(storage.cached("a")).isEmpty();
     }
 
-    /** A backend whose first {@code save} throws, then succeeds — models a transient DB hiccup. */
+    /** A backend whose first {@code save} throws, then succeeds: models a transient DB hiccup. */
     static final class FlakyBackend implements StorageProvider<String, User> {
         private final Map<String, User> store = new LinkedHashMap<>();
         boolean failNextSave;

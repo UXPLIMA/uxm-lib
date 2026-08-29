@@ -37,7 +37,7 @@ public record WebhookStatus(int status) {
         return status >= 400 && status < 500;
     }
 
-    /** Whether Discord itself failed (any 5xx) — the send may be worth retrying later. */
+    /** Whether Discord itself failed (any 5xx): the send may be worth retrying later. */
     public boolean serverError() {
         return status >= 500 && status < 600;
     }

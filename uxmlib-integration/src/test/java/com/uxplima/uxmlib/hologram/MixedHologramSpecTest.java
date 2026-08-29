@@ -10,13 +10,13 @@ import net.kyori.adventure.text.Component;
 
 import org.junit.jupiter.api.Test;
 
-/** Pure tests of mixed-line specs and the auto line-stacking geometry — no world, no entities. */
+/** Pure tests of mixed-line specs and the auto line-stacking geometry: no world, no entities. */
 class MixedHologramSpecTest {
 
     @Test
     void carriesTextItemAndBlockLinesInOrder() {
         // Item/block stacks are mocked: building a real ItemStack or BlockData needs a running server, and
-        // the spec only stores them — it never inspects them — so a mock keeps this test pure.
+        // the spec only stores them (it never inspects them), so a mock keeps this test pure.
         MixedHologramSpec spec = MixedHologramSpec.builder()
                 .text(Component.text("title"))
                 .line(new HologramLine.ItemLine(mock(org.bukkit.inventory.ItemStack.class)))

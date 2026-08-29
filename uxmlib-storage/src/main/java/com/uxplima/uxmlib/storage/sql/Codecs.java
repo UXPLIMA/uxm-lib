@@ -12,7 +12,7 @@ import java.util.UUID;
  * into a {@link SqlType} (e.g. a flags column stored as one {@code INTEGER}); they touch no database and
  * have no state, so they are trivially testable and safe to share.
  *
- * <p>The {@code int[4]} layout matches Mojang's {@code UUIDUtil} — most-significant-bits high word first —
+ * <p>The {@code int[4]} layout matches Mojang's {@code UUIDUtil} (most-significant-bits high word first),
  * so a UUID written this way reads back identically to one Minecraft itself stored as an {@code int} array.
  */
 public final class Codecs {
@@ -34,7 +34,7 @@ public final class Codecs {
      *
      * @throws IllegalArgumentException if any contained constant has an ordinal {@code >= 32}
      */
-    @SuppressWarnings("EnumOrdinal") // the ordinal IS the bit position — that is the bitmask contract
+    @SuppressWarnings("EnumOrdinal") // the ordinal IS the bit position: that is the bitmask contract
     public static <E extends Enum<E>> int enumSetToBitmask(EnumSet<E> set) {
         Objects.requireNonNull(set, "set");
         int mask = 0;
@@ -56,7 +56,7 @@ public final class Codecs {
      *
      * @throws IllegalArgumentException if {@code type} declares more than 32 constants (it cannot fit a mask)
      */
-    @SuppressWarnings("EnumOrdinal") // the ordinal IS the bit position — that is the bitmask contract
+    @SuppressWarnings("EnumOrdinal") // the ordinal IS the bit position: that is the bitmask contract
     public static <E extends Enum<E>> EnumSet<E> bitmaskToEnumSet(int mask, Class<E> type) {
         Objects.requireNonNull(type, "type");
         E[] constants = type.getEnumConstants();
@@ -132,7 +132,7 @@ public final class Codecs {
         BINARY,
         /** The canonical 36-character hyphenated UUID text, UTF-8 encoded. */
         TEXT,
-        /** Neither recognised form — the caller decides how to handle it. */
+        /** Neither recognised form: the caller decides how to handle it. */
         UNKNOWN
     }
 }

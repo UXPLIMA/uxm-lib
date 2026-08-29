@@ -22,7 +22,7 @@ public final class LeaderboardOptions {
     private String defaultFormat = "<gray>{place}. <white>{name} <yellow>{score}";
     private List<String> topFormats = List.of();
     private Locale locale = Locale.ROOT;
-    private String emptyLine = "<dark_gray>—";
+    private String emptyLine = "<dark_gray>...";
     private @Nullable Component header;
 
     private LeaderboardOptions() {}

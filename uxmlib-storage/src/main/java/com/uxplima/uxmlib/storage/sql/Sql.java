@@ -17,7 +17,7 @@ import com.uxplima.uxmlib.storage.StorageException;
 /**
  * Small helpers for prepared-statement work over a {@link Database}, so callers do not re-derive the
  * borrow-connection / prepare / bind / iterate / close-everything dance. Every method uses
- * try-with-resources and prepared statements — never string concatenation — and borrows a fresh pooled
+ * try-with-resources and prepared statements (never string concatenation), and borrows a fresh pooled
  * connection per call. Checked {@link SQLException}s are wrapped in {@link StorageException}.
  */
 public final class Sql {
@@ -72,7 +72,7 @@ public final class Sql {
      * (a renamed key, a value that no longer parses), that row is logged and skipped instead of aborting the
      * whole load. Returns the rows that mapped cleanly plus how many were skipped, so one corrupt record never
      * kills an entire load. A failure of the query itself (the connection, the statement, advancing the cursor)
-     * still aborts as a {@link StorageException} — only a per-row mapper exception is recoverable.
+     * still aborts as a {@link StorageException}: only a per-row mapper exception is recoverable.
      */
     public <T> LoadResult<T> queryResilient(String sql, StatementBinder binder, RowMapper<T> mapper) {
         Objects.requireNonNull(sql, "sql");
@@ -164,8 +164,8 @@ public final class Sql {
 
     /**
      * Run an INSERT and return the auto-generated key it produced (typically an auto-increment id), via
-     * {@link java.sql.Statement#RETURN_GENERATED_KEYS}. Works across SQLite, H2, MySQL/MariaDB and Postgres
-     * — the portable JDBC path that avoids a dialect-specific {@code RETURNING} clause in the caller's SQL.
+     * {@link java.sql.Statement#RETURN_GENERATED_KEYS}. Works across SQLite, H2, MySQL/MariaDB and Postgres:
+     * the portable JDBC path that avoids a dialect-specific {@code RETURNING} clause in the caller's SQL.
      *
      * @throws IllegalStateException if the statement runs but the driver reports no generated key
      * @throws StorageException if the insert fails
@@ -208,7 +208,7 @@ public final class Sql {
      *
      * <p><strong>{@code keyColumn} must be strictly unique.</strong> The cursor advances with {@code key > ?},
      * so any rows that share the last key of a page (a duplicate sitting on the page boundary) are skipped
-     * silently — exactly-once holds only for a unique key. Pass a primary/unique key; this is not validated.
+     * silently: exactly-once holds only for a unique key. Pass a primary/unique key; this is not validated.
      *
      * @param table the table to walk; a simple SQL identifier
      * @param keyColumn a <em>strictly unique</em>, monotonically comparable column to seek on (typically the

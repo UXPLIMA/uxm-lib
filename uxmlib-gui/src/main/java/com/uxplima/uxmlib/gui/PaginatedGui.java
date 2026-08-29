@@ -103,7 +103,7 @@ public final class PaginatedGui extends AbstractGui {
         return Math.max(1, (pageItems.size() + perPage - 1) / perPage);
     }
 
-    /** Content slots a page can actually use — the total minus any pinned decoration (at least one). */
+    /** Content slots a page can actually use: the total minus any pinned decoration (at least one). */
     private int freeContentSlots() {
         int free = 0;
         for (int slot : contentSlots) {

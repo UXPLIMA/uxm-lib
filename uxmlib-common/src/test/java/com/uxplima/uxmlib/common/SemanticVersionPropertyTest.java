@@ -23,7 +23,7 @@ import net.jqwik.api.constraints.StringLength;
 class SemanticVersionPropertyTest {
 
     /**
-     * Requirement: {@code tryParse} is total — arbitrary text yields {@link java.util.Optional#empty()}
+     * Requirement: {@code tryParse} is total: arbitrary text yields {@link java.util.Optional#empty()}
      * rather than throwing, so a fail-safe caller renders an unreadable version as "cannot compare" instead
      * of crashing a startup hook.
      */
@@ -51,7 +51,7 @@ class SemanticVersionPropertyTest {
     }
 
     /**
-     * Requirement: two equal versions compare as equal and neither is newer — the ordering is consistent
+     * Requirement: two equal versions compare as equal and neither is newer: the ordering is consistent
      * with value equality. The second instance is parsed afresh from the first's canonical string.
      */
     @Property
@@ -61,13 +61,13 @@ class SemanticVersionPropertyTest {
         assertThat(v.isNewerThan(same)).isFalse();
     }
 
-    /** Requirement: comparison is antisymmetric — swapping the operands flips the sign (a total order). */
+    /** Requirement: comparison is antisymmetric: swapping the operands flips the sign (a total order). */
     @Property
     void compareTo_is_antisymmetric(@ForAll("versions") SemanticVersion a, @ForAll("versions") SemanticVersion b) {
         assertThat(Integer.signum(a.compareTo(b))).isEqualTo(-Integer.signum(b.compareTo(a)));
     }
 
-    /** Requirement: {@code isNewerThan} is exactly strict-greater — it must agree with {@code compareTo > 0}. */
+    /** Requirement: {@code isNewerThan} is exactly strict-greater: it must agree with {@code compareTo > 0}. */
     @Property
     void isNewerThan_agrees_with_strict_greater(
             @ForAll("versions") SemanticVersion a, @ForAll("versions") SemanticVersion b) {
@@ -75,7 +75,7 @@ class SemanticVersionPropertyTest {
     }
 
     /**
-     * Requirement (semver §11): a pre-release precedes its associated stable release — {@code 1.2.3-X} is
+     * Requirement (semver §11): a pre-release precedes its associated stable release: {@code 1.2.3-X} is
      * always lower than {@code 1.2.3}.
      */
     @Property

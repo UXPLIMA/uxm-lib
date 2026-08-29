@@ -18,7 +18,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * The opinionated online-data lifecycle: load a player's value on join, keep it in memory while they are
  * online, save it on quit, and flush every online value on a periodic timer. It turns the storage primitives
- * (a {@link DataStore} the consumer wires to their backend) into the shape plugins actually want — a cache
+ * (a {@link DataStore} the consumer wires to their backend) into the shape plugins actually want: a cache
  * that mirrors who is online and persists without per-call bookkeeping.
  *
  * <p><b>Architecture.</b> The manager writes through the generic {@link DataStore} seam rather than depending
@@ -27,14 +27,14 @@ import org.jspecify.annotations.Nullable;
  * {@code WriteBehindStorage}, a file) and calls {@link #installListener} once on enable to wire the Bukkit
  * join/quit events; {@link #start} begins the periodic flush.
  *
- * <p><b>Threading.</b> Every {@link DataStore} call runs off the main thread on {@link Scheduler#async} — the
- * load on join, the save on quit, and the periodic flush — so a blocking backend never stalls the server, and
+ * <p><b>Threading.</b> Every {@link DataStore} call runs off the main thread on {@link Scheduler#async}: the
+ * load on join, the save on quit, and the periodic flush, so a blocking backend never stalls the server, and
  * the manager is Folia-ready because all scheduling goes through the library {@link Scheduler}. The cache is a
  * {@link ConcurrentHashMap}, so the async hand-back of a loaded value and the main-thread {@link #get} reads
  * are safe without extra locking.
  *
  * <p><b>Flush policy.</b> The periodic flush saves <em>all</em> currently-online values (it does not consult a
- * dirty flag); the value type need not expose one. This is intentionally simple and safe — at worst it writes
+ * dirty flag); the value type need not expose one. This is intentionally simple and safe: at worst it writes
  * an unchanged value. A consumer that wants dirty-only flushing can layer that into its {@link DataStore}.
  *
  * <p>No static mutable state: the cache, the timer handle and the listeners all live on the instance.
@@ -77,7 +77,7 @@ public final class OnlineDataManager<V> {
 
     /**
      * Register the single Bukkit listener that drives load-on-join and save-on-quit. Call this once on plugin
-     * enable. The periodic flush is separate — call {@link #start} to begin it.
+     * enable. The periodic flush is separate: call {@link #start} to begin it.
      */
     public void installListener(Plugin plugin) {
         Objects.requireNonNull(plugin, "plugin");
@@ -91,7 +91,7 @@ public final class OnlineDataManager<V> {
         }
     }
 
-    /** Stop the periodic flush timer. Does not save or evict — use {@link #flush} / {@link #handleQuit} for that. */
+    /** Stop the periodic flush timer. Does not save or evict: use {@link #flush} / {@link #handleQuit} for that. */
     public void stop() {
         TaskHandle current = flushTask;
         if (current != null) {

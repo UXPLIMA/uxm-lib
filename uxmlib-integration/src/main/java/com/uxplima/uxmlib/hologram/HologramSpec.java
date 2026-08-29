@@ -9,7 +9,7 @@ import net.kyori.adventure.text.Component;
  * The immutable description of a hologram: its text lines and its {@link Appearance}. Building this is
  * pure (no world, no entity), so it can be assembled and asserted without a running server;
  * {@link Holograms} turns it into a live {@link org.bukkit.entity.TextDisplay}. Because styling lives in
- * the spec, a spec round-trips losslessly — what you build is exactly what spawns.
+ * the spec, a spec round-trips losslessly: what you build is exactly what spawns.
  */
 public record HologramSpec(List<Component> lines, Appearance appearance) {
 

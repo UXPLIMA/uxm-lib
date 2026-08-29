@@ -25,7 +25,7 @@ public @interface Arg {
 
     /**
      * Whether this argument may be omitted. An optional argument fills {@link #def()} (or the type's zero
-     * value) when absent. Only trailing arguments may be optional — validated at registration.
+     * value) when absent. Only trailing arguments may be optional: validated at registration.
      */
     boolean optional() default false;
 
@@ -34,7 +34,7 @@ public @interface Arg {
 
     /**
      * For a trailing {@code String} argument, consume the entire rest of the input (spaces included) rather
-     * than a single word — e.g. a message or reason. Only the last argument may be greedy.
+     * than a single word: e.g. a message or reason. Only the last argument may be greedy.
      */
     boolean greedy() default false;
 }

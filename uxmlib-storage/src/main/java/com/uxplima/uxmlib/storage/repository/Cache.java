@@ -11,7 +11,7 @@ import com.github.benmanes.caffeine.cache.Ticker;
 /**
  * A thin read-through cache over Caffeine. Build one with {@link #builder()}; {@link #get(Object,
  * Function)} returns the cached value or computes, stores, and returns it. Keys and values are non-null
- * (a loader must never return null). This is deliberately minimal — reach for Caffeine directly when you
+ * (a loader must never return null). This is deliberately minimal: reach for Caffeine directly when you
  * need its full surface.
  */
 public final class Cache<K, V> {
@@ -67,7 +67,7 @@ public final class Cache<K, V> {
 
     /**
      * Run any pending maintenance (size/TTL eviction). Caffeine evicts lazily on access; call this to make
-     * eviction observable immediately — chiefly useful in tests that drive a fake {@link Ticker}.
+     * eviction observable immediately: chiefly useful in tests that drive a fake {@link Ticker}.
      */
     public void cleanUp() {
         delegate.cleanUp();
@@ -98,7 +98,7 @@ public final class Cache<K, V> {
         }
 
         /**
-         * Evict an entry this long after it was last read or written — the TTL-after-quit tier, so a key
+         * Evict an entry this long after it was last read or written: the TTL-after-quit tier, so a key
          * that goes idle (a player who left) is dropped without being held forever.
          */
         public Builder expireAfterAccess(Duration duration) {

@@ -21,7 +21,7 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 /**
  * The scoreboard half: one team per player, created and named by the sink, carrying the composed prefix,
- * suffix and colour — and a player who already belongs to somebody else's team left exactly as they were.
+ * suffix and colour, and a player who already belongs to somebody else's team left exactly as they were.
  */
 class ScoreboardNametagSinkTest {
 

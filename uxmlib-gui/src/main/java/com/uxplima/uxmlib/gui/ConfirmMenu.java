@@ -17,7 +17,7 @@ import org.jspecify.annotations.Nullable;
  * {@code Consumer<Boolean>} so a caller writes one decision handler instead of two. Confirm passes
  * {@code true}, cancel passes {@code false}; the menu closes itself before the decision runs so the handler
  * can open another menu without the close clobbering it. A thin convenience over {@link SimpleGui}, not a new
- * menu kind — pairs naturally with {@link GuiNavigator} for "are you sure?" flows.
+ * menu kind: pairs naturally with {@link GuiNavigator} for "are you sure?" flows.
  *
  * <pre>{@code
  * ConfirmMenu.of(Component.text("Delete home 'base'?"), confirmed -> {

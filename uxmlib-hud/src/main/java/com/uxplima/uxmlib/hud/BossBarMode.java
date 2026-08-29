@@ -4,11 +4,11 @@ package com.uxplima.uxmlib.hud;
  * How a tracked boss bar's progress evolves over time.
  *
  * <ul>
- *   <li>{@link #PERMANENT} — progress never changes on its own; the caller sets it explicitly.
- *   <li>{@link #FILLING} — progress ramps {@code 0 -> 1} linearly over the bar's duration, then holds full.
- *   <li>{@link #COUNTDOWN} — progress ramps {@code 1 -> 0} over the duration and the bar auto-hides at the
+ *   <li>{@link #PERMANENT}: progress never changes on its own; the caller sets it explicitly.
+ *   <li>{@link #FILLING}: progress ramps {@code 0 -> 1} linearly over the bar's duration, then holds full.
+ *   <li>{@link #COUNTDOWN}: progress ramps {@code 1 -> 0} over the duration and the bar auto-hides at the
  *       end. This is the mode behind {@code BossBarManager.countdown}.
- *   <li>{@link #DYNAMIC} — progress (and optionally the name) is re-evaluated from a caller-supplied function
+ *   <li>{@link #DYNAMIC}: progress (and optionally the name) is re-evaluated from a caller-supplied function
  *       on every tick; the duration is ignored.
  * </ul>
  *
@@ -51,7 +51,7 @@ public enum BossBarMode {
     }
 
     /**
-     * Whether the bar should auto-hide now. Only {@link #COUNTDOWN} finishes — once its window elapses the
+     * Whether the bar should auto-hide now. Only {@link #COUNTDOWN} finishes: once its window elapses the
      * bar removes itself; every other mode keeps showing.
      */
     public boolean finishedAt(long elapsedMillis, long totalMillis) {

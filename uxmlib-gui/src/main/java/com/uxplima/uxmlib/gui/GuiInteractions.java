@@ -13,8 +13,8 @@ import org.bukkit.event.inventory.InventoryDragEvent;
  * live in one place; the actual cancelling and routing stay in {@link GuiClick}, which this holder feeds
  * the current allow-list.
  *
- * <p>By default the set is empty, so every interaction class is denied — an unconfigured menu cannot leak
- * items — until a caller {@link #allow(InteractionModifier) allows} the classes it wants.
+ * <p>By default the set is empty, so every interaction class is denied: an unconfigured menu cannot leak
+ * items, until a caller {@link #allow(InteractionModifier) allows} the classes it wants.
  */
 final class GuiInteractions {
 

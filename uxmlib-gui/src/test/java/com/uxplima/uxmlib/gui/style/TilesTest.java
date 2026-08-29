@@ -56,7 +56,7 @@ class TilesTest {
         assertThat(colours(head)).contains(theme.colour("accent"));
     }
 
-    /** A title that came in coloured means it — a lobby name, a rank — and keeps what it arrived with. */
+    /** A title that came in coloured means it (a lobby name, a rank), and keeps what it arrived with. */
     @Test
     void aTitleThatCarriesItsOwnColourKeepsIt() {
         Component head = Tiles.head(theme, Component.text("Lobby", NamedTextColor.GOLD));

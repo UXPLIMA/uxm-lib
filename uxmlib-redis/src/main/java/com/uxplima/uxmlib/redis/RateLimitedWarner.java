@@ -8,7 +8,7 @@ import java.util.function.LongSupplier;
 /**
  * A warn sink that forwards at most one message per fixed window, so a flapping dependency cannot flood the
  * log. The first message always passes; afterwards a message is forwarded only once a full {@code windowMs}
- * has elapsed since the last one that was forwarded — the ones in between are dropped, not queued.
+ * has elapsed since the last one that was forwarded: the ones in between are dropped, not queued.
  *
  * <p>Thread-safe and lock-free: the "claim this window" step is a compare-and-set on the last-emitted
  * timestamp, so concurrent callers (e.g. publish-failure callbacks arriving together on an event loop) emit a

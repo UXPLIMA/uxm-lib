@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # The line the library is developed against — everything, NMS modules included.
+          # The line the library is developed against: everything, NMS modules included.
           - name: Paper 26.x
             line: modern
             tasks: build
@@ -40,8 +40,8 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # Two JDKs, on purpose. The compiler has to be 25 — paper-api 26.x ships Java 25 class files that an
-      # older one cannot read — while the emitted bytecode stays at 21 for the 1.21.x line. Gradle itself,
+      # Two JDKs, on purpose. The compiler has to be 25: paper-api 26.x ships Java 25 class files that an
+      # older one cannot read, while the emitted bytecode stays at 21 for the 1.21.x line. Gradle itself,
       # though, runs on 21: Palantir's formatter reaches into javac internals that changed in 25. Listing 21
       # last is what points JAVA_HOME, and with it the daemon, at 21.
       - name: Set up the JDKs

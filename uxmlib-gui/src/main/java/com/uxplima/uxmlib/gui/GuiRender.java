@@ -57,7 +57,7 @@ final class GuiRender {
     }
 
     /**
-     * Re-render only the items that can change on a tick — dynamic, stateful, animated — for {@code viewer},
+     * Re-render only the items that can change on a tick (dynamic, stateful, animated), for {@code viewer},
      * leaving static slots alone. The per-tick path so a 60-slot menu of mostly static buttons doesn't
      * rewrite every slot 20×/sec, and only resolves the suppliers whose result can differ.
      */

@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
  * alongside the text holograms, despawned by {@link HologramManager#removeAll()}, and dropped from a viewer's
  * cache on {@link HologramManager#invalidateViewer(UUID)}. MockBukkit cannot spawn an {@code ItemDisplay} or
  * {@code BlockDisplay}, so the manager's fan-out is exercised against a recording double exactly as the text
- * side's viewer logic is — the live content swap is covered by the plugin's render path. {@link ItemHologram}
+ * side's viewer logic is: the live content swap is covered by the plugin's render path. {@link ItemHologram}
  * and {@link BlockHologram} inherit their visibility/move/remove behaviour unchanged from the already-tested
  * {@link DisplayHologram} shape via {@link AbstractModelHologram}.
  */

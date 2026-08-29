@@ -31,7 +31,7 @@ import org.mockbukkit.mockbukkit.inventory.ItemStackMock;
 class NpcPacketsContractTest {
 
     /**
-     * The pose names {@code net.minecraft.world.entity.Pose} declares — the by-name target for {@link NpcPose}.
+     * The pose names {@code net.minecraft.world.entity.Pose} declares: the by-name target for {@link NpcPose}.
      * The list is fixed by the protocol, so pinning it here is stable; it proves every {@code NpcPose} server name
      * has a real {@code Pose} counterpart so the NMS {@code Pose.valueOf} never throws at render time.
      */
@@ -55,7 +55,7 @@ class NpcPacketsContractTest {
             "SHOOTING",
             "INHALING");
 
-    /** The 16 colour names {@code net.minecraft.ChatFormatting} declares — the by-name target for {@link NamedColor}. */
+    /** The 16 colour names {@code net.minecraft.ChatFormatting} declares: the by-name target for {@link NamedColor}. */
     private static final java.util.Set<String> CHAT_FORMATTING_COLORS = java.util.Set.of(
             "BLACK",
             "DARK_BLUE",
@@ -104,7 +104,7 @@ class NpcPacketsContractTest {
         assertThat(add.profileId()).isEqualTo(profileId);
         assertThat(add.name()).isEqualTo("Guide");
         assertThat(add.skin()).isEqualTo(skin);
-        // The no-flag shorthand seats a listed entry — the NPC shows in the tab list.
+        // The no-flag shorthand seats a listed entry: the NPC shows in the tab list.
         assertThat(add.listed()).isTrue();
     }
 
@@ -117,7 +117,7 @@ class NpcPacketsContractTest {
         FakeNpcPackets.TabAdd unlisted = (FakeNpcPackets.TabAdd) packets.tabAdd(profileId, "Guide", skin, false);
         FakeNpcPackets.TabAdd listed = (FakeNpcPackets.TabAdd) packets.tabAdd(profileId, "Guide", skin, true);
 
-        // listed=false renders the body without a tab-list row — the normal fake-player NPC case; listed=true also
+        // listed=false renders the body without a tab-list row: the normal fake-player NPC case; listed=true also
         // shows the row. Either way the entry is added and kept (no remove is part of the add).
         assertThat(unlisted.listed()).isFalse();
         assertThat(unlisted.skin()).isEqualTo(skin);

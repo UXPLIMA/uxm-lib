@@ -41,8 +41,8 @@ import org.joml.Vector3f;
  * server's own mappings at load. A handful of the {@code Display}/{@code TextDisplay} data-watcher accessors
  * the metadata packet needs are package-private static fields, so they are read once at construction through
  * the shared {@link Reflect} helper (the accessor object carries its own network id, which keeps us from
- * hard-coding the volatile integer indices). The generic machinery — accessor reflection, the bundle builder,
- * the Adventure-to-vanilla conversion, the stream-codec buffer trick, the entity-id allocator — now lives in
+ * hard-coding the volatile integer indices). The generic machinery: accessor reflection, the bundle builder,
+ * the Adventure-to-vanilla conversion, the stream-codec buffer trick, the entity-id allocator, now lives in
  * {@code uxmlib-packet} and is shared with the tablist renderer; only the {@code TextDisplay}-specific shape of
  * the metadata stays here.
  */

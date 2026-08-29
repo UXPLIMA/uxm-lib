@@ -24,7 +24,7 @@ class ItemSerializationTest {
     }
 
     // MockBukkit's serializeAsBytes round-trip is not byte-faithful for Adventure component metadata, so
-    // these tests assert what it reliably preserves — material and amount. Full-component fidelity rides
+    // these tests assert what it reliably preserves: material and amount. Full-component fidelity rides
     // on Paper's native serialization, which is exercised on a real server.
 
     @Test

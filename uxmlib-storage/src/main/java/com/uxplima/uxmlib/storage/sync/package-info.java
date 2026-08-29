@@ -7,8 +7,8 @@
  * pure wire codec that lets one physical Redis channel carry many logical ones.
  *
  * <p>For pull-based row synchronisation (rather than pushed invalidations),
- * {@link com.uxplima.uxmlib.storage.sync.RowSyncPoller} detects rows a peer changed — via an application-
- * stamped version and updated-by column described by {@link com.uxplima.uxmlib.storage.sync.RowSyncConfig} —
+ * {@link com.uxplima.uxmlib.storage.sync.RowSyncPoller} detects rows a peer changed: via an application-
+ * stamped version and updated-by column described by {@link com.uxplima.uxmlib.storage.sync.RowSyncConfig},
  * and applies them locally through a {@link com.uxplima.uxmlib.storage.sync.RowSyncListener};
  * {@link com.uxplima.uxmlib.storage.sync.RowSyncService} runs that poll on the scheduler's async timer.
  */

@@ -11,8 +11,8 @@ import java.util.function.Predicate;
  * holograms. It separates <em>intent</em> (the viewers a consumer asked to see the hologram) from
  * <em>visibility</em> (the viewers actually rendered after a distance/world/FOV gate). {@code show}/
  * {@code hide} change only intent; an idempotent {@link #reconcile} recomputes visibility from intent plus a
- * gate predicate and emits only the show/hide that changed, so repeated reconciles — from a move event, a
- * pool tick, a respawn — cost nothing once the state has settled.
+ * gate predicate and emits only the show/hide that changed, so repeated reconciles: from a move event, a
+ * pool tick, a respawn, cost nothing once the state has settled.
  *
  * <p>This is the per-hologram engine the {@link HologramPool} drives: the pool decides the gate (range, and
  * optionally FOV via {@link VisibilityGate}); this class owns the per-viewer two sets and the minimal delta.
@@ -44,7 +44,7 @@ public final class ViewerLifecycle {
     }
 
     /**
-     * Drop {@code viewer} from both sets without rendering anything — the quit / world-change cleanup that
+     * Drop {@code viewer} from both sets without rendering anything: the quit / world-change cleanup that
      * stops a departed UUID from leaking. A later {@link #show} plus reconcile re-establishes it cleanly.
      */
     public void forget(UUID viewer) {

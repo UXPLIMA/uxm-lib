@@ -16,7 +16,7 @@ import org.jspecify.annotations.Nullable;
  * thread; the comparison is pure. {@link #checkAndAnnounce} guarantees the announce callback fires at most once
  * (the announce-once dedupe the established checkers use) so the console is not spammed by the recurring timer.
  *
- * <p>This type holds no Bukkit state and never self-downloads — v1 is notify-only. The clickable on-join
+ * <p>This type holds no Bukkit state and never self-downloads: v1 is notify-only. The clickable on-join
  * surface is layered on top by {@link UpdateNotifier}/{@link UpdateJoinListener}, which read {@link #lastOutcome}.
  */
 public final class UpdateChecker {
@@ -63,7 +63,7 @@ public final class UpdateChecker {
 
     // Runs on the scheduler's async thread. Bridges the provider's own future into {@code result}: the whenComplete
     // stage's own future is intentionally not returned because every outcome (including failure) is funnelled into
-    // {@code result}, which the caller already holds — nothing is lost by dropping the bridge future.
+    // {@code result}, which the caller already holds: nothing is lost by dropping the bridge future.
     @SuppressWarnings("FutureReturnValueIgnored")
     private void fetchInto(CompletableFuture<UpdateOutcome> result) {
         provider.latest()

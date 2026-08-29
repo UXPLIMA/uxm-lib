@@ -8,7 +8,7 @@ import net.kyori.adventure.text.Component;
 
 import org.junit.jupiter.api.Test;
 
-/** Verifies the manager despawns what it tracks — the orphan-entity guard — using a fake hologram. */
+/** Verifies the manager despawns what it tracks (the orphan-entity guard) using a fake hologram. */
 class HologramManagerTest {
 
     /** A Hologram with no Bukkit backing, so we can assert remove() without a live world. */

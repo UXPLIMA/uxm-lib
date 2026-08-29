@@ -12,7 +12,7 @@ import com.uxplima.uxmlib.scheduler.TaskHandle;
  * Watches a config file for external edits and reloads it. It polls the file's last-modified time through
  * the injected {@link Scheduler} (never a raw {@code WatchService} thread or {@code new Thread}, so it
  * stays Folia-safe) and fires {@code reload} once the modification time has changed and then held steady
- * for one poll — a simple debounce so a half-written save isn't read mid-write.
+ * for one poll: a simple debounce so a half-written save isn't read mid-write.
  */
 final class ConfigWatcher {
 

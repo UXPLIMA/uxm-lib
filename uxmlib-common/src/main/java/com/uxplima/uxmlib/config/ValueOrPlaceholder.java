@@ -8,7 +8,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * A config field that is <em>either</em> a fixed literal value <em>or</em> a placeholder template resolved
  * later. This lets an admin write {@code "Steve"} or {@code "%player_name%"} in one slot: the library keeps
- * the choice as data and only resolves the placeholder — through a caller-supplied resolver — at the moment
+ * the choice as data and only resolves the placeholder (through a caller-supplied resolver) at the moment
  * the value is needed.
  *
  * <p>The resolver is a plain {@code Function<String, T>}, a functional seam rather than a hard dependency on

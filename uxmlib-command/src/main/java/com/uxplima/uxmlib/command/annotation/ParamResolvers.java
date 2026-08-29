@@ -108,8 +108,8 @@ public final class ParamResolvers {
 
     /**
      * Register an {@link AnnotationReplacer} that rewrites the custom annotation {@code type} into core
-     * annotation(s) at registration. The whole build — model reflection, the implicit permission/cooldown/
-     * player-only gates, help, suggestions, and argument validation — then reads the rewritten (effective)
+     * annotation(s) at registration. The whole build: model reflection, the implicit permission/cooldown/
+     * player-only gates, help, suggestions, and argument validation, then reads the rewritten (effective)
      * annotations, so a consumer's shorthand is honoured everywhere a core annotation would be. Replaces any
      * replacer already registered for that exact type. Returns this for chaining.
      */

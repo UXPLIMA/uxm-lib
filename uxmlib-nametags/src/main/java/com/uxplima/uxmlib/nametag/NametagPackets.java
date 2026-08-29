@@ -10,7 +10,7 @@ import org.joml.Vector3f;
 
 /**
  * The seam between the pure renderer and the NMS packet construction. Every packet crosses this boundary as
- * an opaque {@link Object}, so this interface — and everything that depends on it — carries no
+ * an opaque {@link Object}, so this interface (and everything that depends on it) carries no
  * {@code net.minecraft} reference and stays unit-testable with a fake. The single implementation that builds
  * real packets against the Mojang-mapped dev bundle lands behind this port in a later milestone.
  */

@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
  * <ol>
  *   <li>re-checks that the slot still holds the icon the click targeted (else it skips the action);</li>
  *   <li>snapshots the click into an immutable {@link ClickContext} and runs the handler;</li>
- *   <li>applies the resulting responses — inline when the future is already complete (the {@code isDone()}
+ *   <li>applies the resulting responses: inline when the future is already complete (the {@code isDone()}
  *       fast-path, no scheduler hop), otherwise off-thread with the responses marshalled back onto the
  *       viewer's region thread through the library {@link Scheduler}.</li>
  * </ol>

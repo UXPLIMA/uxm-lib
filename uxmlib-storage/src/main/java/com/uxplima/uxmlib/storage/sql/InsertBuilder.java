@@ -9,7 +9,7 @@ import java.util.stream.Stream;
 /**
  * A small, safe INSERT builder. Each value goes through a bound {@code ?} placeholder and every column is
  * validated against the same strict allowlist as {@link SelectBuilder}, so the produced {@link Query} is
- * injection-safe by construction. Deliberately minimal — a single-row insert into one table. For a
+ * injection-safe by construction. Deliberately minimal: a single-row insert into one table. For a
  * multi-row insert, an {@code INSERT ... SELECT}, or a NULL/default column value, write the statement by
  * hand and use {@link Sql#update(String, StatementBinder)}.
  *

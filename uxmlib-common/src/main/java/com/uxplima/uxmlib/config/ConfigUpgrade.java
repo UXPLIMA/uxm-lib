@@ -4,7 +4,7 @@ import org.spongepowered.configurate.CommentedConfigurationNode;
 import org.spongepowered.configurate.ConfigurationNode;
 
 /**
- * The upgrade operations on a live config tree — schema migration and defaults merge — kept out of
+ * The upgrade operations on a live config tree (schema migration and defaults merge) kept out of
  * {@code HoconConfig} so that class stays within its size cap. Each takes the live root and a save
  * callback; the caller (HoconConfig) holds the lock and supplies them.
  */
@@ -34,8 +34,8 @@ final class ConfigUpgrade {
     }
 
     /**
-     * Deep-merge an included tree into {@code live} with the same base-wins semantics as a defaults merge —
-     * keys already present in {@code live} keep their value, the included tree fills the gaps — but purely
+     * Deep-merge an included tree into {@code live} with the same base-wins semantics as a defaults merge:
+     * keys already present in {@code live} keep their value, the included tree fills the gaps, but purely
      * in memory, with no save. Returns whether the included tree contributed anything new.
      */
     static boolean include(CommentedConfigurationNode live, ConfigurationNode included) {

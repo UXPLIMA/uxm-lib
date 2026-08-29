@@ -11,7 +11,7 @@ import com.github.benmanes.caffeine.cache.Ticker;
 
 /**
  * A write-behind cache over a {@link StorageProvider}. Unlike {@link CachedStorage} (which writes through to
- * the backend on every {@code save}), a write here only marks the key DIRTY and updates the in-memory copy —
+ * the backend on every {@code save}), a write here only marks the key DIRTY and updates the in-memory copy:
  * no provider write happens until {@link #flush} or {@link #flushAll}. So N writes to one key between flushes
  * collapse to a single provider save (coalescing), with last-write-wins. This is the path for hot data that
  * changes many times per tick (a player's stats) where one batched persist is far cheaper than one-per-edit.
@@ -19,7 +19,7 @@ import com.github.benmanes.caffeine.cache.Ticker;
  * <p>The read tier is a Caffeine-backed {@link Cache} with optional size/TTL eviction ({@code maximumSize} /
  * {@code expireAfterAccess}), so cold entries are dropped instead of leaking. Pending dirty values are held
  * in a separate buffer that eviction never touches, so an unsaved write is never lost. Scheduling a periodic
- * flush is intentionally left to the caller (and to the Paper-coupled online manager) — this class stays
+ * flush is intentionally left to the caller (and to the Paper-coupled online manager): this class stays
  * Paper-free and persists only when asked.
  */
 public final class WriteBehindStorage<I, T> {
@@ -121,7 +121,7 @@ public final class WriteBehindStorage<I, T> {
         }
     }
 
-    /** Flush {@code id} if dirty, then drop it from the read tier — the save-on-quit step. */
+    /** Flush {@code id} if dirty, then drop it from the read tier: the save-on-quit step. */
     public void flushAndInvalidate(I id) {
         flush(id);
         readTier.invalidate(Objects.requireNonNull(id, "id"));

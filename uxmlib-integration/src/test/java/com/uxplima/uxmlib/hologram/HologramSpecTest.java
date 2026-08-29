@@ -10,7 +10,7 @@ import net.kyori.adventure.text.Component;
 import com.uxplima.uxmlib.text.Text;
 import org.junit.jupiter.api.Test;
 
-/** Pure tests of the hologram builder's accumulated spec — live spawning is integration-only. */
+/** Pure tests of the hologram builder's accumulated spec: live spawning is integration-only. */
 class HologramSpecTest {
 
     @Test

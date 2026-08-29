@@ -12,7 +12,7 @@ import java.lang.annotation.Target;
  * different players are independent, and the console (which has no UUID) is never gated. On a class it
  * applies to every branch.
  *
- * <p>The duration is the human form parsed by {@code com.uxplima.uxmlib.common.Durations} — for example
+ * <p>The duration is the human form parsed by {@code com.uxplima.uxmlib.common.Durations}, for example
  * {@code "30s"}, {@code "1h30m"} or {@code "2d"}.
  */
 @Retention(RetentionPolicy.RUNTIME)

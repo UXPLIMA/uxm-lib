@@ -8,14 +8,14 @@ import java.util.Objects;
 /**
  * Trims a handler exception's stack trace down to the frames an operator cares about before it is logged by
  * the clean-error path. The interesting line is where the consumer's command method threw; the frames above
- * it — Brigadier dispatch, this library's reflective invoke, JDK reflection glue — are noise that pushes the
+ * it (Brigadier dispatch, this library's reflective invoke, JDK reflection glue) are noise that pushes the
  * real cause off the top of a busy console. This drops the leading framework/reflection/JDK frames (and the
  * reflection {@link InvocationTargetException} wrapper) so the logged trace starts at the consumer's own code.
  *
  * <p><strong>Mutating, not pure:</strong> {@link #sanitize} rewrites the {@link Throwable}'s frames in place
  * via {@link Throwable#setStackTrace} and returns the same instance, so callers can log it as usual. Because
  * the rewrite is visible to any other observer of that throwable, only call it on a freshly-unwrapped
- * handler exception that is not otherwise held or re-logged — which is exactly the clean-error path's input
+ * handler exception that is not otherwise held or re-logged, which is exactly the clean-error path's input
  * (the cause of an {@link InvocationTargetException} or a future's {@code CompletionException}, minted per
  * dispatch). A throwable whose every frame is framework noise keeps its original trace rather than being
  * blanked.

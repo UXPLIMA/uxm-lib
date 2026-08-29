@@ -10,7 +10,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
-/** Pure tests of the webhook JSON encoding and URL validation — no network, no Bukkit. */
+/** Pure tests of the webhook JSON encoding and URL validation: no network, no Bukkit. */
 class DiscordWebhookTest {
 
     @Test

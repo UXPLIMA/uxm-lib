@@ -15,7 +15,7 @@ import java.util.function.Supplier;
  * The single ReDoS-guarded regex execution primitive.
  *
  * <p>{@link #run(String, Supplier, Object)} executes a caller-supplied regex operation on the injected
- * {@link Executor} (typically a virtual-thread executor — never {@code new Thread}) under a per-call
+ * {@link Executor} (typically a virtual-thread executor: never {@code new Thread}) under a per-call
  * timeout. An operation that exceeds the budget is abandoned (the runaway match is actually stopped via
  * {@link #interruptible(CharSequence)}, because the regex engine ignores {@code Future#cancel} alone during
  * backtracking), the caller's {@code fallback} is returned, and a throttled message is handed to the

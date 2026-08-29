@@ -20,28 +20,28 @@ legacy-adventure = "4.26.1"
 # rest of the surface this library touches is byte-for-byte identical across 4.21 and 5.2.
 adventure   = "5.2.0"
 
-# runtime libs (infra only — not Minecraft competitors; the MC-facing API is ours)
+# runtime libs (infra only, not Minecraft competitors; the MC-facing API is ours)
 configurate = "4.1.2"
 hikari      = "6.2.1"
 # Only ever compileOnly/testRuntimeOnly: Paper ships slf4j 2.x, and Hikari asks for 1.7.36. See uxmlib-storage.
 slf4j       = "2.0.17"
 caffeine    = "3.1.8"
 jspecify    = "1.0.0"
-brigadier   = "1.3.10"   # com.mojang:brigadier — bundled by Paper at runtime; compileOnly only
+brigadier   = "1.3.10"   # com.mojang:brigadier: bundled by Paper at runtime; compileOnly only
 
 # JDBC drivers (storage). SQLite is the default; the others are network options the consumer opts into.
 sqlite-jdbc  = "3.49.1.0"   # org.xerial:sqlite-jdbc
 mariadb-jdbc = "3.5.3"      # org.mariadb.jdbc:mariadb-java-client (also speaks the MySQL wire protocol)
 postgresql   = "42.7.4"     # org.postgresql:postgresql
-h2           = "2.3.232"    # com.h2database:h2 — pure-Java embedded backend; EPL/MPL, infra-only opt-in
+h2           = "2.3.232"    # com.h2database:h2: pure-Java embedded backend; EPL/MPL, infra-only opt-in
 
 # soft-depend integrations (compileOnly; reached only past a plugin-present guard)
 luckperms      = "5.5"
-vault          = "1.7.1"        # com.github.MilkBowl:VaultAPI — JitPack
-vaultunlocked  = "2.16"         # net.milkbowl.vault:VaultUnlockedAPI — codemc repo
-placeholderapi = "2.11.6"       # me.clip:placeholderapi — extendedclip repo
-worldguard     = "7.0.13"       # com.sk89q.worldguard:worldguard-bukkit — enginehub repo
-towny          = "0.100.4.0"    # com.palmergames.bukkit.towny:towny — glaremasters repo
+vault          = "1.7.1"        # com.github.MilkBowl:VaultAPI: JitPack
+vaultunlocked  = "2.16"         # net.milkbowl.vault:VaultUnlockedAPI, codemc repo
+placeholderapi = "2.11.6"       # me.clip:placeholderapi, extendedclip repo
+worldguard     = "7.0.13"       # com.sk89q.worldguard:worldguard-bukkit, enginehub repo
+towny          = "0.100.4.0"    # com.palmergames.bukkit.towny:towny, glaremasters repo
 
 # tests
 junit    = "5.12.1"
@@ -59,7 +59,7 @@ spotless     = "7.0.2"
 palantir-fmt = "2.52.0"
 shadow       = "9.4.1"
 
-# Netty — the channel/pipeline types for the experimental uxmlib-npc packet layer. compileOnly: Paper bundles
+# Netty: the channel/pipeline types for the experimental uxmlib-npc packet layer. compileOnly: Paper bundles
 # Netty at runtime but paper-api's POM does not export it, so it must be pinned here to match what the server
 # ships (4.2.x, Paper 26.2). Infra dependency, never shaded.
 netty        = "4.2.15.Final"
@@ -120,6 +120,6 @@ shadow            = { id = "com.gradleup.shadow",   version.ref = "shadow" }
 spotless          = { id = "com.diffplug.spotless",  version.ref = "spotless" }
 errorprone        = { id = "net.ltgt.errorprone",    version = "4.4.0" }
 nullaway-plugin   = { id = "net.ltgt.nullaway",      version = "3.0.0" }
-# paperweight userdev — supplies the Mojang-mapped dev bundle (Paper API + net.minecraft / craftbukkit)
+# paperweight userdev: supplies the Mojang-mapped dev bundle (Paper API + net.minecraft / craftbukkit)
 # the packet-nametag renderer compiles against. Only uxmlib-nametags applies it; quarantined to one module.
 paperweight-userdev = { id = "io.papermc.paperweight.userdev", version = "2.0.0-beta.22" }

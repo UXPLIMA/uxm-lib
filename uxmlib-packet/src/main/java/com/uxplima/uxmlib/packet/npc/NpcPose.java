@@ -1,11 +1,11 @@
 package com.uxplima.uxmlib.packet.npc;
 
 /**
- * The body poses a fake NPC can be frozen in — the player-visible subset of the server's full {@code
+ * The body poses a fake NPC can be frozen in: the player-visible subset of the server's full {@code
  * net.minecraft.world.entity.Pose} list. A pose is carried on the entity's {@code DATA_POSE} metadata field, so
  * this enum names each one port-side to keep the {@link NpcPackets#pose} contract free of {@code net.minecraft}.
  * The constant names match {@code Pose}'s own, so the NMS implementation maps one to the other by name with no
- * lookup table to drift — except {@link #GLIDING}, the friendlier name for the server's {@code FALL_FLYING}
+ * lookup table to drift: except {@link #GLIDING}, the friendlier name for the server's {@code FALL_FLYING}
  * elytra pose, which carries its server name on the constant.
  */
 public enum NpcPose {

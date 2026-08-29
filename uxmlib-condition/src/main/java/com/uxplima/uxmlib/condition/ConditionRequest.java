@@ -17,14 +17,14 @@ import org.jspecify.annotations.Nullable;
  * ConditionList} that drives it) needs without each consumer wiring a bespoke parameter list:
  *
  * <ul>
- *   <li>the <b>subject</b> — an optional {@link Player} and an optional generic {@code actor} object, so a
+ *   <li>the <b>subject</b>: an optional {@link Player} and an optional generic {@code actor} object, so a
  *       condition can run for a player, a non-player actor, or both;
  *   <li>the injected {@link OperandResolver} used to resolve placeholder operand templates;
- *   <li>an <b>error sink</b> — the mutable list of failure {@link Component}s a {@link ConditionList} flushes
+ *   <li>an <b>error sink</b>: the mutable list of failure {@link Component}s a {@link ConditionList} flushes
  *       to when conditions fail;
  *   <li>a <b>cancellable</b> flag a failing condition's {@link FailurePolicy#CANCEL} policy can raise, which
  *       a caller reads back to cancel the event/action the conditions were gating;
- *   <li>two optional {@link CommandSink}s — one dispatching as the console, one as the subject player — that a
+ *   <li>two optional {@link CommandSink}s (one dispatching as the console, one as the subject player) that a
  *       {@link FailurePolicy#RUN_COMMANDS} entry runs its configured commands through. They default to {@link
  *       CommandSink#noop()}; production wires sinks that route the dispatch through the library {@code
  *       Scheduler} so a command never runs on the wrong thread.

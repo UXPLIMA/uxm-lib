@@ -21,12 +21,12 @@ import com.uxplima.uxmlib.storage.sql.Dialect;
  *
  * <p>DDL cannot use bound parameters, so the table and column names are validated against a strict
  * identifier allowlist and the column type is restricted to an allowlisted token (letters, digits, spaces
- * and the punctuation a type fragment such as {@code VARCHAR(64) DEFAULT 0} needs) — anything that could
+ * and the punctuation a type fragment such as {@code VARCHAR(64) DEFAULT 0} needs): anything that could
  * carry an injection is rejected before it reaches the statement.
  */
 public final class SchemaIntrospector {
 
-    // A bare identifier or one dotted qualifier — the same shape SelectBuilder/Identifiers accept.
+    // A bare identifier or one dotted qualifier: the same shape SelectBuilder/Identifiers accept.
     private static final Pattern IDENTIFIER = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)?");
 
     // A column-type fragment: the SQL type keywords plus the parens/commas/default-literal a type needs.

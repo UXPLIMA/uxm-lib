@@ -4,7 +4,7 @@ import java.util.function.Consumer;
 
 /**
  * A low-level binary Redis pub/sub channel: publish a raw {@code byte[]} frame to a named channel and
- * subscribe to a named channel. The transport seam a higher-level typed message bus sits on — it owns only
+ * subscribe to a named channel. The transport seam a higher-level typed message bus sits on: it owns only
  * the wire (Lettuce PUBLISH / SUBSCRIBE), leaving encoding, routing and echo-suppression to the caller.
  *
  * <p>This is the binary counterpart of the higher-level, {@code String}-payload cross-server synchronizer:
@@ -24,7 +24,7 @@ public interface RedisBus extends AutoCloseable {
     void subscribe(String channel, Consumer<byte[]> onFrame);
 
     /**
-     * Whether the bus currently has a live wire — a probe a host can surface on a health/doctor line. A
+     * Whether the bus currently has a live wire: a probe a host can surface on a health/doctor line. A
      * {@code true} return means the underlying connection is open and a publish has a path to Redis; a
      * {@code false} return means the wire is down (closed or never opened) and publishes will fail-degrade.
      *

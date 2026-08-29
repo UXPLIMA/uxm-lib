@@ -36,7 +36,7 @@ dependencies {
     compileOnly(project(":uxmlib-packet-compat-mc1_21")) { withoutPaperApi() }
     compileOnly(project(":uxmlib-packet-compat-mc26")) { withoutPaperApi() }
 
-    // Paper bundles Adventure, so the line under test decides that version too — and on the oldest line it is
+    // Paper bundles Adventure, so the line under test decides that version too, and on the oldest line it is
     // older than what the rest of the build compiles against. Pinning it here means this run also proves the
     // packet sources stay inside the Adventure API that line actually ships.
     compileOnly(enforcedPlatform(libs.adventure.bom.legacy))

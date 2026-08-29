@@ -13,7 +13,7 @@ import com.uxplima.uxmlib.text.GlyphWidthTable;
  * <p>The client draws a window title from a fixed origin and offers no way to align it, so the only way to
  * centre one is to put spaces in front of it. The arithmetic is the client's own layout: the window is 176
  * pixels wide, the label starts 8 pixels in from the left edge, and a space advances 4. Forgetting the origin
- * is what makes a whole menu look subtly wrong — it pushes every title two spaces right and the rounding then
+ * is what makes a whole menu look subtly wrong: it pushes every title two spaces right and the rounding then
  * lands differently for each length.
  *
  * <p>The styling is dropped rather than trusted to every catalog line: a title is flattened to plain text and

@@ -14,7 +14,7 @@ import org.jspecify.annotations.Nullable;
  * {@link #name} the {@code GameProfile} name, the {@link #skin} the {@code textures} property, and the
  * {@link #displayName}/{@link #listOrder} the rendered row.
  *
- * <p>This is for entries you own end to end (a fake player, a header/spacer row, a custom-skinned slot) — the
+ * <p>This is for entries you own end to end (a fake player, a header/spacer row, a custom-skinned slot): the
  * per-viewer things native Paper cannot do. For a real online player you would not re-add a synthetic entry.
  *
  * @param id the entry's profile id; for a synthetic row this is any stable {@code UUID} you mint

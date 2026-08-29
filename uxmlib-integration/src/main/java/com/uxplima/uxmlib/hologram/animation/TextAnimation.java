@@ -7,7 +7,7 @@ import java.util.Objects;
 import net.kyori.adventure.text.Component;
 
 /**
- * Pure builders for hologram animation frame lists — no server, no entity, so they are unit-testable.
+ * Pure builders for hologram animation frame lists: no server, no entity, so they are unit-testable.
  * Hand the resulting frames to {@link HologramAnimation#animate} to play them. A frame is one
  * {@link Component} the hologram shows for one tick of the animation's period.
  */

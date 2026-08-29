@@ -55,7 +55,7 @@ public final class LocalDataSynchronizer implements DataSynchronizer {
         channels.clear();
     }
 
-    /** The number of channels that currently have at least one subscriber — for tests and diagnostics. */
+    /** The number of channels that currently have at least one subscriber, for tests and diagnostics. */
     public int channelCount() {
         return channels.size();
     }

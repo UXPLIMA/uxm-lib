@@ -15,7 +15,7 @@ import java.util.Objects;
  *   [close]
  * }</pre>
  *
- * <p>Parsing happens once, at load — the returned closure carries the static payload and only resolves
+ * <p>Parsing happens once, at load: the returned closure carries the static payload and only resolves
  * placeholders at run time. An unknown prefix, a missing {@code ]}, or a payload-less string for a type that
  * needs one all raise {@link IllegalArgumentException} with a message naming the offending input, so a config
  * loader can surface the line to the author.

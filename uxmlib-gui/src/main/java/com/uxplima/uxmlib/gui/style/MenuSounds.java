@@ -11,7 +11,7 @@ import com.uxplima.uxmlib.config.HoconConfig;
  * The three sounds a menu plays: opening, a click that acts, and a click that is refused.
  *
  * <p>A refusal answers with a low note rather than with silence, because a button that does nothing and says
- * nothing reads as a broken menu. The shipped volumes sit between 0.5 and 0.7 — loud enough to feel, quiet
+ * nothing reads as a broken menu. The shipped volumes sit between 0.5 and 0.7: loud enough to feel, quiet
  * enough to live with.
  *
  * <p>A sound is named by its vanilla key ({@code item.book.page_turn}) rather than by a Bukkit constant,
@@ -37,7 +37,7 @@ public record MenuSounds(Sound open, Sound click, Sound denied) {
     }
 
     /**
-     * The set in {@code config} under {@code base} — {@code "menu.sounds"} by convention. Each sound keeps
+     * The set in {@code config} under {@code base}: {@code "menu.sounds"} by convention. Each sound keeps
      * its shipped value until the file names another one.
      */
     public static MenuSounds from(HoconConfig config, String base) {

@@ -66,8 +66,8 @@ public final class MojangSkinResolver {
 
     /**
      * Resolve {@code name} to its base64 texture blob, off-thread. The future yields the texture, or empty
-     * when the name has no profile (or the lookup was rate-limited past its retries). Cached results — both
-     * a hit and a known-absent — short-circuit the network.
+     * when the name has no profile (or the lookup was rate-limited past its retries). Cached results: both
+     * a hit and a known-absent, short-circuit the network.
      */
     public CompletableFuture<Optional<String>> resolveTexture(String name) {
         Objects.requireNonNull(name, "name");

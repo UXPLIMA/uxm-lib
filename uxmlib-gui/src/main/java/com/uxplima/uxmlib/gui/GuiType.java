@@ -5,7 +5,7 @@ import org.bukkit.event.inventory.InventoryType;
 /**
  * The non-chest menu shapes a {@link Gui} can take, each mapping to a Bukkit {@link InventoryType} with a
  * fixed slot count. Chest menus are sized by rows instead (see {@link Guis#gui()}); these cover the small
- * fixed-layout containers — hopper, dropper, dispenser, workbench, brewing stand.
+ * fixed-layout containers: hopper, dropper, dispenser, workbench, brewing stand.
  */
 public enum GuiType {
 

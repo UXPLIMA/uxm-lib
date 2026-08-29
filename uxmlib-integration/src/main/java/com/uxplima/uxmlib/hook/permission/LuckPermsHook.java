@@ -23,7 +23,7 @@ import org.jspecify.annotations.Nullable;
  * degrade gracefully; the {@code net.luckperms} classes are touched only past that guard, so a server
  * without LuckPerms still loads. The {@link Player} accessors use the cached user data, which is populated
  * for online players, so they are non-blocking and return empty for an unknown or uncached player. The
- * {@code *Async(UUID)} accessors load an <em>offline</em> user through LuckPerms' own async user manager —
+ * {@code *Async(UUID)} accessors load an <em>offline</em> user through LuckPerms' own async user manager:
  * widening prefix/suffix/group coverage to players who are not online (leaderboards, PAPI).
  */
 public final class LuckPermsHook {
@@ -120,7 +120,7 @@ public final class LuckPermsHook {
 
     private CompletableFuture<Optional<String>> metaAsync(UUID uuid, Function<CachedMetaData, @Nullable String> field) {
         Objects.requireNonNull(uuid, "uuid");
-        // loadUser is already async on LuckPerms' own pool — return its future directly rather than wrapping
+        // loadUser is already async on LuckPerms' own pool: return its future directly rather than wrapping
         // it in our Scheduler, which would double-hop and risk touching the Bukkit API off-thread.
         return luckPerms.getUserManager().loadUser(uuid).thenApply(user -> extract(user, field));
     }

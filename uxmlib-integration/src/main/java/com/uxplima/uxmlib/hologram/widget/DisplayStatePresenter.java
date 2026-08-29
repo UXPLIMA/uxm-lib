@@ -14,7 +14,7 @@ import com.uxplima.uxmlib.scheduler.Scheduler;
 /**
  * The production {@link StatePresenter}: each state value maps to one restricted {@link Hologram}, and a
  * {@code show}/{@code hide} resolves the UUID to an online player and runs the native per-viewer call on that
- * state's entity region thread through the {@link Scheduler} — the same Folia-safe pattern the pool's
+ * state's entity region thread through the {@link Scheduler}: the same Folia-safe pattern the pool's
  * {@code SchedulerViewerSink} uses. A UUID with no online player is skipped; an unknown state value (no
  * mapped hologram) is a no-op rather than a throw, so a {@link SwitchSelection} state can be display-only.
  *

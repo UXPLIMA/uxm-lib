@@ -69,7 +69,7 @@ class TransactionTest {
 
     @Test
     void asyncQueryRunsOnTheGivenExecutorAndCompletes() throws Exception {
-        // A direct (same-thread) executor — the point is that we never use CompletableFuture.supplyAsync.
+        // A direct (same-thread) executor: the point is that we never use CompletableFuture.supplyAsync.
         Executor direct = Runnable::run;
         List<Integer> balances = sql.queryAsync(
                         direct, "SELECT balance FROM accounts ORDER BY id", StatementBinder.NONE, r -> r.getInt(1))

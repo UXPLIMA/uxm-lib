@@ -10,7 +10,7 @@ import org.jspecify.annotations.Nullable;
  * {@code prefix_}, and the {@link com.uxplima.uxmlib.hook.placeholder.PlaceholderRegistry} hands the rest to
  * {@link #onRequest(Player, String)}.
  *
- * <p>Returning {@code null} (or an empty string) means "I don't handle this" — the registry yields an empty
+ * <p>Returning {@code null} (or an empty string) means "I don't handle this": the registry yields an empty
  * value so the placeholder renders as nothing rather than breaking the line. The {@code player} may be
  * {@code null} when PlaceholderAPI resolves a player-independent placeholder.
  */
@@ -19,7 +19,7 @@ public interface PlaceholderProvider {
 
     /**
      * Resolve {@code params} (everything after this provider's prefix) for {@code player}. Return the value,
-     * or {@code null} for an unrecognised request. Must not throw — but if it does, the registry catches it
+     * or {@code null} for an unrecognised request. Must not throw, but if it does, the registry catches it
      * and yields empty, so a buggy provider never breaks the whole expansion.
      */
     @Nullable String onRequest(@Nullable Player player, String params);

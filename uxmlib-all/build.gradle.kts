@@ -38,7 +38,7 @@ tasks.processResources {
 
 // This module wears two hats, and they must not share a file name. The plain jar is the API aggregate a
 // consumer compiles against: it carries no third-party code, so the module signatures it exposes are the
-// real ones. The shaded jar is the standalone server plugin, and it relocates its bundled libraries — which
+// real ones. The shaded jar is the standalone server plugin, and it relocates its bundled libraries, which
 // rewrites those same signatures. Publishing both without a classifier made the shaded one overwrite the
 // plain one on disk, so consumers compiled against relocated types (a Map<Locale, ConfigurationNode> they
 // had no way to produce) while the POM also pulled every module in cleanly beside it.

@@ -10,7 +10,7 @@ import com.uxplima.uxmlib.hook.Placeholders;
  * PAPI integration; {@link Placeholders} is the read side.
  *
  * <p>The expansion is created and registered only past {@link Placeholders#isAvailable()}, so the
- * {@code me.clip} classes are touched solely when PlaceholderAPI is present — a server without it still
+ * {@code me.clip} classes are touched solely when PlaceholderAPI is present: a server without it still
  * loads. {@link #register} is a no-op returning {@code false} when PlaceholderAPI is absent, so callers can
  * invoke it unconditionally at startup.
  */
@@ -29,7 +29,7 @@ public final class PlaceholderExpansions {
      * PlaceholderAPI keeps a single expansion per identifier, so on a server running two plugins that both
      * take the default, the first one wins and the second's placeholders quietly resolve to nothing. A
      * plugin that ships to servers it does not control should name its own identifier through
-     * {@link #register(String, PlaceholderRegistry, String, String)} — one per plugin, not one per library.
+     * {@link #register(String, PlaceholderRegistry, String, String)}: one per plugin, not one per library.
      */
     public static boolean register(PlaceholderRegistry registry, String author, String version) {
         return register(DEFAULT_IDENTIFIER, registry, author, version);

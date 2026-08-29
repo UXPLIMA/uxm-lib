@@ -39,7 +39,7 @@ public final class Reflect {
      *     naming {@code owner#field} so the failure is obvious rather than a silently broken packet
      */
     // unchecked: the field's declared type matches the requested element type at the call site.
-    // TypeParameterUnusedInFormals: the inferred-from-assignment return is the API — callers store the accessor
+    // TypeParameterUnusedInFormals: the inferred-from-assignment return is the API: callers store the accessor
     // straight into a typed field (e.g. EntityDataAccessor<Byte>) without an explicit cast, as the renderers do.
     @SuppressWarnings({"unchecked", "TypeParameterUnusedInFormals"})
     public static <T> T accessor(Class<?> owner, String field) {

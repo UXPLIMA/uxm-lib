@@ -16,7 +16,7 @@ import org.spongepowered.configurate.ConfigurateException;
 import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 
 /**
- * A {@link StorageProvider} backed by one HOCON file per aggregate under a directory — the flat-file
+ * A {@link StorageProvider} backed by one HOCON file per aggregate under a directory: the flat-file
  * alternative to SQL, so a small plugin needs no database. Each aggregate is mapped through Configurate
  * object-mapping (so {@code T} is a {@code @ConfigSerializable} type), written to {@code <id>.conf}, and
  * read back by id. No JDBC, no pool. Reads/writes block on disk, so wrap them off-thread for hot paths.

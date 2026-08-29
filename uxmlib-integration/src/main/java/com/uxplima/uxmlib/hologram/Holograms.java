@@ -33,8 +33,8 @@ public final class Holograms {
 
     /**
      * Start configuring a managed {@link ItemHologram} showing {@code item}. The builder carries the
-     * {@link Display}-shared appearance (billboard, glow, view range, brightness, scale, rotation, transform) —
-     * the text-only properties do not apply to an item display — and {@link ModelBuilder#spawnAt(Location)}s the
+     * {@link Display}-shared appearance (billboard, glow, view range, brightness, scale, rotation, transform):
+     * the text-only properties do not apply to an item display, and {@link ModelBuilder#spawnAt(Location)}s the
      * live, viewer-controllable hologram.
      */
     public static ItemBuilder item(ItemStack item) {
@@ -126,7 +126,7 @@ public final class Holograms {
             return this;
         }
 
-        /** Set the text opacity (0–255 as a signed byte; {@code -1} is fully opaque). */
+        /** Set the text opacity (0 to 255 as a signed byte; {@code -1} is fully opaque). */
         public Builder textOpacity(byte opacity) {
             appearance = appearance.withTextOpacity(opacity);
             return this;
@@ -296,7 +296,7 @@ public final class Holograms {
     /**
      * The shared fluent base for the item and block builders: the {@link Display}-wide appearance setters that
      * apply to every display type (billboard, glow, view range, brightness, scale, rotation, transform). The
-     * text-only setters (background, line width, shadow, see-through, opacity) are intentionally absent — they
+     * text-only setters (background, line width, shadow, see-through, opacity) are intentionally absent: they
      * have no meaning for an item or block display. Each setter returns {@code this} typed as the concrete
      * builder so a chain stays fluent.
      *

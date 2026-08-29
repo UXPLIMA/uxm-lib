@@ -14,12 +14,12 @@ import org.jspecify.annotations.Nullable;
 /**
  * An AND-combination of conditions, each carrying its own {@link FailurePolicy} and optional failure
  * message. {@link #test(ConditionRequest)} evaluates the entries in order and reports whether they all
- * passed; as it goes it applies each failing entry's policy against the request — recording the message into
+ * passed; as it goes it applies each failing entry's policy against the request: recording the message into
  * the request's error sink, raising the cancel flag, or short-circuiting the rest of the chain.
  *
  * <p>The list is "AND" in the sense that the result is true only when no entry failed. It deliberately does
  * <b>not</b> short-circuit on the first failure by default (only a {@link FailurePolicy#STOP_CHAIN} entry
- * does), so the error sink can collect every reason a request failed in one pass — the aggregating-validation
+ * does), so the error sink can collect every reason a request failed in one pass: the aggregating-validation
  * style used elsewhere in the library.
  */
 public final class ConditionList {
@@ -80,7 +80,7 @@ public final class ConditionList {
 
     // Build the action-side bundle a RUN_COMMANDS entry runs against from the condition-side request: the same
     // resolver (so command placeholders resolve identically to operand templates), the subject player, and the
-    // request's command sinks — production wires those to route the dispatch through the library Scheduler.
+    // request's command sinks: production wires those to route the dispatch through the library Scheduler.
     private static ActionContext contextFor(ConditionRequest request) {
         ActionContext.Builder builder = ActionContext.builder(request.resolver())
                 .consoleSink(request.consoleSink())

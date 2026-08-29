@@ -23,7 +23,7 @@ import org.jspecify.annotations.Nullable;
  * the cursor value is always a bound {@code ?} parameter, so the walk is injection-safe by construction.
  *
  * <p><strong>{@code keyColumn} must be strictly unique.</strong> The cursor advances with {@code key > ?},
- * so duplicate rows that tie on a page boundary are skipped — exactly-once holds only for a unique key. The
+ * so duplicate rows that tie on a page boundary are skipped: exactly-once holds only for a unique key. The
  * column is not validated for uniqueness here (a schema probe per walk would be expensive); it is the
  * caller's precondition, surfaced on the public {@code forEachByKey} entry point.
  */

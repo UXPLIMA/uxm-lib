@@ -23,14 +23,14 @@ class CenteredTextPadderPropertyTest {
         return total;
     }
 
-    /** Requirement: the pad is only ever leading spaces — it must not inject any other character. */
+    /** Requirement: the pad is only ever leading spaces: it must not inject any other character. */
     @Property
     void pad_is_only_spaces(@ForAll @StringLength(max = 80) String plain, @ForAll boolean bold) {
         String pad = CenteredTextPadder.pad(plain, bold);
         assertThat(pad.chars()).allMatch(c -> c == ' ');
     }
 
-    /** Requirement: padding is never negative space — a defined, exception-free result for any input. */
+    /** Requirement: padding is never negative space: a defined, exception-free result for any input. */
     @Property
     void pad_length_is_never_negative(@ForAll @StringLength(max = 80) String plain, @ForAll boolean bold) {
         assertThat(CenteredTextPadder.pad(plain, bold).length()).isGreaterThanOrEqualTo(0);
@@ -38,7 +38,7 @@ class CenteredTextPadderPropertyTest {
 
     /**
      * Requirement: for any line that actually fits the chat width, the leading pad never pushes the visible
-     * text past the right edge — pad pixels plus text pixels stay within {@link CenteredTextPadder#CHAT_WIDTH_PX}.
+     * text past the right edge: pad pixels plus text pixels stay within {@link CenteredTextPadder#CHAT_WIDTH_PX}.
      */
     @Property
     void padding_never_pushes_a_fitting_line_past_the_right_edge(
@@ -50,7 +50,7 @@ class CenteredTextPadderPropertyTest {
         }
     }
 
-    /** Requirement: text at least as wide as the chat line gets no padding — never negative space. */
+    /** Requirement: text at least as wide as the chat line gets no padding: never negative space. */
     @Property
     void over_wide_text_gets_no_padding(@ForAll @StringLength(min = 60, max = 200) String plain, @ForAll boolean bold) {
         // 60+ default-width glyphs comfortably exceed the 320px line.

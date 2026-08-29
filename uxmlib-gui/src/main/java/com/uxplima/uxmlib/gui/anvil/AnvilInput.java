@@ -24,7 +24,7 @@ import org.bukkit.plugin.Plugin;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Captures a line of text from a player through a vanilla anvil — no NMS, no packets. Open one with a
+ * Captures a line of text from a player through a vanilla anvil: no NMS, no packets. Open one with a
  * prompt item (its display name is the hint shown in the left slot); the player types into the rename
  * field and clicks the result slot, and the callback receives an {@link AnvilResult}. Closing the anvil
  * without clicking the result yields {@link AnvilResult.Cancelled}.
@@ -117,7 +117,7 @@ public final class AnvilInput implements Listener {
         if (session.done.compareAndSet(false, true)) {
             sessions.remove(viewer.getUniqueId());
             // Clear the anvil before closing so the close does not return the prompt/result items to the
-            // player — otherwise submitting hands them the rename prompt item.
+            // player: otherwise submitting hands them the rename prompt item.
             Inventory top = viewer.getOpenInventory().getTopInventory();
             top.clear();
             viewer.closeInventory();

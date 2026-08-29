@@ -186,7 +186,7 @@ public final class HologramManager {
 
     /**
      * Remove every uxmLib-marked {@link org.bukkit.entity.Display} in {@code world} that this manager is
-     * not tracking — the holograms a previous run left behind after a crash (text displays persist). Run
+     * not tracking: the holograms a previous run left behind after a crash (text displays persist). Run
      * this once shortly after enable, on the region/global thread. Returns how many were swept.
      */
     public int sweepOrphans(org.bukkit.World world) {

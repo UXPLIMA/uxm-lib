@@ -243,7 +243,7 @@ final class BuiltinResolvers {
      * Functional shortcut for a resolver over a Paper-native argument type (e.g. {@code ArgumentTypes.uuid()},
      * {@code ArgumentTypes.world()}). Identical to {@link #simple} but marks itself
      * {@linkplain ParamResolver#nativeArgument() native}, so it is rejected as a flag value or collection
-     * element — those resolve one token through a standalone Brigadier dispatcher a native type cannot parse.
+     * element: those resolve one token through a standalone Brigadier dispatcher a native type cannot parse.
      * The type is still created lazily so registering defaults never touches the server registries.
      */
     private static <T> ParamResolver<T> simpleNative(

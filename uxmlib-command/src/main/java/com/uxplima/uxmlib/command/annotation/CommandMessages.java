@@ -16,8 +16,8 @@ import com.uxplima.uxmlib.common.Durations;
  * ignore it and the library keeps saying what it always said.
  *
  * <p>Each method receives the {@code locale} of the sender being answered rather than a server-wide setting,
- * because a server has players who do not share one language. Each also receives the <em>values</em> — the
- * bad input, the allowed ones, the time left — never a finished English sentence, since no other language
+ * because a server has players who do not share one language. Each also receives the <em>values</em>: the
+ * bad input, the allowed ones, the time left, never a finished English sentence, since no other language
  * reliably puts those words in the same order and a caller handed a rendered string would have to take it
  * apart to translate it.
  *
@@ -64,7 +64,7 @@ public interface CommandMessages {
     }
 
     /**
-     * An argument was rejected because it is not one of a known set — an enum constant, say.
+     * An argument was rejected because it is not one of a known set: an enum constant, say.
      *
      * @param allowed the accepted values, spelled the way tab-completion offers them
      */
@@ -72,7 +72,7 @@ public interface CommandMessages {
         return invalidValue(locale, argument, input, "expected one of " + String.join(", ", allowed));
     }
 
-    /** An argument was rejected with no per-argument context — a flag value, say. */
+    /** An argument was rejected with no per-argument context: a flag value, say. */
     default Component invalidArgument(Locale locale, String detail) {
         Objects.requireNonNull(locale, "locale");
         return red(detail.isEmpty() ? "Invalid argument." : detail);

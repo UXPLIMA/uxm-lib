@@ -15,8 +15,8 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * A registry of named conditions a config-defined menu can reference to choose which of an item's several
- * states a given viewer sees. Code owns the predicate — each condition is a {@link Predicate} over the
- * per-viewer {@link RenderContext} registered under a key — and an operator references those keys from a
+ * states a given viewer sees. Code owns the predicate: each condition is a {@link Predicate} over the
+ * per-viewer {@link RenderContext} registered under a key, and an operator references those keys from a
  * config file, exactly as {@link MenuActions} maps click behaviour. A menu item lists ordered named states;
  * the first whose condition passes for the viewer renders (see {@link #statefulOf}).
  *
@@ -57,7 +57,7 @@ public final class MenuConditions {
      * Parse a small condition expression from a config file into a closure once, at registration, so a click
      * does no parsing. The grammar is deliberately tiny: a bare {@code name} resolves to the registered
      * condition; a leading {@code !} negates it; {@code a && b} requires both and {@code a || b} requires
-     * either (no precedence beyond left-to-right, no nesting — keep complex logic in code-registered
+     * either (no precedence beyond left-to-right, no nesting: keep complex logic in code-registered
      * conditions). Whitespace around tokens is ignored. Reusable by {@code MenuConfig} to turn a menu item's
      * {@code condition: ...} line into a {@link Predicate} without re-implementing the lookup.
      */

@@ -7,7 +7,7 @@ import com.mojang.brigadier.context.CommandContext;
 /**
  * Supplies a non-argument handler parameter from the command context rather than from parsed input. Where a
  * {@link ParamResolver} reads a value the sender typed, a context parameter derives a value from <em>who</em>
- * and <em>where</em> the command ran — the {@link com.uxplima.uxmlib.command.Sender}, the raw
+ * and <em>where</em> the command ran: the {@link com.uxplima.uxmlib.command.Sender}, the raw
  * {@link CommandSourceStack}, the {@link org.bukkit.command.CommandSender}, the executing
  * {@link org.bukkit.entity.Player}, and anything a consumer wants to inject (the sender's world, an economy
  * handle, a per-command cooldown view). A parameter is treated as a context parameter when it carries no

@@ -36,7 +36,7 @@ public final class Text {
     }
 
     /**
-     * A {@code <key>} placeholder whose value is inserted literally — any MiniMessage tags in the value
+     * A {@code <key>} placeholder whose value is inserted literally: any MiniMessage tags in the value
      * are shown as text, never parsed. This is the safe default for untrusted or user-provided values.
      */
     public static TagResolver placeholder(String key, String value) {
@@ -60,7 +60,7 @@ public final class Text {
     }
 
     /**
-     * Apply a MiniMessage style to text that must never be parsed — a chat message, a nickname, the line on a
+     * Apply a MiniMessage style to text that must never be parsed: a chat message, a nickname, the line on a
      * sign. {@code style} is the opening tags alone ({@code "<red><bold>"}, {@code "<gradient:red:blue>"}) and
      * comes from your config; {@code body} is inserted as-is and keeps no meaning it did not already have.
      *

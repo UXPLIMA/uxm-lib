@@ -22,7 +22,7 @@ import org.jspecify.annotations.Nullable;
  * The one class that holds the unavoidable NMS reflection. It reaches a player's raw Netty
  * {@link Channel} via {@code CraftPlayer.getHandle() -> connection -> channel}, walking by field
  * <em>type</em> rather than obfuscated field <em>name</em> so it survives Mojang's remapping across 1.21.x.
- * Every step is guarded; the whole thing returns an {@link Optional} and <b>never throws</b> — on any mock
+ * Every step is guarded; the whole thing returns an {@link Optional} and <b>never throws</b>: on any mock
  * player, security manager, or layout change it simply returns {@link Optional#empty()}.
  *
  * <p>A {@code ServerPlayer} object graph can expose more than one {@link Channel}-typed reference (an

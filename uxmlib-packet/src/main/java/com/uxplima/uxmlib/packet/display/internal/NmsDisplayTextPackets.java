@@ -29,7 +29,7 @@ import net.minecraft.world.entity.Display;
  * package-private static field, so it is read once at construction through the shared {@link Reflect} helper
  * (the accessor object carries its own network id, which keeps us off the volatile integer index). The packet
  * carries that one data value only, so sending it to a viewer changes their copy of the entity's text and
- * nothing else — the shared spawn's billboard, background, scale and the rest stay as every other viewer has
+ * nothing else: the shared spawn's billboard, background, scale and the rest stay as every other viewer has
  * them.
  */
 public final class NmsDisplayTextPackets implements DisplayTextPackets {

@@ -11,18 +11,18 @@ import io.lettuce.core.pubsub.StatefulRedisPubSubConnection;
 /**
  * A {@link DataSynchronizer} backed by Redis pub/sub, so a {@link #publish} fans out across every server
  * node connected to the same Redis. This is the opt-in networked transport; construct it only when Redis is
- * actually configured (Lettuce is a {@code compileOnly} soft-dependency — referencing this class without
+ * actually configured (Lettuce is a {@code compileOnly} soft-dependency: referencing this class without
  * {@code io.lettuce:lettuce-core} on the runtime classpath will not link, which is the intended present-guard).
  *
  * <p>All logical channels are multiplexed over one physical Redis channel ({@code umbrella}). Each message is
  * framed by {@link SyncMessage} (channel name carried inline) so the receiving node can demultiplex with no
- * shared table and no per-channel Redis subscribe/unsubscribe traffic. Local fan-out — subscriber lists,
- * per-handler unsubscribe, swallowing a throwing handler — is delegated to an embedded
+ * shared table and no per-channel Redis subscribe/unsubscribe traffic. Local fan-out: subscriber lists,
+ * per-handler unsubscribe, swallowing a throwing handler, is delegated to an embedded
  * {@link LocalDataSynchronizer}; this class only adds the network hop. Thread-safe; {@link #close()} tears
  * down the connection and client and is idempotent.
  *
  * <p>This adapter is exercised against a real Redis in integration, not in the unit suite (MockBukkit and the
- * JUnit run have no broker). The wire format it depends on — {@link SyncMessage} — is covered purely.
+ * JUnit run have no broker). The wire format it depends on ({@link SyncMessage}) is covered purely.
  */
 public final class RedisDataSynchronizer implements DataSynchronizer {
 

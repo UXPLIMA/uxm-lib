@@ -8,7 +8,7 @@ import java.util.stream.Collectors;
 
 /**
  * The SQL backend a {@link Database} speaks, inferred from its JDBC URL. Used to emit backend-correct SQL
- * where the dialects diverge — most importantly the insert-or-update (upsert) statement, which
+ * where the dialects diverge: most importantly the insert-or-update (upsert) statement, which
  * SQLite/Postgres spell with {@code ON CONFLICT}, MySQL/MariaDB with {@code ON DUPLICATE KEY}, and H2 with
  * {@code MERGE INTO ... KEY(...)}.
  */
@@ -50,7 +50,7 @@ public enum Dialect {
     }
 
     /**
-     * As {@link #upsert(String, String, List)}, for a table whose key is more than one column — a join row
+     * As {@link #upsert(String, String, List)}, for a table whose key is more than one column: a join row
      * such as {@code (player_uuid, tag_id)}. Every key column must also appear in {@code columns}, since the
      * insert has to bind it; the columns that are not key columns are the ones the conflict branch updates.
      *
@@ -107,7 +107,7 @@ public enum Dialect {
      * <p>SQLite is intentionally unsupported. It has no {@code ALTER COLUMN} and its columns carry only loose
      * type <em>affinity</em>, so a type change is both impossible in one statement and largely meaningless;
      * callers that must retype a SQLite column rebuild the table instead. {@link #GENERIC} is rejected for the
-     * same reason it has no portable upsert — the syntax is unknown.
+     * same reason it has no portable upsert: the syntax is unknown.
      *
      * @throws UnsupportedOperationException if this dialect cannot retype a column in place (SQLite, generic)
      */

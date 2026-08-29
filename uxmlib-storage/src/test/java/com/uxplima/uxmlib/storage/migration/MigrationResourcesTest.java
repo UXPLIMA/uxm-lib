@@ -19,8 +19,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Loads {@code V*.sql} migrations off the classpath — from an exploded directory (the {@code file:} URL
- * a test or an IDE run sees) and from inside a jar (the {@code jar:} URL a shaded plugin sees at runtime) —
+ * Loads {@code V*.sql} migrations off the classpath: from an exploded directory (the {@code file:} URL
+ * a test or an IDE run sees) and from inside a jar (the {@code jar:} URL a shaded plugin sees at runtime),
  * and proves the per-version overlay used for dialect-specific overrides.
  */
 class MigrationResourcesTest {

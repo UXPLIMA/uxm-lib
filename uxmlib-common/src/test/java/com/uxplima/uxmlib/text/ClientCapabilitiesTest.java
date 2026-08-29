@@ -63,7 +63,7 @@ class ClientCapabilitiesTest {
     @Test
     void bedrock_still_gets_hover_item_when_protocol_allows() {
         // Bedrock degrades gradient/font but hover-item is protocol-gated, not
-        // bedrock-gated — Geyser translates show_item fine on a modern protocol.
+        // bedrock-gated: Geyser translates show_item fine on a modern protocol.
         ClientProfile bedrock = new ClientProfile(true, ClientProfile.CURRENT_PROTOCOL);
         assertThat(ClientCapabilities.of(bedrock).hoverItem()).isTrue();
     }

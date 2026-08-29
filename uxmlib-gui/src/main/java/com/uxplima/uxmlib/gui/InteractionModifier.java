@@ -11,7 +11,7 @@ import org.bukkit.inventory.Inventory;
 /**
  * A single class of inventory interaction a {@link Gui} can choose to allow. By default a menu cancels
  * every interaction, so its items cannot be taken, replaced, or dragged out. Allowing a modifier lets
- * that one class of interaction through — for instance a storage menu allows {@link #ITEM_TAKE} and
+ * that one class of interaction through, for instance a storage menu allows {@link #ITEM_TAKE} and
  * {@link #ITEM_PLACE} so a player can move real items in and out, while a button menu allows none.
  */
 public enum InteractionModifier {
@@ -29,8 +29,8 @@ public enum InteractionModifier {
     ITEM_DROP;
 
     // The action buckets mirror triumph-gui's reference classifier (MIT, dev.triumphteam.gui). A single
-    // InventoryAction can belong to more than one bucket — a hotbar swap both takes from the slot and
-    // swaps the cursor — and the top-vs-player-inventory direction decides take vs place for shift moves.
+    // InventoryAction can belong to more than one bucket: a hotbar swap both takes from the slot and
+    // swaps the cursor, and the top-vs-player-inventory direction decides take vs place for shift moves.
     // We re-implement the technique here rather than copy the listener.
     private static final Set<InventoryAction> TAKE_ACTIONS = EnumSet.of(
             InventoryAction.PICKUP_ONE,
@@ -55,7 +55,7 @@ public enum InteractionModifier {
             InventoryAction.DROP_ALL_CURSOR);
 
     /**
-     * The set of modifiers a click requires — i.e. those that must all be allowed for the click to pass.
+     * The set of modifiers a click requires: i.e. those that must all be allowed for the click to pass.
      * An action can require several (a hotbar swap is both a take and a swap); a shift-move is a take when
      * it pulls out of the menu and a place when it pushes into it. Actions that touch only the player's own
      * inventory, and {@code NOTHING}/{@code CLONE_STACK}/{@code UNKNOWN}, require nothing.

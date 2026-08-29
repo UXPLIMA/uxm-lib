@@ -21,7 +21,7 @@ import org.jspecify.annotations.Nullable;
  * A live leaderboard: it wraps a {@link Hologram} and the pure {@link LeaderboardRenderer} and keeps the
  * hologram's text refreshed on a {@link Scheduler} timer from a {@code Supplier<Map<UUID,Double>>}. Each tick
  * pulls the latest scores, renders them to lines, joins them with newlines (one multi-line {@code TextDisplay}
- * renders), and writes that back onto the hologram on the entity's own region thread — the missing "render →
+ * renders), and writes that back onto the hologram on the entity's own region thread: the missing "render →
  * live entity → timed refresh" glue over the renderer we already had.
  *
  * <p>An optional nearby gate ({@link BooleanSupplier}) is checked first each tick so an area with no players

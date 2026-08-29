@@ -9,7 +9,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.junit.jupiter.api.Test;
 
-/** Pure tests of the TTL/size cache behind the skin resolver — clock is injected, no real time passes. */
+/** Pure tests of the TTL/size cache behind the skin resolver: clock is injected, no real time passes. */
 class SkinCacheTest {
 
     @Test

@@ -10,8 +10,8 @@ import com.uxplima.uxmlib.scheduler.TaskHandle;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Drives the animation/auto-refresh clock for every open menu that needs one. A single repeating task —
- * registered lazily on the first menu that ticks and cancelled when the last one stops — advances each
+ * Drives the animation/auto-refresh clock for every open menu that needs one. A single repeating task:
+ * registered lazily on the first menu that ticks and cancelled when the last one stops, advances each
  * registered menu once per tick, rather than one task per menu. Menus register themselves on open (when
  * they have animated content or auto-refresh) and unregister on close, so an idle server runs no task.
  *

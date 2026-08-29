@@ -16,7 +16,7 @@ import org.jspecify.annotations.Nullable;
  * Wires a notify-only update check into a running plugin: it polls an {@link UpdateProvider} on a recurring
  * {@link Scheduler#asyncTimer} (off-thread, never a server thread), logs the result to the console via the
  * {@code checkAndAnnounce} dedupe (once per distinct newer release, not once per process), and registers a
- * permission-gated clickable on-join notice. It never self-downloads — v1 is notify only.
+ * permission-gated clickable on-join notice. It never self-downloads: v1 is notify only.
  *
  * <p>This is the module's public entry point. Construct it with the running plugin, the library scheduler, and
  * a configured {@link UpdateChecker}, then call {@link #start(Duration, Duration)} once during enable and

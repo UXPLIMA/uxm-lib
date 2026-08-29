@@ -21,13 +21,13 @@ import org.jspecify.annotations.Nullable;
  * Owns the per-player {@link Sidebar} instances. {@link #create} builds a fresh sidebar on its own native
  * {@link Scoreboard} (so two players never share board state) and shows it, snapshotting the player's prior
  * scoreboard so {@link #remove} can restore it. A second {@code create} for the same player replaces the
- * first. Per-player state lives on this instance — no static map.
+ * first. Per-player state lives on this instance: no static map.
  *
  * <p>Quit cleanup is wired by registering a {@link SidebarListener} (it forwards each quitting player's UUID
  * to {@link #forget}); the manager itself stays free of Bukkit event plumbing.
  *
- * <p>A consumer that keeps its own state on whatever board the player currently has — say a team that hides
- * the player's name — can register a callback via {@link #onBoardSwitch}; it fires with the player and their
+ * <p>A consumer that keeps its own state on whatever board the player currently has: say a team that hides
+ * the player's name, can register a callback via {@link #onBoardSwitch}; it fires with the player and their
  * now-effective board after every switch (show and restore alike), so the consumer can re-apply that state on
  * the fresh board. Switching boards resets the client team registry, so without this the consumer's state on
  * the old board would silently disappear.
@@ -82,7 +82,7 @@ public final class SidebarManager {
 
     /**
      * Show a temporary sidebar titled {@code title} with {@code lines} for {@code duration}, then restore
-     * whatever the player had before — their prior managed sidebar (rebuilt with its title and lines) or their
+     * whatever the player had before: their prior managed sidebar (rebuilt with its title and lines) or their
      * bare scoreboard. Requires a {@link Scheduler}; the no-arg constructor cannot arm the restore.
      */
     public Sidebar showTemporary(Player player, Component title, List<Component> lines, Duration duration) {

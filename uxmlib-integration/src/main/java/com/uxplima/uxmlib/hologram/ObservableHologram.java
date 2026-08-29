@@ -16,13 +16,13 @@ import net.kyori.adventure.text.Component;
 
 /**
  * Wraps any {@link Hologram} to fire {@code onShow} / {@code onHide} hooks when a viewer's visibility
- * actually changes — handy for play-a-sound-on-reveal, analytics, or lazily computing a viewer's content.
+ * actually changes: handy for play-a-sound-on-reveal, analytics, or lazily computing a viewer's content.
  * Every other call is delegated unchanged, so an {@code ObservableHologram} is a drop-in for the wrapped
  * one.
  *
  * <p>A hook fires only on a real transition: showing an already-visible viewer, or hiding one who never saw
  * the hologram, fires nothing (the transition is decided from the delegate's tracked viewer set before the
- * change). A hook that throws is isolated — one broken listener never aborts the visibility change or the
+ * change). A hook that throws is isolated: one broken listener never aborts the visibility change or the
  * other hooks. Register hooks before use; the lists are copy-on-write, so adding one mid-flight is safe.
  */
 public final class ObservableHologram implements Hologram {

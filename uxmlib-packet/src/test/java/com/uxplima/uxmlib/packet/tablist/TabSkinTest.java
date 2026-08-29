@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
  * Value-semantics of the {@link TabSkin} record: construction, the unsigned factory, the value guard, and the
  * default-skin contract a skinless fake player relies on. A fake player spawned through the add-entity packet on
  * 1.20.2+ links its body to its player-info entry's profile, and clients drop a profile carrying no
- * {@code textures} property — so an NPC with no skin must still ship one. {@link TabSkin#orDefault} supplies
+ * {@code textures} property, so an NPC with no skin must still ship one. {@link TabSkin#orDefault} supplies
  * {@link TabSkin#DEFAULT} (the classic Steve texture) for exactly that case.
  */
 class TabSkinTest {

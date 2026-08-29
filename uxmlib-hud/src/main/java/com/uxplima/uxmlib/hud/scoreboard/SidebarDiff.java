@@ -11,7 +11,7 @@ import net.kyori.adventure.text.Component;
  * The flicker-free diff. Given the lines a sidebar currently shows and the lines it should show next, this
  * computes the minimal set of changes: which existing line indices need their text re-sent, which trailing
  * indices must be added, and which trailing indices must be removed. Because the visible text for each line
- * rides in a team prefix keyed by a fixed invisible entry, only the changed indices are touched — there is
+ * rides in a team prefix keyed by a fixed invisible entry, only the changed indices are touched: there is
  * no clear-and-rebuild, so the client never flickers.
  *
  * <p>Kept as a pure function (no Bukkit types) so the algorithm is unit-tested directly.

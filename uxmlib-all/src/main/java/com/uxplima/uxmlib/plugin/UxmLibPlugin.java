@@ -15,7 +15,6 @@ public final class UxmLibPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         getServer().getPluginManager().registerEvents(new ItemActionListener(), this);
-        getLogger()
-                .info("uxmLib " + getPluginMeta().getVersion() + " loaded — toolkit available to dependent plugins.");
+        getLogger().info("uxmLib " + getPluginMeta().getVersion() + " loaded: toolkit available to dependent plugins.");
     }
 }

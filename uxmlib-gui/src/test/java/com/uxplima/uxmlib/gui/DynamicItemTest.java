@@ -85,7 +85,7 @@ class DynamicItemTest {
         SimpleGui gui = Guis.gui().rows(1).build();
         gui.set(0, GuiItem.display(new ItemStack(Material.STONE)));
 
-        // No viewer yet — a static item must still render into the backing inventory.
+        // No viewer yet: a static item must still render into the backing inventory.
         assertThat(gui.getInventory().getItem(0)).isNotNull();
     }
 }

@@ -43,7 +43,7 @@ public final class HookRegistry {
         }
     }
 
-    /** Run every deferral whose plugin is already enabled — call once after the registry is configured. */
+    /** Run every deferral whose plugin is already enabled: call once after the registry is configured. */
     public void bindPresent() {
         for (String pluginName : Map.copyOf(deferred).keySet()) {
             if (Hooks.isPresent(pluginName)) {

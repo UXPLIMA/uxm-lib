@@ -11,7 +11,7 @@ import org.spongepowered.configurate.transformation.TransformAction;
  * user re-creating it. A {@code config-version} key records which version the file is at; each numbered
  * step renames, moves, or removes keys, and on load only the steps newer than the stored version replay,
  * after which the version key is rewritten. Built fluently with {@link #builder()} over friendly dotted
- * paths — Configurate's versioned-transformation machinery is wrapped, not exposed.
+ * paths: Configurate's versioned-transformation machinery is wrapped, not exposed.
  */
 public final class ConfigMigration {
 

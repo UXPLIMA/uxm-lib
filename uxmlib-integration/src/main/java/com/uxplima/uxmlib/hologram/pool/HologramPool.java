@@ -21,7 +21,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Auto show/hides each registered hologram per-player by distance, so a consumer registers a hologram and
- * forgets it — no manual viewer bookkeeping. On a repeating {@link Scheduler} task the pool snapshots the
+ * forgets it: no manual viewer bookkeeping. On a repeating {@link Scheduler} task the pool snapshots the
  * online players in each hologram's world, asks the registered {@link VisibilityGate} which of them should
  * see it (same world, within range, optionally inside the FOV cone), diffs that against the set it last
  * showed, and calls the hologram's existing {@code show}/{@code hide} only on the transition.
@@ -83,7 +83,7 @@ public final class HologramPool {
     }
 
     /**
-     * Register {@code hologram} with an explicit {@link VisibilityGate} so the pool can also FOV-cull — show
+     * Register {@code hologram} with an explicit {@link VisibilityGate} so the pool can also FOV-cull: show
      * it only to players within range <em>and</em> looking toward it. Re-registering swaps the gate. Starts
      * the visibility task if it was idle.
      */
@@ -97,7 +97,7 @@ public final class HologramPool {
 
     /**
      * Stop managing {@code hologram} and hide it from everyone the pool was currently showing it to. The
-     * hologram itself is not despawned — that stays the caller's (or {@code HologramManager}'s) job. Stops
+     * hologram itself is not despawned: that stays the caller's (or {@code HologramManager}'s) job. Stops
      * the visibility task when nothing is left registered. A no-op if it was not registered.
      */
     public void unregister(Hologram hologram) {
@@ -154,7 +154,7 @@ public final class HologramPool {
 
     /**
      * Production {@link NearbyPlayers}: read the hologram's current world and the players in it, then keep
-     * the ones the gate clears (same world, in range, and — if the gate has FOV — looking toward it). A
+     * the ones the gate clears (same world, in range, and (if the gate has FOV) looking toward it). A
      * hologram with no world (despawned mid-tick) sees nobody. The viewer's eye location feeds the cone.
      */
     private static Set<UUID> desiredViewers(Hologram hologram, VisibilityGate gate) {

@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-/** Pure tests of the synthetic-advancement JSON — no Bukkit, no Adventure. */
+/** Pure tests of the synthetic-advancement JSON: no Bukkit, no Adventure. */
 class ToastAdvancementJsonTest {
 
     @Test

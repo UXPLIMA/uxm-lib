@@ -12,8 +12,8 @@ import org.jspecify.annotations.Nullable;
  * OperandResolver} (so {@code "%player_health%"} becomes a concrete value, and a literal like {@code "10"}
  * resolves to itself), then the comparison is applied under the documented numeric-or-string rules.
  *
- * <p>This single type covers an unbounded set of config-only checks — {@code %player_health% >= 10},
- * {@code %vault_eco_balance% > 100}, {@code %player_world% == world_nether} — without any per-check code.
+ * <p>This single type covers an unbounded set of config-only checks: {@code %player_health% >= 10},
+ * {@code %vault_eco_balance% > 100}, {@code %player_world% == world_nether}, without any per-check code.
  * It is the highest-leverage condition and is meant to ship first.
  */
 public final class PlaceholderCondition implements Condition {

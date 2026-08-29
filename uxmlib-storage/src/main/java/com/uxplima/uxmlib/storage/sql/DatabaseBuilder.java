@@ -75,7 +75,7 @@ public final class DatabaseBuilder {
     /**
      * Use an explicit JDBC URL (e.g. {@code jdbc:mariadb://host:3306/db}) for a network backend. A
      * {@code jdbc:sqlite:} URL is accepted too and opens exactly the database {@link #sqlite(Path)} would,
-     * with the same single-writer settings — the URL decides the backend, not which setter was called.
+     * with the same single-writer settings: the URL decides the backend, not which setter was called.
      */
     public DatabaseBuilder jdbcUrl(String url) {
         this.jdbcUrl = Objects.requireNonNull(url, "url");
@@ -149,7 +149,7 @@ public final class DatabaseBuilder {
         // The URL decides the backend, and it is the only thing that may. This used to be a flag that only
         // sqlite(Path) and sqliteInMemory() set, so the two halves of this method disagreed: the dialect below
         // read the URL and saw SQLite while the branch here read the flag and saw a network database. A file
-        // handed to jdbcUrl(...) — the shape an operator's own "storage.jdbc-url" setting takes — then opened
+        // handed to jdbcUrl(...): the shape an operator's own "storage.jdbc-url" setting takes, then opened
         // with ten connections against a database that accepts one writer and with the lock wait switched off.
         Dialect dialect = Dialect.fromJdbcUrl(url);
         HikariConfig config = new HikariConfig();

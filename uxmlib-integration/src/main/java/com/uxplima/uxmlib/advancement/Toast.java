@@ -12,14 +12,14 @@ import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 import org.jspecify.annotations.Nullable;
 
 /**
- * An immutable toast spec — an icon, a title, an optional description and a {@link AdvancementFrame frame}.
+ * An immutable toast spec: an icon, a title, an optional description and a {@link AdvancementFrame frame}.
  * Build one with {@link #builder()}; the icon and title are required, the description defaults to empty and
  * the frame to {@link AdvancementFrame#TASK}. A spec carries no server state, so it can be built and reused
  * freely, and its {@link #toJson()} is a pure function of its fields.
  *
  * <p>To pop the toast, hand the spec (or a bound builder) to {@link Toasts}: {@code toasts.show(toast,
  * player)}, or build through {@code toasts.builder()...show(player)} for the fluent one-liner. The static
- * {@link #builder()} produces an unbound builder whose terminal is {@link Builder#build()} — useful for
+ * {@link #builder()} produces an unbound builder whose terminal is {@link Builder#build()}: useful for
  * pre-building specs and for tests.
  */
 public final class Toast {

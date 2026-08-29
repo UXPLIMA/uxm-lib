@@ -5,8 +5,8 @@
  * ({@link com.uxplima.uxmlib.text.style.StyleTokens}). {@link com.uxplima.uxmlib.text.style.Styler} applies
  * the pass to a whole {@link com.uxplima.uxmlib.text.message.MessageCatalog} once, at load.
  *
- * <p>The mechanism is here; the values — which hex an accent is, which glyph a bullet is, which languages are
- * written in small capitals — belong in a file an operator owns.
+ * <p>The mechanism is here; the values, which hex an accent is, which glyph a bullet is, which languages are
+ * written in small capitals, belong in a file an operator owns.
  */
 @NullMarked
 package com.uxplima.uxmlib.text.style;

@@ -12,8 +12,8 @@ import java.util.Set;
  * tick clock by {@link SlotAnimation}; this type holds only the pure maths so the frame advance and the
  * changed-slot diff are unit-testable with no live inventory.
  *
- * <p>The diff is the load-bearing half: between two frames only the slots that actually changed are touched
- * — slots in the old frame but not the new are cleared, slots in the new frame are (re)lit. A repaint that
+ * <p>The diff is the load-bearing half: between two frames only the slots that actually changed are touched:
+ * slots in the old frame but not the new are cleared, slots in the new frame are (re)lit. A repaint that
  * rewrote every slot each tick would clobber overlaid buttons and flood the client; the diff avoids both.
  *
  * <p>Generators ({@link #clockwiseBorder} and {@link #sweep}) build the common shapes; {@link #of} wraps an

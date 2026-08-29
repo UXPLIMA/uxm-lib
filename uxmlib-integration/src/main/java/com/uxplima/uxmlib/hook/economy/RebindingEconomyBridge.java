@@ -8,7 +8,7 @@ import org.bukkit.OfflinePlayer;
  * An {@link EconomyBridge} that holds whichever real backend is currently bound and falls back to a no-op
  * {@link DummyEconomy} when none is. An economy provider can register its Vault service <em>after</em> our
  * plugin has loaded (or unregister at runtime), so this bridge can be {@linkplain #rebind() re-resolved}
- * the moment that happens — see {@link EconomyServiceListener}. Every call forwards to the live delegate,
+ * the moment that happens: see {@link EconomyServiceListener}. Every call forwards to the live delegate,
  * so call sites keep one stable reference across a provider swap. The delegate is read/written under one
  * lock so a swap is atomic with respect to a forwarded call.
  */

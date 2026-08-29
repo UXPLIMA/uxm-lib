@@ -10,13 +10,13 @@ package com.uxplima.uxmlib.text;
  *
  * <p>Categories:
  * <ul>
- *   <li>{@link #BASIC} — named colours: {@code <red>}, {@code <blue>},
+ *   <li>{@link #BASIC}: named colours: {@code <red>}, {@code <blue>},
  *       {@code <gold>}, {@code <color:NAME>}, etc.</li>
- *   <li>{@link #HEX} — direct hex literals: {@code <#ff8800>},
+ *   <li>{@link #HEX}: direct hex literals: {@code <#ff8800>},
  *       {@code <color:#ff8800>}.</li>
- *   <li>{@link #GRADIENT} — {@code <gradient:...>}.</li>
- *   <li>{@link #RAINBOW} — {@code <rainbow>} and its phase variants.</li>
- *   <li>{@link #FORMATTING} — text decorations: {@code <bold>}, {@code <italic>},
+ *   <li>{@link #GRADIENT}: {@code <gradient:...>}.</li>
+ *   <li>{@link #RAINBOW}: {@code <rainbow>} and its phase variants.</li>
+ *   <li>{@link #FORMATTING}: text decorations: {@code <bold>}, {@code <italic>},
  *       {@code <underlined>}, {@code <strikethrough>}, {@code <obfuscated>}
  *       and their short aliases ({@code <b>}, {@code <i>}, {@code <u>},
  *       {@code <st>}, {@code <obf>}).</li>
@@ -26,7 +26,7 @@ package com.uxplima.uxmlib.text;
  * opening counterparts so the rendered output stays well-formed.
  *
  * <p>Out-of-scope tags (placeholders, click/hover events, reset, newline)
- * are left intact regardless of capabilities — they're either
+ * are left intact regardless of capabilities: they're either
  * structurally needed or controlled by a separate permission domain.
  */
 public enum ColorCapability {

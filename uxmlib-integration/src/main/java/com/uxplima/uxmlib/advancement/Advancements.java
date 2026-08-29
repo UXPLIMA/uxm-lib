@@ -10,7 +10,7 @@ import org.bukkit.entity.Player;
  * Grants and revokes whole advancements for a player against the player's live progress. "Grant" awards
  * every criterion the player has not yet earned (so a multi-criterion advancement completes in one call);
  * "revoke" takes back every criterion the player currently holds. Both operate through the native
- * {@link AdvancementProgress} API — no NMS — and are no-ops past the point where there is nothing left to
+ * {@link AdvancementProgress} API (no NMS), and are no-ops past the point where there is nothing left to
  * award or revoke, so they are safe to call repeatedly.
  *
  * <p>These must run on the thread that owns the player (the main/region thread on Folia); the caller is

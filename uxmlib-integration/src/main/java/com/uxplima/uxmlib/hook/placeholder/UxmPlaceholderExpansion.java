@@ -11,7 +11,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * The single shared PlaceholderAPI expansion that backs every registered {@link PlaceholderProvider}. It is
  * package-private and instantiated only from {@link PlaceholderExpansions#register}, which runs past a
- * PlaceholderAPI-present guard — so the {@code me.clip} superclass is never resolved on a server without the
+ * PlaceholderAPI-present guard, so the {@code me.clip} superclass is never resolved on a server without the
  * plugin. Each request is routed by {@link PlaceholderRegistry#resolve}, which is itself exception-proof.
  *
  * <p>{@link #persist()} is {@code true} so the expansion survives {@code /papi reload} and keeps serving the

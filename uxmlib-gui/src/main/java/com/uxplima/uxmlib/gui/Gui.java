@@ -21,7 +21,7 @@ import com.uxplima.uxmlib.gui.item.GuiItem;
  * once with {@link Guis#install}.
  *
  * <p><b>Viewer model.</b> A menu of only {@link GuiItem.Static} items may be opened for any number of
- * players at once — they share one inventory and all see the same thing, which is correct. A menu with
+ * players at once: they share one inventory and all see the same thing, which is correct. A menu with
  * {@link GuiItem.Dynamic}, {@link GuiItem.Stateful}, or {@link GuiItem.Animated} items is
  * <b>single-viewer</b>: it resolves each item for one viewer, so open a fresh instance per player (a
  * {@link GuiNavigator} already does this). Sharing one such instance across players shows them all the
@@ -103,7 +103,7 @@ public interface Gui extends InventoryHolder {
 
     /**
      * Change the menu title. Bukkit titles are fixed at inventory creation, so this rebuilds the backing
-     * inventory and reopens it for anyone currently viewing — call sparingly (not every tick).
+     * inventory and reopens it for anyone currently viewing: call sparingly (not every tick).
      */
     void updateTitle(Component title);
 

@@ -23,7 +23,7 @@ public final class PacketSender {
 
     /**
      * Send {@code packet} to {@code player}. If the player's Netty channel cannot be resolved, this is a
-     * no-op — the resolver returns empty and nothing is written.
+     * no-op: the resolver returns empty and nothing is written.
      */
     public void send(Player player, Object packet) {
         Objects.requireNonNull(player, "player");

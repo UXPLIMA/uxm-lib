@@ -83,7 +83,7 @@ public final class MessageCatalog {
      * The template {@code locale}'s own lang file supplies for {@code key} (or its language-only file), or
      * empty when that language has none. Unlike {@link #template} this stops at the one tier asked for: no
      * default locale, no built-in default. It is what a caller needs to tell one language's answer from
-     * another's — a message made of two halves, say, that must not take one from each.
+     * another's: a message made of two halves, say, that must not take one from each.
      */
     public Optional<String> find(MessageKey key, Locale locale) {
         Objects.requireNonNull(key, "key");

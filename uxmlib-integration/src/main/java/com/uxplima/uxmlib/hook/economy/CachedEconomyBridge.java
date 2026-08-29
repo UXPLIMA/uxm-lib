@@ -15,7 +15,7 @@ import org.bukkit.OfflinePlayer;
  * caller redrawing balances often (a GUI refreshing per tick, a leaderboard) does not hammer the backing
  * provider, which may block. The TTL is measured against an injected {@link Clock} so tests can advance
  * time deterministically. A {@link #withdraw}/{@link #deposit} moves money, so it invalidates the cached
- * entry before delegating — the next read goes back to the provider. All other reads pass straight
+ * entry before delegating: the next read goes back to the provider. All other reads pass straight
  * through. The decorator owns no scheduling: it refreshes lazily on the read that finds a stale entry.
  */
 public final class CachedEconomyBridge implements EconomyBridge {

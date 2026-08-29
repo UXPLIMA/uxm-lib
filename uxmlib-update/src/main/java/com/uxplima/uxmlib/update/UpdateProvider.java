@@ -4,7 +4,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 /**
- * A source of "the latest published release" — a GitHub repository, a Modrinth project, etc. The single seam
+ * A source of "the latest published release": a GitHub repository, a Modrinth project, etc. The single seam
  * the {@link UpdateChecker} talks to, so a server owner can point the checker at any release host and tests
  * can inject a stub. Implementations must be non-blocking: {@link #latest()} returns a future and performs its
  * I/O off the calling thread (the live HTTP adapters use {@link java.net.http.HttpClient#sendAsync}).

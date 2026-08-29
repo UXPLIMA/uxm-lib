@@ -97,7 +97,7 @@ public final class Database implements AutoCloseable {
     }
 
     /**
-     * Whether the database actually answers — borrows a connection and runs {@code SELECT 1}, returning
+     * Whether the database actually answers: borrows a connection and runs {@code SELECT 1}, returning
      * false on any failure. Unlike {@link #isClosed()} (which only reports pool shutdown) this reports
      * reachability, for an operator "doctor" check.
      */
@@ -113,7 +113,7 @@ public final class Database implements AutoCloseable {
 
     /**
      * Shut the pool down, closing all idle connections. Safe to call more than once. A no-op for an adopted
-     * handle ({@link #adopt}) — that pool belongs to its creator.
+     * handle ({@link #adopt}): that pool belongs to its creator.
      */
     @Override
     public void close() {

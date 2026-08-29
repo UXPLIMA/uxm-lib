@@ -97,7 +97,7 @@ public final class GuiFiller {
     /**
      * Lay items out from a character mask: each string in {@code mask} is one row, each non-space char is
      * looked up in {@code legend} and placed in that slot, and a space (or a char absent from the legend)
-     * leaves the slot untouched. A compact, declarative way to design a menu — the API half of a
+     * leaves the slot untouched. A compact, declarative way to design a menu: the API half of a
      * config-driven layout.
      *
      * <pre>{@code

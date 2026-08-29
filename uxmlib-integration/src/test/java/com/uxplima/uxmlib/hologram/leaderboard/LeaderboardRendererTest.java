@@ -12,7 +12,7 @@ import net.kyori.adventure.text.Component;
 import com.uxplima.uxmlib.text.Text;
 import org.junit.jupiter.api.Test;
 
-/** Pure tests of the leaderboard renderer — no server, no entity. */
+/** Pure tests of the leaderboard renderer: no server, no entity. */
 class LeaderboardRendererTest {
 
     private static final UUID A = new UUID(0, 1);

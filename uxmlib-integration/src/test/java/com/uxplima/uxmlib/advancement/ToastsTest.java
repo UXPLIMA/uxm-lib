@@ -28,8 +28,8 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
  * Wiring smoke tests for {@link Toasts}. The full register-award-revoke round-trip cannot be exercised under
  * MockBukkit: its {@code UnsafeValuesMock#loadAdvancement} throws {@code UnimplementedOperationException}, so
  * there is no way to stand up a synthetic advancement in-process. These tests therefore cover everything up
- * to that native boundary — construction, the bound builder, input validation, and that {@code show} really
- * does reach {@code loadAdvancement} — and document the native step that only a live server can run.
+ * to that native boundary: construction, the bound builder, input validation, and that {@code show} really
+ * does reach {@code loadAdvancement}, and document the native step that only a live server can run.
  */
 class ToastsTest {
 

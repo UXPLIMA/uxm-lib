@@ -15,7 +15,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.Test;
 
 /**
- * Drives the publish-warn throttle deterministically with an injected clock — no Redis, no sleeping. Proves the
+ * Drives the publish-warn throttle deterministically with an injected clock: no Redis, no sleeping. Proves the
  * one-per-window guarantee that keeps a flapping Redis from flooding the log.
  */
 @org.jspecify.annotations.NullUnmarked
@@ -56,11 +56,11 @@ class RateLimitedWarnerTest {
 
         warner.warn("a"); // emitted
         now.set(WINDOW_MS - 1);
-        warner.warn("b"); // still inside the window — dropped
+        warner.warn("b"); // still inside the window: dropped
         now.set(WINDOW_MS);
-        warner.warn("c"); // window boundary reached — emitted
+        warner.warn("c"); // window boundary reached, emitted
         now.set(WINDOW_MS + 5);
-        warner.warn("d"); // back inside the new window — dropped
+        warner.warn("d"); // back inside the new window, dropped
 
         assertThat(emitted).containsExactly("a", "c");
     }

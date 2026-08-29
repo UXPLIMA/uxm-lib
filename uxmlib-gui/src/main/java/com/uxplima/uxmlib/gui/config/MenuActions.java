@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * A registry of named click actions that a config-defined menu can wire its items to. Code owns the
- * behaviour — each action is registered under a key — and an operator references those keys from the
+ * behaviour (each action is registered under a key), and an operator references those keys from the
  * config file, so a server owner can re-slot and re-skin a menu without touching code, while the actual
  * effects (open another menu, give an item, run a command) stay code-controlled.
  *

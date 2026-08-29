@@ -16,7 +16,7 @@ import org.bukkit.inventory.ItemStack;
  * plugin shell ({@code uxmlib-all}), since wiring a listener is a plugin concern, not a library one.
  *
  * <p>Folia-safe by construction: each handler runs on the event's own region thread and only cancels that
- * event (or, for crafting, nulls the in-flight recipe result) — it schedules nothing and touches no other
+ * event (or, for crafting, nulls the in-flight recipe result): it schedules nothing and touches no other
  * region's state.
  */
 public final class ItemActionListener implements Listener {

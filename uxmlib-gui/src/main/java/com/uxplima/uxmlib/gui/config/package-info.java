@@ -1,6 +1,6 @@
 /**
  * Building a menu from a config file. {@link com.uxplima.uxmlib.gui.config.MenuConfig} reads a HOCON node
- * — title, size, and per-slot icons — into a ready {@link com.uxplima.uxmlib.gui.SimpleGui}, so a server
+ * (title, size, and per-slot icons) into a ready {@link com.uxplima.uxmlib.gui.SimpleGui}, so a server
  * owner re-skins a menu in a file while code only wires the click behaviour;
  * {@link com.uxplima.uxmlib.gui.config.MenuActions} maps the action names that appear in such a file to the
  * {@link com.uxplima.uxmlib.gui.GuiNavigator} verbs they trigger, and
@@ -15,12 +15,12 @@
  * <h2>Shading: keep the service files when minimizing</h2>
  *
  * This menu-config layer leans on libraries that locate their codecs through the JDK {@link
- * java.util.ServiceLoader} — Configurate finds its built-in {@code TypeSerializer}s and Adventure/MiniMessage
+ * java.util.ServiceLoader}: Configurate finds its built-in {@code TypeSerializer}s and Adventure/MiniMessage
  * find their components through {@code META-INF/services/*} provider files. A {@link java.util.ServiceLoader}
  * lookup is reflective, so a consumer who shades this module with the Shadow plugin's {@code minimize()} can
  * have those provider files (and the classes they name) pruned as "unreachable", and config parsing then
  * fails at runtime with a missing-serializer error that never shows at build time. When minimizing, keep the
- * SPI resources and their backing classes — for example:
+ * SPI resources and their backing classes, for example:
  *
  * <pre>{@code
  * tasks.shadowJar {

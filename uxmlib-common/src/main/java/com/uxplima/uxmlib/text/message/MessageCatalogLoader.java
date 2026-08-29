@@ -16,7 +16,7 @@ import org.spongepowered.configurate.ConfigurationNode;
  *
  * <p>A leaf is read through Configurate's own coercion, so it need not be quoted: {@code count = 7} and
  * {@code flag = true} become the templates {@code "7"} and {@code "true"}. Only a section contributes no
- * entry of its own — {@code channel { type = ..., text = ... }} yields {@code channel.type} and
+ * entry of its own: {@code channel { type = ..., text = ... }} yields {@code channel.type} and
  * {@code channel.text}, and nothing answers to {@code channel}. A lang file may therefore carry a structured
  * section beside its messages, but the flat lookup reaches its leaves, never the section itself.
  */

@@ -6,7 +6,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Shared validation for the SQL fragments the builders inline literally — table/column identifiers and
+ * Shared validation for the SQL fragments the builders inline literally: table/column identifiers and
  * comparison operators. Values always flow through bound {@code ?} placeholders, but identifiers and
  * operators cannot be parameters, so they are checked against a strict allowlist (a bare name or one
  * dotted qualifier, and a fixed operator set); anything else is rejected, so a name threaded from

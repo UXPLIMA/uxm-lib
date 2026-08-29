@@ -44,8 +44,8 @@ public final class UpdateBatch<K> {
 
     /**
      * Mark {@code key} dirty so it renders on the next flush. A mark for the key currently being rendered is
-     * dropped (the re-entrancy guard, so a render cannot feed back into itself); a mark for any other key —
-     * including one issued from inside a render — is queued and arms a follow-up flush as normal.
+     * dropped (the re-entrancy guard, so a render cannot feed back into itself); a mark for any other key:
+     * including one issued from inside a render, is queued and arms a follow-up flush as normal.
      */
     public void mark(K key) {
         Objects.requireNonNull(key, "key");

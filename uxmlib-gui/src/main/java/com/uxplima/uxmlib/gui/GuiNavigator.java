@@ -17,7 +17,7 @@ import com.uxplima.uxmlib.gui.item.GuiItem;
 
 /**
  * A per-player screen history, so menus can push new screens and pop back to the previous one. Because
- * each screen is a retained {@link Gui} instance, popping reopens it exactly as the player left it — its
+ * each screen is a retained {@link Gui} instance, popping reopens it exactly as the player left it: its
  * page, scroll offset, and per-viewer state are intact. Build multi-screen flows by pushing with
  * {@link #open} and wiring a {@link GuiItem#back} button to {@link #back}.
  *

@@ -8,7 +8,7 @@ import org.bukkit.inventory.ItemStack;
 import net.kyori.adventure.text.Component;
 
 /**
- * One line of a {@link MixedHologramSpec} — text, a floating item, or a floating block. Each variant maps
+ * One line of a {@link MixedHologramSpec}: text, a floating item, or a floating block. Each variant maps
  * to a native {@code Display} entity ({@code TextDisplay} / {@code ItemDisplay} / {@code BlockDisplay}), so
  * a single hologram can stack a heading, an item icon, and a block model together without packets.
  *
@@ -18,10 +18,10 @@ import net.kyori.adventure.text.Component;
  */
 public sealed interface HologramLine permits HologramLine.TextLine, HologramLine.ItemLine, HologramLine.BlockLine {
 
-    /** Default vertical drop below a text line — roughly one line of text at default scale. */
+    /** Default vertical drop below a text line: roughly one line of text at default scale. */
     double TEXT_GAP = 0.28;
 
-    /** Default vertical drop below an item or block line — they occupy more vertical space than text. */
+    /** Default vertical drop below an item or block line: they occupy more vertical space than text. */
     double MODEL_GAP = 0.55;
 
     /** How far (in blocks) the next line sits below this one. */

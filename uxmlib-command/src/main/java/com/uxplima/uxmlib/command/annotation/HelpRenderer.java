@@ -24,7 +24,7 @@ import com.uxplima.uxmlib.command.annotation.annotations.Subcommand;
  * Renders a command's help: one clickable line per branch the sender may use, paginated. Each line suggests
  * its command on click (so the player can fill in the arguments) and shows its description on hover; a footer
  * offers clickable previous/next page buttons that re-run {@code /root help <page>}. Branches whose permission
- * the sender lacks are filtered out before paging, so help never advertises — or pages past — a command they
+ * the sender lacks are filtered out before paging, so help never advertises (or pages past) a command they
  * cannot run. The page-arithmetic is delegated to {@link HelpPages}; this only lays the slice out as
  * components.
  */
@@ -108,7 +108,7 @@ final class HelpRenderer {
 
     /**
      * The full help page as one component: a header, every clickable line on the (clamped) {@code page}, and a
-     * previous/next footer when there is more than one page. Pure — no Brigadier, no live sender — so the
+     * previous/next footer when there is more than one page. Pure (no Brigadier, no live sender), so the
      * layout (clickable lines, page footer) is unit-tested directly.
      */
     static Component render(String root, List<Entry> entries, int page, int perPage) {

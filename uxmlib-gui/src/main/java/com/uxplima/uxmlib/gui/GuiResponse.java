@@ -14,7 +14,7 @@ import com.uxplima.uxmlib.gui.item.GuiItem;
  * One side effect of a click, expressed as data instead of a direct mutation. A declarative click handler
  * returns a {@code List<GuiResponse>} and the framework applies them in order on the viewer's region thread
  * (see {@link GuiResponses}). Modelling effects as a closed set of values keeps the handler a pure function
- * — it decides <em>what</em> should happen and the engine decides <em>how</em> — which makes the handler
+ * (it decides <em>what</em> should happen and the engine decides <em>how</em>), which makes the handler
  * unit-testable without a live inventory and safe to compute off-thread.
  *
  * <p>Use the factories ({@link #close()}, {@link #open(Gui)}, {@link #refresh()}, {@link #updateItem(int,
@@ -75,7 +75,7 @@ public sealed interface GuiResponse
         return Nothing.INSTANCE;
     }
 
-    /** Wrap {@code responses} in an already-complete future — the sync convenience for a declarative handler. */
+    /** Wrap {@code responses} in an already-complete future: the sync convenience for a declarative handler. */
     static CompletableFuture<List<GuiResponse>> completed(List<GuiResponse> responses) {
         Objects.requireNonNull(responses, "responses");
         return CompletableFuture.completedFuture(List.copyOf(responses));

@@ -14,8 +14,8 @@ import org.jspecify.annotations.Nullable;
 /**
  * What every contribution adds up to: the one prefix, one suffix and one colour a player's name can carry.
  *
- * <p>Prefixes and suffixes compose — each contribution's part is appended in priority order, joined by the
- * separator — because a name has room for all of them. A colour does not: the name is drawn in a single
+ * <p>Prefixes and suffixes compose: each contribution's part is appended in priority order, joined by the
+ * separator, because a name has room for all of them. A colour does not: the name is drawn in a single
  * colour, so exactly one contribution can own it.
  *
  * <p>Position does not decide that owner. Priority is about layout, and the two questions have different
@@ -53,7 +53,7 @@ public record ComposedNametag(
     /**
      * Compose {@code arrivals}, joining the parts of each half with {@code separator}.
      *
-     * @param arrivals the contributions in the order they were made, oldest first — which is what settles
+     * @param arrivals the contributions in the order they were made, oldest first, which is what settles
      *     the colour; the layout is sorted by priority here and does not depend on it
      */
     public static ComposedNametag compose(List<NametagContribution> arrivals, String separator) {

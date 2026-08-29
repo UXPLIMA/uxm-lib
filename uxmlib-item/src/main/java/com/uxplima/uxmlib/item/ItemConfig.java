@@ -15,7 +15,7 @@ import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.serialize.SerializationException;
 
 /**
- * Reads an item spec from a HOCON {@link ConfigurationNode} into an {@link ItemBuilder} — the single
+ * Reads an item spec from a HOCON {@link ConfigurationNode} into an {@link ItemBuilder}: the single
  * most-replicated competitor pattern, and the seam the GUI menu loader sits on. A node looks like:
  *
  * <pre>{@code
@@ -34,7 +34,7 @@ import org.spongepowered.configurate.serialize.SerializationException;
  *
  * <p>Name and lore pass through MiniMessage with any supplied {@link TagResolver placeholders}; lore can be
  * auto-wrapped to a width. One-way for now (config to item); a writer can come later. Lives in the item
- * module on purpose — it has no GUI dependency.
+ * module on purpose: it has no GUI dependency.
  */
 public final class ItemConfig {
 

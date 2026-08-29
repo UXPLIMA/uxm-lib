@@ -8,12 +8,12 @@ package com.uxplima.uxmlib.text;
  *
  * <p>Two facts are captured:
  * <ul>
- *   <li>{@code bedrock} — true when the player joined through Floodgate/Geyser.
+ *   <li>{@code bedrock}: true when the player joined through Floodgate/Geyser.
  *       Bedrock cannot render MiniMessage gradients or custom-font tags, so they
  *       are flattened/dropped for these recipients.</li>
- *   <li>{@code protocolVersion} — the client's Minecraft protocol number, or
+ *   <li>{@code protocolVersion}: the client's Minecraft protocol number, or
  *       {@link #CURRENT_PROTOCOL} when detection is absent (ViaVersion not
- *       installed) — the safe "assume the server's own modern protocol" default.</li>
+ *       installed), the safe "assume the server's own modern protocol" default.</li>
  * </ul>
  *
  * <p>The capability predicates here are convenience mirrors of the derivations
@@ -23,7 +23,7 @@ package com.uxplima.uxmlib.text;
 public record ClientProfile(boolean bedrock, int protocolVersion) {
 
     /**
-     * Sentinel protocol value meaning "detection unavailable — assume the
+     * Sentinel protocol value meaning "detection unavailable: assume the
      * server's own (modern) protocol". Treated as above every finite feature
      * threshold so an absent ViaVersion never accidentally downgrades a capable
      * Java client. Chosen as {@link Integer#MAX_VALUE} so it dominates any real
@@ -39,12 +39,12 @@ public record ClientProfile(boolean bedrock, int protocolVersion) {
         return new ClientProfile(false, CURRENT_PROTOCOL);
     }
 
-    /** True when the client can render MiniMessage {@code <gradient>} — false on Bedrock. */
+    /** True when the client can render MiniMessage {@code <gradient>}: false on Bedrock. */
     public boolean supportsGradient() {
         return !bedrock;
     }
 
-    /** True when the client can render custom-font tags — false on Bedrock. */
+    /** True when the client can render custom-font tags: false on Bedrock. */
     public boolean supportsCustomFont() {
         return !bedrock;
     }
@@ -53,7 +53,7 @@ public record ClientProfile(boolean bedrock, int protocolVersion) {
      * True when the client's protocol is at or above the
      * {@link ClientCapabilities#MIN_PROTOCOL_FOR_HOVER_ITEM} threshold (the
      * {@link #CURRENT_PROTOCOL} sentinel always qualifies). Hover-item is
-     * protocol-gated, not Bedrock-gated — Geyser translates {@code show_item}.
+     * protocol-gated, not Bedrock-gated: Geyser translates {@code show_item}.
      */
     public boolean supportsHoverItem() {
         return protocolVersion >= ClientCapabilities.MIN_PROTOCOL_FOR_HOVER_ITEM;

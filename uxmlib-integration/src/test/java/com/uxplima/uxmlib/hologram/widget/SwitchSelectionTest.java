@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Pure tests of the switchable selection: states are tried in order and the first whose predicate passes for
  * a viewer wins, mirroring the GUI {@code Stateful} pattern. When nothing matches the selection is empty. No
- * server is needed — the viewer context is a plain UUID plus a stat lookup.
+ * server is needed: the viewer context is a plain UUID plus a stat lookup.
  */
 class SwitchSelectionTest {
 

@@ -14,7 +14,7 @@ import com.uxplima.uxmlib.storage.StorageException;
 /**
  * The {@link Sql}-shaped facade handed to a {@link Database#transaction} block: every query and update
  * runs on the <em>one</em> connection the transaction borrowed, so they share a unit of work that commits
- * together or rolls back together. Don't keep a reference past the block — the connection is returned to
+ * together or rolls back together. Don't keep a reference past the block: the connection is returned to
  * the pool when it ends.
  */
 public final class TxSql {

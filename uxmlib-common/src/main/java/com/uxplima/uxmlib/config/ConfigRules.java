@@ -8,8 +8,8 @@ import java.util.regex.Pattern;
 /**
  * Declares validation rules for a config and runs them all, collecting every failure into a
  * {@link ValidationResult} rather than throwing on the first. Build a rule set fluently against dotted
- * paths — require a key is present, bound a number to a range, match a string to a pattern, restrict to a
- * set of allowed values — then {@link #validate(HoconConfig)}. Aggregating means the operator sees every
+ * paths: require a key is present, bound a number to a range, match a string to a pattern, restrict to a
+ * set of allowed values, then {@link #validate(HoconConfig)}. Aggregating means the operator sees every
  * problem in one report.
  */
 public final class ConfigRules {

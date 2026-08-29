@@ -33,7 +33,7 @@ dependencies {
 
 // Keep the Mojang-mapped dev bundle off the test classpath. MockBukkit drives the plugin against the plain
 // Paper API, and the full server's static initializers throw if their classes leak onto the unit-test
-// runtime. compileOnly alone is what the renderer needs — net.minecraft is provided by the live server.
+// runtime. compileOnly alone is what the renderer needs: net.minecraft is provided by the live server.
 paperweight {
     addServerDependencyTo.set(listOf(configurations.compileOnly.get()))
 }

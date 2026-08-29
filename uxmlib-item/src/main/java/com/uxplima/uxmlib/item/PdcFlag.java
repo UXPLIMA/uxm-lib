@@ -11,7 +11,7 @@ import io.papermc.paper.persistence.PersistentDataContainerView;
 /**
  * Boolean flags over the {@link PersistentDataType#BYTE} convention that consuming plugins repeat everywhere:
  * a stored {@code (byte) 1} reads as {@code true}, a stored {@code (byte) 0} or an absent key as {@code false}.
- * It is a thin specialization of {@link Pdc} — the same key and {@code BYTE} type — so data written by the
+ * It is a thin specialization of {@link Pdc} (the same key and {@code BYTE} type), so data written by the
  * hand-rolled idiom {@code pdc.set(key, BYTE, (byte) 1)} reads back unchanged through these helpers.
  *
  * <pre>{@code

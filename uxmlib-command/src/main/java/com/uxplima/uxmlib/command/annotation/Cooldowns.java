@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
  * {@link #Cooldowns(LongSupplier, CooldownStore)}: a cold key is read through the store, and arming a window
  * writes through it. The store is an optional seam so this module never depends on storage.
  *
- * <p>This is a plain instance with no static mutable state — construct one and share it across a set of
+ * <p>This is a plain instance with no static mutable state: construct one and share it across a set of
  * registrations through {@link ParamResolvers#cooldowns(Cooldowns)} so they all see the same windows.
  */
 public final class Cooldowns {

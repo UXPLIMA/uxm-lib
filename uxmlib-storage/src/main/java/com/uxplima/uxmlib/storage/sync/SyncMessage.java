@@ -3,7 +3,7 @@ package com.uxplima.uxmlib.storage.sync;
 import java.util.Objects;
 
 /**
- * A logical message — a {@code (channel, payload)} pair — together with a pure wire codec. A networked
+ * A logical message (a {@code (channel, payload)} pair) together with a pure wire codec. A networked
  * transport such as Redis pub/sub can subscribe a node to a single physical channel and still demultiplex
  * many logical channels from it: the frame carries the channel name inline so {@link #decode(String)} can
  * recover it without any side table.

@@ -8,7 +8,7 @@ import net.kyori.adventure.text.format.NamedTextColor;
 
 import org.junit.jupiter.api.Test;
 
-/** Pure tests of the embed JSON encoding — no network, no Bukkit. */
+/** Pure tests of the embed JSON encoding: no network, no Bukkit. */
 class DiscordEmbedTest {
 
     @Test
@@ -21,7 +21,7 @@ class DiscordEmbedTest {
 
     @Test
     void includesColourWhenSet() {
-        // 0xFF8800 == 16746496 decimal — Discord embed colours are the decimal RGB integer.
+        // 0xFF8800 == 16746496 decimal: Discord embed colours are the decimal RGB integer.
         String body = DiscordWebhook.embedBody(DiscordEmbed.colored("T", "D", 0xFF8800));
         assertThat(body)
                 .isEqualTo(
@@ -102,7 +102,7 @@ class DiscordEmbedTest {
 
     @Test
     void colorFromRgbComponentsPacksToTheDecimalInteger() {
-        // 0xFF8800 == 16746496 decimal — the same colour the int overload encodes.
+        // 0xFF8800 == 16746496 decimal: the same colour the int overload encodes.
         DiscordEmbed embed =
                 DiscordEmbed.builder().title("T").color(0xFF, 0x88, 0x00).build();
         assertThat(embed.colorValue()).contains(0xFF8800);

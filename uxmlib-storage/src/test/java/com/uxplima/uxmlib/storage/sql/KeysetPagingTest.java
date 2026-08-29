@@ -115,7 +115,7 @@ class KeysetPagingTest {
         // a future change quietly alter the behaviour.
         sql.execute("CREATE TABLE scores (player TEXT NOT NULL, bucket INTEGER NOT NULL)");
         List<StatementBinder> binders = new ArrayList<>();
-        // bucket values: 1,2,2,3,4 — the page of size 2 ends on bucket=2, so the second bucket=2 is skipped.
+        // bucket values: 1,2,2,3,4: the page of size 2 ends on bucket=2, so the second bucket=2 is skipped.
         int[] buckets = {1, 2, 2, 3, 4};
         for (int i = 0; i < buckets.length; i++) {
             int bucket = buckets[i];

@@ -11,7 +11,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * One executable branch in the platform-neutral command model: a {@code @}{@link Subcommand} method reduced
- * to the data a renderer needs — its literal path beneath the root, an optional method-level permission, its
+ * to the data a renderer needs: its literal path beneath the root, an optional method-level permission, its
  * ordered positional {@link ArgBinder.ParamArg}s and {@link FlagModel}s, and the {@link Method} the executor
  * invokes. The reflective scan ({@code CommandModels}) produces this; {@code BrigadierRenderer} walks it to
  * emit the Brigadier node tree. Holding the model separate from Brigadier is the seam that lets flags,

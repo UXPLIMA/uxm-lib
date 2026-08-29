@@ -52,7 +52,7 @@ public final class TrackedNametag implements NametagHandle {
     /** Recomputed every refresh tick; must be cheap and safe to call on the target's region thread. */
     private Supplier<Set<UUID>> viewerSource;
 
-    /** The viewer set reconciled on the last cycle — the baseline the next tick diffs the supplier against. */
+    /** The viewer set reconciled on the last cycle: the baseline the next tick diffs the supplier against. */
     private Set<UUID> viewers;
 
     private PerViewerText text;

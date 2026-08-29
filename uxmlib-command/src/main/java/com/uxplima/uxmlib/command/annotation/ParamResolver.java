@@ -13,8 +13,8 @@ import org.jspecify.annotations.Nullable;
 /**
  * Turns one Java parameter type into a Brigadier argument: the {@link ArgumentType} to register for it,
  * and how to read the parsed value back out of the {@link CommandContext} as a {@code T}. Built-in
- * resolvers map rich types — {@link org.bukkit.entity.Player}, {@link org.bukkit.World}, enums, and the
- * primitives — onto native Paper argument types, so the client gets validation and tab-completion for
+ * resolvers map rich types: {@link org.bukkit.entity.Player}, {@link org.bukkit.World}, enums, and the
+ * primitives, onto native Paper argument types, so the client gets validation and tab-completion for
  * free. Register your own on a {@link ParamResolvers} registry to add domain types.
  *
  * @param <T> the resolved value type handed to the command method
@@ -40,7 +40,7 @@ public interface ParamResolver<T> {
 
     /**
      * Whether {@link #argumentType(Arg)} returns a Paper-native (NMS-backed) argument type rather than a plain
-     * Brigadier one. Native types — a player, world, location, sound, or any registry resource — can only be
+     * Brigadier one. Native types (a player, world, location, sound, or any registry resource) can only be
      * parsed inside Paper's live command tree, which carries the registry/build context they need; they throw
      * when parsed in a standalone Brigadier dispatcher. A {@code @}{@link
      * com.uxplima.uxmlib.command.annotation.annotations.Flag} value and a {@code List}/{@code Optional} element
@@ -54,8 +54,8 @@ public interface ParamResolver<T> {
 
     /**
      * The completions to offer for this parameter, or {@code null} to leave the argument type's native
-     * suggestions (a player/world/material arg completes itself). A resolver over a plain word — an enum,
-     * a custom type — overrides this to drive tab-completion.
+     * suggestions (a player/world/material arg completes itself). A resolver over a plain word: an enum,
+     * a custom type, overrides this to drive tab-completion.
      */
     default @Nullable Collection<String> suggestions() {
         return null;
@@ -64,7 +64,7 @@ public interface ParamResolver<T> {
     /**
      * A resolver source that can <em>decline</em>: given a parameter's full generic type, it either produces
      * a {@link ParamResolver} for it or returns {@code null} to let the next factory try. This is the seam
-     * the composing resolvers ride — a {@code List<T>} or {@code Optional<T>} factory derives a resolver from
+     * the composing resolvers ride: a {@code List<T>} or {@code Optional<T>} factory derives a resolver from
      * the element type's own resolver, declining for any raw type it does not recognise. Factories are
      * consulted in registration order, after the direct per-type registrations, so a direct
      * {@link ParamResolvers#register(Class, ParamResolver)} always wins over a factory for the same raw type.

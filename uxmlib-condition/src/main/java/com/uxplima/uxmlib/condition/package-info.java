@@ -4,7 +4,7 @@
  * both operands parse as numbers and falls back to string equality otherwise. {@link
  * com.uxplima.uxmlib.condition.Condition} is the SPI ({@code boolean test(ConditionRequest)}); {@link
  * com.uxplima.uxmlib.condition.PlaceholderCondition} resolves two operand templates through an injected
- * {@link com.uxplima.uxmlib.condition.OperandResolver} seam and applies a {@code Comparison} — the resolver
+ * {@link com.uxplima.uxmlib.condition.OperandResolver} seam and applies a {@code Comparison}: the resolver
  * is a plain function, never a dependency on the integration/PAPI module. {@link
  * com.uxplima.uxmlib.condition.ConditionList} AND-combines conditions, honours each condition's {@link
  * com.uxplima.uxmlib.condition.FailurePolicy}, and flushes collected failure messages to the request's error

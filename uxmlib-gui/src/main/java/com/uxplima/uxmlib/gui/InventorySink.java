@@ -12,7 +12,7 @@ import com.uxplima.uxmlib.gui.item.GuiItem;
  * Bridges a {@link SlotAnimation} to a live inventory. A slot is free for the overlay only when no
  * {@link GuiItem} owns it (it is not part of the menu's item map) and the inventory cell is empty, so the
  * moving highlight never paints over a button a caller placed. Lighting writes the highlight icon; clearing
- * empties the cell — and the animation only ever clears slots it lit itself.
+ * empties the cell, and the animation only ever clears slots it lit itself.
  */
 final class InventorySink implements SlotAnimation.Sink {
 

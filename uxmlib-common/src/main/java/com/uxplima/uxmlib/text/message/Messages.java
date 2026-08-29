@@ -31,7 +31,7 @@ import com.uxplima.uxmlib.text.Text;
  * by {@link #reload}, so {@code /reload} re-reads the words as well as the settings without rebuilding the
  * object graph that already holds this instance. A send in flight keeps the set it started with: a title
  * whose two halves came from different reloads would be exactly the mixed-language defect this class works to
- * avoid. The {@link LocaleSource} is not part of that set — it is a strategy rather than content, and a
+ * avoid. The {@link LocaleSource} is not part of that set: it is a strategy rather than content, and a
  * consumer whose default locale is configurable implements one that reads its own config.
  */
 public final class Messages {
@@ -58,7 +58,7 @@ public final class Messages {
     }
 
     /**
-     * @param base tags every render resolves on top of the ones it is passed — a house style's colour roles,
+     * @param base tags every render resolves on top of the ones it is passed: a house style's colour roles,
      *     say. A call site's own resolver of the same name wins over it.
      */
     public Messages(MessageCatalog catalog, LocaleSource locales, Map<String, Message> channels, TagResolver base) {
@@ -72,7 +72,7 @@ public final class Messages {
      * set the server's language is the common case where they are not: the new catalog carries the new words,
      * but the {@link LocaleSource} kept here still answers with the language the last one was built for, and
      * a console reading a locale-less audience keeps getting the old one. Pass all four to
-     * {@link #reload(MessageCatalog, LocaleSource, Map, TagResolver)} whenever a reload re-reads a config —
+     * {@link #reload(MessageCatalog, LocaleSource, Map, TagResolver)} whenever a reload re-reads a config:
      * handing it {@code Map.of()} and {@link TagResolver#empty()} is cheaper than finding this out later.
      */
     public void reload(MessageCatalog catalog) {
@@ -112,13 +112,13 @@ public final class Messages {
     }
 
     /**
-     * The locale {@code viewer} is being served — the language every message this facade renders for them
+     * The locale {@code viewer} is being served: the language every message this facade renders for them
      * comes out in.
      *
      * <p>For text a plugin computes rather than writes: a colour name built from an enum id, a lobby name
      * an operator typed into a config, anything with no catalog entry behind it. That text still has to be
      * styled for the reader's language, and asking here rather than reading a player's own locale is the
-     * difference between one interface and two — a server that pins a locale, or maps an unknown language
+     * difference between one interface and two: a server that pins a locale, or maps an unknown language
      * onto its default, would otherwise hand somebody catalog text in one language and computed text
      * styled for another. Both answers have to come from the same place, and this is that place.
      *
@@ -143,7 +143,7 @@ public final class Messages {
     /**
      * Show a title, taking both of its halves from the same place. A translator addresses the subtitle in
      * the lang file as the message's path plus {@value #SUBTITLE_SUFFIX}. The pair is looked for in the
-     * viewer's own language first and the default locale second — the catalog's own tiers — and the first
+     * viewer's own language first and the default locale second (the catalog's own tiers), and the first
      * tier that has <em>both</em> halves renders the title; when no tier does, both come from the operator's
      * {@code channels} entry, which is why a title entry must carry its {@code text}.
      *
@@ -204,8 +204,8 @@ public final class Messages {
     }
 
     /**
-     * The catalog key holding {@code key}'s subtitle. Only its path is ever read here — the halves are looked
-     * up one tier at a time — so the operator's own subtitle stands in for the built-in default the interface
+     * The catalog key holding {@code key}'s subtitle. Only its path is ever read here: the halves are looked
+     * up one tier at a time, so the operator's own subtitle stands in for the built-in default the interface
      * asks for.
      */
     private static MessageKey subtitleKeyOf(MessageKey key, Message.TitleText title) {

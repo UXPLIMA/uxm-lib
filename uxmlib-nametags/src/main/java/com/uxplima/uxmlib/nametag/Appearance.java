@@ -5,7 +5,7 @@ import java.util.Objects;
 import org.joml.Vector3f;
 
 /**
- * The visual configuration of a packet nametag — the knobs of a vanilla text {@code Display} that a viewer
+ * The visual configuration of a packet nametag: the knobs of a vanilla text {@code Display} that a viewer
  * sees, expressed as a pure immutable value so the renderer (and its tests) need no server. The NMS packet
  * builder behind {@link NametagPackets} maps these onto the display's data-watcher fields.
  *

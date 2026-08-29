@@ -17,8 +17,8 @@ import org.spongepowered.configurate.ConfigurationNode;
 /**
  * A palette of named roles, read from a config file.
  *
- * <p>This is the one place a colour lives. A message file names a role — {@code <accent>}, {@code <value>},
- * {@code <bad>} — and never a hex code, so a server that wants a red interface edits one file and every
+ * <p>This is the one place a colour lives. A message file names a role: {@code <accent>}, {@code <value>},
+ * {@code <bad>}, and never a hex code, so a server that wants a red interface edits one file and every
  * message, menu and item follows. It also keeps a palette from drifting across a suite of plugins: a line
  * that says {@code <body>} is the same white everywhere.
  *
@@ -215,7 +215,7 @@ public final class Theme {
      * The small-capitals languages: the shipped set, then each language the file names applied on top.
      *
      * <p>Merging rather than replacing is the whole of it. A file that switches conversion on for one
-     * language must not switch it off for every language it does not mention — that turns an operator adding
+     * language must not switch it off for every language it does not mention: that turns an operator adding
      * French into English silently losing its own writing, in every plugin at once.
      */
     private static Set<String> smallCaps(Map<Object, ? extends ConfigurationNode> languages) {

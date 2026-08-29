@@ -15,16 +15,16 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The seam between pure NPC logic and the NMS packet construction for a fake-player NPC. Every packet crosses
- * this boundary as an opaque {@link Object}, so this interface — and everything that depends on it — carries no
+ * this boundary as an opaque {@link Object}, so this interface (and everything that depends on it) carries no
  * {@code net.minecraft} reference and stays unit-testable against a fake. The single implementation that builds
  * the real Mojang-mapped packets against the dev bundle lives behind this port in {@code npc.internal}.
  *
  * <p>A fake-player NPC is shown to a client in a fixed sequence: first a player-info entry carrying the name
  * and skin so the client knows how to render the body, then the entity spawn at a position and rotation, then
  * the look packets that aim its head and body. The client links the skin to the spawned entity because the
- * spawn UUID equals the player-info entry's profile id — so the spawn must reuse the same {@code profileId}.
+ * spawn UUID equals the player-info entry's profile id, so the spawn must reuse the same {@code profileId}.
  * The entry is added <em>unlisted</em> ({@code listed=false}) so the body renders but the NPC never shows as a
- * tab-list row, and the entry is kept for the entity's whole lifetime — removing the player-info entry
+ * tab-list row, and the entry is kept for the entity's whole lifetime: removing the player-info entry
  * de-renders the entity on modern clients, so it stays until the NPC despawns, when {@link #tabRemove(UUID)}
  * drops it. An NPC the operator does want in the tab list is added with {@code listed=true} instead; either way
  * the entry is kept. Each method returns one built packet; {@link #send(Player, Object)} writes it to a viewer's
@@ -46,8 +46,8 @@ public interface NpcPackets {
 
     /**
      * Build a player-info ADD packet exactly like {@link #tabAdd(UUID, String, TabSkin)} but with the entry's
-     * {@code listed} flag set explicitly. With {@code listed=false} the entry is a known client entity — the NPC
-     * body and skin render — but it is not drawn as a row in the tab list, which is how a fake-player NPC is
+     * {@code listed} flag set explicitly. With {@code listed=false} the entry is a known client entity: the NPC
+     * body and skin render, but it is not drawn as a row in the tab list, which is how a fake-player NPC is
      * normally shown. With {@code listed=true} the NPC also appears in the tab list. Either way the entry is kept
      * for the entity's lifetime (removing it would de-render the body on modern clients); {@link #tabRemove(UUID)}
      * drops it on despawn.
@@ -122,7 +122,7 @@ public interface NpcPackets {
     Object sharedFlags(int entityId, boolean onFire, boolean glowing, boolean invisible);
 
     /**
-     * Build the metadata packet that toggles the NPC's silence through the entity's {@code DATA_SILENT} boolean —
+     * Build the metadata packet that toggles the NPC's silence through the entity's {@code DATA_SILENT} boolean:
      * a silent entity emits no ambient or hurt sounds. The accessor lives on {@code Entity}, so it applies to every
      * NPC type (player or mob), and is read once at construction off every hot path like the shared-flags accessor.
      */
@@ -155,7 +155,7 @@ public interface NpcPackets {
     /**
      * Build the metadata packet that freezes the NPC in {@code pose} through the entity's {@code DATA_POSE} field.
      * A pose only renders where the entity type supports it (a player or a humanoid mob), so an NPC whose type
-     * cannot strike the pose simply ignores it — the packet is harmless either way. The accessor is read once at
+     * cannot strike the pose simply ignores it: the packet is harmless either way. The accessor is read once at
      * construction, like the glow accessor, so this stays off the reflection path on every send.
      */
     Object pose(int entityId, NpcPose pose);
@@ -170,11 +170,11 @@ public interface NpcPackets {
 
     /**
      * Build the metadata packet that toggles an {@code AgeableMob}'s baby/adult state through the {@code
-     * AgeableMob.DATA_BABY_ID} field — the boolean ({@code true} is a baby, {@code false} an adult) carried by the
+     * AgeableMob.DATA_BABY_ID} field: the boolean ({@code true} is a baby, {@code false} an adult) carried by the
      * breeding animal line (cows, pigs, …), the villager line, and the hoglin (all real {@code AgeableMob}
      * subclasses). The caller must only ever send this to a type that actually extends {@code AgeableMob}: the
      * baby flag's data index is allocated per class hierarchy, so it differs between {@code AgeableMob} and the
-     * monster-family baby mobs (the zombie line, piglins, zoglins) — those carry their own baby field at a
+     * monster-family baby mobs (the zombie line, piglins, zoglins): those carry their own baby field at a
      * different index and have their own builders ({@link #zombieBaby}, {@link #piglinBaby}, {@link #zoglinBaby}).
      * Sending this packet to one of them, or to a non-ageable type (a creeper, a slime), would land the value on
      * an unrelated field. Picking the right builder for the type is the plugin's per-type concern, not this one's.
@@ -183,14 +183,14 @@ public interface NpcPackets {
 
     /**
      * Build the metadata packet that toggles a zombie-line mob's baby/adult state through {@code
-     * Zombie.DATA_BABY_ID} — the zombie family's own baby boolean, at a different data index than {@link #baby}'s
+     * Zombie.DATA_BABY_ID}: the zombie family's own baby boolean, at a different data index than {@link #baby}'s
      * {@code AgeableMob} one because zombies extend {@code Monster}, not {@code AgeableMob}. Send this only to a
      * zombie, husk, drowned, zombie villager, or zombified piglin; any other type has no field at that index.
      */
     Object zombieBaby(int entityId, boolean baby);
 
     /**
-     * Build the metadata packet that toggles a piglin's baby/adult state through {@code Piglin.DATA_BABY_ID} — the
+     * Build the metadata packet that toggles a piglin's baby/adult state through {@code Piglin.DATA_BABY_ID}: the
      * piglin's own baby boolean, again at a different index than {@link #baby}'s because piglins extend {@code
      * Monster}. Send this only to a piglin (not a piglin brute, which has no baby form); any other type has no
      * field at that index.
@@ -198,16 +198,16 @@ public interface NpcPackets {
     Object piglinBaby(int entityId, boolean baby);
 
     /**
-     * Build the metadata packet that toggles a zoglin's baby/adult state through {@code Zoglin.DATA_BABY_ID} — the
+     * Build the metadata packet that toggles a zoglin's baby/adult state through {@code Zoglin.DATA_BABY_ID}: the
      * zoglin's own baby boolean, at a different index than {@link #baby}'s because zoglins extend {@code Monster}.
      * Send this only to a zoglin; any other type has no field at that index.
      */
     Object zoglinBaby(int entityId, boolean baby);
 
     /**
-     * Build the metadata packet that sets a villager's appearance — its biome {@code type} (the registry name of a
+     * Build the metadata packet that sets a villager's appearance: its biome {@code type} (the registry name of a
      * villager type, e.g. {@code plains}/{@code desert}), its {@code profession} (e.g. {@code farmer}/{@code
-     * librarian}), and its {@code level} (1–5, the badge tier) — through the villager's {@code DATA_VILLAGER_DATA}
+     * librarian}), and its {@code level} (1 to 5, the badge tier): through the villager's {@code DATA_VILLAGER_DATA}
      * field. The type and profession are resolved by name off the server's villager-type and villager-profession
      * registries, both defaulted registries: an unknown name falls back to the registry default rather than
      * throwing, so a typo renders the default villager rather than failing the spawn. Send this only to a villager;
@@ -215,16 +215,16 @@ public interface NpcPackets {
      *
      * @param type the villager-type registry name (plain or namespaced), defaulted when unknown
      * @param profession the villager-profession registry name (plain or namespaced), defaulted when unknown
-     * @param level the badge level the client renders (the protocol uses 1–5)
+     * @param level the badge level the client renders (the protocol uses 1 to 5)
      */
     Object villagerData(int entityId, String type, String profession, int level);
 
     /**
      * Build the metadata packet that sets a slime's (or magma cube's) size through the cube mob {@code ID_SIZE}
-     * field — an integer where larger is bigger and the body's collision box and render scale follow it. The
+     * field: an integer where larger is bigger and the body's collision box and render scale follow it. The
      * protocol stores the size as {@code size}; the client renders a {@code size}-block-ish cube. Send this only to
      * a slime or magma cube; any other type has no size field at that index. The plugin clamps the value to a sane
-     * range before calling — this builder only guards against the impossible.
+     * range before calling: this builder only guards against the impossible.
      *
      * @param size the slime size (the plugin clamps it; 1 is the smallest natural slime)
      * @throws IllegalArgumentException if {@code size} is below 1, which the slime size field cannot represent
@@ -233,14 +233,14 @@ public interface NpcPackets {
 
     /**
      * Build the metadata packet that toggles a creeper's charged (powered) state through the creeper's {@code
-     * DATA_IS_POWERED} field — the boolean that renders the blue electrified aura a charged creeper carries. Send
+     * DATA_IS_POWERED} field: the boolean that renders the blue electrified aura a charged creeper carries. Send
      * this only to a creeper; any other type has no powered field at that index.
      */
     Object charged(int entityId, boolean charged);
 
     /**
-     * Build the metadata packet that sets a horse's appearance — its coat {@code color} (0–6) and its body
-     * {@code markings} (0–4) — through the horse's {@code DATA_ID_TYPE_VARIANT} field. The two pack into the one
+     * Build the metadata packet that sets a horse's appearance: its coat {@code color} (0 to 6) and its body
+     * {@code markings} (0 to 4), through the horse's {@code DATA_ID_TYPE_VARIANT} field. The two pack into the one
      * integer the field carries (colour in the low byte, markings in the high byte) exactly as the server's own
      * {@code setVariantAndMarkings} does; see {@link HorseVariant}. Send this only to a horse; any other type
      * (a donkey, a mule, a llama) has no such combined variant field at that index. The plugin clamps the two
@@ -249,39 +249,39 @@ public interface NpcPackets {
     Object horseVariant(int entityId, int color, int markings);
 
     /**
-     * Build the metadata packet that sets a llama's coat {@code variant} (0–3) through the llama's {@code
-     * DATA_VARIANT_ID} field — the integer that picks one of the four llama coats. Send this only to a llama or
+     * Build the metadata packet that sets a llama's coat {@code variant} (0 to 3) through the llama's {@code
+     * DATA_VARIANT_ID} field: the integer that picks one of the four llama coats. Send this only to a llama or
      * trader llama; any other type has no llama-variant field at that index. The plugin clamps the value first.
      */
     Object llamaVariant(int entityId, int variant);
 
     /**
-     * Build the metadata packet that sets a sheep's wool {@code color} (a {@code DyeColor} id, 0–15) in the low four
-     * bits of the {@code DATA_WOOL_ID} byte and the {@code sheared} flag in bit {@code 0x10} — both composed into the
+     * Build the metadata packet that sets a sheep's wool {@code color} (a {@code DyeColor} id, 0 to 15) in the low four
+     * bits of the {@code DATA_WOOL_ID} byte and the {@code sheared} flag in bit {@code 0x10}: both composed into the
      * one byte. A sheared sheep hides its wool until it regrows. Send this only to a sheep; any other type has no
      * wool byte at that index.
      */
     Object sheepWool(int entityId, int color, boolean sheared);
 
     /**
-     * Build the metadata packet that sets a wolf's collar {@code color} (a {@code DyeColor} id, 0–15) through the
+     * Build the metadata packet that sets a wolf's collar {@code color} (a {@code DyeColor} id, 0 to 15) through the
      * wolf's {@code DATA_COLLAR_COLOR} field. Send this only to a wolf; any other type has no collar field at that
      * index.
      */
     Object wolfCollar(int entityId, int color);
 
     /**
-     * Build the metadata packet that sets a shulker's shell {@code color} (a {@code DyeColor} id, 0–15) through the
-     * shulker's {@code DATA_COLOR_ID} byte. The natural uncoloured shulker uses 16; this builder writes a 0–15 dye
+     * Build the metadata packet that sets a shulker's shell {@code color} (a {@code DyeColor} id, 0 to 15) through the
+     * shulker's {@code DATA_COLOR_ID} byte. The natural uncoloured shulker uses 16; this builder writes a 0 to 15 dye
      * id, so the plugin validates the colour before calling. Send this only to a shulker; any other type has no
      * colour byte at that index.
      */
     Object shulkerColor(int entityId, int color);
 
     /**
-     * Build the metadata packet that sets how far a shulker's shell is open through its {@code DATA_PEEK_ID} byte —
+     * Build the metadata packet that sets how far a shulker's shell is open through its {@code DATA_PEEK_ID} byte:
      * 0 is fully closed, 100 fully open. Send this only to a shulker; any other type has no peek byte at that index.
-     * The plugin clamps the value to 0–100 before calling.
+     * The plugin clamps the value to 0 to 100 before calling.
      */
     Object shulkerPeek(int entityId, int peek);
 
@@ -300,7 +300,7 @@ public interface NpcPackets {
 
     /**
      * Build the metadata packet that sets a panda's gene (its visible face and temperament) through the panda's
-     * {@code MAIN_GENE_ID} and {@code HIDDEN_GENE_ID} bytes — the gene id (0–6: normal, lazy, worried, playful,
+     * {@code MAIN_GENE_ID} and {@code HIDDEN_GENE_ID} bytes: the gene id (0 to 6: normal, lazy, worried, playful,
      * brown, weak, aggressive). Both genes are set to the same id so a recessive gene (brown or weak) renders its
      * own phenotype rather than falling back to normal, which the client does only when the two genes match. Send
      * this only to a panda; any other type has no gene byte at that index. The plugin validates the gene id first.
@@ -315,7 +315,7 @@ public interface NpcPackets {
     Object goatScreaming(int entityId, boolean screaming);
 
     /**
-     * Build the metadata packet that toggles an allay's dance through {@code Allay.DATA_DANCING} — a dancing allay
+     * Build the metadata packet that toggles an allay's dance through {@code Allay.DATA_DANCING}: a dancing allay
      * bobs in place as it does beside a playing jukebox. Send this only to an allay; any other type has no dancing
      * field at that index.
      */
@@ -328,13 +328,13 @@ public interface NpcPackets {
     Object piglinDancing(int entityId, boolean dancing);
 
     /**
-     * Build the metadata packet that toggles a camel's dash through {@code Camel.DASH} — the sprint-leap state the
+     * Build the metadata packet that toggles a camel's dash through {@code Camel.DASH}: the sprint-leap state the
      * client animates. Send this only to a camel; any other type has no dash field at that index.
      */
     Object camelDash(int entityId, boolean dashing);
 
     /**
-     * Build the metadata packet that sets a bee's state through its {@code DATA_FLAGS_ID} byte — {@code nectar}
+     * Build the metadata packet that sets a bee's state through its {@code DATA_FLAGS_ID} byte: {@code nectar}
      * trails pollen particles, {@code rolling} plays the barrel-roll attack animation, {@code stung} marks a bee
      * that has stung. All three bits are composed into the one byte. Send this only to a bee; any other type has
      * no flags byte at that index.
@@ -342,7 +342,7 @@ public interface NpcPackets {
     Object beeFlags(int entityId, boolean nectar, boolean rolling, boolean stung);
 
     /**
-     * Build the metadata packet that toggles a vex's charging state through its {@code DATA_FLAGS_ID} byte — a
+     * Build the metadata packet that toggles a vex's charging state through its {@code DATA_FLAGS_ID} byte: a
      * charging vex renders its red, aggressive form. Only the {@code FLAG_IS_CHARGING} bit is written. Send this
      * only to a vex; any other type has no flags byte at that index.
      */
@@ -352,15 +352,15 @@ public interface NpcPackets {
      * Build the metadata packet that sets a tropical fish's appearance to the predefined common variant at
      * {@code variantIndex} (0-based into the server's own 22 bucketable varieties) through the fish's {@code
      * DATA_ID_TYPE_VARIANT} packed integer. The packed id is taken from the server's {@code COMMON_VARIANTS}
-     * list — its own bit layout, not a copied formula — so the index simply picks a named tropical-fish pattern
+     * list (its own bit layout, not a copied formula), so the index simply picks a named tropical-fish pattern
      * and colour pair. The index is clamped to the list's range. Send this only to a tropical fish; any other type
      * has no such field at that index.
      */
     Object tropicalFishVariant(int entityId, int variantIndex);
 
     /**
-     * Build the metadata packet that sets an armor stand's client flags — {@code small}, {@code showArms},
-     * {@code noBasePlate}, {@code marker} — composed into the one {@code DATA_CLIENT_FLAGS} byte (each is a bit
+     * Build the metadata packet that sets an armor stand's client flags: {@code small}, {@code showArms},
+     * {@code noBasePlate}, {@code marker}, composed into the one {@code DATA_CLIENT_FLAGS} byte (each is a bit
      * mask the server applies directly). A statue NPC uses these for a small stand, visible arms (to hold items),
      * a hidden base plate, or marker mode (no hitbox). Send this only to an armor stand; any other type has no
      * client-flags byte at that index.
@@ -379,7 +379,7 @@ public interface NpcPackets {
      * Build the metadata packet that sizes an interaction entity's clickable hitbox to {@code width} × {@code
      * height} (blocks) and marks it responsive, through its {@code DATA_WIDTH_ID}/{@code DATA_HEIGHT_ID}/{@code
      * DATA_RESPONSE_ID} fields. An interaction entity is invisible; its only purpose is the hitbox, so a width or
-     * height of zero leaves it unclickable — the caller passes a positive size. Send this only to an interaction
+     * height of zero leaves it unclickable: the caller passes a positive size. Send this only to an interaction
      * entity; any other type has no such fields at those indices.
      */
     Object interactionSize(int entityId, float width, float height);
@@ -448,15 +448,15 @@ public interface NpcPackets {
     Object textDisplayLineWidth(int entityId, int lineWidth);
 
     /**
-     * Build the metadata packet that sets a parrot's {@code variant} (0–4) through the parrot's {@code
-     * DATA_VARIANT_ID} field — the integer that picks one of the five parrot colours. Send this only to a
+     * Build the metadata packet that sets a parrot's {@code variant} (0 to 4) through the parrot's {@code
+     * DATA_VARIANT_ID} field: the integer that picks one of the five parrot colours. Send this only to a
      * parrot; any other type has no parrot-variant field at that index. The plugin clamps the value first.
      */
     Object parrotVariant(int entityId, int variant);
 
     /**
-     * Build the metadata packet that sets an axolotl's {@code variant} (0–4) through the axolotl's {@code
-     * DATA_VARIANT} field — the integer that picks one of the five axolotl colours. Send this only to an
+     * Build the metadata packet that sets an axolotl's {@code variant} (0 to 4) through the axolotl's {@code
+     * DATA_VARIANT} field: the integer that picks one of the five axolotl colours. Send this only to an
      * axolotl; any other type has no axolotl-variant field at that index. The plugin clamps the value first.
      */
     Object axolotlVariant(int entityId, int variant);
@@ -470,7 +470,7 @@ public interface NpcPackets {
 
     /**
      * Build the metadata packet that sets a rabbit's {@code type} through the rabbit's {@code DATA_TYPE_ID}
-     * field — the integer that picks one of the six coats (0–5), with 99 the killer (toast) rabbit. Send this
+     * field: the integer that picks one of the six coats (0 to 5), with 99 the killer (toast) rabbit. Send this
      * only to a rabbit; any other type has no rabbit-type field at that index. The plugin validates the value
      * (the six coats plus 99) before calling.
      */
@@ -511,7 +511,7 @@ public interface NpcPackets {
 
     /**
      * Build the metadata packet that sets a wolf's coat {@code variant} (e.g. {@code pale}, {@code ashen},
-     * {@code striped}) through the wolf's {@code DATA_VARIANT_ID} field — a dynamic-registry {@code
+     * {@code striped}) through the wolf's {@code DATA_VARIANT_ID} field: a dynamic-registry {@code
      * Holder<WolfVariant>} resolved by name off the live server's wolf-variant registry, exactly like
      * {@link #catVariant}. Distinct from {@link #wolfCollar} (the collar colour). Send this only to a wolf; returns
      * {@code null} (dropped by the caller) when the variant cannot be resolved.
@@ -540,14 +540,14 @@ public interface NpcPackets {
     @Nullable Object pigVariant(int entityId, String name);
 
     /**
-     * Build the metadata packet that toggles an axolotl's play-dead state through {@code Axolotl.DATA_PLAYING_DEAD}
-     * — a playing-dead axolotl floats belly-up. Send this only to an axolotl; any other type has no such field.
+     * Build the metadata packet that toggles an axolotl's play-dead state through {@code Axolotl.DATA_PLAYING_DEAD}:
+     * a playing-dead axolotl floats belly-up. Send this only to an axolotl; any other type has no such field.
      */
     Object axolotlPlayingDead(int entityId, boolean playingDead);
 
     /**
      * Build the metadata packet that toggles a raider's (pillager/vindicator/evoker/illusioner/ravager/witch)
-     * celebrating state through {@code Raider.IS_CELEBRATING} — a celebrating raider does the post-raid victory
+     * celebrating state through {@code Raider.IS_CELEBRATING}: a celebrating raider does the post-raid victory
      * dance. Send this only to a raider type; any other has no such field at that index.
      */
     Object raiderCelebrating(int entityId, boolean celebrating);
@@ -560,8 +560,8 @@ public interface NpcPackets {
     Object tameableSitting(int entityId, boolean sitting);
 
     /**
-     * Build the metadata packet that sets a fox's pose flags — {@code sitting}, {@code sleeping}, {@code crouching}
-     * — composed into the one {@code Fox.DATA_FLAGS_ID} byte (each is a bit mask the server applies directly). Send
+     * Build the metadata packet that sets a fox's pose flags: {@code sitting}, {@code sleeping}, {@code crouching},
+     * composed into the one {@code Fox.DATA_FLAGS_ID} byte (each is a bit mask the server applies directly). Send
      * this only to a fox; any other type has no such byte at that index.
      */
     Object foxFlags(int entityId, boolean sitting, boolean sleeping, boolean crouching);
@@ -588,7 +588,7 @@ public interface NpcPackets {
 
     /**
      * Build the metadata packet that puts a living entity into the item-use pose through its {@code
-     * DATA_LIVING_ENTITY_FLAGS} byte — {@code using} raises the held item (a shield blocks, food/potion lifts), and
+     * DATA_LIVING_ENTITY_FLAGS} byte: {@code using} raises the held item (a shield blocks, food/potion lifts), and
      * {@code offHand} marks it the off-hand item. Both bits are composed into the one byte the server applies
      * directly. Send this only to a living entity (any mob/player); display/interaction entities have no such byte.
      */
@@ -635,8 +635,8 @@ public interface NpcPackets {
 
     /**
      * Build the scoreboard-team packet that removes the glow-colour team {@code teamName} from the client. A team
-     * created by {@link #glowColor} is client-side state that outlives the entity — despawning the fake player does
-     * not drop it — so a viewer who no longer sees the NPC, or sees it stop glowing, must be sent this to clear the
+     * created by {@link #glowColor} is client-side state that outlives the entity: despawning the fake player does
+     * not drop it, so a viewer who no longer sees the NPC, or sees it stop glowing, must be sent this to clear the
      * orphaned team (otherwise the colour can later bind to a real player who happens to share the seated name).
      * Removing a team the client never had is a harmless no-op, so this is safe to send on every despawn path.
      *

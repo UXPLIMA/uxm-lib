@@ -20,7 +20,7 @@ import io.papermc.paper.persistence.PersistentDataContainerView;
  *
  * <p>Everything here is native PDC and self-contained: write the set with {@link #block(ItemStack, Set)},
  * read it with {@link #blockedActions(PersistentDataContainerView)}, and test "is this action blocked for this
- * item" with {@link #isBlocked(PersistentDataContainerView, ItemAction)} — all pure given an item view, so the
+ * item" with {@link #isBlocked(PersistentDataContainerView, ItemAction)}: all pure given an item view, so the
  * listener stays a thin event-to-predicate bridge.
  */
 public final class ItemBlockerType {

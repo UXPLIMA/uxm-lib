@@ -8,7 +8,7 @@ import org.bukkit.OfflinePlayer;
  * A provider-agnostic economy view, so call sites depend on this and not on Vault directly. {@link #find}
  * picks the best available backend (classic Vault, then VaultUnlocked); {@link #orDummy} returns a no-op
  * {@link DummyEconomy} when none is present, so a caller never has to null-check. Reads/writes may block on
- * the backing economy plugin — route them off the main thread via the scheduler.
+ * the backing economy plugin: route them off the main thread via the scheduler.
  */
 public interface EconomyBridge {
 
@@ -48,7 +48,7 @@ public interface EconomyBridge {
     /**
      * The best available economy backend, or empty when none is installed. Classic Vault is preferred when
      * present; VaultUnlocked (the {@code vault2} provider) is tried next, so a server running only that
-     * provider still resolves a real backend — see {@link VaultUnlockedEconomy}.
+     * provider still resolves a real backend: see {@link VaultUnlockedEconomy}.
      */
     static Optional<EconomyBridge> find() {
         Optional<EconomyBridge> vault = VaultEconomy.find().map(VaultEconomyBridge::new);
@@ -67,7 +67,7 @@ public interface EconomyBridge {
 
     /**
      * A no-op economy, unconditionally: every balance reads zero and every transaction fails. Where
-     * {@link #orDummy()} prefers a real backend when one is installed, this one never looks for it — for a
+     * {@link #orDummy()} prefers a real backend when one is installed, this one never looks for it, for a
      * test, for a feature an operator turned off, or as the seed of a bridge that rebinds later. Writing
      * these nine methods by hand is the thing it saves.
      */

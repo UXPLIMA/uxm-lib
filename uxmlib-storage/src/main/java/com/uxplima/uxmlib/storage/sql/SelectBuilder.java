@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
  * A small, safe SELECT builder. Every <em>value</em> goes through a bound {@code ?} placeholder, and the
  * column/table identifiers and comparison operators it writes into the SQL are validated against a strict
  * allowlist, so the produced {@link Query} is injection-safe by construction even if a caller threads
- * untrusted input into a column name. Deliberately minimal — for joins or vendor-specific SQL, write the
+ * untrusted input into a column name. Deliberately minimal, for joins or vendor-specific SQL, write the
  * statement directly and use {@link Sql#query(String, StatementBinder, RowMapper)}.
  *
  * <pre>{@code

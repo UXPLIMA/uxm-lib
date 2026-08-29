@@ -9,21 +9,21 @@ import org.jspecify.annotations.Nullable;
  * pass or drop it. Three outcomes:
  *
  * <ul>
- *   <li>{@link #pass()} — let the packet continue unchanged (the legacy {@link PacketAction#PASS});
- *   <li>{@link #cancel()} — drop the packet (the legacy {@link PacketAction#CANCEL});
- *   <li>{@link #rewrite(Object)} — forward a <em>replacement</em> packet in place of the original.
+ *   <li>{@link #pass()}: let the packet continue unchanged (the legacy {@link PacketAction#PASS});
+ *   <li>{@link #cancel()}: drop the packet (the legacy {@link PacketAction#CANCEL});
+ *   <li>{@link #rewrite(Object)}: forward a <em>replacement</em> packet in place of the original.
  * </ul>
  *
  * <p>This is the superset of {@link PacketAction}: {@link #from(PacketAction)} maps the two legacy verdicts onto
  * the matching verdict here, so a listener that only implements the {@link PacketListener#onSend} /
- * {@link PacketListener#onReceive} pass/cancel methods behaves exactly as before — a listener opts into rewrite
+ * {@link PacketListener#onReceive} pass/cancel methods behaves exactly as before: a listener opts into rewrite
  * by overriding {@link PacketListener#onSendVerdict} instead. The folding rule (see
  * {@link PacketListenerRegistry}) keeps {@code cancel} a veto that beats a rewrite, so an observe-only or
  * cancelling listener is never overridden by a rewriting one.
  *
  * <p>Rewrite is an <em>outbound</em> mechanism: the interceptor only honours a replacement on the server→client
  * write path (an inbound rewrite is meaningless here and is treated as a pass). The replacement is an opaque
- * {@link Object} — the same raw packet type the channel speaks in — so this type carries no packet knowledge.
+ * {@link Object} (the same raw packet type the channel speaks in), so this type carries no packet knowledge.
  */
 public sealed interface PacketVerdict permits PacketVerdict.Pass, PacketVerdict.Cancel, PacketVerdict.Rewrite {
 

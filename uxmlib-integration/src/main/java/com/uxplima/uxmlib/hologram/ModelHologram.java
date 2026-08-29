@@ -6,7 +6,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 /**
- * A spawned hologram backed by a single non-text {@link Display} — an {@code ItemDisplay} showing an
+ * A spawned hologram backed by a single non-text {@link Display}: an {@code ItemDisplay} showing an
  * {@code ItemStack} ({@link ItemHologram}) or a {@code BlockDisplay} showing {@code BlockData}
  * ({@link BlockHologram}). It shares every lifecycle a {@link Hologram} has except the text-specific setter:
  * move, transform, mount, per-viewer visibility and removal all behave identically, so a consumer can hold an
@@ -30,7 +30,7 @@ public interface ModelHologram {
 
     /**
      * Mount the hologram on {@code target} as a passenger so it rides exactly with it (native
-     * {@code addPassenger}). Exact-mount only — for an above-the-head offset, follow with a scheduler task.
+     * {@code addPassenger}). Exact-mount only, for an above-the-head offset, follow with a scheduler task.
      * Returns whether the mount succeeded.
      */
     boolean attachTo(org.bukkit.entity.Entity target);

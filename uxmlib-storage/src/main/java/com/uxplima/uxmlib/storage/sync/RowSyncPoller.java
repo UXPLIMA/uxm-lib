@@ -14,7 +14,7 @@ import com.uxplima.uxmlib.storage.sql.Sql;
 /**
  * The cross-server row-sync engine: on each {@link #pollOnce()} it asks the shared database for the rows a
  * <em>peer</em> changed since this poller last looked, and hands each to a {@link RowSyncListener} to apply
- * locally (refresh or evict the cache entry). It is the app-level alternative to database triggers — portable
+ * locally (refresh or evict the cache entry). It is the app-level alternative to database triggers: portable
  * across dialects because the version/updated-by columns are stamped by the application, not the DB clock.
  *
  * <p>The poll is {@code WHERE version > cursor AND updated_by != nodeId ORDER BY version ASC LIMIT batch}: only

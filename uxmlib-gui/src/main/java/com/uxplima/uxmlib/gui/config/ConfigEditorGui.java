@@ -136,7 +136,7 @@ public final class ConfigEditorGui {
     private static org.bukkit.inventory.ItemStack sectionIcon(String fullPath) {
         return ItemBuilder.of(Material.BOOK)
                 .name(Text.mini("<aqua>" + lastSegment(fullPath)))
-                .lore(Text.mini("<dark_gray>section — click to open"))
+                .lore(Text.mini("<dark_gray>section: click to open"))
                 .build();
     }
 

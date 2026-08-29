@@ -10,7 +10,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Exercises the skip-bad-row load against a real in-memory SQLite database: a mapper that throws on a
- * sentinel row must not abort the whole load — the good rows come back and the bad one is counted, not fatal.
+ * sentinel row must not abort the whole load: the good rows come back and the bad one is counted, not fatal.
  */
 class ResilientLoadTest {
 

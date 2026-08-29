@@ -14,9 +14,9 @@ import org.bukkit.inventory.ItemStack;
  * correct, upgraded {@link ItemStack}. This helper layers two things on top of that read:
  *
  * <ul>
- *   <li>{@link #needsMigration(byte[])} — a pure check over the {@link ItemSerialization} header that says
+ *   <li>{@link #needsMigration(byte[])}: a pure check over the {@link ItemSerialization} header that says
  *       whether a blob predates the running server's data version (and so will be fixed up on read).
- *   <li>{@link #migrate(byte[])} / {@link #migrateItem(byte[])} — deserialize (Paper applies the fix) and
+ *   <li>{@link #migrate(byte[])} / {@link #migrateItem(byte[])}: deserialize (Paper applies the fix) and
  *       re-stamp the result at the current data version, so the upgrade is persisted and the blob no longer
  *       reports as needing migration.
  * </ul>

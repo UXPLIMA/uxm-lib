@@ -12,7 +12,7 @@ import com.uxplima.uxmlib.text.Text;
  * measured against the <em>visible</em> text (tags stripped) while the wrapped output keeps every tag, so
  * colour and formatting survive the split. An explicit {@code \n} always starts a new line.
  *
- * <p>This is a pure string transform with no Bukkit or Adventure rendering — {@link ItemConfig} feeds the
+ * <p>This is a pure string transform with no Bukkit or Adventure rendering: {@link ItemConfig} feeds the
  * wrapped lines through MiniMessage afterwards.
  */
 public final class Lore {

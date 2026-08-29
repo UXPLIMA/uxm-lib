@@ -21,16 +21,16 @@ import org.jspecify.annotations.Nullable;
  * {@link ComposedNametag} and writes it through a {@link NametagSink}.
  *
  * <p>This exists because a player may belong to exactly one scoreboard team. Plugins that each create their
- * own teams therefore overwrite one another — a tag plugin's prefix disappears the moment a glow plugin puts
- * the player in a colour team — and nothing reports it. Composing into one team the registry owns lets a
+ * own teams therefore overwrite one another: a tag plugin's prefix disappears the moment a glow plugin puts
+ * the player in a colour team, and nothing reports it. Composing into one team the registry owns lets a
  * prefix, a suffix and a colour from three plugins live on the same name.
  *
  * <p>A contribution is dropped when the plugin that made it says so: {@link #withdraw(String)} takes back
  * everything one plugin contributed, which is what its {@code onDisable} calls, and the affected names are
  * recomputed at once. {@link #close} hands the server back what it had.
  *
- * <p>Give it a {@link Scheduler} when the display it writes to belongs to a particular thread — a scoreboard
- * does — and every write is routed onto the global region. Without one, writes happen on the calling thread,
+ * <p>Give it a {@link Scheduler} when the display it writes to belongs to a particular thread: a scoreboard
+ * does, and every write is routed onto the global region. Without one, writes happen on the calling thread,
  * which is right for a consumer that already calls from there.
  */
 public final class NametagRegistry {
@@ -143,7 +143,7 @@ public final class NametagRegistry {
 
     /**
      * Say once which plugins wanted this name's colour and which one has it. Two plugins colouring the same
-     * name is not an error — one of them simply cannot win — but silence about it is what turns a settled
+     * name is not an error (one of them simply cannot win), but silence about it is what turns a settled
      * rule into a bug report, so the plugin that lost the colour is named too.
      */
     private void reportClash(String entry, ComposedNametag name) {
@@ -176,7 +176,7 @@ public final class NametagRegistry {
 
     /**
      * A contribution and when it arrived. The map that holds them is keyed by plugin and is unordered by
-     * design — a plugin contributing again must replace what it had — so the arrival number is what is left
+     * design (a plugin contributing again must replace what it had), so the arrival number is what is left
      * to say which colour is the newest. Contributing again takes a fresh number, which is how a plugin
      * re-asserting its colour takes the name back.
      */

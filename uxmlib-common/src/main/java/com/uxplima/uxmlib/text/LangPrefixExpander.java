@@ -9,7 +9,7 @@ import java.util.Objects;
  * prepended in place of the marker; the rest of the template follows.
  *
  * <p>Unknown keys strip the marker and leave the body (validation happens at config-load, so no logging
- * here). Templates without the marker — or with the marker not at the very start — pass through verbatim.
+ * here). Templates without the marker (or with the marker not at the very start) pass through verbatim.
  *
  * <p>The marker is opt-in (rather than always-prepend) so most lines (chat bodies, error toasts) carry no
  * server prefix, while the operator opts the specific lines that should into it.

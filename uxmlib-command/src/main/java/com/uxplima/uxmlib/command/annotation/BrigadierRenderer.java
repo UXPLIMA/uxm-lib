@@ -17,7 +17,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * Walks a {@link CommandModel} and emits the Brigadier {@link LiteralCommandNode} the registrar registers.
  * This is the <em>only</em> class that touches Brigadier builders: the reflective scan produces the model,
- * and this translates model to nodes — building the literal spine innermost-out, nesting positional
+ * and this translates model to nodes: building the literal spine innermost-out, nesting positional
  * arguments innermost-first (an optional one also ends the command so the shorter path dispatches), and
  * ending a flagged branch with one greedy {@link FlagArgumentType} node. Decoupling reflect &rarr; model
  * &rarr; render is what lets flags, server-less tests, and a future second surface target the model.
@@ -100,7 +100,7 @@ final class BrigadierRenderer {
     /**
      * The outermost argument builder of a branch (or {@code null} when it takes no arguments and no flags)
      * and whether the node above it must also end the command (a leading optional argument, or a branch that
-     * is all flags — flags are always optional).
+     * is all flags: flags are always optional).
      */
     private record ArgChain(
             @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> firstArg, boolean prefixExecutable) {}

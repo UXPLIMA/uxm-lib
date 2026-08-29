@@ -76,7 +76,7 @@ public final class Items {
     }
 
     /**
-     * Whether {@code a} and {@code b} carry the same value under a single persistent-data {@code key} — and
+     * Whether {@code a} and {@code b} carry the same value under a single persistent-data {@code key}, and
      * nothing else is compared. Unlike {@link ItemStack#isSimilar(ItemStack)}, material, name, lore and every
      * other key are ignored; this answers "are these the same logical item" when identity lives in one PDC tag
      * (a shop token, a custom-item id). Two items that both lack the key count as similar (both empty).

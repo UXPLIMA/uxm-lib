@@ -45,7 +45,7 @@ class MessageCatalogTest {
     void aRegionLocaleFallsBackToItsLanguageOnlyFile() {
         MessageCatalog catalog = catalog(Map.of(GERMAN, Map.of("join.welcome", "<green>Willkommen")));
 
-        // de_DE is not present, but de is — the region viewer should still get the German text.
+        // de_DE is not present, but de is: the region viewer should still get the German text.
         assertThat(catalog.template(WELCOME, GERMANY)).isEqualTo("<green>Willkommen");
     }
 

@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * {@link Database#adopt} wraps a DataSource the caller owns: queries run on it, but the adopted handle's
- * {@link Database#close()} must not shut the pool down — the owner stays in charge of its lifecycle.
+ * {@link Database#close()} must not shut the pool down: the owner stays in charge of its lifecycle.
  */
 class DatabaseAdoptTest {
 

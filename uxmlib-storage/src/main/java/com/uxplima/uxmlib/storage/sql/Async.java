@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 
 /**
  * Runs blocking storage work on a caller-supplied {@link Executor} and hands back a
- * {@link CompletableFuture}, without {@code CompletableFuture.supplyAsync} — which the project bans
+ * {@link CompletableFuture}, without {@code CompletableFuture.supplyAsync}, which the project bans
  * because it can silently fall back to the common pool. The future completes with the result, or
  * exceptionally if the work throws, so failures propagate instead of being swallowed.
  */

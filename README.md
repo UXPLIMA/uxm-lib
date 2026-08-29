@@ -8,12 +8,12 @@
 [![Folia](https://img.shields.io/badge/Folia-ready-success.svg)](https://docs.papermc.io/folia)
 
 A modern, modular toolkit for writing **Paper 1.21+** plugins on **Java 21**. It bundles the parts every
-plugin ends up re-implementing — inventory GUIs, item building, Brigadier commands, typed config, pooled
+plugin ends up re-implementing: inventory GUIs, item building, Brigadier commands, typed config, pooled
 storage, soft-dependency integrations, HUD overlays, holograms, a notify-only update checker, and a
-config-driven condition/action engine — behind a clean, documented API, so you stop copy-pasting the same
+config-driven condition/action engine, behind a clean, documented API, so you stop copy-pasting the same
 helpers from project to project.
 
-It is built **1.21+ only, on purpose**. No legacy cross-version reflection layers to carry around — just
+It is built **1.21+ only, on purpose**. No legacy cross-version reflection layers to carry around: just
 the current Paper API used the way it is meant to be used, **Folia-ready from line one**, and verified by
 Error Prone, NullAway null-safety, Spotless formatting, ArchUnit architecture rules, and unit tests under
 `-Werror`.
@@ -64,7 +64,7 @@ and depend on it as a normal plugin. Both work.
 
 - **One platform, done well.** Paper 1.21+ and Java 21 only. Every API targets the current server, with no
   reflection machinery to support servers that no longer exist.
-- **Modular.** Each `uxmlib-*` module is published independently — take the GUI framework without the
+- **Modular.** Each `uxmlib-*` module is published independently: take the GUI framework without the
   storage stack, or just the command DSL. Modules never depend "upward", so the graph stays a clean tree.
 - **Folia-ready.** Nothing schedules through `BukkitScheduler`. The library's `Scheduler` abstraction maps
   cleanly onto Paper's global / region / entity / async schedulers, so the same plugin code runs unchanged
@@ -78,7 +78,7 @@ and depend on it as a normal plugin. Both work.
   written from scratch; only neutral infrastructure (HikariCP, Caffeine, Configurate) is taken as a
   dependency. Use it anywhere, including in closed-source plugins.
 - **Native where it can be.** GUIs, holograms, HUD overlays, and toasts use the public Paper/Adventure API
-  — no packets, no per-version NMS — so they keep working across point releases.
+  (no packets, no per-version NMS), so they keep working across point releases.
 
 ## Requirements
 
@@ -88,7 +88,7 @@ and depend on it as a normal plugin. Both work.
 | Java | **21** |
 | Build (consumers) | Gradle or Maven; the modules are plain Maven artifacts |
 
-Adventure, MiniMessage, and Brigadier are provided by Paper at runtime — uxmLib references them at
+Adventure, MiniMessage, and Brigadier are provided by Paper at runtime: uxmLib references them at
 compile time only and never ships them.
 
 ## Modules
@@ -104,12 +104,12 @@ what you use. Modules marked **experimental** are previews with unstable APIs (s
 | `uxmlib-gui` | An inventory-menu framework: simple / paginated / scrolling / storage / typed (hopper, dispenser, …) menus; static, animated, dynamic, and per-viewer stateful items; border/row/column/rect fillers; interaction control; multi-screen navigation; menus defined in HOCON; unified anvil/chat/sign text input; the tile/lore/title/sound side of the style layer; and a facade over Paper's server-side Dialogs. |
 | `uxmlib-command` | A thin facade over Paper's Brigadier (`Cmd`/`Args`/`Sender`/`CommandRegistrar`) **and** an annotation DSL on top of it: `@Command`/`@Subcommand`/`@Arg`, permissions, `@Range`/`@Length`, `@Cooldown`, flags and switches, async execution, help pagination, and resolver/validator/condition SPIs. |
 | `uxmlib-storage` | Plain-JDBC persistence: a HikariCP-pooled `Database` (SQLite default; MySQL/MariaDB, PostgreSQL, H2 opt-in), an injection-safe `SelectBuilder`, parameterised `Sql`/`TxSql`, versioned migrations, a Caffeine-backed write-through / write-behind cache, a two-tier player-profile cache, and cross-server row sync. |
-| `uxmlib-redis` | A low-level binary (`byte[]`) Redis pub/sub bus for fanning an opaque frame across the server nodes sharing one Redis — fail-degraded publish, per-subscription auto-reconnect — with no relational dependencies (Lettuce is a compile-only soft-dependency). |
+| `uxmlib-redis` | A low-level binary (`byte[]`) Redis pub/sub bus for fanning an opaque frame across the server nodes sharing one Redis (fail-degraded publish, per-subscription auto-reconnect), with no relational dependencies (Lettuce is a compile-only soft-dependency). |
 | `uxmlib-integration` | Soft-dependency hooks reached only past a present-guard: PlaceholderAPI (read **and** expansion registration), Vault and VaultUnlocked economy, Vault permissions, LuckPerms, WorldGuard/Towny region queries, a transient advancement-toast API, an online-data lifecycle manager, a dependency-free Discord webhook, and native-`Display` [holograms](#holograms). |
 | `uxmlib-hud` | Adventure-native HUD overlays, all through the public player API: a flicker-free diffing sidebar, title/subtitle, a sticky action bar, boss bars with a mode enum (permanent/filling/countdown/dynamic), tablist header/footer, per-tick text animators, and a nametag registry that composes several plugins' prefixes, suffixes and colours onto the one team a player may belong to. |
 | `uxmlib-update` | A notify-only release update checker (GitHub / Modrinth providers) that compares a build-time version constant against the latest release and surfaces a permission-gated clickable join message. It never self-downloads. |
 | `uxmlib-condition` | A declarative condition engine (operand comparison + placeholder resolution + failure policy) and its natural pair, a config-driven action engine (`[message]`, `[console]`, `[title]`, … parsed once into closures). |
-| `uxmlib-npc` | **Experimental.** A from-scratch, MIT-clean Netty pipeline foundation — channel resolve, idempotent inject/eject, a self-healing reorder watchdog, and a fail-open listener seam. Groundwork for the packet layer; no NPC yet. |
+| `uxmlib-npc` | **Experimental.** A from-scratch, MIT-clean Netty pipeline foundation: channel resolve, idempotent inject/eject, a self-healing reorder watchdog, and a fail-open listener seam. Groundwork for the packet layer; no NPC yet. |
 | `uxmlib-packet` | **Experimental.** The shared Mojang-mapped packet helpers (Adventure→vanilla component conversion, bundling, the stream-codec buffer trick, guarded reflection, entity-id allocation) plus per-viewer tab-list, NPC, and text-display packet ports built on them. |
 | `uxmlib-packet-compat` | **Experimental.** The seam for the few server internals that are not spelled the same on every supported Minecraft line, with one adapter artifact per line (`-mc1_21`, `-mc26`). Pulled in transitively by `uxmlib-packet`; consumers never name it. Together with the build-only recompile check it lives under `platform/`, since those are the only sources tied to a specific server. |
 | `uxmlib-nametags` | **Experimental.** A from-scratch per-viewer nametag renderer (different prefixes/colours/visibility per viewer) over scoreboard-team and metadata packets, without touching the server-side scoreboard. |
@@ -246,8 +246,8 @@ depend:
 The standalone jar registers only the handful of listeners whose behaviour is driven entirely by item
 persistent data; the rest of the library is consumed as an API.
 
-It is a separate artifact from the aggregate you compile against — same module and version, `standalone`
-classifier — because it bundles Configurate, HikariCP and Caffeine under relocated package names. Compiling
+It is a separate artifact from the aggregate you compile against: same module and version, `standalone`
+classifier, because it bundles Configurate, HikariCP and Caffeine under relocated package names. Compiling
 against relocated types would put classes on your compile classpath that no consumer can produce. Grab it
 from the release assets, from Maven, or build it yourself:
 
@@ -316,7 +316,7 @@ Component line = Text.paint(message, config.getString("chat.format-style")); // 
 
 ### Style layer
 
-A palette, the letters an interface is set in, and the tokens a message file writes instead of colours —
+A palette, the letters an interface is set in, and the tokens a message file writes instead of colours,
 so a server changes its whole look by editing one file, and no plugin ships a hex code.
 
 ```java
@@ -330,23 +330,23 @@ messages.reload(styler.style(catalog, MyKeys.values(), files, Locale.ENGLISH));
 // On a /reload, hand the same styler the new palette rather than building a second one:
 styler.reload(Theme.from(reloaded.root()));
 
-// Text a plugin computes has no catalog entry to style at load, so style it per viewer — and ask
+// Text a plugin computes has no catalog entry to style at load, so style it per viewer, and ask
 // Messages which language that viewer is being served rather than reading the player's own locale,
 // or a server that pins one gets catalog text in one language and computed text styled for another.
 Component name = Text.mini(styler.apply(colour.displayName(), messages.localeOf(viewer)));
 ```
 
 `Typography` converts a template to small capitals for the languages the theme says are written that way,
-leaving tags, placeholders and anything inside `<plain>…</plain>` alone — so a translator writes ordinary
+leaving tags, placeholders and anything inside `<plain>…</plain>` alone, so a translator writes ordinary
 words and nothing rewrites the file they work in. `StyleTokens` then turns `<accent>`/`<value>` into the
 theme's colours and `<tag:'HOME'>` into a bold category prefix. Both run once at load, not per message.
 
 Menus draw from the same theme: `MenuTitles.centre` pads a window title into the middle of the frame,
-`Tiles` puts a tile's title on the first lore line under a blank name (a single space — an empty one makes
+`Tiles` puts a tile's title on the first lore line under a blank name (a single space: an empty one makes
 the client fall back to the material's name), `Lore` builds the tooltip in one fixed order, and
 `MenuSounds` reads the three menu sounds from config. Lore an operator wrote in a config file goes through
 `Lore.lines`, which reads every line as body text and gives it the same column, padding and closing air as
-lore built here — so a plugin that ships items never has to write that geometry down as a house rule of its
+lore built here, so a plugin that ships items never has to write that geometry down as a house rule of its
 own. A file that draws its own glyphs and its own margins goes through `Lore.verbatim` instead, which adds
 the padding and the closing air and leaves the geometry alone, so a plugin can still let its buyer write a
 look that is nothing like this one.
@@ -405,7 +405,7 @@ an item a player owns: on a kit sword or a vault icon the damage and enchantment
 
 ### GUIs
 
-Install the framework once in `onEnable`, then build menus fluently. Clicks are cancelled by default — an
+Install the framework once in `onEnable`, then build menus fluently. Clicks are cancelled by default: an
 unconfigured menu can never leak items.
 
 ```java
@@ -477,11 +477,11 @@ CommandRegistrar.register(plugin,
 ```
 
 The annotation layer also covers `@Range`/`@Length` bounds, `@Cooldown` rate limits, `@PlayerOnly`, flags
-and switches, async execution, and paginated help — with SPIs for custom argument resolvers, validators,
+and switches, async execution, and paginated help, with SPIs for custom argument resolvers, validators,
 and conditions.
 
-Everything the command layer says on its own behalf — the refusals, the argument rejections, the whole
-generated help page down to the separator between a command and its description — goes through
+Everything the command layer says on its own behalf: the refusals, the argument rejections, the whole
+generated help page down to the separator between a command and its description, goes through
 `CommandMessages`, so a translated plugin answers each player in that player's own language and paints the
 answer in its own palette:
 
@@ -493,8 +493,8 @@ ParamResolvers resolvers = ParamResolvers.withDefaults()
 AnnotatedCommands.register(plugin, new HomeCommand(), resolvers);
 ```
 
-Each method receives the sender's locale and the *values* — the bad input, the allowed ones, the time left
-— never a finished English sentence, since no other language puts those words in the same order. Every
+Each method receives the sender's locale and the *values*: the bad input, the allowed ones, the time left
+never a finished English sentence, since no other language puts those words in the same order. Every
 method has a default, so a plugin that ignores the seam keeps the English it always had.
 
 The help page is worth overriding even in an English-only plugin: `helpCommand`, `helpSeparator` and
@@ -503,7 +503,7 @@ style pass over a plugin's own resources can see it.
 
 ### Configuration
 
-Typed configuration over Configurate (HOCON) — config is data with IDE support, not string-keyed lookups.
+Typed configuration over Configurate (HOCON): config is data with IDE support, not string-keyed lookups.
 
 ```java
 HoconConfig config = HoconConfig.load(dataFolder.resolve("config.conf"));
@@ -520,7 +520,7 @@ config.reload();
 RecordConfig<Settings> settings =
         new RecordConfig<>(dataFolder.resolve("settings.conf"), Settings.class, Settings::new);
 
-Settings current = settings.current();   // cached snapshot — cheap on the hot path
+Settings current = settings.current();   // cached snapshot: cheap on the hot path
 settings.reload();                        // swaps in the new value, or keeps the prior one on a parse error
 ```
 
@@ -545,7 +545,7 @@ List<String> leaders = sql.query(top, row -> row.getString("uuid"));
 ```
 
 Switch to a network backend by giving the builder a JDBC URL and credentials (`jdbcUrl(...)`,
-`username(...)`, `password(...)`) and adding the matching driver — MariaDB/MySQL, PostgreSQL, and H2 are
+`username(...)`, `password(...)`) and adding the matching driver: MariaDB/MySQL, PostgreSQL, and H2 are
 opt-in. The URL decides the backend: hand `jdbcUrl(...)` a `jdbc:sqlite:` file and you get the same
 single-writer pool, WAL journal and lock timeout `sqlite(...)` gives you, so exposing one `jdbc-url` setting
 to your operators is safe whichever backend they point it at. Higher-level helpers add a write-through / write-behind cache, a two-tier player-profile cache, and
@@ -563,7 +563,7 @@ EconomyBridge.orDummy().deposit(player, 100);
 // Permissions / ranks via LuckPerms, present-guarded:
 LuckPermsHook.find().flatMap(lp -> lp.prefix(player)).ifPresent(prefix -> applyPrefix(prefix));
 
-// PlaceholderAPI — a no-op pass-through without PlaceholderAPI installed:
+// PlaceholderAPI: a no-op pass-through without PlaceholderAPI installed:
 String text = Placeholders.apply(player, "Hi %player_name%");
 
 // Region queries against WorldGuard or Towny behind one provider-agnostic contract:
@@ -588,8 +588,8 @@ The PlaceholderAPI integration also has a write side: register a `PlaceholderPro
 
 ### Holograms
 
-Holograms are built on native 1.21+ `Display` entities (Text / Item / Block) — no packets, no per-version
-NMS — and managed for you so visibility, per-viewer content, and cleanup are handled automatically.
+Holograms are built on native 1.21+ `Display` entities (Text / Item / Block): no packets, no per-version
+NMS, and managed for you so visibility, per-viewer content, and cleanup are handled automatically.
 
 ```java
 HologramManager holograms = new HologramManager();
@@ -610,7 +610,7 @@ a Mojang skin resolver for player-head displays, and holograms defined in HOCON.
 
 ### HUD overlays
 
-Adventure-native overlays delivered through Paper's own player API — no packets, no NMS.
+Adventure-native overlays delivered through Paper's own player API: no packets, no NMS.
 
 ```java
 // Flicker-free sidebar: only the lines that actually changed are re-sent.
@@ -645,7 +645,7 @@ nametags.contribute(player, NametagContribution.color("uxmGlow", priorityFromCon
 nametags.withdraw("uxmTags"); // onDisable: take back only your own parts
 ```
 
-Prefixes and suffixes compose in priority order — smaller is earlier — and priority decides layout only.
+Prefixes and suffixes compose in priority order (smaller is earlier), and priority decides layout only.
 The name has a single colour and it belongs to whichever plugin asked for it last, so a glow a player just
 switched on wins over a rank tag that has sat leftmost all session; every claimant is named once in the log.
 Read your priority from your own config: which of two plugins comes first is an operator's decision. A team
@@ -653,7 +653,7 @@ uxmLib did not create is never touched, so a third-party plugin managing its own
 
 ### Conditions & actions
 
-A config-driven gate plus a config-driven action list — both parsed once and run many times.
+A config-driven gate plus a config-driven action list: both parsed once and run many times.
 
 ```java
 // Resolve %...% through an injected resolver, compare, and collect a failure message:
@@ -672,7 +672,7 @@ ActionList.parse(List.of(
 
 `uxmlib-redis` is a lean binary pub/sub primitive for fanning a message across the nodes sharing one Redis,
 with no relational dependencies. For cache invalidation tied to the storage stack, `uxmlib-storage` builds
-its `DataSynchronizer` on the same idea — a `LocalDataSynchronizer` single-node default that a
+its `DataSynchronizer` on the same idea: a `LocalDataSynchronizer` single-node default that a
 `RedisDataSynchronizer` bridges across nodes when Redis is configured.
 
 ```java
@@ -696,7 +696,7 @@ new UpdateNotifier(plugin, scheduler, checker, "yourplugin.update.notify")
 ### Experimental: packet layer
 
 `uxmlib-npc`, `uxmlib-packet`, and `uxmlib-nametags` are an in-progress, **clean-room** packet foundation
-for the things the public API cannot do per viewer — different nametag colours, tab-list rows, or holograms
+for the things the public API cannot do per viewer: different nametag colours, tab-list rows, or holograms
 for different players. PacketEvents (the off-the-shelf choice) is GPL, so none of it is borrowed; the Netty
 plumbing is re-implemented for Paper 1.21+ and the unavoidable NMS is quarantined to single, named classes
 behind pure ports built against the Mojang-mapped dev bundle.
@@ -744,17 +744,17 @@ they graduate. Pre-1.0 (`0.x`) releases may still adjust APIs between minor vers
 
 Issues and pull requests are welcome. The workflow is test-first: add a failing test, write the minimum
 implementation, run `./gradlew spotlessApply` then `./gradlew build` green before committing. Keep to the
-existing conventions — `@NullMarked` packages, constructor injection, no upward module dependencies, and
+existing conventions: `@NullMarked` packages, constructor injection, no upward module dependencies, and
 Adventure/MiniMessage for all text.
 
 ## License
 
-[MIT](LICENSE) — © UXPLIMA. Use it anywhere, including in closed-source plugins.
+[MIT](LICENSE): © UXPLIMA. Use it anywhere, including in closed-source plugins.
 
 ## Acknowledgements
 
 uxmLib is an independent, clean-room implementation. Where a permissively licensed project informed an
-approach — Triumph GUI and AnvilGUI (menu and anvil-input patterns), Item-NBT-API and Rtag (item data),
+approach: Triumph GUI and AnvilGUI (menu and anvil-input patterns), Item-NBT-API and Rtag (item data),
 Lamp (command annotations), HamsterAPI (the pipeline-injection technique), and FancyHolograms (the
-per-viewer text-override approach) — it is acknowledged here. No code is copied from any GPL/AGPL or
+per-viewer text-override approach), it is acknowledged here. No code is copied from any GPL/AGPL or
 proprietary source.

@@ -160,7 +160,7 @@ class AsyncClickTest {
         RecordingScheduler scheduler = new RecordingScheduler();
 
         AsyncClick.dispatch(action, gui, event, scheduler, icon, t -> {});
-        assertThat(ran[0]).isFalse(); // nothing applied yet — the future is still pending
+        assertThat(ran[0]).isFalse(); // nothing applied yet: the future is still pending
         pending.complete(List.of(GuiResponse.run(() -> ran[0] = true)));
 
         assertThat(ran[0]).isTrue();

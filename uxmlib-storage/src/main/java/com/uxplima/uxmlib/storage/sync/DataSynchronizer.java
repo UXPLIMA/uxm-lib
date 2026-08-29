@@ -3,7 +3,7 @@ package com.uxplima.uxmlib.storage.sync;
 import java.util.function.Consumer;
 
 /**
- * A publish/subscribe SPI for cross-server coordination — chiefly cache invalidation ("user 42 changed,
+ * A publish/subscribe SPI for cross-server coordination: chiefly cache invalidation ("user 42 changed,
  * drop your copy") and small fan-out events between server nodes that share a backend.
  *
  * <p>A message is a plain {@link String}; the caller chooses the encoding (an id, a small JSON blob, a

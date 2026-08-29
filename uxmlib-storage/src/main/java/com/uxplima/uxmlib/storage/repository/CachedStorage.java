@@ -84,7 +84,7 @@ public final class CachedStorage<I, T> {
         cache.remove(Objects.requireNonNull(id, "id"));
     }
 
-    /** Save {@code id} if loaded, then drop it from the cache — the save-on-quit step. */
+    /** Save {@code id} if loaded, then drop it from the cache: the save-on-quit step. */
     public void saveAndInvalidate(I id) {
         Objects.requireNonNull(id, "id");
         T entity = cache.remove(id);

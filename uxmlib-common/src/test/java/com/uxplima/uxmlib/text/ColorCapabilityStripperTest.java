@@ -87,7 +87,7 @@ class ColorCapabilityStripperTest {
 
     @Test
     void unknown_tag_left_alone() {
-        // Click events / placeholders / reset are non-styling — leave untouched
+        // Click events / placeholders / reset are non-styling: leave untouched
         // so operators using <click:open_url:...> in admin formats don't get
         // their tags stripped just because the player has no colour rights.
         assertThat(ColorCapabilityStripper.strip("<reset>x<click:run_command:/foo>y</click>", NONE))
@@ -104,7 +104,7 @@ class ColorCapabilityStripperTest {
         assertThat(ColorCapabilityStripper.strip("", NONE)).isEqualTo("");
     }
 
-    // P16 #24 — extracted leading-colour predicate shared with ChatColorApplier.
+    // P16 #24: extracted leading-colour predicate shared with ChatColorApplier.
     @Test
     void starts_with_colour_tag_true_for_named_hex_gradient_rainbow() {
         assertThat(ColorCapabilityStripper.startsWithColourTag("<red>hi")).isTrue();

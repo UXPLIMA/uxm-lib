@@ -10,11 +10,11 @@ import org.bukkit.entity.Entity;
  * Folia-ready task scheduling. Each family of methods targets one of Paper's schedulers:
  *
  * <ul>
- *   <li><b>global</b> — the global region (world-wide state: time, weather).</li>
- *   <li><b>region</b> — the region owning a {@link Location} (block and world edits there).</li>
- *   <li><b>entity</b> — the region currently owning an {@link Entity} (follows it across region hops);
+ *   <li><b>global</b>: the global region (world-wide state: time, weather).</li>
+ *   <li><b>region</b>: the region owning a {@link Location} (block and world edits there).</li>
+ *   <li><b>entity</b>: the region currently owning an {@link Entity} (follows it across region hops);
  *       the task is silently dropped if the entity has been removed.</li>
- *   <li><b>async</b> — off the main threads entirely (I/O, network); never touch the Bukkit API here.</li>
+ *   <li><b>async</b>: off the main threads entirely (I/O, network); never touch the Bukkit API here.</li>
  * </ul>
  *
  * <p>Every method returns a {@link TaskHandle} for cancellation. Timer variants hand the task its own

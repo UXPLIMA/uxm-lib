@@ -29,7 +29,7 @@ import com.uxplima.uxmlib.storage.StorageException;
  * {@code file:} URL an IDE or test run sees) and inside a jar (the {@code jar:} URL a shaded plugin sees at
  * runtime), so the same call works in development and in production.
  *
- * <p>Dialect-specific overrides are expressed with two directories — a generic one plus a backend one — and
+ * <p>Dialect-specific overrides are expressed with two directories (a generic one plus a backend one), and
  * {@link #overlay(List, List)} merges them so the backend file wins for any version it redefines:
  *
  * <pre>{@code
@@ -50,7 +50,7 @@ public final class MigrationResources {
      * two files declaring the same version is an error.
      *
      * <p>An empty list means nothing was found, which for your main migration directory is a packaging
-     * problem rather than a state to run with — the resources did not reach the jar, or they landed under a
+     * problem rather than a state to run with: the resources did not reach the jar, or they landed under a
      * different path. {@link MigrationRunner#apply(List)} cannot tell the two apart and reports zero applied,
      * so a caller that reads its own schema off the classpath should refuse to start on an empty list rather
      * than let the first query be the thing that fails.

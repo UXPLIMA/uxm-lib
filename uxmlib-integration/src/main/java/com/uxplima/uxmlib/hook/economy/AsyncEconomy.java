@@ -11,7 +11,7 @@ import com.uxplima.uxmlib.scheduler.Scheduler;
 /**
  * An async port over an {@link EconomyBridge}: balance reads and deposits/withdrawals can block on the
  * backing economy plugin, so this runs each call on {@link Scheduler#async} and hands back a
- * {@link CompletableFuture}. It mirrors the storage module's async port — work is submitted through the
+ * {@link CompletableFuture}. It mirrors the storage module's async port: work is submitted through the
  * injected {@code Scheduler}, never {@code CompletableFuture.supplyAsync} (which can silently fall back to
  * the common pool and is not Folia-correct). The future completes with the result, or exceptionally if the
  * underlying call throws, so failures propagate instead of being swallowed.

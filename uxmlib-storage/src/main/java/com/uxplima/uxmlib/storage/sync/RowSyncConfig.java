@@ -9,20 +9,20 @@ import java.util.regex.Pattern;
  * works if the table carries two extra, application-stamped columns:
  *
  * <ul>
- *   <li>a <b>version</b> column — a monotonically increasing {@code long} the writer bumps on every change
+ *   <li>a <b>version</b> column: a monotonically increasing {@code long} the writer bumps on every change
  *       (a logical clock or {@code System.currentTimeMillis()}); the poller seeks on {@code version > cursor}
  *       to find what a peer touched since it last looked;</li>
- *   <li>an <b>updated-by</b> column — the id of the node that last wrote the row, so a node can skip the
+ *   <li>an <b>updated-by</b> column: the id of the node that last wrote the row, so a node can skip the
  *       changes it made itself ({@code updated_by != nodeId}) and never echo its own writes back into cache.</li>
  * </ul>
  *
- * <p>The columns are <em>stamped by the application</em>, not by a database trigger or {@code CURRENT_TIMESTAMP}
- * — that keeps the mechanism portable across SQLite/H2/MySQL/Postgres rather than tied to one dialect's clock.
+ * <p>The columns are <em>stamped by the application</em>, not by a database trigger or {@code CURRENT_TIMESTAMP}:
+ * that keeps the mechanism portable across SQLite/H2/MySQL/Postgres rather than tied to one dialect's clock.
  * Wire the version/updated-by bump into your own write path; this type only describes where to read them.
  *
  * <p>All four column names and the node id are required; {@link #batchLimit()} caps how many changed rows a
  * single poll applies (the remainder follow on the next tick) and {@link #startCursor()} sets the version a
- * fresh poller begins above (default {@code 0} — apply everything once on first run).
+ * fresh poller begins above (default {@code 0}: apply everything once on first run).
  */
 public final class RowSyncConfig {
 

@@ -16,17 +16,17 @@ import org.jspecify.annotations.Nullable;
  * parameter list:
  *
  * <ul>
- *   <li>the <b>target</b> {@link Audience} — where {@code [message]}/{@code [actionbar]}/{@code [title]}/
- *       {@code [sound]} land — and the optional subject {@link Player} a {@code [close]} acts on;
- *   <li>a <b>broadcast</b> {@link Audience} — every recipient a {@code [broadcast]} reaches (production passes
+ *   <li>the <b>target</b> {@link Audience}: where {@code [message]}/{@code [actionbar]}/{@code [title]}/
+ *       {@code [sound]} land, and the optional subject {@link Player} a {@code [close]} acts on;
+ *   <li>a <b>broadcast</b> {@link Audience}: every recipient a {@code [broadcast]} reaches (production passes
  *       the server);
- *   <li>two {@link CommandSink}s — one dispatching as the console, one as the target player;
+ *   <li>two {@link CommandSink}s: one dispatching as the console, one as the target player;
  *   <li>the injected {@link OperandResolver}, reused from the condition module, that turns a placeholder
  *       template (such as {@code "%player_name%"}) into a concrete string against the subject player.
  * </ul>
  *
  * <p>Every part is optional with a safe default (an empty audience, a no-op command sink, the identity
- * resolver), so an action never has to null-check the context — an effect with no target is simply a no-op.
+ * resolver), so an action never has to null-check the context: an effect with no target is simply a no-op.
  */
 public final class ActionContext {
 

@@ -30,7 +30,7 @@ import com.uxplima.uxmlib.text.style.Theme;
  * <p>The structure is here and the words are in the message catalog, which is the split that matters: a
  * translator moves every word and can move none of the shape, so no tile ships without its breadcrumb, its
  * description header or its click line. The glyphs are structure rather than words, so they do not belong in
- * the catalog either — they come from the {@link Theme}, where a server can change them.
+ * the catalog either: they come from the {@link Theme}, where a server can change them.
  *
  * <p>Blocks are separated by a blank line, and a block a caller never fills in takes no space. A description
  * a translator wrote over several lines is broken again here, so the line breaks are theirs.
@@ -81,7 +81,7 @@ public final class Lore {
     }
 
     /**
-     * A block of body lines that were written somewhere other than here — an item's lore in a config file,
+     * A block of body lines that were written somewhere other than here: an item's lore in a config file,
      * say. Every line is treated as body text: it goes in the column a header's words start in, gets the pad
      * either side, and takes the blank line {@link #build()} closes the box with. A blank line in the middle
      * stays a blank line; blank lines at either end are dropped, because the air around the block is this
@@ -123,7 +123,7 @@ public final class Lore {
      * <p>This is what a plugin sold to someone else needs. A customer who wants a lore that is not this
      * tile shape at all should be able to write one, and a library that indents every line for them has
      * taken that away. Blank lines at either end are dropped and a blank line in the middle is one space,
-     * which is the only thing here that is not left as written — a tooltip cannot tell the difference, and
+     * which is the only thing here that is not left as written: a tooltip cannot tell the difference, and
      * it keeps a blank line the same width wherever it came from.
      */
     public Lore verbatim(List<Component> written) {
@@ -171,8 +171,8 @@ public final class Lore {
     }
 
     /**
-     * The click block, which closes the tile and names what a click does. A tile that answers two clicks — a
-     * plain one and a shift one, say — writes them on two lines of the same catalog entry, so they stay one
+     * The click block, which closes the tile and names what a click does. A tile that answers two clicks: a
+     * plain one and a shift one, say, writes them on two lines of the same catalog entry, so they stay one
      * block of air rather than two.
      */
     public Lore action(Component action) {

@@ -20,13 +20,13 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Anchoring is by handler <em>name</em>, not index: our duplex handler is added immediately after the
  * vanilla {@code "decoder"} (so it sees fully-formed packet objects in both directions) under a stable name
- * derived from {@code handlerName}. Every pipeline mutation is idempotent — a re-inject that finds the
- * handler already present is a no-op, and an eject that finds it gone is silent — so join/quit/reorder
+ * derived from {@code handlerName}. Every pipeline mutation is idempotent: a re-inject that finds the
+ * handler already present is a no-op, and an eject that finds it gone is silent, so join/quit/reorder
  * choreography can call these freely without double-add or double-remove crashes.
  *
  * <p>This class performs no scheduling itself; the inject-on-join / delayed-reorder choreography belongs to
  * the caller (via the library {@code Scheduler}), keeping this class a pure pipeline mutator that is easy to
- * reason about. It never throws on a missing channel — a player whose channel cannot be resolved (e.g. a mock
+ * reason about. It never throws on a missing channel: a player whose channel cannot be resolved (e.g. a mock
  * player under test) simply yields {@code false} from {@link #inject} / {@link #isInjected}.
  */
 public class PacketPipeline {
@@ -137,12 +137,12 @@ public class PacketPipeline {
 
     /**
      * Move our handler back to directly after the anchor. Because {@link PacketInterceptor} is intentionally
-     * not {@code @Sharable}, Netty forbids re-adding any instance that has ever been added — and a non-sharable
+     * not {@code @Sharable}, Netty forbids re-adding any instance that has ever been added, and a non-sharable
      * handler is even poisoned by a failed add (its multiplicity check runs before the anchor lookup throws).
      * So every add attempt uses a brand-new {@link PacketInterceptor#freshCopy() copy}.
      *
-     * <p>The move is non-atomic (remove then re-add), so if the anchor vanishes in the gap — another plugin
-     * mutating the pipeline concurrently — the re-add at the anchor fails. We must never leave the handler
+     * <p>The move is non-atomic (remove then re-add), so if the anchor vanishes in the gap: another plugin
+     * mutating the pipeline concurrently, the re-add at the anchor fails. We must never leave the handler
      * dropped: on that failure we splice a fresh copy at the tail so interception stays active rather than
      * silently disabled.
      */

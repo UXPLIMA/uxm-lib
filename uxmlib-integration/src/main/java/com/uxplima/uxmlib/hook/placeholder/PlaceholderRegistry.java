@@ -47,7 +47,7 @@ public final class PlaceholderRegistry {
     }
 
     /**
-     * Resolve the part of a {@code %uxm_...%} placeholder after the {@code uxm_} root — i.e. an identifier of
+     * Resolve the part of a {@code %uxm_...%} placeholder after the {@code uxm_} root: i.e. an identifier of
      * the form {@code <prefix>_<params>} (or just {@code <prefix>}). Returns the provider's value, an empty
      * string if the provider returns {@code null} or throws, or {@code null} when no prefix matches so
      * PlaceholderAPI falls through to other expansions.

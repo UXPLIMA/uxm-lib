@@ -83,7 +83,7 @@ public final class BossBarManager {
 
     /**
      * One-call live countdown: the title is a MiniMessage template carrying a {@code <time>} (or
-     * {@code <auto_time_left>}) tag — for example {@code "<red>Ends in <time>"} — which re-renders every tick
+     * {@code <auto_time_left>}) tag (for example {@code "<red>Ends in <time>"}), which re-renders every tick
      * to show the remaining time formatted through uxmlib {@code Durations}. The bar drains from full to empty
      * over {@code duration} and hides itself at zero. Returns the live {@link BossBar} so callers can restyle
      * it.

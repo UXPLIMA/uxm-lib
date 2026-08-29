@@ -24,7 +24,7 @@ import com.uxplima.uxmlib.common.ServerVersion;
 /**
  * A fluent facade for a Paper server-side {@code Dialog} that carries a single line of text input (added in
  * Minecraft 1.21.6). It is the sibling of {@link DialogScreen}: where that shows a notice or a yes / no
- * confirmation, this prompts the player to type one value — a warp name, a description, a password — and
+ * confirmation, this prompts the player to type one value (a warp name, a description, a password), and
  * hands the typed line to a callback, so a consumer can ask for text through the native dialog instead of an
  * anvil or a sign. Create one with {@link #create}, tune the field with the fluent setters, then
  * {@link #prompt(Player, Consumer, Runnable)} it.
@@ -33,8 +33,8 @@ import com.uxplima.uxmlib.common.ServerVersion;
  * runs {@code onSubmit} with the typed line; pressing cancel runs {@code onCancel}. Closing the dialog with
  * the escape key dismisses it without running either callback.
  *
- * <p><strong>Threading.</strong> Paper delivers the dialog action on the main server thread — the same
- * thread every other dialog button callback runs on — so {@code onSubmit} and {@code onCancel} run there.
+ * <p><strong>Threading.</strong> Paper delivers the dialog action on the main server thread: the same
+ * thread every other dialog button callback runs on, so {@code onSubmit} and {@code onCancel} run there.
  * This facade never schedules; the consumer decides threading. Do not block the callback; hop to async
  * yourself for any I/O the typed value drives.
  *

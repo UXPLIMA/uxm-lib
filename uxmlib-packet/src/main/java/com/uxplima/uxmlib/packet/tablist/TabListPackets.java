@@ -9,7 +9,7 @@ import net.kyori.adventure.text.Component;
 
 /**
  * The seam between pure tab-list logic and the NMS packet construction. Every packet crosses this boundary as
- * an opaque {@link Object}, so this interface — and everything that depends on it — carries no
+ * an opaque {@link Object}, so this interface (and everything that depends on it) carries no
  * {@code net.minecraft} reference and stays unit-testable against a fake. The single implementation that builds
  * real {@code ClientboundPlayerInfoUpdatePacket}/{@code ClientboundPlayerInfoRemovePacket} packets against the
  * Mojang-mapped dev bundle lives behind this port in {@code tablist.internal}.
@@ -22,7 +22,7 @@ import net.kyori.adventure.text.Component;
 public interface TabListPackets {
 
     /**
-     * Build an add-or-update packet that introduces a fully-controlled {@link TabEntry} — profile (with the
+     * Build an add-or-update packet that introduces a fully-controlled {@link TabEntry}: profile (with the
      * skin when present), listed, display name, and list order. Use this for an entry you own; you would not
      * re-add a real online player this way.
      */

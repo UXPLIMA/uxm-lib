@@ -14,7 +14,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Guards fake-player profile construction against the immutable-property-map trap. authlib's two-argument
  * {@code GameProfile(id, name)} constructor seats an immutable property map, so attaching the skin afterwards
- * with {@code profile.properties().put("textures", ...)} throws {@link UnsupportedOperationException} at spawn —
+ * with {@code profile.properties().put("textures", ...)} throws {@link UnsupportedOperationException} at spawn:
  * the NPC body and the tab-list skin then silently never render, a failure that surfaces only in a running
  * server's log. Profiles must instead be built through {@link GameProfiles}, which seats a mutable map before
  * construction. The packet layer cannot exercise the real authlib classes under unit test (the Mojang-mapped

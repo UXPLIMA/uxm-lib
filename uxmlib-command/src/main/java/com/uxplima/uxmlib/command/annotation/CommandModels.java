@@ -15,7 +15,7 @@ import com.uxplima.uxmlib.command.annotation.annotations.Subcommand;
 import com.uxplima.uxmlib.command.annotation.annotations.Switch;
 
 /**
- * The reflective scan: reads an {@code @}{@link Command} handler into a {@link CommandModel} — the
+ * The reflective scan: reads an {@code @}{@link Command} handler into a {@link CommandModel}: the
  * platform-neutral IR a renderer walks. Each {@code @}{@link Subcommand} method becomes a {@link BranchModel}
  * carrying its literal path, permission, ordered positional {@code @}{@link Arg}s and {@code @}{@link
  * Flag}/{@code @}{@link Switch} entries. Malformed handlers (an unsupported argument type, a required

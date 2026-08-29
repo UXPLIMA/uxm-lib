@@ -77,7 +77,7 @@ class PaginatedGuiTest {
 
     @Test
     void staticDecorationOverridesPaginatedContentInTheSameSlot() {
-        // Slots 0..2 are content; pin a decoration into slot 1 and it must win — page items flow around it.
+        // Slots 0..2 are content; pin a decoration into slot 1 and it must win: page items flow around it.
         PaginatedGui gui =
                 Guis.paginated().rows(1).contentSlots(List.of(0, 1, 2)).build();
         ItemStack decoration = new ItemStack(Material.BARRIER);

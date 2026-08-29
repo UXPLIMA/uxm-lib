@@ -18,10 +18,10 @@ import com.uxplima.uxmlib.gui.ScrollingGui;
  * behave differently for each player:
  *
  * <ul>
- *   <li>{@link Static} — one fixed icon and action for everyone (the common case).</li>
- *   <li>{@link Dynamic} — the icon is computed from the viewer's {@link RenderContext} at render time.</li>
- *   <li>{@link Stateful} — the first of several named states whose condition matches the viewer wins.</li>
- *   <li>{@link Animated} — cycles through frames on a timer while the menu is open.</li>
+ *   <li>{@link Static}: one fixed icon and action for everyone (the common case).</li>
+ *   <li>{@link Dynamic}: the icon is computed from the viewer's {@link RenderContext} at render time.</li>
+ *   <li>{@link Stateful}: the first of several named states whose condition matches the viewer wins.</li>
+ *   <li>{@link Animated}: cycles through frames on a timer while the menu is open.</li>
  * </ul>
  *
  * <p>Most callers use the factories ({@link #button}, {@link #display}, {@link #dynamic}); the menu
@@ -29,7 +29,7 @@ import com.uxplima.uxmlib.gui.ScrollingGui;
  *
  * <p>A {@link Static} item shows the same icon to everyone and a menu of only static items can be shared
  * by many viewers. {@link Dynamic}, {@link Stateful}, and {@link Animated} resolve per viewer, so a menu
- * containing them is single-viewer — open one instance per player (see {@link Gui}).
+ * containing them is single-viewer: open one instance per player (see {@link Gui}).
  */
 public sealed interface GuiItem permits GuiItem.Static, GuiItem.Dynamic, GuiItem.Stateful, GuiItem.Animated {
 

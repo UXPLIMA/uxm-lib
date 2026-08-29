@@ -64,7 +64,7 @@ public final class ActionBarManager {
 
     /**
      * A sticky countdown line: {@code titleTemplate} is a MiniMessage template carrying a {@code <time>} (or
-     * {@code <auto_time_left>}) tag — for example {@code "<gray>Closing in <time>"} — re-rendered on every
+     * {@code <auto_time_left>}) tag (for example {@code "<gray>Closing in <time>"}) re-rendered on every
      * re-send to show the remaining time formatted through uxmlib {@code Durations}. The line lapses when
      * {@code duration} runs out.
      *

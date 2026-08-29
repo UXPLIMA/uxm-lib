@@ -3,7 +3,7 @@ package com.uxplima.uxmlib.npc;
 /**
  * The interception seam. A listener inspects a raw packet object (an opaque {@link Object}: this foundation
  * does not yet decode packets into typed wrappers) flowing through a player's connection channel and decides
- * whether to {@link PacketAction#PASS} or {@link PacketAction#CANCEL} it — or, on the outbound path, to
+ * whether to {@link PacketAction#PASS} or {@link PacketAction#CANCEL} it, or, on the outbound path, to
  * <em>rewrite</em> it (see {@link #onSendVerdict}).
  *
  * <p>Both callbacks run on a <b>Netty I/O thread</b>, never the main server thread. Implementations must not
@@ -15,7 +15,7 @@ package com.uxplima.uxmlib.npc;
  * cares about.
  *
  * <p><strong>Pass/cancel vs rewrite.</strong> The two {@code on*} methods are the original pass/cancel seam and
- * stay the way listeners declare a verdict that only passes or cancels — the registry calls {@link #onSendVerdict}
+ * stay the way listeners declare a verdict that only passes or cancels: the registry calls {@link #onSendVerdict}
  * /{@link #onReceiveVerdict}, which by default delegate to them, so a listener implemented only against
  * {@code onSend}/{@code onReceive} behaves exactly as before. A listener that wants to <em>replace</em> an
  * outbound packet overrides {@link #onSendVerdict} and returns {@link PacketVerdict#rewrite(Object)}; everything

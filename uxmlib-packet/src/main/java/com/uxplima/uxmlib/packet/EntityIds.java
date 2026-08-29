@@ -33,7 +33,7 @@ public final class EntityIds {
      * The next free entity id, asked of {@code world}. Prefer this over {@link #next()} when the caller already
      * knows the world the fake entity will be shown in: on lines that track ids per level, the server skips ids
      * that world is already using. Where the counter is one static shared by every world, the argument makes no
-     * difference to the id handed back — see {@link ServerCompat#nextEntityId}.
+     * difference to the id handed back: see {@link ServerCompat#nextEntityId}.
      */
     public static int next(World world) {
         Objects.requireNonNull(world, "world");

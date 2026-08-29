@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
 import org.spongepowered.configurate.CommentedConfigurationNode;
 import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 
-/** Pure tests of building a hologram spec from a HOCON config node — no server. */
+/** Pure tests of building a hologram spec from a HOCON config node: no server. */
 class HologramConfigTest {
 
     private static CommentedConfigurationNode parse(String hocon) throws Exception {

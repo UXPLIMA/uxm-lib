@@ -30,7 +30,7 @@ import org.mockito.ArgumentCaptor;
  * End-to-end proof that a registry's {@link CommandMessages} reaches every line the command layer says on
  * its own behalf. Commands are dispatched through Brigadier's own dispatcher over the built node, so no live
  * server is needed, and the reply the sender receives is captured and compared against the wording the
- * registry was given — not against the library's English.
+ * registry was given, not against the library's English.
  */
 class CommandMessagesDispatchTest {
 

@@ -23,7 +23,7 @@ import org.spongepowered.configurate.serialize.SerializationException;
  * {@link ItemStack}. Splitting the parse from the build buys two things the bare {@link ItemStack} could
  * not give: a state variant can be {@linkplain #combine overlaid} on a base icon so only the fields that
  * differ are repeated in config, and the display text can be drawn from a lang file by key rather than
- * inlined — a {@code name-key} or {@code lore-key} is resolved through an {@link MessageCatalog} at build
+ * inlined: a {@code name-key} or {@code lore-key} is resolved through an {@link MessageCatalog} at build
  * time, keeping translation separate from the menu layout.
  *
  * <p>Every field is nullable and means "unspecified" when absent, so {@link #combine} can tell a value the
@@ -42,7 +42,7 @@ public record IconOptions(
         lore = lore == null ? null : List.copyOf(lore);
     }
 
-    /** An empty options object — every field unspecified — for callers that build one up by combining. */
+    /** An empty options object (every field unspecified), for callers that build one up by combining. */
     public static IconOptions empty() {
         return new IconOptions(null, null, null, null, null, null);
     }
@@ -115,7 +115,7 @@ public record IconOptions(
     private @Nullable Component resolveName(@Nullable MessageCatalog catalog, Locale locale) {
         if (nameKey != null && catalog != null) {
             // The key path is the last-resort default, so an untranslated key shows the path rather than
-            // throwing (MessageKey rejects a blank default) — a visible "missing translation" cue in game.
+            // throwing (MessageKey rejects a blank default): a visible "missing translation" cue in game.
             return Text.mini(catalog.template(MessageKey.of(nameKey, nameKey), locale));
         }
         return name == null ? null : Text.mini(name);

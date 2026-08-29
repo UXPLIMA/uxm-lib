@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
  * it is even sent, and a server-side validator re-checks the resolved value as defence in depth (a crafted
  * packet or a non-Brigadier dispatch path cannot slip past). Applies to {@code int}/{@code long}/
  * {@code double}/{@code float} parameters; ignored on other types. Prefer this over {@code @Arg(min=, max=)}
- * for new code — the older inline bounds remain as a thin alias.
+ * for new code: the older inline bounds remain as a thin alias.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.PARAMETER)

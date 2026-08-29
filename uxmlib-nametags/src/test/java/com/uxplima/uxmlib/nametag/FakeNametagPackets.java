@@ -12,7 +12,7 @@ import org.joml.Vector3f;
 
 /**
  * A recording fake of {@link NametagPackets}. Every packet is a small sentinel record, so a test can assert
- * the structure of what was built and — through {@link #sends} — which recipient each packet reached. Entity
+ * the structure of what was built and (through {@link #sends}), which recipient each packet reached. Entity
  * ids are handed out from a counter so a test can check id stability across updates.
  */
 final class FakeNametagPackets implements NametagPackets {

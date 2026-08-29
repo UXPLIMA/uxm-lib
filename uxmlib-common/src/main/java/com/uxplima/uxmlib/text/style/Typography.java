@@ -14,7 +14,7 @@ import java.util.Objects;
  * command, an id, a URL. Both markers are removed here, because typography is the only thing they mean and
  * nothing further along the chain has to know about them.
  *
- * <p>A value a player supplies — a name, a world, a nickname — is inserted after the template is parsed, so
+ * <p>A value a player supplies (a name, a world, a nickname) is inserted after the template is parsed, so
  * it never reaches this pass and is always shown as they wrote it.
  */
 public final class Typography {

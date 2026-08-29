@@ -17,7 +17,7 @@ import org.jspecify.annotations.Nullable;
  * <p>The library's shared Caffeine cache lives in {@code uxmlib-storage}; pulling that module in just for a
  * skin lookup would be a heavy, one-directional dependency, so this hand-rolled cache keeps the resolver
  * self-contained with the same size-and-TTL semantics. The clock is injected as a nanosecond
- * {@link LongSupplier} so expiry is testable without real time. Access is synchronised — lookups are rare
+ * {@link LongSupplier} so expiry is testable without real time. Access is synchronised: lookups are rare
  * (network-bound) so the simple lock is cheaper than the eviction bookkeeping a lock-free map would need.
  */
 final class SkinCache {
@@ -25,7 +25,7 @@ final class SkinCache {
     private final int capacity;
     private final long ttlNanos;
     private final LongSupplier clockNanos;
-    // Insertion-ordered, so the first key is always the oldest — that is the one evicted when over capacity.
+    // Insertion-ordered, so the first key is always the oldest: that is the one evicted when over capacity.
     private final LinkedHashMap<String, Entry> entries = new LinkedHashMap<>();
 
     SkinCache(int capacity, Duration ttl, LongSupplier clockNanos) {

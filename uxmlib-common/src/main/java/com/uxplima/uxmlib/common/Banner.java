@@ -8,8 +8,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 /**
- * Renders the library's name and version as a small startup banner. The render is pure — it returns the
- * banner lines as {@link Component}s so a test can assert on them — and {@link #print} feeds those lines to
+ * Renders the library's name and version as a small startup banner. The render is pure: it returns the
+ * banner lines as {@link Component}s so a test can assert on them, and {@link #print} feeds those lines to
  * any sink (a {@code ComponentLogger}, an {@code Audience}, or a test collector) without coupling to a
  * concrete logger. Kept deliberately small: a couple of framed lines, not block ASCII art.
  */

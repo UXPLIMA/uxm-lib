@@ -12,7 +12,7 @@ import org.junit.jupiter.api.Test;
  * decides whether forcing a packet unlisted can change tab visibility. The real entry reconstruction in
  * {@code NmsPlayerInfoUpdates} is compile-gated against the dev bundle (the {@code ClientboundPlayerInfoUpdatePacket.Entry}
  * record cannot be built on the unit-test classpath, like the rest of the packet NMS) and is covered by the plugin
- * boot smoke; this proves the only branch that is testable without a live server — that the action-set guard
+ * boot smoke; this proves the only branch that is testable without a live server: that the action-set guard
  * short-circuits a no-op rewrite so a pure latency/display-name update is forwarded unchanged.
  */
 class PlayerInfoUpdatesTest {

@@ -12,8 +12,8 @@ import org.spongepowered.configurate.serialize.SerializationException;
 
 /**
  * Resolves {@code ${path.to.key}} references inside string values against the config tree itself, with an
- * optional extra variables map taking precedence. References chain — a value that resolves to another
- * reference is followed — and a reference loop ({@code a -> b -> a}) throws a clear {@link ConfigException}
+ * optional extra variables map taking precedence. References chain: a value that resolves to another
+ * reference is followed, and a reference loop ({@code a -> b -> a}) throws a clear {@link ConfigException}
  * instead of recursing forever. An unknown reference is left verbatim so a typo is visible, not silently
  * blanked. Kept out of {@code HoconConfig} so that class stays within its size cap.
  */

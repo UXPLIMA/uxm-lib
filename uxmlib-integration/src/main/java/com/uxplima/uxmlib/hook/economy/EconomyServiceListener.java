@@ -11,7 +11,7 @@ import org.bukkit.event.server.ServiceUnregisterEvent;
  * Keeps a {@link RebindingEconomyBridge} current with the server's economy registration. An economy plugin
  * registers its Vault {@code Economy} service with the {@code ServicesManager}, sometimes <em>after</em>
  * our plugin has already loaded; binding on plugin-enable alone can miss that. Registering this listener
- * (from the plugin shell — the only place with a {@code Plugin} to register against) re-resolves the
+ * (from the plugin shell: the only place with a {@code Plugin} to register against) re-resolves the
  * bridge the moment an economy service registers, and drops it when one unregisters.
  *
  * <p>The handlers compare the registered service by class <em>name</em> rather than referencing the Vault

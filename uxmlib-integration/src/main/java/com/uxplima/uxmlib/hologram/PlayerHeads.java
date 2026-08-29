@@ -13,8 +13,8 @@ import com.destroystokyo.paper.profile.ProfileProperty;
 
 /**
  * Builds {@code PLAYER_HEAD} item stacks carrying a specific skin, for floating head holograms. The skin
- * is set through Paper's native {@link PlayerProfile} — by account UUID, or by a base64 {@code textures}
- * value (the payload of a skin's textures property) — so no packets are involved. Spawn the result with
+ * is set through Paper's native {@link PlayerProfile}: by account UUID, or by a base64 {@code textures}
+ * value (the payload of a skin's textures property), so no packets are involved. Spawn the result with
  * {@link Holograms#spawnItem}.
  */
 final class PlayerHeads {

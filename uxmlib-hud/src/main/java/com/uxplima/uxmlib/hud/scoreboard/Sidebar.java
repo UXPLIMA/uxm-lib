@@ -17,7 +17,7 @@ import net.kyori.adventure.text.Component;
  * A per-player sidebar backed by a native Paper {@link Scoreboard}. Each line is a {@link Team} whose entry
  * is a fixed, unique, invisible colour-code key and whose visible text is the team prefix. Rendering diffs
  * the new lines against the shown ones ({@link SidebarDiff}) and only touches the lines that changed, so the
- * client never sees a clear-and-rebuild — no flicker. Up to fifteen lines are supported (the colour-code key
+ * client never sees a clear-and-rebuild: no flicker. Up to fifteen lines are supported (the colour-code key
  * space), which is the practical sidebar height anyway.
  *
  * <p>Created and owned by {@link SidebarManager}; one instance per viewing player.
@@ -130,7 +130,7 @@ public final class Sidebar {
         return MAX_LINES - index;
     }
 
-    // The legacy section marker. Used only as the invisible scoreboard entry identifier below — never for
+    // The legacy section marker. Used only as the invisible scoreboard entry identifier below: never for
     // player-facing text, which always goes through Adventure components.
     private static final char SECTION = '§';
 

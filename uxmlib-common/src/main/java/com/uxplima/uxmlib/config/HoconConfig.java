@@ -23,7 +23,7 @@ import org.spongepowered.configurate.serialize.TypeSerializerCollection;
 
 /**
  * A HOCON-backed configuration. Parsed once on {@link #load(Path)} into an {@link AtomicReference} swapped
- * whole on {@link #reload()}, so a reader sees the entire old tree or the entire new one — never half.
+ * whole on {@link #reload()}, so a reader sees the entire old tree or the entire new one: never half.
  * Dotted paths address nested nodes; subtrees map onto {@code @ConfigSerializable} types via
  * {@link #get(Class)} / {@link #getNode(String, Class, Object)}. A missing file loads empty.
  */
@@ -133,8 +133,8 @@ public final class HoconConfig {
     }
 
     /**
-     * Deep-merge a default tree into the live config — adding absent keys, never overwriting a user value
-     * — and save once if anything was added. Returns whether anything was written.
+     * Deep-merge a default tree into the live config: adding absent keys, never overwriting a user value,
+     * and save once if anything was added. Returns whether anything was written.
      */
     public synchronized boolean mergeDefaults(ConfigurationNode defaults) {
         Objects.requireNonNull(defaults, "defaults");
@@ -148,7 +148,7 @@ public final class HoconConfig {
 
     /**
      * Compose this config with {@code other} (this config wins per key, {@code other} fills gaps), so config
-     * can be split across files. In-memory only — call {@link #save()} to persist. Returns whether anything
+     * can be split across files. In-memory only: call {@link #save()} to persist. Returns whether anything
      * was added.
      */
     public synchronized boolean include(HoconConfig other) {
@@ -294,7 +294,7 @@ public final class HoconConfig {
     }
 
     /**
-     * Map each child of the section at {@code path} onto {@code type}, keyed by child name — for a table
+     * Map each child of the section at {@code path} onto {@code type}, keyed by child name, for a table
      * of named entries (e.g. {@code kits { starter {...} vip {...} }}). Empty when the section is absent.
      *
      * <p>The returned map iterates in the same order as {@link #keys(String)}, which is not the order the
@@ -330,10 +330,10 @@ public final class HoconConfig {
      * The child key names directly under {@code path} (a section's entries).
      *
      * <p><strong>Not in file order.</strong> A HOCON object is a hash map by the time any of this code sees
-     * it — the parser we build on keeps its entries in a {@code HashMap}, so the order the operator wrote is
+     * it: the parser we build on keeps its entries in a {@code HashMap}, so the order the operator wrote is
      * gone before the tree is built and no setting here can bring it back. The order is stable for a given
-     * set of keys and otherwise arbitrary. If the order matters to what you are building — laying out a menu,
-     * numbering a list — give each entry an explicit field to sort on rather than trusting this.
+     * set of keys and otherwise arbitrary. If the order matters to what you are building: laying out a menu,
+     * numbering a list, give each entry an explicit field to sort on rather than trusting this.
      */
     public List<String> keys(String path) {
         return ConfigSections.keys(node(path));

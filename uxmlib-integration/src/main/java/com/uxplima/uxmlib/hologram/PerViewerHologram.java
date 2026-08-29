@@ -26,7 +26,7 @@ import org.jspecify.annotations.Nullable;
  * show two players different text off the same entity. The native, packet-free way to get genuinely
  * per-viewer text is therefore one private, viewer-restricted {@code TextDisplay} per player: this class
  * spawns one on a viewer's first update and shows it only to them. The trade-off is N entities for N
- * viewers — fine for the handful of players near a hologram, but not for a server-wide broadcast (use a
+ * viewers: fine for the handful of players near a hologram, but not for a server-wide broadcast (use a
  * shared {@link DisplayHologram} there). Spawning and the {@code show/hide} calls must run on the region
  * thread (Folia); schedule {@link #updateAll()} through the library {@code Scheduler}.
  */

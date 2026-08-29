@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Drives the row-sync poller against a real in-memory SQLite table, the same way the SQL helpers are tested.
  * The poll step is exercised directly via {@link RowSyncPoller#pollOnce()} so the assertions are deterministic
- * and never depend on a timer firing — {@link RowSyncService} only repeats this same step on an async timer.
+ * and never depend on a timer firing: {@link RowSyncService} only repeats this same step on an async timer.
  */
 class RowSyncPollerTest {
 

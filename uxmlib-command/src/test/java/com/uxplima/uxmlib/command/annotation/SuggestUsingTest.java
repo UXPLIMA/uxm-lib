@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Verifies the port-injectable suggestion seam: a {@link SuggestionSource} <em>instance</em> registered on a
  * {@link ParamResolvers} under a key, referenced from an {@code @Arg} via {@code @}{@link SuggestUsing},
- * drives that argument's tab-completion — the DI-friendly counterpart of {@code @SuggestWith} (which can only
+ * drives that argument's tab-completion: the DI-friendly counterpart of {@code @SuggestWith} (which can only
  * reflect a no-arg provider class and so cannot carry a consumer's ports).
  */
 class SuggestUsingTest {

@@ -11,7 +11,7 @@ import com.uxplima.uxmlib.scheduler.Scheduler;
 import com.uxplima.uxmlib.scheduler.TaskHandle;
 
 /**
- * Makes a hologram follow an entity at an offset — an above-the-head nameplate that {@code attachTo}
+ * Makes a hologram follow an entity at an offset: an above-the-head nameplate that {@code attachTo}
  * cannot do (a passenger rides at the exact mount point, with no offset). It teleports the hologram to
  * {@code target.getLocation().add(offset)} each tick through the {@link Scheduler}, using a short
  * interpolation so the motion is smooth. The task self-cancels when the target is removed.

@@ -35,8 +35,8 @@ public interface CommandCondition {
      *
      * <p>Two shapes, because a condition may know more than a string. Given plain text the library renders it
      * red, exactly as a rejected argument is rendered. Given a {@link Component} it sends that untouched,
-     * which is the only way a translated line — one already rendered from a catalogue, with its own colours
-     * and MiniMessage already parsed — reaches the sender instead of arriving as raw tags.
+     * which is the only way a translated line: one already rendered from a catalogue, with its own colours
+     * and MiniMessage already parsed, reaches the sender instead of arriving as raw tags.
      */
     final class CommandConditionException extends RuntimeException {
 

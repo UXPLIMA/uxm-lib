@@ -5,8 +5,8 @@ import java.util.Objects;
 
 /**
  * The comparison operators a {@link Comparison} understands. The symbols are deliberately the familiar ones
- * from config files. Six order or equate two operands; three more — {@link #CONTAINS}, {@link #WILDCARD} and
- * {@link #OR} — are text operators that match the left operand against the right as a substring, a glob, or a
+ * from config files. Six order or equate two operands; three more: {@link #CONTAINS}, {@link #WILDCARD} and
+ * {@link #OR}, are text operators that match the left operand against the right as a substring, a glob, or a
  * {@code |}-separated alternation. {@link #bySymbolLengthDescending()} fixes the order a longest-symbol-first
  * parser tries them in so a two-character symbol is found before a one-character one that prefixes it (so
  * {@code >=} wins over {@code >}, and the {@code *} of {@link #WILDCARD} is tried last).

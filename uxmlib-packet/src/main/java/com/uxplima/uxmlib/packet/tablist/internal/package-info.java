@@ -1,5 +1,5 @@
 /**
- * Internal NMS mechanism for the packet tab-list layer — the single quarantined class that builds the real
+ * Internal NMS mechanism for the packet tab-list layer: the single quarantined class that builds the real
  * Mojang-mapped player-info packets. Not API; treat everything here as unstable and subject to change without
  * notice.
  */

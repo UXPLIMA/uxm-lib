@@ -105,7 +105,7 @@ class RecordConfigTest {
         Files.writeString(file, "name = \"alice\"\ncount = 1\n");
         RecordConfig<Demo> store = new RecordConfig<>(file, Demo.class, Demo::new);
 
-        // Bump mtime explicitly — some filesystems have second-level mtime resolution that would race a
+        // Bump mtime explicitly: some filesystems have second-level mtime resolution that would race a
         // same-second write-then-check.
         FileTime later = FileTime.fromMillis(Files.getLastModifiedTime(file).toMillis() + 5000);
         Files.writeString(file, "name = \"bob\"\ncount = 2\n");

@@ -8,7 +8,7 @@ package com.uxplima.uxmlib.advancement;
  */
 public enum AdvancementFrame {
 
-    /** The plain square frame — the default for ordinary advancements. */
+    /** The plain square frame: the default for ordinary advancements. */
     TASK("task"),
 
     /** The rounded frame used for milestone goals. */

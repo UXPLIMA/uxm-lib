@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 
 /**
- * Pure tests of the item/block builder's accumulated {@link Appearance} — live spawning is integration-only
+ * Pure tests of the item/block builder's accumulated {@link Appearance}: live spawning is integration-only
  * (MockBukkit can build the item/block content but not spawn an {@code ItemDisplay}/{@code BlockDisplay}). The
  * shared {@link Holograms.ModelBuilder} carries only the {@link Display}-wide fields (billboard, glow, view
  * range, brightness, scale, rotation, transform); the text-only fields have no builder method here, so this

@@ -7,7 +7,7 @@ import java.util.Objects;
  * leading-space string. The pixel widths come from {@link GlyphWidthTable}.
  *
  * <p>Content wider than {@link #CHAT_WIDTH_PX} gets no padding (never negative space). Only visible glyphs
- * count — callers flatten MiniMessage to plain text before calling, so nested colour tags do not affect
+ * count: callers flatten MiniMessage to plain text before calling, so nested colour tags do not affect
  * width.
  */
 public final class CenteredTextPadder {
@@ -28,7 +28,7 @@ public final class CenteredTextPadder {
             return "";
         }
         int leftoverPx = (CHAT_WIDTH_PX - textWidth) / 2;
-        // Padding is emitted with regular (non-bold) spaces, which advance SPACE_WIDTH (4px) each — the
+        // Padding is emitted with regular (non-bold) spaces, which advance SPACE_WIDTH (4px) each: the
         // operator's <bold> only affects the visible content, not the leading whitespace.
         int spaces = leftoverPx / GlyphWidthTable.SPACE_WIDTH;
         return " ".repeat(spaces);

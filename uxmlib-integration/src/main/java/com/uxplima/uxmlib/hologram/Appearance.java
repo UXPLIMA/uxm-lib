@@ -276,8 +276,8 @@ public record Appearance(
     }
 
     /**
-     * Apply the fields every {@link Display} shares — billboard, glow, view range, brightness, transform and the
-     * drop-shadow radius/strength — to {@code display}, leaving the text-only fields (background, opacity, line
+     * Apply the fields every {@link Display} shares: billboard, glow, view range, brightness, transform and the
+     * drop-shadow radius/strength, to {@code display}, leaving the text-only fields (background, opacity, line
      * width, text shadow, see-through, alignment) untouched. An item or block display has no text, so only this
      * subset applies to it; {@link #applyTo} layers the text-only fields on top for a {@link TextDisplay}.
      */

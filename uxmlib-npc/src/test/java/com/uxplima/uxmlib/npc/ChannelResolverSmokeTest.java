@@ -17,7 +17,7 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
 /**
  * Smoke test for the reflective channel resolver. MockBukkit's {@link PlayerMock} has no {@code getHandle()}
  * and no real Netty channel, so the only contract a unit test can assert is the one that matters in
- * production when a layout is unexpected: the resolver <b>fails gracefully</b> — it returns empty and never
+ * production when a layout is unexpected: the resolver <b>fails gracefully</b>: it returns empty and never
  * throws. The real CraftPlayer walk is exercised only on a live server (documented in the package-info).
  */
 class ChannelResolverSmokeTest {

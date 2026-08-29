@@ -29,7 +29,7 @@ run/
 hs_err_pid*
 replay_pid*
 
-# Secrets — never commit
+# Secrets: never commit
 .env
 .env.*
 secrets/
@@ -40,7 +40,7 @@ secrets/
 # Property-based test database (jqwik regenerates per run)
 **/.jqwik-database
 
-# Local working files — kept out of the published repo
+# Local working files: kept out of the published repo
 /CLAUDE.md
 /CLAUDE.local.md
 /docs/

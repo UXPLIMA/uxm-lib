@@ -12,17 +12,17 @@ import java.util.regex.Pattern;
  * the recipient cannot render into the closest thing they can:
  *
  * <ul>
- *   <li>{@code <gradient:a:b:…>…</gradient>} → {@code <a>…</a>} — flatten to the
+ *   <li>{@code <gradient:a:b:…>…</gradient>} → {@code <a>…</a>}: flatten to the
  *       first colour stop (Bedrock has no gradient).</li>
- *   <li>{@code <font:…>…</font>} → the inner content only — drop the custom-font
+ *   <li>{@code <font:…>…</font>} → the inner content only: drop the custom-font
  *       wrapper (Bedrock ignores custom fonts).</li>
- *   <li>{@code <hover:show_item:'key':n>} → {@code <hover:show_text:'key xn'>} —
+ *   <li>{@code <hover:show_item:'key':n>} → {@code <hover:show_text:'key xn'>}:
  *       fall back to a textual tooltip on protocol versions that cannot render
  *       a {@code show_item} hover.</li>
  * </ul>
  *
  * <p>Downgrade is silent: the message always delivers; only the unsupported
- * flourish is degraded. String-level, no Adventure — the result is a
+ * flourish is degraded. String-level, no Adventure: the result is a
  * MiniMessage source string the sink parses. Capabilities the recipient has are
  * left completely untouched (the matching pattern is skipped), so a fully
  * capable client receives the input verbatim.
@@ -125,7 +125,7 @@ public final class RenderDowngrade {
     /**
      * Rewrite each {@code <hover:show_item:'key'[:amount]>} into
      * {@code <hover:show_text:'key[ xamount]'>}. The closing {@code </hover>}
-     * (when present) is unchanged — both hover variants close the same way.
+     * (when present) is unchanged: both hover variants close the same way.
      */
     private static String showItemToShowText(String text) {
         Matcher m = SHOW_ITEM.matcher(text);

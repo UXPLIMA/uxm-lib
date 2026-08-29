@@ -2,7 +2,7 @@ package com.uxplima.uxmlib.condition;
 
 /**
  * The condition SPI: a single predicate over a {@link ConditionRequest}. Implementations are pure with
- * respect to the request's subject — they read the subject and resolver and return whether the condition
+ * respect to the request's subject: they read the subject and resolver and return whether the condition
  * holds. They must <b>not</b> mutate the request's error sink or cancel flag themselves; collecting failure
  * messages and applying a {@link FailurePolicy} is the job of the {@link ConditionList} that drives them, so
  * a condition stays reusable under any policy.

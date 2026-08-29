@@ -10,7 +10,7 @@ import org.spongepowered.configurate.ConfigurationNode;
  * earlier release used a few different field names; rather than make an operator rename them by hand on
  * upgrade, {@link MenuConfig#load} runs the tree through here first, so an old file loads unchanged in
  * behaviour. Each rename only fires when the legacy key is present and the current key is not, so a file
- * already on the current names — or one that has both — is left untouched.
+ * already on the current names (or one that has both) is left untouched.
  */
 final class MenuConfigMigration {
 

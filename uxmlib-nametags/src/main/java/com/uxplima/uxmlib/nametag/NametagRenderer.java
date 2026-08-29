@@ -15,7 +15,7 @@ import com.uxplima.uxmlib.scheduler.TaskHandle;
 /**
  * The testable core of the packet nametag layer: it shows a stack of floating lines above a target, rendered
  * per viewer through the {@link NametagPackets} port, and keeps them fresh on a region-thread refresh task. No
- * NMS — the packets are opaque objects from the port — so this whole class runs under a fake port and a fake
+ * NMS (the packets are opaque objects from the port), so this whole class runs under a fake port and a fake
  * {@link Scheduler}. Multi-line text, animated text/transform, and line-of-sight fading are all driven from
  * here: every refresh re-asks the {@link PerViewerText} for each viewer's current lines and re-sends their
  * metadata, fading a line to {@link Appearance#obscuredOpacity()} when the {@link LineOfSight} reports the
@@ -23,7 +23,7 @@ import com.uxplima.uxmlib.scheduler.TaskHandle;
  *
  * <h2>Threading</h2>
  *
- * The refresh runs through {@link Scheduler#entityTimer}, so it executes on the target's region thread — the
+ * The refresh runs through {@link Scheduler#entityTimer}, so it executes on the target's region thread: the
  * one thread where reading the target's position and resolving online viewers is safe. Nothing here touches
  * the Bukkit API from any other thread.
  */
@@ -76,7 +76,7 @@ public final class NametagRenderer {
      * Spawn the line stack for the supplier's current viewers and start a region-thread refresh loop that, every
      * {@code period}, re-asks {@code viewers} for the live set, diffs it against the tracked set (newcomers get a
      * spawn bundle, departed viewers a remove packet, the rest a metadata refresh), re-resolves per-viewer text,
-     * and re-applies line-of-sight fading. The renderer's own loop is therefore the single source of truth — a
+     * and re-applies line-of-sight fading. The renderer's own loop is therefore the single source of truth: a
      * consumer need not run a second loop to follow players entering or leaving range.
      *
      * <p>{@code viewers} is invoked on the target's region thread (the refresh thread), so it must be cheap and

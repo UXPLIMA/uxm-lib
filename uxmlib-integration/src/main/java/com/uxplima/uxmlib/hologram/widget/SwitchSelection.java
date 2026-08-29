@@ -9,7 +9,7 @@ import java.util.function.Predicate;
  * The pure first-match selection behind {@link SwitchableHologram}, modelled on the GUI {@code Stateful}
  * item: states are tried in declared order and the first whose {@link State#condition() condition} passes for
  * a {@link ViewerContext} is the one that viewer sees. With no match the selection is empty, so the widget can
- * render nothing (or hide) for that viewer. The payload {@code <T>} is whatever the widget switches between —
+ * render nothing (or hide) for that viewer. The payload {@code <T>} is whatever the widget switches between:
  * a hologram, a content spec, an index.
  *
  * @param <T> the value each state carries

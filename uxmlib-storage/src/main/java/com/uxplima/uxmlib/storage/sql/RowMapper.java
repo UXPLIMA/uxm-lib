@@ -5,7 +5,7 @@ import java.sql.SQLException;
 
 /**
  * Maps the current row of a {@link ResultSet} to a value. Implementations read columns from the row but
- * must not advance, close, or otherwise mutate the cursor — {@link Sql} drives iteration.
+ * must not advance, close, or otherwise mutate the cursor: {@link Sql} drives iteration.
  */
 @FunctionalInterface
 public interface RowMapper<T> {

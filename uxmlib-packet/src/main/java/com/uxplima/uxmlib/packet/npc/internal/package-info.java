@@ -1,5 +1,5 @@
 /**
- * Internal NMS mechanism for the packet NPC layer — the single quarantined class that builds the real
+ * Internal NMS mechanism for the packet NPC layer: the single quarantined class that builds the real
  * Mojang-mapped packets for a fake-player NPC. Not API; treat everything here as unstable and subject to change
  * without notice.
  */

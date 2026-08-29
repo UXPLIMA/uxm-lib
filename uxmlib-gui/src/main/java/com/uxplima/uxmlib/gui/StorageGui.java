@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * A menu that holds real items rather than buttons. Unlike a {@link SimpleGui}, it allows the player to
- * take, place, and swap items by default, and it does <em>not</em> clear what they leave behind — the
+ * take, place, and swap items by default, and it does <em>not</em> clear what they leave behind: the
  * contents persist across opens, so it can back a vault, a player stash, or any "drop items here" UI.
  * Read what the player left with {@link #contents()} (typically from an {@link #onClose} handler) and
  * seed it with {@link #setContents}.
@@ -52,7 +52,7 @@ public final class StorageGui extends AbstractGui {
     /**
      * Stow {@code items} into the storage slots, stacking onto existing stacks first and then filling empty
      * slots, exactly as Bukkit's {@link Inventory#addItem} does. Returns the leftover that did not fit, keyed
-     * by the index of the argument it came from — an empty map means everything was stored. Overflow is
+     * by the index of the argument it came from: an empty map means everything was stored. Overflow is
      * handed back to the caller rather than dropped, so a vault deposit can bounce the remainder to the
      * player instead of vanishing it.
      */

@@ -6,7 +6,7 @@
  * {@link com.uxplima.uxmlib.command.annotation.annotations.Permission} (the annotation types live in
  * {@link com.uxplima.uxmlib.command.annotation.annotations}); then
  * {@link com.uxplima.uxmlib.command.annotation.AnnotatedCommands#register} reflects over it and builds
- * the Brigadier tree for you — no hand-wiring of nodes. The underlying {@code Cmd}/{@code Sender} facade
+ * the Brigadier tree for you: no hand-wiring of nodes. The underlying {@code Cmd}/{@code Sender} facade
  * stays available for cases the annotations do not cover.
  */
 @NullMarked

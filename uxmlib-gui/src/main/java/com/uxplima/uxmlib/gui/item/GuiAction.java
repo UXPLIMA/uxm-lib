@@ -12,8 +12,8 @@ import com.uxplima.uxmlib.gui.ClickContext;
 import com.uxplima.uxmlib.gui.GuiResponse;
 
 /**
- * What happens when a {@link GuiItem} is clicked. A sealed set — {@link Run} carries an imperative handler,
- * {@link None} does nothing, {@link Responding} carries a declarative (possibly async) handler — so click
+ * What happens when a {@link GuiItem} is clicked. A sealed set: {@link Run} carries an imperative handler,
+ * {@link None} does nothing, {@link Responding} carries a declarative (possibly async) handler, so click
  * routing pattern-matches over a closed set instead of guarding a nullable callback, and a "no action" slot
  * is explicit rather than a silent null.
  *
@@ -25,7 +25,7 @@ public sealed interface GuiAction permits GuiAction.Run, GuiAction.None, GuiActi
 
     /**
      * Run the imperative action for {@code event}. The framework has already cancelled the event by
-     * default. For {@link Responding} this is a no-op — routing invokes its {@link Responding#handler()}
+     * default. For {@link Responding} this is a no-op: routing invokes its {@link Responding#handler()}
      * with an immutable {@link ClickContext} instead of mutating the live event here.
      */
     void accept(InventoryClickEvent event);

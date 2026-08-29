@@ -127,8 +127,8 @@ import org.jspecify.annotations.Nullable;
  * server's own mappings at load. Two construction notes that are easy to get wrong:
  *
  * <ul>
- *   <li><b>Spawning an entity.</b> Since 1.20.2 there is no separate add-player packet; every NPC — a fake
- *       player or a mob — spawns through {@code ClientboundAddEntityPacket}, so both spawn methods share one
+ *   <li><b>Spawning an entity.</b> Since 1.20.2 there is no separate add-player packet; every NPC: a fake
+ *       player or a mob, spawns through {@code ClientboundAddEntityPacket}, so both spawn methods share one
  *       builder that differs only in the {@code EntityType} and the spawn UUID. Both types come out of the
  *       entity-type registry rather than off a constant, since the class those constants live on is one of the
  *       few internals that has been renamed across lines. A fake player passes the player type and the profile
@@ -139,7 +139,7 @@ import org.jspecify.annotations.Nullable;
  *       which {@link ByteAngle} produces with the same {@code floor} math so the two stay in step.
  *   <li><b>Head rotation.</b> {@code ClientboundRotateHeadPacket} exposes only an {@code Entity}-bound public
  *       constructor and a private buffer one, so it is built through its public stream codec exactly like the
- *       passenger packet in {@code NmsNametagPackets} — write the wire form (entity id, head-yaw byte), decode.
+ *       passenger packet in {@code NmsNametagPackets}: write the wire form (entity id, head-yaw byte), decode.
  * </ul>
  *
  * <p>The player-info ADD entry carries the name and skin so the client can render the body; it is assembled
@@ -153,14 +153,14 @@ import org.jspecify.annotations.Nullable;
  * <ul>
  *   <li><b>Equipment.</b> {@code ClientboundSetEquipmentPacket(int, List<Pair<EquipmentSlot, ItemStack>>)} takes
  *       the server's own {@code ItemStack}, so each Bukkit item is copied across with {@code
- *       CraftItemStack.asNMSCopy} — the standard bridge from the Bukkit item form to the server's.
+ *       CraftItemStack.asNMSCopy}: the standard bridge from the Bukkit item form to the server's.
  *   <li><b>Glow.</b> Glowing is the {@code glowing} bit of an entity's shared-flags byte (data item 0). The
  *       accessor and the bit index are both {@code protected static} on {@code Entity}, so they are read once at
  *       construction through {@link Reflect} (the same precedent as the nametag accessors), and the metadata
  *       packet sets that single byte.
  *   <li><b>Glow colour.</b> The client tints a glowing outline with the colour of the team the entity's name is
  *       on, so a colour is a {@code ClientboundSetPlayerTeamPacket.createAddOrModifyPacket} over a throwaway
- *       {@code PlayerTeam} carrying the colour and the NPC's profile name as its member — the approach
+ *       {@code PlayerTeam} carrying the colour and the NPC's profile name as its member: the approach
  *       FancyNpcs uses. Which enum a team's colour is depends on the line, so it is set through the compat
  *       seam rather than here.
  * </ul>
@@ -201,17 +201,17 @@ public final class NmsNpcPackets implements NpcPackets {
     private final EntityDataAccessor<Integer> llamaVariantAccessor;
     /** The {@code Byte} wool data item on {@code Sheep} (low 4 bits colour, bit 0x10 sheared); read once. */
     private final EntityDataAccessor<Byte> sheepWoolAccessor;
-    /** The {@code Integer} collar-colour data item on {@code Wolf} (a DyeColor id, 0–15); read once. */
+    /** The {@code Integer} collar-colour data item on {@code Wolf} (a DyeColor id, 0 to 15); read once. */
     private final EntityDataAccessor<Integer> wolfCollarAccessor;
-    /** The {@code Byte} shell-colour data item on {@code Shulker} (a DyeColor id, 0–15; 16 is default); read once. */
+    /** The {@code Byte} shell-colour data item on {@code Shulker} (a DyeColor id, 0 to 15; 16 is default); read once. */
     private final EntityDataAccessor<Byte> shulkerColorAccessor;
     /** The {@code Byte} peek data item on {@code Shulker} (0 closed, 100 open); read once. */
     private final EntityDataAccessor<Byte> shulkerPeekAccessor;
 
     private final EntityDataAccessor<Direction> shulkerAttachFaceAccessor;
-    /** The {@code Byte} main (visible) gene data item on {@code Panda} (0–6); read once. */
+    /** The {@code Byte} main (visible) gene data item on {@code Panda} (0 to 6); read once. */
     private final EntityDataAccessor<Byte> pandaMainGeneAccessor;
-    /** The {@code Byte} hidden gene data item on {@code Panda} (0–6); set alongside the main gene so it renders. */
+    /** The {@code Byte} hidden gene data item on {@code Panda} (0 to 6); set alongside the main gene so it renders. */
     private final EntityDataAccessor<Byte> pandaHiddenGeneAccessor;
     /** The {@code Boolean} screaming-variant data item on {@code Goat}; read once. */
     private final EntityDataAccessor<Boolean> goatScreamingAccessor;
@@ -628,8 +628,8 @@ public final class NmsNpcPackets implements NpcPackets {
     public Object villagerData(int entityId, String type, String profession, int level) {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(profession, "profession");
-        // Resolve the type/profession by name off their defaulted registries — an unknown name returns the registry
-        // default rather than nothing — and pack them into the VillagerData record the metadata field carries.
+        // Resolve the type/profession by name off their defaulted registries: an unknown name returns the registry
+        // default rather than nothing, and pack them into the VillagerData record the metadata field carries.
         net.minecraft.world.entity.npc.villager.VillagerData data =
                 new net.minecraft.world.entity.npc.villager.VillagerData(
                         holder(BuiltInRegistries.VILLAGER_TYPE, type),
@@ -1037,7 +1037,7 @@ public final class NmsNpcPackets implements NpcPackets {
 
     /**
      * Resolve {@code name} (plain or namespaced) to a {@link Holder} off a dynamic registry reached through the
-     * live server's {@link MinecraftServer#registryAccess() registry access} — the cat- and frog-variant registries
+     * live server's {@link MinecraftServer#registryAccess() registry access}: the cat- and frog-variant registries
      * are data-driven and live only on a running server, not in {@code BuiltInRegistries}, so they cannot be reached
      * at construction the way the villager registries are. Returns {@code null} (rather than throwing) when the
      * server is not yet up, the name is unparseable, or the registry has no such entry; the caller drops a
@@ -1077,7 +1077,7 @@ public final class NmsNpcPackets implements NpcPackets {
 
     /**
      * Resolve {@code name} (plain or namespaced) to a {@link Holder} off the defaulted {@code registry}, falling
-     * back to the registry default when the name is unparseable or unknown — the registry's own default holder, so
+     * back to the registry default when the name is unparseable or unknown: the registry's own default holder, so
      * a typo renders the default appearance rather than failing the spawn.
      */
     private static <T> Holder<T> holder(net.minecraft.core.DefaultedRegistry<T> registry, String name) {
@@ -1146,7 +1146,7 @@ public final class NmsNpcPackets implements NpcPackets {
         sender.send(viewer, packet);
     }
 
-    /** Map a port-side equipment slot onto the matching server slot — the single place the two names meet. */
+    /** Map a port-side equipment slot onto the matching server slot: the single place the two names meet. */
     private static net.minecraft.world.entity.EquipmentSlot toNmsSlot(EquipmentSlot slot) {
         return switch (slot) {
             case MAINHAND -> net.minecraft.world.entity.EquipmentSlot.MAINHAND;
@@ -1162,7 +1162,7 @@ public final class NmsNpcPackets implements NpcPackets {
      * The {@code GameProfile} for the NPC, always carrying a {@code textures} property: the NPC's own skin when it
      * has one, otherwise the default Steve texture ({@link TabSkin#DEFAULT}). The property is never omitted because
      * a fake player spawned through {@code ClientboundAddEntityPacket} on 1.20.2+ links its body to this profile,
-     * and clients drop a profile-less fake player — so a skinless NPC would otherwise never render.
+     * and clients drop a profile-less fake player, so a skinless NPC would otherwise never render.
      */
     private static GameProfile profileFor(UUID profileId, String name, @Nullable TabSkin skin) {
         TabSkin textures = TabSkin.orDefault(skin);

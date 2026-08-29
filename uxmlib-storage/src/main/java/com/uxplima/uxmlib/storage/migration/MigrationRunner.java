@@ -17,7 +17,7 @@ import com.uxplima.uxmlib.storage.sql.Database;
  * Applies a set of {@link Migration}s exactly once each, in ascending version order. Applied versions
  * are recorded in a {@code uxmlib_schema_history} table, so re-running {@link #apply(List)} is idempotent:
  * already-applied migrations are skipped and only newer ones run. Each migration runs in its own
- * transaction — a failure rolls that migration back and aborts, leaving the schema at the last good
+ * transaction: a failure rolls that migration back and aborts, leaving the schema at the last good
  * version. This is intentionally simpler than Flyway: no checksums, no out-of-order handling.
  */
 public final class MigrationRunner {
@@ -106,7 +106,7 @@ public final class MigrationRunner {
     }
 
     private static List<String> splitStatements(String sql) {
-        // Split on ';' by scanning, but only when the ';' is real SQL — not inside a '...' string literal,
+        // Split on ';' by scanning, but only when the ';' is real SQL, not inside a '...' string literal,
         // a "..." quoted identifier, a -- line comment, or a /* */ block comment. A naive split would turn
         // INSERT ... VALUES ('a;b') into two broken fragments. String.split/Pattern.split are avoided both
         // for that reason and because ErrorProne flags their trailing-empty behaviour. Blank statements drop.

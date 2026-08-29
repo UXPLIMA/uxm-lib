@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 
 /**
- * Exercises the pure dispatch logic — provider registration and longest-prefix resolution — without the
+ * Exercises the pure dispatch logic (provider registration and longest-prefix resolution) without the
  * PlaceholderAPI class on the path. The {@code UxmPlaceholderExpansion} subclass is compile-/smoke-only
  * because MockBukkit cannot register a real expansion; the routing it delegates to lives here and is
  * fully tested.

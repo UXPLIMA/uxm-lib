@@ -10,7 +10,7 @@ import net.kyori.adventure.audience.Audience;
 /**
  * Resolves the locale to render a message in for a given viewer, with a server-configured default. A
  * {@link Player}'s locale comes from Adventure's native {@link Player#locale()} (the client's language
- * setting, no NMS); any other audience — console, a broadcast group — falls back to the default.
+ * setting, no NMS); any other audience (console, a broadcast group) falls back to the default.
  *
  * <p>The interface is the seam the catalog depends on, so tests inject a fake that maps a viewer to a fixed
  * locale without a live server. {@link #ofDefault(Locale)} is the production implementation.

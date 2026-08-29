@@ -17,7 +17,7 @@ import com.uxplima.uxmlib.command.annotation.annotations.Arg;
  * decline-chain; a {@code @SuggestUsing} provider, when present, is tried first.
  *
  * <p>The referenced key must be registered on the {@link ParamResolvers} used to build the command, or
- * registration fails fast with a {@link CommandParseException} — a typo never silently disables completion.
+ * registration fails fast with a {@link CommandParseException}: a typo never silently disables completion.
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target(ElementType.PARAMETER)

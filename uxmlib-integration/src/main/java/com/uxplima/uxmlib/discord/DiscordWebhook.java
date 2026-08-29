@@ -13,8 +13,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 /**
- * Posts messages to a Discord channel through an incoming-webhook URL. Sends are non-blocking — the
- * returned future completes with the HTTP status — so a caller never blocks a server thread on network I/O.
+ * Posts messages to a Discord channel through an incoming-webhook URL. Sends are non-blocking: the
+ * returned future completes with the HTTP status, so a caller never blocks a server thread on network I/O.
  */
 public final class DiscordWebhook {
 

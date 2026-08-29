@@ -14,7 +14,7 @@ import org.bukkit.plugin.Plugin;
  * A spawned mixed-line hologram: a column of native {@code Display} entities (one per {@link HologramLine}),
  * managed as a single unit. Removal and per-viewer visibility fan out across every part, so a multi-type
  * hologram shows, hides, and despawns atomically. Like a {@link DisplayHologram}, visibility uses Paper's
- * {@code show/hideEntity} over a tracked viewer set — no packets.
+ * {@code show/hideEntity} over a tracked viewer set: no packets.
  *
  * <p>The mutating calls must run on the parts' region thread (Folia); the tracked viewer set is concurrent
  * so a quit-driven {@link #forgetViewer(UUID)} from another thread is safe.

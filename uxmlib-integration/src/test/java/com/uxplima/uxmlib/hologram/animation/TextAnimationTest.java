@@ -10,7 +10,7 @@ import net.kyori.adventure.text.Component;
 import com.uxplima.uxmlib.text.Text;
 import org.junit.jupiter.api.Test;
 
-/** Pure tests of the animation frame builders — no server, no entity. */
+/** Pure tests of the animation frame builders: no server, no entity. */
 class TextAnimationTest {
 
     @Test

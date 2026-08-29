@@ -12,7 +12,7 @@ import com.uxplima.uxmlib.text.Text;
 /**
  * Factory for the built-in {@link Action} closures. Each method captures the static payload of a config action
  * (a MiniMessage template, a command line, a parsed sound spec) and returns a closure that, at run time,
- * resolves placeholders against the {@link ActionContext} and performs the native delivery — Adventure {@code
+ * resolves placeholders against the {@link ActionContext} and performs the native delivery: Adventure {@code
  * Audience} for text and sound, the context's {@link CommandSink}s for commands, the subject player for a
  * close. Splitting closure construction out of {@link ActionParser} keeps both types small.
  *
@@ -24,50 +24,50 @@ public final class Actions {
 
     private Actions() {}
 
-    /** {@code [message] <template>} — render the template and send it to the target audience. */
+    /** {@code [message] <template>}: render the template and send it to the target audience. */
     public static Action message(String template) {
         Objects.requireNonNull(template, "template");
         return asyncText(context -> context.target().sendMessage(render(context, template)));
     }
 
-    /** {@code [broadcast] <template>} — render the template and send it to the broadcast audience. */
+    /** {@code [broadcast] <template>}: render the template and send it to the broadcast audience. */
     public static Action broadcast(String template) {
         Objects.requireNonNull(template, "template");
         return asyncText(context -> context.broadcast().sendMessage(render(context, template)));
     }
 
-    /** {@code [actionbar] <template>} — render the template into the target's action bar. */
+    /** {@code [actionbar] <template>}: render the template into the target's action bar. */
     public static Action actionBar(String template) {
         Objects.requireNonNull(template, "template");
         return asyncText(context -> context.target().sendActionBar(render(context, template)));
     }
 
-    /** {@code [title] <template>} — show the template as a title to the target (empty subtitle). */
+    /** {@code [title] <template>}: show the template as a title to the target (empty subtitle). */
     public static Action title(String template) {
         Objects.requireNonNull(template, "template");
         return asyncText(
                 context -> context.target().showTitle(Title.title(render(context, template), Component.empty())));
     }
 
-    /** {@code [console] <command>} — dispatch the resolved command through the console sink. */
+    /** {@code [console] <command>}: dispatch the resolved command through the console sink. */
     public static Action console(String commandTemplate) {
         Objects.requireNonNull(commandTemplate, "commandTemplate");
         return context -> context.consoleSink().dispatch(stripSlash(context.resolve(commandTemplate)));
     }
 
-    /** {@code [player] <command>} — dispatch the resolved command through the player sink. */
+    /** {@code [player] <command>}: dispatch the resolved command through the player sink. */
     public static Action playerCommand(String commandTemplate) {
         Objects.requireNonNull(commandTemplate, "commandTemplate");
         return context -> context.playerSink().dispatch(stripSlash(context.resolve(commandTemplate)));
     }
 
-    /** {@code [close]} — close the subject player's inventory, or do nothing when there is no player. */
+    /** {@code [close]}: close the subject player's inventory, or do nothing when there is no player. */
     public static Action close() {
         return context -> context.player().ifPresent(player -> player.closeInventory());
     }
 
     /**
-     * {@code [sound] <key> [volume] [pitch]} — play the parsed sound to the target. The key is resolved at run
+     * {@code [sound] <key> [volume] [pitch]}: play the parsed sound to the target. The key is resolved at run
      * time from a placeholder template, so it can be malformed (an uppercase letter, an empty or garbage
      * resolution). {@link Action} must not throw on delivery, so an unparseable key is skipped rather than
      * letting {@link Key#key(String)} raise {@link net.kyori.adventure.key.InvalidKeyException} and abort the

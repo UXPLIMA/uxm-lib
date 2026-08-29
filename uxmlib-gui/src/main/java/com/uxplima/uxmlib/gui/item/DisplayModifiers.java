@@ -19,7 +19,7 @@ import com.uxplima.uxmlib.item.SkullData;
 
 /**
  * Ready-made {@link DisplayModifier}s and the glue to attach a pipeline of them to an item. A modifier
- * runs per viewer during render, so each player can see the same slot rendered for themselves — their own
+ * runs per viewer during render, so each player can see the same slot rendered for themselves: their own
  * head on a skull, their placeholders resolved, their locale's text. Compose with {@link #of} and attach
  * with {@link #apply}.
  */
@@ -62,7 +62,7 @@ public final class DisplayModifiers {
     /**
      * Resolves placeholder tokens in the icon's display name through {@code resolver}, against the context's
      * {@link RenderContext#effectivePlayer() effective player} (the placeholder target, which may differ from
-     * the viewer) — pass {@code com.uxplima.uxmlib.hook.Placeholders::apply} (from uxmlib-integration) for
+     * the viewer): pass {@code com.uxplima.uxmlib.hook.Placeholders::apply} (from uxmlib-integration) for
      * PlaceholderAPI, or any other {@code (player, text) -> text}. Kept as an injected seam so the gui module
      * need not depend on the integration module.
      */

@@ -14,7 +14,7 @@ import net.milkbowl.vault.permission.Permission;
  * A present-guarded view of the Vault permission service, so a plugin can read and edit permissions
  * provider-agnostically (LuckPerms, PEX, …) without depending on any one. As with {@link com.uxplima.uxmlib.hook.economy.VaultEconomy},
  * the {@code net.milkbowl} classes are touched only inside {@link #find()} past the registration check, so
- * a server without Vault still loads. These calls may block — route writes off the main thread.
+ * a server without Vault still loads. These calls may block: route writes off the main thread.
  */
 public final class VaultPermission {
 

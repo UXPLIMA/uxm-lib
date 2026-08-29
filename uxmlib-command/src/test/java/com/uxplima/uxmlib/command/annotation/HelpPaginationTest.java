@@ -131,8 +131,8 @@ class HelpPaginationTest {
     }
 
     /**
-     * The line a player actually reads — the command, what separates it from its description, and the
-     * description itself — is the consumer's, not the library's. A generated help page is the one screen a
+     * The line a player actually reads: the command, what separates it from its description, and the
+     * description itself, is the consumer's, not the library's. A generated help page is the one screen a
      * plugin cannot restyle from its own resources, so all three go through the seam.
      */
     @Test
@@ -220,7 +220,7 @@ class HelpPaginationTest {
      * Whether any component in the tree carries exactly {@code expected} as its click event. Comparing whole
      * events rather than reading a value back off one keeps this readable across Adventure lines: 5.x gave
      * ClickEvent a type parameter and swapped {@code value()} for a typed payload, while the factories and
-     * {@code equals} behave identically on both. {@code Object} for the same reason — a declared
+     * {@code equals} behave identically on both. {@code Object} for the same reason: a declared
      * {@code ClickEvent} would be a raw type on 5.x and an over-specified one on 4.x.
      */
     private static boolean hasClick(Component component, Object expected) {

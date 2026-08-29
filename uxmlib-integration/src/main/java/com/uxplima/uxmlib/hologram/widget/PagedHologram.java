@@ -8,7 +8,7 @@ import com.uxplima.uxmlib.hologram.HologramLifecycle;
 /**
  * A per-player paged hologram: N pages of content live as N overlapping holograms at one location and each
  * player sees exactly one. {@link #open} shows a viewer page zero; {@link #next} / {@link #prev} hide the page
- * the viewer is on and show the one it moves to — for that viewer only — so paging never disturbs anyone else
+ * the viewer is on and show the one it moves to (for that viewer only), so paging never disturbs anyone else
  * (the HologramLib {@code PagedLeaderboard} technique, mapped onto Paper's native per-viewer {@code show} /
  * {@code hide}).
  *

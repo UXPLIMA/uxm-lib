@@ -12,7 +12,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * with no recorded page is on page zero, so {@link #forget} (called on quit / world-change) simply drops the
  * slot.
  *
- * <p>No Bukkit types here — this is the testable core; {@link PagedHologram} layers the show/hide of the
+ * <p>No Bukkit types here: this is the testable core; {@link PagedHologram} layers the show/hide of the
  * overlapping page holograms on top of it.
  */
 final class PageState {

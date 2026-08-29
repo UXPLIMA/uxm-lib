@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * An immutable snapshot of one click, captured the moment the event fires: who clicked, which slot, the
  * click type, and clones of the clicked icon and the item on the cursor. It is the input to a declarative
- * (and possibly off-thread) click handler — see {@link com.uxplima.uxmlib.gui.item.GuiAction.Responding}.
+ * (and possibly off-thread) click handler: see {@link com.uxplima.uxmlib.gui.item.GuiAction.Responding}.
  *
  * <p>The items are cloned in {@link #of(InventoryClickEvent)} so a snapshot handed to a handler running on
  * another thread can never see the live inventory change underneath it; the value is honestly immutable

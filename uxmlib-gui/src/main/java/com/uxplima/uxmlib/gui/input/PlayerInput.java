@@ -25,9 +25,9 @@ import com.uxplima.uxmlib.text.Text;
 import org.jspecify.annotations.Nullable;
 
 /**
- * One front door for asking a player to type a line of text, over three native backends — {@code ANVIL}
+ * One front door for asking a player to type a line of text, over three native backends: {@code ANVIL}
  * (the existing {@link AnvilInput}), {@code CHAT} (the player's next chat message), {@code SIGN} (a
- * transient sign) — all delivering the same {@link InputResult} through one callback. Per-player pending
+ * transient sign), all delivering the same {@link InputResult} through one callback. Per-player pending
  * state lives on the instance via an {@link InputRouter}; there is no static mutable state.
  *
  * <p>Construct one per plugin, {@link #install()} it once on enable, then {@link #open} as needed, and

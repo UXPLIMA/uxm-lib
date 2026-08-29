@@ -13,7 +13,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The immutable description of a multi-type hologram: an ordered list of {@link HologramLine}s (text, item,
- * and block lines together) plus a shared {@link Appearance} for the text lines. Pure — it spawns no
+ * and block lines together) plus a shared {@link Appearance} for the text lines. Pure: it spawns no
  * entities, so it can be assembled and asserted off a server. {@link Holograms} turns it into a column of
  * native {@code Display} entities, one per line, auto-stacked top-down by each line's gap.
  *

@@ -11,13 +11,13 @@ import net.kyori.adventure.title.Title;
 /**
  * An admin-retargetable message: the same catalog value carries both its MiniMessage template and the
  * delivery channel, so swapping chat for a title or an action bar is a config edit with zero code change.
- * Modelled as a sealed type whose variants — {@link Chat}, {@link TitleText}, {@link ActionBar},
- * {@link BossBarText}, {@link Silent} — each hold their own delivery parameters. A {@link MessageSerializer}
+ * Modelled as a sealed type whose variants: {@link Chat}, {@link TitleText}, {@link ActionBar},
+ * {@link BossBarText}, {@link Silent}, each hold their own delivery parameters. A {@link MessageSerializer}
  * reads and writes them from HOCON.
  *
  * <p>{@link #template()} is the raw MiniMessage string; the facade parses it (resolving placeholders) and
  * passes the rendered {@link Component} to {@link #send(Audience, Component)}, which dispatches to the native
- * Adventure delivery method for its channel. No packets, no scheduler — these are one-shot sends.
+ * Adventure delivery method for its channel. No packets, no scheduler: these are one-shot sends.
  */
 public sealed interface Message
         permits Message.Chat, Message.TitleText, Message.ActionBar, Message.BossBarText, Message.Silent {
@@ -94,7 +94,7 @@ public sealed interface Message
     /**
      * Boss-bar delivery via {@link Audience#showBossBar(BossBar)}. The content is the bar title; the
      * progress, colour and overlay are intrinsic. A boss bar persists on the client until it is hidden or the
-     * viewer disconnects — there is no auto-expiry — so a caller that needs to remove it must keep the handle
+     * viewer disconnects (there is no auto-expiry), so a caller that needs to remove it must keep the handle
      * {@link #show(Audience, Component)} returns and later {@link Audience#hideBossBar(BossBar) hide} it; a
      * timed bar is the HUD layer's job. The {@link #send(Audience, Component)} fire-and-forget form discards
      * that handle, so use it only when something else already owns the bar's lifecycle.
@@ -128,7 +128,7 @@ public sealed interface Message
         }
     }
 
-    /** A message that is deliberately not shown — the way config silences one channel without removing it. */
+    /** A message that is deliberately not shown: the way config silences one channel without removing it. */
     record Silent() implements Message {
         @Override
         public String template() {

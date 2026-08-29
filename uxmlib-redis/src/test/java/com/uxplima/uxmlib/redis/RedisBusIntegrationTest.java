@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 /**
  * Round-trip test for {@link LettuceRedisBus} against a real Redis: a publishing bus PUBLISHes a binary frame
  * and a second subscribing bus receives the exact bytes. Resolves the broker from
- * {@code UXMLIB_TEST_REDIS_URI} (or {@code redis://localhost:6379}) and skips cleanly — never fails — when no
+ * {@code UXMLIB_TEST_REDIS_URI} (or {@code redis://localhost:6379}) and skips cleanly (never fails) when no
  * Redis is reachable, so {@code ./gradlew build} stays green on hosts without one.
  */
 @org.jspecify.annotations.NullUnmarked
@@ -31,7 +31,7 @@ class RedisBusIntegrationTest {
     static void resolveRedis() {
         String env = System.getenv("UXMLIB_TEST_REDIS_URI");
         String uri = env != null && !env.isBlank() ? env : "redis://localhost:6379";
-        Assumptions.assumeTrue(reachable(uri), "no Redis reachable at " + uri + " — skipping");
+        Assumptions.assumeTrue(reachable(uri), "no Redis reachable at " + uri + ": skipping");
         redisUri = uri;
     }
 
@@ -65,7 +65,7 @@ class RedisBusIntegrationTest {
         LettuceRedisBus bus = new LettuceRedisBus(RedisClient.create(uri), message -> {});
 
         // An open, just-connected bus reports healthy; closing it tears down the publish connection, so the
-        // signal flips to unhealthy — a real connection state, not a constant.
+        // signal flips to unhealthy: a real connection state, not a constant.
         assertThat(bus.healthy()).isTrue();
         bus.close();
         assertThat(bus.healthy()).isFalse();

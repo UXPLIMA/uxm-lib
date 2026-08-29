@@ -47,7 +47,7 @@ class DurationsTest {
     @Test
     void rejectsWhitespaceOnlyLeadingGarbageAndSignedInput() {
         // The token match is anchored at each position, so a leading non-digit ("abc5m"), a sign ("-5m")
-        // and a whitespace-only string are all rejected rather than partially parsed — the strict-rejection
+        // and a whitespace-only string are all rejected rather than partially parsed: the strict-rejection
         // contract a config loader relies on to surface a typo instead of silently using a wrong duration.
         assertThatThrownBy(() -> Durations.parse("   ")).isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> Durations.parse("abc5m")).isInstanceOf(IllegalArgumentException.class);

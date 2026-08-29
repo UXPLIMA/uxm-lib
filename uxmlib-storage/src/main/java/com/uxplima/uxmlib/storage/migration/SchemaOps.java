@@ -22,13 +22,13 @@ import com.uxplima.uxmlib.storage.sql.SqlType;
  * probe with the introspector, then drop/rename here.
  *
  * <p>DDL cannot use bound parameters, so every table and column name is validated against a strict identifier
- * allowlist before it reaches a statement — anything that could carry an injection is rejected first. Native
+ * allowlist before it reaches a statement: anything that could carry an injection is rejected first. Native
  * {@code RENAME COLUMN} (SQLite 3.25+) and {@code DROP COLUMN} (SQLite 3.35+) are used directly; our bundled
  * sqlite-jdbc is 3.49, so the table-rebuild dance older SQLite needed is not required.
  */
 public final class SchemaOps {
 
-    // A bare identifier or one dotted qualifier — the same shape SchemaIntrospector/SelectBuilder accept.
+    // A bare identifier or one dotted qualifier: the same shape SchemaIntrospector/SelectBuilder accept.
     private static final Pattern IDENTIFIER = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*(\\.[A-Za-z_][A-Za-z0-9_]*)?");
 
     // A column-type fragment: type keywords plus the parens/commas/default-literal a type needs, matching the
@@ -97,7 +97,7 @@ public final class SchemaOps {
 
     /**
      * Clear {@code column} on every row of {@code table}, setting it back to SQL {@code NULL}. The admin
-     * "wipe one stat" primitive — emptying a single column without touching the rest of the row (a per-column
+     * "wipe one stat" primitive: emptying a single column without touching the rest of the row (a per-column
      * reset, narrower than {@link #resetTable}). Returns the number of rows updated.
      *
      * <p>Setting {@code NULL} rather than re-deriving each column's declared {@code DEFAULT} is deliberate: a
@@ -160,7 +160,7 @@ public final class SchemaOps {
      * admin "clear/reset" primitive (a season reset). Returns the number of rows removed.
      *
      * <p>Plain {@code DELETE} (not {@code TRUNCATE}) is used deliberately: it is transactional, returns an
-     * affected-row count, and behaves identically across every backend — {@code TRUNCATE}'s semantics and
+     * affected-row count, and behaves identically across every backend: {@code TRUNCATE}'s semantics and
      * permissions vary by dialect.
      *
      * @throws IllegalArgumentException if {@code table} is not a simple SQL identifier

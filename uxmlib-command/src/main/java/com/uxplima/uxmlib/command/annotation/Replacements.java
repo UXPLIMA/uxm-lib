@@ -15,7 +15,7 @@ import com.uxplima.uxmlib.command.annotation.annotations.Permission;
 /**
  * Factory methods that build live instances of the core command annotations, for an {@link AnnotationReplacer}
  * to return. A consumer cannot {@code new} an annotation, so this hands back real annotation proxies whose
- * {@code annotationType}/{@code equals}/{@code hashCode}/{@code toString} behave the way the platform expects —
+ * {@code annotationType}/{@code equals}/{@code hashCode}/{@code toString} behave the way the platform expects:
  * the same contract a reflectively-read annotation satisfies. Only the small, attribute-bearing core
  * annotations a replacer would plausibly synthesise are exposed; a marker annotation (no attributes) is built
  * directly from its type with {@link #marker(Class)}.

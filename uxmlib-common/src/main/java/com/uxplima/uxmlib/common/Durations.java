@@ -62,7 +62,7 @@ public final class Durations {
     }
 
     /**
-     * Render {@code duration} as its single largest whole unit, truncated — {@code 90m -> "1h"} (never
+     * Render {@code duration} as its single largest whole unit, truncated: {@code 90m -> "1h"} (never
      * {@code "2h"}), {@code 5s -> "5s"}, {@code 7d -> "7d"}. Zero, sub-second and negative durations are
      * {@code "0s"}. This is the coarse counterpart of {@link #format(Duration)} (which lists every non-zero
      * unit), for relative displays like {@code "5m ago"} where one unit reads better than {@code "1h 30m"}.
@@ -88,7 +88,7 @@ public final class Durations {
      * <p>This form is for logs, config echoes and English-only output. <strong>Do not put it in a message a
      * player reads</strong> if your plugin is translated: the unit letters are English and no other language
      * reliably orders or spells the parts the same way. Hand the parts to your message layer instead and let
-     * the translation do the wording — {@link Duration#toDaysPart()}, {@link Duration#toHoursPart()},
+     * the translation do the wording: {@link Duration#toDaysPart()}, {@link Duration#toHoursPart()},
      * {@link Duration#toMinutesPart()} and {@link Duration#toSecondsPart()} give exactly those numbers, so a
      * catalogue entry can read {@code "<days> gün <hours> saat"} without the library choosing any of it.
      */

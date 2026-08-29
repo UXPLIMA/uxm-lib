@@ -44,7 +44,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 /**
  * Fluent builder for an {@link ItemStack}. Construction is mutable for ergonomics; {@link #build()}
  * applies everything onto the meta once and returns a fresh stack, so a builder can be reused to stamp
- * out variants. Text is always an Adventure {@link Component} — never a legacy colour string — and every
+ * out variants. Text is always an Adventure {@link Component} (never a legacy colour string), and every
  * public method validates its inputs at entry.
  *
  * <p>Enchantments and attributes are passed as their resolved Paper objects; use {@link Items} to look
@@ -109,7 +109,7 @@ public final class ItemBuilder {
 
     /**
      * Split a lore component into one component per visual line. Minecraft renders item lore as a list of
-     * components — one entry per line — and does <em>not</em> break a single entry on an embedded newline; a
+     * components (one entry per line), and does <em>not</em> break a single entry on an embedded newline; a
      * lore entry that contains {@code \n} (e.g. a MiniMessage string with {@code <newline>}) shows the newline
      * as a stray control glyph instead of wrapping. So we expand a newline-bearing component into separate
      * lines here, preserving each run's colour and decorations, and default each line to non-italic. A component
@@ -243,7 +243,7 @@ public final class ItemBuilder {
 
     /**
      * Give the item the enchanted shimmer without an actual enchantment, via the native 1.21 glint
-     * override — no dummy enchant, no need to hide it with a flag.
+     * override: no dummy enchant, no need to hide it with a flag.
      */
     public ItemBuilder glow(boolean glow) {
         return editMeta(meta -> meta.setEnchantmentGlintOverride(glow));
@@ -311,7 +311,7 @@ public final class ItemBuilder {
 
     /**
      * Hide exactly {@code hidden} and nothing else, replacing whatever was hidden before. For the tile that
-     * wants the standard silence with one line back — the trim on a cosmetic armour piece, say — build the
+     * wants the standard silence with one line back (the trim on a cosmetic armour piece, say) build the
      * set from {@link Tooltips#VANILLA_COMPONENTS} rather than typing it out, so a component Minecraft adds
      * later arrives hidden with the next release instead of being forgotten.
      */
@@ -323,7 +323,7 @@ public final class ItemBuilder {
 
     /**
      * Override how enchantable the item is (its enchanting-table weight); higher means richer enchantments
-     * for the same level cost. Must be positive — Minecraft treats the value as an enchantability rating.
+     * for the same level cost. Must be positive: Minecraft treats the value as an enchantability rating.
      */
     public ItemBuilder enchantable(int value) {
         if (value < 1) {
@@ -402,7 +402,7 @@ public final class ItemBuilder {
         return editTypedMeta(FireworkMeta.class, meta -> ItemMetaSupport.fireworkEffect(meta, effect));
     }
 
-    /** Set the firework flight power (0–127); a no-op on items without firework meta. */
+    /** Set the firework flight power (0 to 127); a no-op on items without firework meta. */
     public ItemBuilder fireworkPower(int power) {
         if (power < 0 || power > 127) {
             throw new IllegalArgumentException("power must be 0..127");
@@ -522,8 +522,8 @@ public final class ItemBuilder {
      * Build a fresh, independent {@link ItemStack} with everything applied.
      *
      * <p>The copy is Bukkit's copy constructor, which delegates to {@code clone()} on both supported API
-     * lines, so a data component written straight onto the stack — {@link #vanillaTooltip} and
-     * {@link #hiddenComponents} are the ones that do — rides along with the rest of the item. That is an
+     * lines, so a data component written straight onto the stack: {@link #vanillaTooltip} and
+     * {@link #hiddenComponents} are the ones that do, rides along with the rest of the item. That is an
      * assumption about somebody else's code, and it is worth writing down because nothing here can catch it
      * breaking: MockBukkit's clone does not model data components, so a test that built an item and read
      * one back would fail today for the wrong reason and pass tomorrow for no reason. If a Minecraft

@@ -6,7 +6,7 @@ import java.util.Objects;
 import org.bukkit.entity.Player;
 
 /**
- * Applies a list of {@link GuiResponse}s — the declarative result of a click handler — in order. This is
+ * Applies a list of {@link GuiResponse}s (the declarative result of a click handler) in order. This is
  * the single place where a declarative click touches Bukkit, so handlers can stay pure functions and the
  * side effects live here, on the viewer's region thread.
  *

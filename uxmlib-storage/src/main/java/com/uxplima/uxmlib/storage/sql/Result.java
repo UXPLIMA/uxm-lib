@@ -8,7 +8,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * A non-throwing outcome of a fallible operation: either {@link #ok(Object) a value} or
  * {@link #error(String) a failure message}. It lets a storage operation report failure without forcing the
- * caller into a {@code try}/{@code catch} (or a {@code .join()} that unwraps a wrapped exception) — branch on
+ * caller into a {@code try}/{@code catch} (or a {@code .join()} that unwraps a wrapped exception): branch on
  * {@link #isOk()} and read {@link #value()} or {@link #error()}.
  *
  * <p>This is deliberately small sugar that pairs with the async helpers; it is not a replacement for

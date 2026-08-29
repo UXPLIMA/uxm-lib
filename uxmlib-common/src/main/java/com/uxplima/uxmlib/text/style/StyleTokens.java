@@ -20,10 +20,10 @@ import org.jspecify.annotations.Nullable;
  * wrapping it:
  *
  * <ul>
- *   <li>{@code <tag:'HOME'>} — the category prefix a chat line opens with: the word in bold, coloured by what
+ *   <li>{@code <tag:'HOME'>}: the category prefix a chat line opens with: the word in bold, coloured by what
  *       the category is about, then the separator glyph in the dim colour;
- *   <li>{@code <etag:'ERROR'>} — the same prefix in the failure colour, whichever feature raised the line;
- *   <li>{@code <h:'REWARDS'>} — the bold header a lore block opens with, in the accent colour or in the
+ *   <li>{@code <etag:'ERROR'>}: the same prefix in the failure colour, whichever feature raised the line;
+ *   <li>{@code <h:'REWARDS'>}: the bold header a lore block opens with, in the accent colour or in the
  *       theme's {@code header} gradient when it names one.
  * </ul>
  *
@@ -91,7 +91,7 @@ public final class StyleTokens {
      * it names none.
      *
      * <p>A component that already carries a colour anywhere inside it is handed back untouched. A header is
-     * often not a literal — a lobby name, a rank, a player's chosen tag — and a value that arrived with a
+     * often not a literal (a lobby name, a rank, a player's chosen tag), and a value that arrived with a
      * colour of its own means it, so painting over it would lose the one thing that made it that value.
      * The check walks the whole component, because a colour a caller set on a child is just as deliberate
      * as one set on the root.

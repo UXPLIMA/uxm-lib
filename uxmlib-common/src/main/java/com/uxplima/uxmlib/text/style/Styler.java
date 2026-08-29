@@ -15,7 +15,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * Applies the whole style pass to a message catalog: once when the plugin loads, and again on a reload.
  *
- * <p>The pass is two pure steps over a template — the letters ({@link Typography}), then the tokens
+ * <p>The pass is two pure steps over a template: the letters ({@link Typography}), then the tokens
  * ({@link StyleTokens}). Doing it at load rather than at render costs nothing per message, cannot be
  * forgotten at a call site, and is testable with no server.
  *
@@ -25,7 +25,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Hold one styler and give it a new palette through {@link #reload(Theme)} rather than building a second
  * one. A menu asks its styler for the theme each time it draws a tile, so a replaced styler repaints the chat
- * and leaves every open menu on the old colours — the half-repainted screen a reload is supposed to avoid.
+ * and leaves every open menu on the old colours: the half-repainted screen a reload is supposed to avoid.
  */
 public final class Styler {
 

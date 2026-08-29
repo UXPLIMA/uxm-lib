@@ -277,7 +277,7 @@ abstract class AbstractGui implements Gui {
 
     /**
      * Re-resolve every item for the current viewer and rewrite the open inventory in place. Note: a menu
-     * with dynamic/stateful/animated content is single-viewer — open one instance per player (a navigator
+     * with dynamic/stateful/animated content is single-viewer: open one instance per player (a navigator
      * does this for you). With a shared inventory only the static items are correct for every viewer.
      */
     @Override

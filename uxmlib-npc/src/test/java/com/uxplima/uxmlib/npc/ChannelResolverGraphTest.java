@@ -27,7 +27,7 @@ class ChannelResolverGraphTest {
 
     @Test
     void prefersTheChannelWhosePipelineCarriesTheAnchorOverAnyOtherChannel() {
-        EmbeddedChannel decoy = new EmbeddedChannel(); // open, but no "decoder" — must not be chosen
+        EmbeddedChannel decoy = new EmbeddedChannel(); // open, but no "decoder": must not be chosen
         EmbeddedChannel gameplay = withAnchor();
         // Field order is deliberate: the decoy is declared first, so a blind first-Channel walk would pick it.
         Object handle = new TwoChannelHandle(decoy, gameplay);

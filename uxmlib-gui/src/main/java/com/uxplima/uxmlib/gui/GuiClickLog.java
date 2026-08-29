@@ -20,7 +20,7 @@ import net.kyori.adventure.text.Component;
  * the log do not race.
  *
  * <p>Read it back with {@link #recent()} (newest last). Each entry carries who clicked, the menu title, the
- * slot, and the click type — enough to answer "what did that click do?" after the fact.
+ * slot, and the click type: enough to answer "what did that click do?" after the fact.
  */
 public final class GuiClickLog {
 

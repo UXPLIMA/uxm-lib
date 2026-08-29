@@ -4,8 +4,8 @@ import java.util.UUID;
 
 /**
  * Where a composed name is actually written. {@link ScoreboardNametagSink} is the shipped implementation and
- * writes it to a scoreboard team; a consumer that renders names some other way — per-viewer packets, a
- * tablist-only display — implements this instead and keeps {@link NametagRegistry}'s composition rules.
+ * writes it to a scoreboard team; a consumer that renders names some other way: per-viewer packets, a
+ * tablist-only display, implements this instead and keeps {@link NametagRegistry}'s composition rules.
  *
  * <p>Every method runs on whichever thread the registry was told the display belongs to, so an implementation
  * does not schedule for itself.

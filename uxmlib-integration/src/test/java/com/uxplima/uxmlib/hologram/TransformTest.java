@@ -119,7 +119,7 @@ class TransformTest {
     void composesYawThenPitchSoTheTiltFollowsTheFacing() {
         // The intent is "turn the display by yaw, then tilt it by pitch about its now-local X". With a
         // 90-degree yaw and a 30-degree pitch the display's up vector must lean within the XY plane (its Z
-        // component stays zero) — the swapped Rx*Ry order would instead lean the up vector onto +Z, which is
+        // component stays zero): the swapped Rx*Ry order would instead lean the up vector onto +Z, which is
         // the gimbal-locked result we must never ship. Pinning the rotated basis catches a flipped order.
         var rotation = Transform.rotation(90f, 30f).toBukkit().getLeftRotation();
 

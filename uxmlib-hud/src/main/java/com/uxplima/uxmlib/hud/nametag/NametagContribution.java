@@ -18,12 +18,12 @@ import org.jspecify.annotations.Nullable;
  * without every other plugin being edited. Read the number from your own config: settling which of two
  * plugins comes first is an operator's decision, not a compile-time one.
  *
- * <p>{@code plugin} identifies the contributor. It keys the contribution — a second contribution from the
- * same name replaces the first rather than stacking — it names the plugin in a logged colour clash, and it
+ * <p>{@code plugin} identifies the contributor. It keys the contribution: a second contribution from the
+ * same name replaces the first rather than stacking, it names the plugin in a logged colour clash, and it
  * is what a registry drops when that plugin disables. Use your plugin's own name.
  *
  * @param plugin the contributing plugin's name; never blank
- * @param priority the composition position; smaller is earlier. Layout only — it does not claim the colour
+ * @param priority the composition position; smaller is earlier. Layout only: it does not claim the colour
  * @param prefix the part that goes before the player's name, or {@code null} to contribute none
  * @param suffix the part that goes after it, or {@code null} to contribute none
  * @param color the colour of the name itself, or {@code null} to leave it to another contributor

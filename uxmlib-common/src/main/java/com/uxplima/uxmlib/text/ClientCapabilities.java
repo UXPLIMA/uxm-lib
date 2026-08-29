@@ -9,16 +9,16 @@ import java.util.Objects;
  * flag means the corresponding MiniMessage feature is silently flattened or
  * dropped before the recipient's copy is parsed.
  *
- * <p>The downgrade is invisible — the message always delivers; only the
+ * <p>The downgrade is invisible: the message always delivers; only the
  * unsupported flourish is degraded (gradient flattened to its first colour,
  * custom-font tag removed, {@code show_item} hover falling back to
  * {@code show_text}).
  *
  * <p>Capability flags:
  * <ul>
- *   <li>{@link #gradient()} — false on Bedrock (Geyser cannot render gradients).</li>
- *   <li>{@link #customFont()} — false on Bedrock (no custom-font support).</li>
- *   <li>{@link #hoverItem()} — protocol-gated by {@link #MIN_PROTOCOL_FOR_HOVER_ITEM}.</li>
+ *   <li>{@link #gradient()}: false on Bedrock (Geyser cannot render gradients).</li>
+ *   <li>{@link #customFont()}: false on Bedrock (no custom-font support).</li>
+ *   <li>{@link #hoverItem()}: protocol-gated by {@link #MIN_PROTOCOL_FOR_HOVER_ITEM}.</li>
  * </ul>
  */
 public record ClientCapabilities(boolean gradient, boolean customFont, boolean hoverItem) {

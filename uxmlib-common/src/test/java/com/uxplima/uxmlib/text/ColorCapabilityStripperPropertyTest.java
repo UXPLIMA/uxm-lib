@@ -19,7 +19,7 @@ import net.jqwik.api.constraints.StringLength;
  *
  * <p>Inputs are assembled from a small vocabulary that mixes literal text with
  * styling tags of every {@link ColorCapability} class plus structural /
- * placeholder tags the stripper must leave alone — so the generated space
+ * placeholder tags the stripper must leave alone, so the generated space
  * actually exercises the categorise-and-drop logic rather than only plain text.
  */
 @org.jspecify.annotations.NullUnmarked
@@ -75,7 +75,7 @@ class ColorCapabilityStripperPropertyTest {
 
     /**
      * Requirement: stripping is idempotent. A second pass with the same allowed
-     * set finds nothing more to remove — the visible/permitted form is stable.
+     * set finds nothing more to remove: the visible/permitted form is stable.
      */
     @Property
     void stripping_is_idempotent(@ForAll("chatBodies") String body, @ForAll("capabilitySets") Set<ColorCapability> ok) {
@@ -86,7 +86,7 @@ class ColorCapabilityStripperPropertyTest {
 
     /**
      * Requirement: when every capability is allowed the body is returned
-     * verbatim — the gate is a no-op for a fully-trusted sender.
+     * verbatim: the gate is a no-op for a fully-trusted sender.
      */
     @Property
     void all_capabilities_allowed_is_identity(@ForAll("chatBodies") String body) {
@@ -106,7 +106,7 @@ class ColorCapabilityStripperPropertyTest {
     /**
      * Requirement: a more permissive allowed set never strips <em>more</em>
      * than a subset of it. Granting an extra capability can only preserve more
-     * tags, never remove additional ones — so the superset output is at least as
+     * tags, never remove additional ones, so the superset output is at least as
      * long as the subset output (monotonicity of permissiveness).
      */
     @Property
@@ -120,7 +120,7 @@ class ColorCapabilityStripperPropertyTest {
 
     /**
      * Requirement: plain text containing no {@code <} can never be altered,
-     * regardless of which capabilities are allowed — there are no tags to gate.
+     * regardless of which capabilities are allowed: there are no tags to gate.
      */
     @Property
     void plain_text_without_angle_brackets_is_untouched(

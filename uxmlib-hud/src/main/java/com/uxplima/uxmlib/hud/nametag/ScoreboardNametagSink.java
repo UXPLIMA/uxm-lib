@@ -23,7 +23,7 @@ import org.jspecify.annotations.Nullable;
  * {@link #clear} and {@link #clearAll}.
  *
  * <p>A team it did not create is left strictly alone. If a player already belongs to somebody else's team,
- * this backs off and says so once rather than moving the player out of it — adding an entry to a team removes
+ * this backs off and says so once rather than moving the player out of it: adding an entry to a team removes
  * it from the one it was in, which would break a third-party plugin that manages its own teams. The
  * consequence is worth stating plainly: on a server where another plugin already owns the teams, this sink
  * shows nothing, and that is the correct outcome.

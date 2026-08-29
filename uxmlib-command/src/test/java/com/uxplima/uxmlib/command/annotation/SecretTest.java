@@ -72,7 +72,7 @@ class SecretTest {
     void aSecretBranchStillBuildsAndRegistersItsNode() {
         LiteralCommandNode<CommandSourceStack> node = AnnotatedCommands.buildNode(new WarpCommand());
 
-        // The node is present and runnable — secrecy is help-only, not a node-removal.
+        // The node is present and runnable: secrecy is help-only, not a node-removal.
         assertThat(node.getChild("debug")).isNotNull();
         assertThat(node.getChild("list")).isNotNull();
     }

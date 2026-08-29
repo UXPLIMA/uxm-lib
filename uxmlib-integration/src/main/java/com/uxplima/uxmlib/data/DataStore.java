@@ -7,7 +7,7 @@ import java.util.UUID;
  * lets the manager load a player's value on join and persist it on quit and on a timer: one blocking
  * {@link #load} and one blocking {@link #save}, both keyed by player {@link UUID}.
  *
- * <p>Keeping this seam here — rather than depending on {@code uxmlib-storage} — is what lets the manager live
+ * <p>Keeping this seam here (rather than depending on {@code uxmlib-storage}) is what lets the manager live
  * in {@code uxmlib-integration} without dragging the storage module (and its JDBC stack) onto every consumer.
  * The consumer wires the seam to whatever backend they already run: a {@code uxmlib-storage}
  * {@code Repository}/{@code WriteBehindStorage}, a flat file, an in-memory map for tests. Both methods are

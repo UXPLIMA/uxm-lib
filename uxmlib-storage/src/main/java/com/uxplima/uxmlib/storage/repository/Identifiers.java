@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 /**
  * Validates SQL identifiers (table and column names) the library inlines into statements. Values always
  * go through bound {@code ?} placeholders, but identifiers cannot be parameters, so they are checked
- * against a strict allowlist — a bare name or one dotted qualifier — and anything else is rejected, so a
+ * against a strict allowlist (a bare name or one dotted qualifier), and anything else is rejected, so a
  * column name threaded from untrusted input can never inject SQL.
  */
 final class Identifiers {

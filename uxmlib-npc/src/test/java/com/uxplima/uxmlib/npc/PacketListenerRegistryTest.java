@@ -121,7 +121,7 @@ class PacketListenerRegistryTest {
         PacketListenerRegistry.Dispatch dispatch = registry.dispatch(PacketDirection.OUTBOUND, PLAYER, new Object());
 
         assertThat(dispatch.cancelled()).isTrue();
-        // A cancelled packet never carries a replacement — it is dropped, not rewritten.
+        // A cancelled packet never carries a replacement: it is dropped, not rewritten.
         assertThat(dispatch.replacement()).isNull();
         assertThat(dispatch.rewritten()).isFalse();
     }

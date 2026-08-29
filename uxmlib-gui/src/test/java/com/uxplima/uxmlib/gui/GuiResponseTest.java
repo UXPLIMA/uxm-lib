@@ -20,7 +20,7 @@ import org.mockbukkit.mockbukkit.MockBukkit;
 /**
  * The declarative click result is side-effects-as-data: a handler returns a {@link GuiResponse} list and
  * the framework applies it. These tests build responses with the factories and assert they carry the data
- * they were given — application is covered separately against a fake applier. MockBukkit is here only so
+ * they were given: application is covered separately against a fake applier. MockBukkit is here only so
  * the {@link ItemStack} fixtures can be built.
  */
 class GuiResponseTest {

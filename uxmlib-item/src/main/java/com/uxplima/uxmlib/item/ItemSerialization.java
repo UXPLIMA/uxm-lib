@@ -15,12 +15,12 @@ import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * Round-trips an {@link ItemStack} through Paper's native byte serialization — every component, NBT and
+ * Round-trips an {@link ItemStack} through Paper's native byte serialization: every component, NBT and
  * enchantment survives, unlike a name/lore-only copy. Use {@link #toBytes}/{@link #fromBytes} for binary
  * storage or {@link #toBase64}/{@link #fromBase64} for a config- or database-friendly string.
  *
- * <p>Each blob this writes carries a tiny self-describing header — four magic bytes, a one-byte format
- * version, then the server's data version — so a future reader can recognise the format, branch on the
+ * <p>Each blob this writes carries a tiny self-describing header: four magic bytes, a one-byte format
+ * version, then the server's data version, so a future reader can recognise the format, branch on the
  * version, and (later) migrate an older blob across Minecraft upgrades. Reading is back-compatible: a blob
  * written before the header existed (raw Paper bytes, no magic) still loads.
  *
@@ -32,7 +32,7 @@ import org.bukkit.inventory.ItemStack;
  */
 public final class ItemSerialization {
 
-    // "UXMI" — present at the very start of every blob this writer produces.
+    // "UXMI": present at the very start of every blob this writer produces.
     private static final byte[] MAGIC = "UXMI".getBytes(StandardCharsets.US_ASCII);
 
     // Bumped only when the on-disk layout itself changes; a reader rejects a version it doesn't know.

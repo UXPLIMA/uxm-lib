@@ -39,7 +39,7 @@ import org.jspecify.annotations.Nullable;
  * <p>Built against the Mojang-mapped 1.21.11 dev bundle; Paper's runtime remapper maps these back to the
  * server's own mappings at load. The update packet is assembled through Paper's public
  * {@code ClientboundPlayerInfoUpdatePacket(EnumSet<Action>, List<Entry>)} constructor (added by
- * Paper's "Add Listing API for Player" patch) — vanilla alone exposes only an {@code Entry}-from-{@code
+ * Paper's "Add Listing API for Player" patch): vanilla alone exposes only an {@code Entry}-from-{@code
  * ServerPlayer} path, so this public object constructor is the clean way to seat synthetic entries without the
  * stream-codec round-trip the {@code Codecs} helper is reserved for. The {@code Entry} record's nine
  * components are written in their declared order; the actions {@code EnumSet} tells the client which of them to

@@ -13,14 +13,14 @@ import java.util.regex.Pattern;
  *
  * <p>Used at the inbound boundary (chat listener / shortcut command) to
  * remove MiniMessage tags whose category the sender lacks permission for.
- * The format pattern itself is operator-controlled and not stripped — only
+ * The format pattern itself is operator-controlled and not stripped: only
  * the player-supplied body passes through here.
  *
  * <p>Stripping leaves untouched:
  * <ul>
  *   <li>Tags whose category is in the {@code allowed} set.</li>
  *   <li>Unknown / non-style tags (placeholders, click/hover events,
- *       {@code <reset>}, {@code <newline>}) — they're either structural
+ *       {@code <reset>}, {@code <newline>}): they're either structural
  *       or governed by a separate permission domain.</li>
  *   <li>Pre-tags {@code <pre>...</pre>} are NOT given special treatment;
  *       inner content is still walked. (Pre is a MiniMessage parsing
@@ -37,7 +37,7 @@ public final class ColorCapabilityStripper {
 
     private ColorCapabilityStripper() {}
 
-    /** Vanilla 16 + the dye-named aliases — see {@code NamedTextColor}. */
+    /** Vanilla 16 + the dye-named aliases: see {@code NamedTextColor}. */
     private static final Set<String> BASIC_COLOR_NAMES = Set.of(
             "black",
             "dark_blue",
@@ -71,7 +71,7 @@ public final class ColorCapabilityStripper {
      * "plain" form. Unknown tags (placeholders, structural tags) are
      * left untouched. Used by the identity layer to compute
      * {@link ColorCapability ColorCapability}-
-     * independent invariants — length, blacklist match, tab-completion —
+     * independent invariants (length, blacklist match, tab-completion)
      * over the visible characters only.
      */
     public static String stripAllStyles(String text) {
@@ -79,7 +79,7 @@ public final class ColorCapabilityStripper {
     }
 
     /**
-     * Does {@code text} open with an explicit colour tag — a named colour,
+     * Does {@code text} open with an explicit colour tag: a named colour,
      * hex, gradient, or rainbow? Returns {@code false} for plain text, for
      * formatting-only openers ({@code <bold>…}), and for any leading
      * whitespace (a tag must be the very first character).
@@ -108,7 +108,7 @@ public final class ColorCapabilityStripper {
     /**
      * Strip every tag whose {@link ColorCapability} is NOT in {@code allowed}.
      * Returns {@code text} verbatim when {@code allowed} contains every
-     * capability (full freedom — no scan needed).
+     * capability (full freedom: no scan needed).
      */
     public static String strip(String text, Set<ColorCapability> allowed) {
         Objects.requireNonNull(text, "text");
@@ -122,7 +122,7 @@ public final class ColorCapabilityStripper {
         // Track the head + category of every kept open tag so a matching
         // close tag falls into the same category. The close-tag body
         // ("/color") may not carry its sibling's arg (e.g. "/color"
-        // arrives bare while the open was "color:#ff8800") — without the
+        // arrives bare while the open was "color:#ff8800"): without the
         // stack, a stripped <color:#hex> would leave a dangling </color>
         // in the output.
         Deque<OpenTag> openStack = new ArrayDeque<>();
@@ -156,7 +156,7 @@ public final class ColorCapabilityStripper {
     /**
      * Pop the most recent open tag whose head matches {@code closeHead}.
      * MiniMessage doesn't enforce strict nesting, so the match is
-     * scanned-not-required — when nothing matches, return null and
+     * scanned-not-required: when nothing matches, return null and
      * the close tag is categorised by its bare body.
      */
     private static @org.jspecify.annotations.Nullable OpenTag popMatching(Deque<OpenTag> stack, String closeHead) {
@@ -206,7 +206,7 @@ public final class ColorCapabilityStripper {
                     return ColorCapability.BASIC;
                 }
             }
-            // Unknown / no arg — conservative treat as BASIC so the gate
+            // Unknown / no arg: conservative treat as BASIC so the gate
             // applies (else operators couldn't lock down `<color:foo>`).
             return ColorCapability.BASIC;
         }

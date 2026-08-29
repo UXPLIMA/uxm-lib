@@ -20,7 +20,7 @@ import org.jspecify.annotations.Nullable;
  * deriving a resolver from its element type's own resolver, registered as a {@link ParamResolver.Factory
  * decline-chain factory} so it composes over whatever element types the registry knows. A {@code List<T>} or
  * {@code T[]} reads one greedy trailing token blob and maps every whitespace-separated token through the
- * element resolver (a {@code T[]} collecting them into a typed array, primitives included — the natural shape
+ * element resolver (a {@code T[]} collecting them into a typed array, primitives included: the natural shape
  * for trailing "orphan" free args); an {@code Optional<T>} reads one greedy token and is present only when a
  * token was actually given. All ride {@link TokenResolution} for the per-token parse, so a {@code List<World>}
  * resolves each world exactly like an {@code @Arg World} would. Only a trailing parameter can be one of these,

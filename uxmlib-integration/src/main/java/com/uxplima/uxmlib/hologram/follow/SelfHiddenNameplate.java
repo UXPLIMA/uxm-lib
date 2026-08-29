@@ -18,7 +18,7 @@ import com.uxplima.uxmlib.hologram.Hologram;
  * A third-person-only nameplate: a follow hologram shown to nearby players but never to its own wearer, the
  * way a name-tag floats over a player for everyone else but not for them. It restricts the hologram to
  * explicit viewers (native {@code setVisibleByDefault(false)}) at construction, then {@link #refreshViewers}
- * shows it to the current nearby players minus the wearer and hides it from anyone who has left that set —
+ * shows it to the current nearby players minus the wearer and hides it from anyone who has left that set:
  * all through Paper's per-viewer {@code show/hideEntity}, no packets.
  *
  * <p>Pair it with {@link HologramFollow} to keep the nameplate above the wearer's head: follow for the
@@ -35,7 +35,7 @@ public final class SelfHiddenNameplate {
 
     /**
      * @param hologram the nameplate hologram; it is restricted to explicit viewers here
-     * @param wearer the player the nameplate rides — it is never shown to them
+     * @param wearer the player the nameplate rides: it is never shown to them
      */
     public SelfHiddenNameplate(Hologram hologram, Player wearer) {
         this.hologram = Objects.requireNonNull(hologram, "hologram");

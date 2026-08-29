@@ -35,7 +35,7 @@ class RenderDowngradeTest {
 
     @Test
     void gradient_with_phase_arg_flattens_to_first_colour() {
-        // <gradient:red:blue:0.5> — the trailing numeric phase is not a colour.
+        // <gradient:red:blue:0.5>: the trailing numeric phase is not a colour.
         assertThat(RenderDowngrade.apply("<gradient:red:blue:0.5>x</gradient>", NO_GRADIENT))
                 .isEqualTo("<red>x</red>");
     }

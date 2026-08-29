@@ -11,7 +11,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * An optional two-tier read cache tuned for player profiles: while a player is online their profile is
- * <em>pinned</em> — held by a strong reference that is never read through again nor evicted — and when they
+ * <em>pinned</em> (held by a strong reference that is never read through again nor evicted), and when they
  * quit it is <em>demoted</em> into a Caffeine TTL tier that drops it once an idle window passes. This is the
  * "permanent-while-online, TTL-after-quit" policy a server wants so an active player never re-hits the
  * database while a player who left does not linger in memory forever.
@@ -91,7 +91,7 @@ public final class PlayerProfileCache<I, T> {
 
     /**
      * Update the cached copy of {@code entity} in whichever tier currently holds it (the pin if its player is
-     * online, otherwise the TTL tier). Does <strong>not</strong> write to the backend — persist through the
+     * online, otherwise the TTL tier). Does <strong>not</strong> write to the backend: persist through the
      * backend separately; this only keeps the in-memory view fresh.
      */
     public void put(T entity) {

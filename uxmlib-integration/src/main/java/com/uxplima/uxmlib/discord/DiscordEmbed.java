@@ -12,7 +12,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * A Discord embed. Title, description, and colour cover the common notification case via {@link #of} and
- * {@link #colored}; the full surface — fields, author, footer, thumbnail, image, timestamp, URL — is
+ * {@link #colored}; the full surface (fields, author, footer, thumbnail, image, timestamp, URL) is
  * available through {@link #builder()}. Encoded to JSON by {@link DiscordWebhook}.
  */
 public record DiscordEmbed(

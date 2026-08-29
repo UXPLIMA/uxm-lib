@@ -29,7 +29,7 @@ public interface Hologram {
 
     /**
      * Mount the hologram on {@code target} as a passenger so it rides exactly with it (native
-     * {@code addPassenger}). This is exact-mount only — for an above-the-head offset, follow the entity
+     * {@code addPassenger}). This is exact-mount only, for an above-the-head offset, follow the entity
      * with a scheduler task instead. Returns whether the mount succeeded.
      */
     boolean attachTo(org.bukkit.entity.Entity target);

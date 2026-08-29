@@ -38,7 +38,7 @@ final class AtomicFiles {
             Files.move(temp, target, StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
         } catch (AtomicMoveNotSupportedException noAtomic) {
             // Some filesystems (e.g. certain network mounts) cannot rename atomically; fall back to a plain
-            // replace — still far safer than overwriting the live file in place.
+            // replace: still far safer than overwriting the live file in place.
             Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
         }
     }

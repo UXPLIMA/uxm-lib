@@ -9,7 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * The anti-desync re-check (item 39). A dynamic, stateful, or animated icon can change between the moment a
- * menu was rendered and the moment a viewer clicks it — the player may be acting on a stale icon. Before a
+ * menu was rendered and the moment a viewer clicks it: the player may be acting on a stale icon. Before a
  * click action runs, the framework confirms the slot still holds the icon the click targeted; if it no
  * longer matches, the action is cancelled and skipped so a click never fires against an icon that is no
  * longer there.

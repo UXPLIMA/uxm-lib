@@ -3,7 +3,7 @@ plugins {
     id("uxmlib.publish-conventions")
 }
 
-// EXPERIMENTAL — a from-scratch, MIT-clean packet foundation (no PacketEvents, which is GPL). This module
+// EXPERIMENTAL: a from-scratch, MIT-clean packet foundation (no PacketEvents, which is GPL). This module
 // ships only the Netty-pipeline plumbing (channel resolve, inject/eject, self-healing reorder, a listener
 // seam); a full fake-entity NPC is intentionally out of scope. See the package-info for the status note.
 dependencies {

@@ -8,9 +8,9 @@ import java.util.Map;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A small recursive-descent JSON reader over a single string. It builds a plain tree —
+ * A small recursive-descent JSON reader over a single string. It builds a plain tree:
  * {@code Map<String,Object>} / {@code List<Object>} / {@code String} / {@code Double} / {@code Boolean} /
- * {@code null} — which is enough to pull a {@code tag_name} or {@code version_number} out of a releases
+ * {@code null}, which is enough to pull a {@code tag_name} or {@code version_number} out of a releases
  * payload without pulling in a JSON dependency, and without the fragile substring-scan the competitor
  * libraries use. Not a general-purpose library: it rejects malformed or trailing input rather than guessing.
  */

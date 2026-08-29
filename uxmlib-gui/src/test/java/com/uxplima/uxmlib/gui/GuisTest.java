@@ -17,7 +17,7 @@ import org.mockito.Mockito;
 
 /**
  * Covers the one-time menu-listener install seam. {@link Guis#install} registers exactly one
- * {@link GuiListener} and is idempotent — a second call must not register a second listener, or every menu
+ * {@link GuiListener} and is idempotent: a second call must not register a second listener, or every menu
  * event would be handled twice. {@link Guis#uninstall} removes the listener (and clears the animation
  * registry) so a plugin can tear down cleanly on disable or reinstall on reload.
  */

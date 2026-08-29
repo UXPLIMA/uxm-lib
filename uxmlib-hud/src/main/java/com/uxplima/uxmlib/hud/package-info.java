@@ -1,6 +1,6 @@
 /**
- * Adventure-native HUD overlays. Each surface delivers through Paper's own player APIs — no packets, no
- * NMS — so the module depends only on {@code uxmlib-common} (its {@code Scheduler} and {@code Text}).
+ * Adventure-native HUD overlays. Each surface delivers through Paper's own player APIs: no packets, no
+ * NMS, so the module depends only on {@code uxmlib-common} (its {@code Scheduler} and {@code Text}).
  * {@link com.uxplima.uxmlib.hud.Titles} shows title/subtitle, {@link com.uxplima.uxmlib.hud.Tablist} sets
  * the player-list header/footer, {@link com.uxplima.uxmlib.hud.ActionBarManager} keeps a sticky action bar
  * alive past its vanilla fade with one shared re-send timer, and {@link com.uxplima.uxmlib.hud.BossBarManager}

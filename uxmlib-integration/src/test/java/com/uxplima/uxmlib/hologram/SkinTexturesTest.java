@@ -8,7 +8,7 @@ import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
-/** Pure tests of the skin-texture base64 round-trip — no server, no network. */
+/** Pure tests of the skin-texture base64 round-trip: no server, no network. */
 class SkinTexturesTest {
 
     private static final String SKIN_URL = "http://textures.minecraft.net/texture/abc123";

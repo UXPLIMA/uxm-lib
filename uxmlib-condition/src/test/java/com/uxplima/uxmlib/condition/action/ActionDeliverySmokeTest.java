@@ -101,7 +101,7 @@ class ActionDeliverySmokeTest {
     void titleActionThreadsThroughTheTitlePlumbingWithoutThrowing() {
         // MockBukkit does not capture an Adventure showTitle(Title) into nextTitle(), so the observable signal
         // here is that the title plumbing (Title.title + Audience#showTitle) holds together end to end and the
-        // following [message] still lands — i.e. the title closure did not throw.
+        // following [message] still lands: i.e. the title closure did not throw.
         PlayerMock player = server.addPlayer("Steve");
         ActionContext context =
                 ActionContext.builder(OperandResolver.identity()).player(player).build();

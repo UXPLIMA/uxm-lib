@@ -104,7 +104,7 @@ public final class PacketListenerRegistry {
             faults = List.copyOf(faults);
         }
 
-        /** A dispatch that only passes or cancels, carrying no replacement — the back-compat shape. */
+        /** A dispatch that only passes or cancels, carrying no replacement: the back-compat shape. */
         public Dispatch(PacketAction action, List<Throwable> faults) {
             this(action, null, faults);
         }

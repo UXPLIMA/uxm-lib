@@ -10,7 +10,7 @@ import org.jspecify.annotations.Nullable;
 /**
  * The opt-in lifecycle around a {@link RowSyncPoller}: {@link #start(Scheduler, Duration)} schedules
  * {@link RowSyncPoller#pollOnce()} on the library {@link Scheduler}'s <b>async</b> timer (off the main/region
- * threads, Folia-safe — never a {@code BukkitScheduler}) and {@link #stop()} cancels it. Row-sync runs only
+ * threads, Folia-safe: never a {@code BukkitScheduler}) and {@link #stop()} cancels it. Row-sync runs only
  * while started, so a plugin that does not configure it pays nothing.
  *
  * <p>The poll runs on the async thread because it does JDBC I/O; the {@link RowSyncListener} it drives must

@@ -118,7 +118,7 @@ class ConfigWatcherTest {
         Files.writeString(file, "limit = 9\n");
         Files.setLastModifiedTime(file, java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis() + 5000));
         scheduler.tick(); // change detected, pending
-        assertThat(config.getInt("limit", 0)).isEqualTo(1); // not yet — debounced
+        assertThat(config.getInt("limit", 0)).isEqualTo(1); // not yet: debounced
         scheduler.tick(); // settled -> reload
         assertThat(config.getInt("limit", 0)).isEqualTo(9);
     }

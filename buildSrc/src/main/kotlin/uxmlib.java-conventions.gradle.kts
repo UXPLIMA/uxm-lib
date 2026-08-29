@@ -110,7 +110,7 @@ extensions.configure<net.ltgt.gradle.nullaway.NullAwayExtension> {
 
 tasks.withType<JavaCompile>().configureEach {
     options.errorprone.nullaway {
-        // CheckSeverity is reused from the errorprone plugin — the nullaway plugin defines no enum.
+        // CheckSeverity is reused from the errorprone plugin: the nullaway plugin defines no enum.
         severity.set(net.ltgt.gradle.errorprone.CheckSeverity.ERROR)
     }
 }

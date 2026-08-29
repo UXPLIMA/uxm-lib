@@ -9,7 +9,7 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** Covers the aggregating validation layer — every violation reported, not just the first. */
+/** Covers the aggregating validation layer: every violation reported, not just the first. */
 class ConfigRulesTest {
 
     private static HoconConfig config(Path dir, String body) throws Exception {

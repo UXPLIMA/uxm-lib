@@ -17,7 +17,7 @@ import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
  * A hot-reloadable, typed-record view of a single HOCON file. Generic on a {@code @ConfigSerializable}
  * record/class {@code T}: the whole file maps onto one cached {@code T} snapshot, swapped atomically on
  * {@link #reload()}. The complement to {@link HoconConfig} (which queries individual nodes) for the common
- * "load a whole section into a record and hot-reload it" shape — the mapped value is cached so {@link
+ * "load a whole section into a record and hot-reload it" shape: the mapped value is cached so {@link
  * #current()} is a cheap field read, not a re-deserialization per call.
  *
  * <p>Fail-safe reload: {@link #reload()} re-reads and swaps on success; on failure it throws {@link
@@ -46,7 +46,7 @@ public final class RecordConfig<T> {
         this.snapshot = new AtomicReference<>(loadOrDefault());
     }
 
-    /** The active snapshot — the most recently loaded {@code T} (or the default when the file was absent). */
+    /** The active snapshot: the most recently loaded {@code T} (or the default when the file was absent). */
     public T current() {
         return Objects.requireNonNull(snapshot.get(), "snapshot");
     }
@@ -62,7 +62,7 @@ public final class RecordConfig<T> {
     }
 
     /**
-     * Re-read and parse the file WITHOUT swapping the active snapshot, returning the parsed value — a dry-run
+     * Re-read and parse the file WITHOUT swapping the active snapshot, returning the parsed value: a dry-run
      * for "validate before reload" flows. Throws {@link ConfigException} on a parse failure; {@link
      * #current()} is unaffected regardless of outcome.
      */
@@ -72,7 +72,7 @@ public final class RecordConfig<T> {
 
     /**
      * Whether the file's modification time is strictly later than the mtime captured at the most recent
-     * successful load. False when the file is missing, its mtime cannot be read, or nothing has loaded yet —
+     * successful load. False when the file is missing, its mtime cannot be read, or nothing has loaded yet:
      * never a false positive.
      */
     public boolean isModifiedSinceLoad() {
@@ -107,7 +107,7 @@ public final class RecordConfig<T> {
             return load();
         } catch (ConfigException malformed) {
             // First-load failure is not surfaced here (the constructor must produce a valid current()); fall
-            // back to defaults — a later reload() surfaces the error.
+            // back to defaults: a later reload() surfaces the error.
             return defaultIfMissing.get();
         }
     }
@@ -115,7 +115,7 @@ public final class RecordConfig<T> {
     private T load() {
         T value = parse(file, type);
         // Capture mtime AFTER a successful load so isModifiedSinceLoad stays false until the next edit. A
-        // failed load (parse threw) leaves the prior mtime untouched — correct: the prior snapshot still holds.
+        // failed load (parse threw) leaves the prior mtime untouched: correct: the prior snapshot still holds.
         mtimeAtLoad.set(readMtime());
         return value;
     }
@@ -139,7 +139,7 @@ public final class RecordConfig<T> {
         try {
             return Files.getLastModifiedTime(file);
         } catch (IOException unreadable) {
-            // Read failure (file missing, permissions, etc.) — the caller treats this as "no signal".
+            // Read failure (file missing, permissions, etc.): the caller treats this as "no signal".
             return null;
         }
     }

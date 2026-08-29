@@ -8,10 +8,10 @@ import java.util.Optional;
 /**
  * Converts between a skin's {@code textures.minecraft.net} URL and the base64 {@code textures} property
  * value a {@code PLAYER_HEAD} profile carries. The property payload is the base64 of a small JSON
- * envelope — {@code {"textures":{"SKIN":{"url":"…"}}}} — so a head that already has a base64 blob (from
+ * envelope ({@code {"textures":{"SKIN":{"url":"…"}}}}), so a head that already has a base64 blob (from
  * Mojang or a cache) needs no further round-trip, and a head built from a bare URL is wrapped here.
  *
- * <p>Pure and offline: no server, no network. The decode side is forgiving — a malformed blob, a non-JSON
+ * <p>Pure and offline: no server, no network. The decode side is forgiving: a malformed blob, a non-JSON
  * payload, or an envelope without a {@code SKIN} URL all yield {@link Optional#empty()} rather than throw,
  * because the input often comes from an external source that may have changed shape.
  */

@@ -27,8 +27,8 @@ import org.jspecify.annotations.Nullable;
  * entry through unchanged. Quarantining {@code net.minecraft} to this class mirrors {@link NmsTabListPackets}.
  *
  * <p>Built against the Mojang-mapped 1.21.11 dev bundle. The {@code Entry} record carries nine components in
- * declared order — {@code profileId, profile, listed, latency, gameMode, displayName, showHat, listOrder,
- * chatSession} — and is reconstructed component-for-component with only {@code listed} changed, so the rewrite
+ * declared order: {@code profileId, profile, listed, latency, gameMode, displayName, showHat, listOrder,
+ * chatSession}, and is reconstructed component-for-component with only {@code listed} changed, so the rewrite
  * is byte-identical to the original apart from the visibility flag. The packet is rebuilt through Paper's public
  * {@code (EnumSet<Action>, List<Entry>)} constructor with the <em>same</em> action set, so the client reads the
  * same fields it would have, now seeing {@code listed=false} for the suppressed entries.
