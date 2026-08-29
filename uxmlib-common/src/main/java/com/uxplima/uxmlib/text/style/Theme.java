@@ -52,6 +52,8 @@ public final class Theme {
 
     private static final String ACCENT = "accent";
 
+    private static final String SEPARATOR = "separator";
+
     private final Map<String, TextColor> colours;
     private final Map<String, String> glyphs;
     private final Map<String, String> categories;
@@ -119,7 +121,7 @@ public final class Theme {
 
     /** The glyph between a message's category word and the sentence, short for {@code glyph("separator")}. */
     public String separator() {
-        return glyph("separator");
+        return glyph(SEPARATOR);
     }
 
     /** The colour role of the category prefix {@code label} carries; anything unlisted reads in the accent. */
@@ -145,17 +147,17 @@ public final class Theme {
 
     /**
      * The glyphs, reading {@code prefix.separator} as well as {@code glyphs.separator}. The separator lived
-     * under the prefix block before the rest of the glyphs were configurable, and an operator who moved their
-     * separator there should not have it quietly ignored.
+     * under the prefix block before the rest of the glyphs were configurable, so a file that still keeps it
+     * there stands in for the shipped default instead of being quietly ignored; a {@code glyphs.separator}
+     * still wins over both.
      */
     private static Map<String, String> glyphs(ConfigurationNode node) {
+        String shippedSeparator = Objects.requireNonNull(DEFAULT_GLYPHS.get(SEPARATOR), SEPARATOR);
+        String separator = node.node("prefix", SEPARATOR).getString(shippedSeparator);
         Map<String, String> glyphs = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : DEFAULT_GLYPHS.entrySet()) {
-            glyphs.put(entry.getKey(), node.node("glyphs", entry.getKey()).getString(entry.getValue()));
-        }
-        String legacy = node.node("prefix", "separator").getString();
-        if (legacy != null && node.node("glyphs", "separator").getString() == null) {
-            glyphs.put("separator", legacy);
+            String shipped = SEPARATOR.equals(entry.getKey()) ? separator : entry.getValue();
+            glyphs.put(entry.getKey(), node.node("glyphs", entry.getKey()).getString(shipped));
         }
         return glyphs;
     }
@@ -224,7 +226,7 @@ public final class Theme {
 
     private static Map<String, String> defaultGlyphs() {
         Map<String, String> glyphs = new LinkedHashMap<>();
-        glyphs.put("separator", "▶");
+        glyphs.put(SEPARATOR, "▶");
         glyphs.put("title", "◆");
         glyphs.put("description", "✎");
         glyphs.put("details", "≡");
