@@ -136,7 +136,10 @@ class ThemeTest {
         var stream = Theme.class.getClassLoader().getResourceAsStream("uxmlib/theme.conf");
         assertThat(stream).describedAs("uxmlib/theme.conf is on the classpath").isNotNull();
         try (Reader reader = new InputStreamReader(java.util.Objects.requireNonNull(stream), StandardCharsets.UTF_8)) {
-            return HoconConfigurationLoader.builder().source(() -> new java.io.BufferedReader(reader)).build().load();
+            return HoconConfigurationLoader.builder()
+                    .source(() -> new java.io.BufferedReader(reader))
+                    .build()
+                    .load();
         }
     }
 }

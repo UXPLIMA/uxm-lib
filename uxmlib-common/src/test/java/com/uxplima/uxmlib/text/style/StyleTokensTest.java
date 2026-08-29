@@ -39,8 +39,7 @@ class StyleTokensTest {
 
     @Test
     void aHeaderIsBoldAndInTheAccentColour() {
-        assertThat(StyleTokens.expand("<h:'REWARDS'>", theme, true))
-                .isEqualTo("<b><color:#38b6ff>ʀᴇᴡᴀʀᴅꜱ</color></b>");
+        assertThat(StyleTokens.expand("<h:'REWARDS'>", theme, true)).isEqualTo("<b><color:#38b6ff>ʀᴇᴡᴀʀᴅꜱ</color></b>");
     }
 
     @Test

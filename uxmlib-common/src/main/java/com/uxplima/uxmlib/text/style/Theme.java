@@ -84,7 +84,10 @@ public final class Theme {
     public static Theme from(ConfigurationNode node) {
         Objects.requireNonNull(node, "node");
         return new Theme(
-                colours(node), glyphs(node), categories(node), smallCaps(node.node("small-caps").childrenMap()));
+                colours(node),
+                glyphs(node),
+                categories(node),
+                smallCaps(node.node("small-caps").childrenMap()));
     }
 
     /** The colour of {@code role}, or the body colour when this theme does not know the role. */
@@ -134,7 +137,8 @@ public final class Theme {
     private static Map<String, TextColor> colours(ConfigurationNode node) {
         Map<String, TextColor> colours = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : DEFAULT_COLOURS.entrySet()) {
-            colours.put(entry.getKey(), parse(node.node("colours", entry.getKey()).getString(entry.getValue())));
+            colours.put(
+                    entry.getKey(), parse(node.node("colours", entry.getKey()).getString(entry.getValue())));
         }
         return colours;
     }
