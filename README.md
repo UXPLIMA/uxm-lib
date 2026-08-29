@@ -338,10 +338,10 @@ theme's colours and `<tag:'HOME'>` into a bold category prefix. Both run once at
 
 Menus draw from the same theme: `MenuTitles.centre` pads a window title into the middle of the frame,
 `Tiles` puts a tile's title on the first lore line under a blank name (a single space — an empty one makes
-the client fall back to the material's name), `Lore` builds the tooltip in one fixed order (and `Lore.lines` gives lore an operator wrote in a config
-file the same column, padding and closing air, so no plugin has to write that geometry down as a house
-rule), and
-`MenuSounds` reads the three menu sounds from config.
+the client fall back to the material's name), `Lore` builds the tooltip in one fixed order, and
+`MenuSounds` reads the three menu sounds from config. Lore an operator wrote in a config file goes through
+`Lore.lines`, which gives it the same column, the same padding and the same closing air — so a plugin that
+ships items never has to write that geometry down as a house rule of its own.
 
 The library ships `uxmlib/theme.conf` as a starting file: colours, glyphs, category colours, named
 gradients and which languages take small capitals. A key it leaves out keeps the shipped answer, and naming
