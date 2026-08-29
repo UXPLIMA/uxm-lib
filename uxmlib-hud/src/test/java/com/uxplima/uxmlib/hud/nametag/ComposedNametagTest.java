@@ -78,8 +78,7 @@ class ComposedNametagTest {
 
     @Test
     void aSharedPriorityIsSettledByPluginNameSoRestartsAgree() {
-        List<NametagContribution> contributions =
-                List.of(prefix("zeta", 100, "[Z]"), prefix("alpha", 100, "[A]"));
+        List<NametagContribution> contributions = List.of(prefix("zeta", 100, "[Z]"), prefix("alpha", 100, "[A]"));
 
         ComposedNametag first = ComposedNametag.compose(contributions, " ");
         ComposedNametag reversed = ComposedNametag.compose(contributions.reversed(), " ");
