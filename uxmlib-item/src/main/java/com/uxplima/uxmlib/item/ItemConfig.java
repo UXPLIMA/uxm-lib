@@ -28,6 +28,7 @@ import org.spongepowered.configurate.serialize.SerializationException;
  * custom-model-data = 42
  * unbreakable = true
  * glow = true
+ * hide-vanilla-tooltip = true         # silence the lines the client writes under the lore
  * skull = "Notch"                     # only for PLAYER_HEAD; routed through SkullData.parse
  * }</pre>
  *
@@ -163,6 +164,9 @@ public final class ItemConfig {
         }
         if (node.node("glow").getBoolean(false)) {
             builder.glow(true);
+        }
+        if (node.node("hide-vanilla-tooltip").getBoolean(false)) {
+            builder.vanillaTooltip(false);
         }
     }
 

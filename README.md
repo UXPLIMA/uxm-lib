@@ -385,7 +385,18 @@ ItemStack head = ItemBuilder.of(Material.PLAYER_HEAD)
 
 String saved = ItemSerialization.toBase64(sword);  // survives every data component
 ItemStack back = ItemSerialization.fromBase64(saved);
+
+// A menu icon is a button, and the client does not know that: it writes its own lines under the lore,
+// so a leather chestplate used as a button says "Dyed" and "Armor" beneath whatever the menu wrote.
+ItemStack button = ItemBuilder.of(Material.LEATHER_CHESTPLATE)
+        .name(Text.mini("<white>Cosmetics"))
+        .vanillaTooltip(false)          // or hiddenComponents(...) to keep one of them
+        .build();
 ```
+
+`ItemConfig` reads the same spec from HOCON, `hide-vanilla-tooltip = true` included, so an operator writing
+a menu file reaches for that rather than for the deprecated `HIDE_ADDITIONAL_TOOLTIP` flag. Leave it off for
+an item a player owns: on a kit sword or a vault icon the damage and enchantment lines are the point.
 
 ### GUIs
 
