@@ -88,9 +88,10 @@ public final class Lore {
         written.forEach(line -> Objects.requireNonNull(line, "line"));
         String indent = indentUnder("title");
         for (Component line : trimBlankEnds(written)) {
-            line(Tiles.isBlank(line)
-                    ? Component.empty()
-                    : Component.text(indent).append(line.colorIfAbsent(theme.colour("subtext"))));
+            line(
+                    Tiles.isBlank(line)
+                            ? Component.empty()
+                            : Component.text(indent).append(line.colorIfAbsent(theme.colour("subtext"))));
         }
         return block();
     }
