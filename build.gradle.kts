@@ -4,7 +4,7 @@
 
 allprojects {
     group = "com.uxplima.uxmlib"
-    version = project.findProperty("projectVersion")?.toString() ?: "0.18.1-SNAPSHOT"
+    version = project.findProperty("projectVersion")?.toString() ?: "0.19.0-SNAPSHOT"
 
     repositories {
         mavenCentral()
