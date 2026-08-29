@@ -329,6 +329,11 @@ messages.reload(styler.style(catalog, MyKeys.values(), files, Locale.ENGLISH));
 
 // On a /reload, hand the same styler the new palette rather than building a second one:
 styler.reload(Theme.from(reloaded.root()));
+
+// Text a plugin computes has no catalog entry to style at load, so style it per viewer — and ask
+// Messages which language that viewer is being served rather than reading the player's own locale,
+// or a server that pins one gets catalog text in one language and computed text styled for another.
+Component name = Text.mini(styler.apply(colour.displayName(), messages.localeOf(viewer)));
 ```
 
 `Typography` converts a template to small capitals for the languages the theme says are written that way,

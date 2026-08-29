@@ -111,6 +111,25 @@ public final class Messages {
         return render(content, viewer, key, resolvers);
     }
 
+    /**
+     * The locale {@code viewer} is being served — the language every message this facade renders for them
+     * comes out in.
+     *
+     * <p>For text a plugin computes rather than writes: a colour name built from an enum id, a lobby name
+     * an operator typed into a config, anything with no catalog entry behind it. That text still has to be
+     * styled for the reader's language, and asking here rather than reading a player's own locale is the
+     * difference between one interface and two — a server that pins a locale, or maps an unknown language
+     * onto its default, would otherwise hand somebody catalog text in one language and computed text
+     * styled for another. Both answers have to come from the same place, and this is that place.
+     *
+     * <p>Read off the live snapshot, so a reload that swapped the {@link LocaleSource} is answered with
+     * the new one.
+     */
+    public Locale localeOf(Audience viewer) {
+        Objects.requireNonNull(viewer, "viewer");
+        return content.locales().localeOf(viewer);
+    }
+
     /** The catalog this facade currently reads from, for callers that need direct template access. */
     public MessageCatalog catalog() {
         return content.catalog();

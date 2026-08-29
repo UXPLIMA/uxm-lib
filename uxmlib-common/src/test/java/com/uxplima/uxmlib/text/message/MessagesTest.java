@@ -341,6 +341,27 @@ class MessagesTest {
                 .isEqualTo("Welcome Alex");
     }
 
+    /** A plugin that computes text has to style it for the language this facade is serving that viewer. */
+    @Test
+    void theLocaleAViewerIsServedCanBeAsked() {
+        PlayerMock player = server.addPlayer();
+        player.setLocale(Locale.GERMAN);
+        Messages messages = new Messages(catalog(), LocaleSource.ofDefault(Locale.ENGLISH));
+
+        assertThat(messages.localeOf(player)).isEqualTo(Locale.GERMAN);
+        assertThat(messages.localeOf(Audience.empty())).isEqualTo(Locale.ENGLISH);
+    }
+
+    /** It answers off the live snapshot, so a reload that swapped the source is not answered with the old one. */
+    @Test
+    void theLocaleFollowsASourceSwappedByAReload() {
+        Messages messages = new Messages(catalog(), LocaleSource.ofDefault(Locale.ENGLISH));
+
+        messages.reload(catalog(), LocaleSource.ofDefault(Locale.FRENCH), Map.of(), TagResolver.empty());
+
+        assertThat(messages.localeOf(Audience.empty())).isEqualTo(Locale.FRENCH);
+    }
+
     @Test
     void playerLocaleSourceReadsThePlayersOwnLocale() {
         PlayerMock player = server.addPlayer();
