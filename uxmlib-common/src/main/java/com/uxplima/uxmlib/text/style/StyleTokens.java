@@ -110,7 +110,10 @@ public final class StyleTokens {
         for (TextColor stop : stops) {
             tag.append(':').append(hex(stop));
         }
-        return Text.mini(tag.append('>').append(Text.serialize(text)).append("</gradient>").toString());
+        return Text.mini(tag.append('>')
+                .append(Text.serialize(text))
+                .append("</gradient>")
+                .toString());
     }
 
     /** Whether any part of {@code component} names a colour, root or child. */
