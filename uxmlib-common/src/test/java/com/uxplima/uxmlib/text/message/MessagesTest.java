@@ -6,7 +6,11 @@ import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
 
+import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.minimessage.tag.Tag;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 
 import com.uxplima.uxmlib.text.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -34,6 +38,19 @@ class MessagesTest {
     @AfterEach
     void tearDown() {
         MockBukkit.unmock();
+    }
+
+    /** A house-style tag: everything after {@code <accent>} is blue, the way a real style layer defines it. */
+    private static TagResolver accent() {
+        return TagResolver.resolver("accent", Tag.styling(NamedTextColor.BLUE));
+    }
+
+    /** Whether any component in the tree carries {@code color}; MiniMessage may nest the styled part. */
+    private static boolean paintedWith(Component component, NamedTextColor color) {
+        if (color.equals(component.color())) {
+            return true;
+        }
+        return component.children().stream().anyMatch(child -> paintedWith(child, color));
     }
 
     private MessageCatalog catalog() {
@@ -201,6 +218,111 @@ class MessagesTest {
         net.kyori.adventure.title.Title shown() {
             return java.util.Objects.requireNonNull(shown, "no title was shown");
         }
+    }
+
+    @Test
+    void aBaseResolverIsAvailableToEveryTemplateWithoutRewritingAnyOfThem() {
+        PlayerMock player = server.addPlayer();
+        player.setLocale(Locale.ENGLISH);
+        MessageCatalog catalog = new MessageCatalog(
+                Map.of(Locale.ENGLISH, Map.of("join.welcome", "<accent>Welcome <name>")), Locale.ENGLISH);
+        Messages messages = new Messages(
+                catalog, LocaleSource.ofDefault(Locale.ENGLISH), Map.of(), accent());
+
+        Component rendered = messages.render(player, WELCOME, Text.placeholder("name", "Alex"));
+
+        assertThat(Text.plain(rendered)).isEqualTo("Welcome Alex");
+        assertThat(paintedWith(rendered, NamedTextColor.BLUE)).isTrue();
+    }
+
+    @Test
+    void aCallSiteResolverWinsOverTheBaseOneOfTheSameName() {
+        PlayerMock player = server.addPlayer();
+        player.setLocale(Locale.ENGLISH);
+        MessageCatalog catalog =
+                new MessageCatalog(Map.of(Locale.ENGLISH, Map.of("join.welcome", "<who>")), Locale.ENGLISH);
+        Messages messages = new Messages(
+                catalog, LocaleSource.ofDefault(Locale.ENGLISH), Map.of(), Text.placeholder("who", "the house"));
+
+        Component rendered = messages.render(player, WELCOME, Text.placeholder("who", "this line"));
+
+        assertThat(Text.plain(rendered)).isEqualTo("this line");
+    }
+
+    @Test
+    void theBaseResolverReachesBothHalvesOfATitle() {
+        CapturingTitleAudience viewer = new CapturingTitleAudience();
+        MessageCatalog catalog = new MessageCatalog(
+                Map.of(
+                        Locale.ENGLISH,
+                        Map.of(
+                                "join.welcome", "<accent>Welcome",
+                                "join.welcome.subtitle", "<accent>good to see you")),
+                Locale.ENGLISH);
+        Messages messages = new Messages(
+                catalog,
+                LocaleSource.ofDefault(Locale.ENGLISH),
+                Map.of(WELCOME.path(), titleChannel()),
+                accent());
+
+        messages.send(viewer, WELCOME);
+
+        net.kyori.adventure.title.Title shown = viewer.shown();
+        assertThat(paintedWith(shown.title(), NamedTextColor.BLUE)).isTrue();
+        assertThat(paintedWith(shown.subtitle(), NamedTextColor.BLUE)).isTrue();
+    }
+
+    @Test
+    void reloadingSwapsTheWordsForAnInstanceThatIsAlreadyInjectedEverywhere() {
+        PlayerMock player = server.addPlayer();
+        player.setLocale(Locale.GERMAN);
+        Messages messages = new Messages(catalog(), LocaleSource.ofDefault(Locale.ENGLISH));
+
+        messages.reload(new MessageCatalog(
+                Map.of(Locale.GERMAN, Map.of("join.welcome", "<green>Servus <name>")), Locale.GERMAN));
+
+        assertThat(Text.plain(messages.render(player, WELCOME, Text.placeholder("name", "Alex"))))
+                .isEqualTo("Servus Alex");
+        assertThat(messages.catalog().defaultLocale()).isEqualTo(Locale.GERMAN);
+    }
+
+    @Test
+    void reloadingAlsoSwapsTheChannelAndTheBaseResolver() {
+        PlayerMock player = server.addPlayer();
+        player.setLocale(Locale.ENGLISH);
+        MessageCatalog catalog =
+                new MessageCatalog(Map.of(Locale.ENGLISH, Map.of("join.welcome", "<accent>Welcome")), Locale.ENGLISH);
+        Messages messages = new Messages(catalog, LocaleSource.ofDefault(Locale.ENGLISH));
+
+        messages.reload(
+                catalog,
+                LocaleSource.ofDefault(Locale.ENGLISH),
+                Map.of(WELCOME.path(), new Message.ActionBar("<unused>")),
+                accent());
+        messages.send(player, WELCOME);
+
+        assertThat(player.nextComponentMessage()).isNull();
+        assertThat(paintedWith(player.nextActionBar(), NamedTextColor.BLUE)).isTrue();
+    }
+
+    @Test
+    void reloadingTheLocaleSourceMovesTheAnswerAConsoleGets() {
+        Map<Locale, Map<String, String>> templates = Map.of(
+                Locale.ENGLISH, Map.of("join.welcome", "<green>Welcome <name>"),
+                Locale.GERMAN, Map.of("join.welcome", "<green>Willkommen <name>"));
+        Messages messages =
+                new Messages(new MessageCatalog(templates, Locale.ENGLISH), LocaleSource.ofDefault(Locale.ENGLISH));
+        Audience console = Audience.empty();
+
+        // Everything a render reads moves together: the words and the language a non-player is answered in.
+        messages.reload(
+                new MessageCatalog(templates, Locale.GERMAN),
+                LocaleSource.ofDefault(Locale.GERMAN),
+                Map.of(),
+                TagResolver.empty());
+
+        assertThat(Text.plain(messages.render(console, WELCOME, Text.placeholder("name", "Alex"))))
+                .isEqualTo("Willkommen Alex");
     }
 
     @Test
