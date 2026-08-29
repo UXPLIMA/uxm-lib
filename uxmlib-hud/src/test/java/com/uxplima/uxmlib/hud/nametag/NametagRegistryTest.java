@@ -129,6 +129,51 @@ class NametagRegistryTest {
         assertThat(log.messages().get(0)).contains("glow").contains("tags").contains(player.getName());
     }
 
+    /**
+     * The name's colour follows the most recent request, not the leftmost part. uxmTags writes a prefix it
+     * wants first in the line; uxmGlow tints the name when a player switches the effect on. Both get what
+     * they asked for.
+     */
+    @Test
+    void theColourGoesToWhicheverPluginAskedForItLast() {
+        PlayerMock player = server.addPlayer();
+        NametagRegistry registry = registry();
+
+        registry.contribute(
+                player, new NametagContribution("tags", 50, Component.text("[VIP]"), null, NamedTextColor.GOLD));
+        registry.contribute(player, NametagContribution.color("glow", 900, NamedTextColor.RED));
+
+        ComposedNametag name = registry.composed(player.getUniqueId());
+        assertThat(Text.plain(name.prefix())).isEqualTo("[VIP]");
+        assertThat(name.color()).isEqualTo(NamedTextColor.RED);
+    }
+
+    /** A plugin re-asserting its colour takes the name back, which is what turning an effect on again means. */
+    @Test
+    void contributingAgainTakesTheColourBack() {
+        PlayerMock player = server.addPlayer();
+        NametagRegistry registry = registry();
+
+        registry.contribute(player, NametagContribution.color("glow", 100, NamedTextColor.RED));
+        registry.contribute(player, NametagContribution.color("tags", 100, NamedTextColor.AQUA));
+        registry.contribute(player, NametagContribution.color("glow", 100, NamedTextColor.GREEN));
+
+        assertThat(registry.composed(player.getUniqueId()).color()).isEqualTo(NamedTextColor.GREEN);
+    }
+
+    /** Withdrawing the colour that was on top hands the name back to the plugin that held it before. */
+    @Test
+    void withdrawingTheOwnersColourReturnsTheNameToThePreviousOne() {
+        PlayerMock player = server.addPlayer();
+        NametagRegistry registry = registry();
+
+        registry.contribute(player, NametagContribution.color("tags", 100, NamedTextColor.AQUA));
+        registry.contribute(player, NametagContribution.color("glow", 100, NamedTextColor.RED));
+        registry.withdraw(player, "glow");
+
+        assertThat(registry.composed(player.getUniqueId()).color()).isEqualTo(NamedTextColor.AQUA);
+    }
+
     @Test
     void aSchedulerMeansTheDisplayIsWrittenOnItsOwnThread() {
         PlayerMock player = server.addPlayer();

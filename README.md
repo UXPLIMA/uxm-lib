@@ -585,11 +585,11 @@ nametags.contribute(player, NametagContribution.color("uxmGlow", priorityFromCon
 nametags.withdraw("uxmTags"); // onDisable: take back only your own parts
 ```
 
-Prefixes and suffixes compose in priority order — smaller is earlier — and the name's single colour goes to
-the first contribution that asks for it, with both claimants named once in the log so an operator can
-re-order them. Read your priority from your own config: which of two plugins comes first is an operator's
-decision. A team uxmLib did not create is never touched, so a third-party plugin managing its own teams is
-left alone.
+Prefixes and suffixes compose in priority order — smaller is earlier — and priority decides layout only.
+The name has a single colour and it belongs to whichever plugin asked for it last, so a glow a player just
+switched on wins over a rank tag that has sat leftmost all session; every claimant is named once in the log.
+Read your priority from your own config: which of two plugins comes first is an operator's decision. A team
+uxmLib did not create is never touched, so a third-party plugin managing its own teams is left alone.
 
 ### Conditions & actions
 
