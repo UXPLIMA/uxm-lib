@@ -1,12 +1,13 @@
 package com.uxplima.uxmlib.hud.nametag;
 
-import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.logging.Logger;
 
 import org.bukkit.entity.Player;
@@ -43,6 +44,7 @@ public final class NametagRegistry {
     private final @Nullable Scheduler scheduler;
     private final Map<UUID, PlayerTags> byPlayer = new ConcurrentHashMap<>();
     private final Set<String> reportedClashes = ConcurrentHashMap.newKeySet();
+    private final AtomicLong arrivals = new AtomicLong();
 
     /** A registry that writes on the calling thread, with a plain space between parts. */
     public NametagRegistry(NametagSink sink, Logger log) {
@@ -67,7 +69,7 @@ public final class NametagRegistry {
         UUID id = player.getUniqueId();
         byPlayer.computeIfAbsent(id, key -> new PlayerTags(player.getName()))
                 .contributions()
-                .put(contribution.plugin(), contribution);
+                .put(contribution.plugin(), new Held(arrivals.incrementAndGet(), contribution));
         refresh(id);
     }
 
@@ -118,9 +120,7 @@ public final class NametagRegistry {
     public ComposedNametag composed(UUID id) {
         Objects.requireNonNull(id, "id");
         PlayerTags tags = byPlayer.get(id);
-        List<NametagContribution> contributions =
-                tags == null ? List.of() : new ArrayList<>(tags.contributions().values());
-        return ComposedNametag.compose(contributions, separator);
+        return ComposedNametag.compose(tags == null ? List.of() : arrivalsOf(tags), separator);
     }
 
     private void refresh(UUID id) {
@@ -128,15 +128,23 @@ public final class NametagRegistry {
         if (tags == null) {
             return;
         }
-        ComposedNametag name = ComposedNametag.compose(tags.contributions().values(), separator);
+        ComposedNametag name = ComposedNametag.compose(arrivalsOf(tags), separator);
         reportClash(tags.entry(), name);
         run(() -> sink.apply(id, tags.entry(), name));
+    }
+
+    /** One player's contributions oldest first, which is the order that settles who owns the colour. */
+    private static List<NametagContribution> arrivalsOf(PlayerTags tags) {
+        return tags.contributions().values().stream()
+                .sorted(Comparator.comparingLong(Held::arrival))
+                .map(Held::contribution)
+                .toList();
     }
 
     /**
      * Say once which plugins wanted this name's colour and which one has it. Two plugins colouring the same
      * name is not an error — one of them simply cannot win — but silence about it is what turns a settled
-     * rule into a bug report, so the losing plugin is named too and an operator can re-order them.
+     * rule into a bug report, so the plugin that lost the colour is named too.
      */
     private void reportClash(String entry, ComposedNametag name) {
         if (!name.hasColorClash()) {
@@ -147,7 +155,7 @@ public final class NametagRegistry {
             return;
         }
         log.info("More than one plugin colours " + entry + "'s name: " + String.join(", ", sources) + ". "
-                + sources.get(0) + " wins it; change a plugin's nametag priority to swap them.");
+                + sources.get(sources.size() - 1) + " has it, as the last one to ask.");
     }
 
     private void run(Runnable write) {
@@ -160,9 +168,17 @@ public final class NametagRegistry {
     }
 
     /** A player's own contributions, plus the entry name the display knows them by. */
-    private record PlayerTags(String entry, Map<String, NametagContribution> contributions) {
+    private record PlayerTags(String entry, Map<String, Held> contributions) {
         PlayerTags(String entry) {
             this(entry, new ConcurrentHashMap<>());
         }
     }
+
+    /**
+     * A contribution and when it arrived. The map that holds them is keyed by plugin and is unordered by
+     * design — a plugin contributing again must replace what it had — so the arrival number is what is left
+     * to say which colour is the newest. Contributing again takes a fresh number, which is how a plugin
+     * re-asserting its colour takes the name back.
+     */
+    private record Held(long arrival, NametagContribution contribution) {}
 }

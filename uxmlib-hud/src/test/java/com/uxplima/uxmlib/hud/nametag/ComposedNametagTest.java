@@ -12,8 +12,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * The composition rules on their own: parts compose in priority order with the configured separator, the
- * name's single colour goes to the first contribution that asks for it, and a tie is settled by plugin name
- * so the same contributions produce the same name on every restart.
+ * name's single colour goes to the contribution that asked for it last whatever its position, and a layout
+ * tie is settled by plugin name so the same contributions produce the same name on every restart.
  */
 class ComposedNametagTest {
 
@@ -47,29 +47,44 @@ class ComposedNametagTest {
     }
 
     @Test
-    void theFirstContributionToAskForTheColourGetsIt() {
+    void theLastContributionToAskForTheColourGetsIt() {
         ComposedNametag name = ComposedNametag.compose(
                 List.of(
-                        NametagContribution.color("glow", 50, NamedTextColor.RED),
-                        NametagContribution.color("tags", 100, NamedTextColor.AQUA)),
+                        NametagContribution.color("tags", 100, NamedTextColor.AQUA),
+                        NametagContribution.color("glow", 50, NamedTextColor.RED)),
                 " ");
 
         assertThat(name.color()).isEqualTo(NamedTextColor.RED);
-        assertThat(name.colorSources()).containsExactly("glow", "tags");
+        assertThat(name.colorSources()).containsExactly("tags", "glow");
         assertThat(name.hasColorClash()).isTrue();
+    }
+
+    /**
+     * The leftmost part is not the one that owns the colour. A tag is worn permanently and sits first; a
+     * glow is switched on for right now. If position decided, the player who just turned the glow on would
+     * see nothing happen.
+     */
+    @Test
+    void sittingLeftmostDoesNotWinTheColour() {
+        ComposedNametag name = ComposedNametag.compose(
+                List.of(
+                        new NametagContribution("tags", 50, Component.text("[VIP]"), null, NamedTextColor.GOLD),
+                        NametagContribution.color("glow", 900, NamedTextColor.RED)),
+                " ");
+
+        assertThat(Text.plain(name.prefix())).isEqualTo("[VIP]");
+        assertThat(name.color()).isEqualTo(NamedTextColor.RED);
     }
 
     @Test
     void aSharedPriorityIsSettledByPluginNameSoRestartsAgree() {
-        List<NametagContribution> contributions = List.of(
-                NametagContribution.color("zeta", 100, NamedTextColor.GREEN),
-                NametagContribution.color("alpha", 100, NamedTextColor.GOLD));
+        List<NametagContribution> contributions = List.of(prefix("zeta", 100, "[Z]"), prefix("alpha", 100, "[A]"));
 
         ComposedNametag first = ComposedNametag.compose(contributions, " ");
         ComposedNametag reversed = ComposedNametag.compose(contributions.reversed(), " ");
 
-        assertThat(first.color()).isEqualTo(NamedTextColor.GOLD);
-        assertThat(reversed).isEqualTo(first);
+        assertThat(Text.plain(first.prefix())).isEqualTo("[A] [Z]");
+        assertThat(Text.plain(reversed.prefix())).isEqualTo("[A] [Z]");
     }
 
     @Test
