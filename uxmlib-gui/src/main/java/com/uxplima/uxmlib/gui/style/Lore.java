@@ -3,6 +3,7 @@ package com.uxplima.uxmlib.gui.style;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import net.kyori.adventure.text.Component;
 
@@ -40,6 +41,13 @@ import com.uxplima.uxmlib.text.style.Theme;
  */
 public final class Lore {
 
+    /**
+     * What a line break looks like once a component has been written back to MiniMessage. It comes back as
+     * the tag and not as the character, so a split that only knows {@code \n} finds nothing and the second
+     * line of a description keeps the first one's indent instead of getting its own.
+     */
+    private static final Pattern LINE_BREAK = Pattern.compile("\\R|<newline>|<br>", Pattern.CASE_INSENSITIVE);
+
     private final Theme theme;
     private final List<List<Component>> blocks = new ArrayList<>();
     private List<Component> current = new ArrayList<>();
@@ -70,6 +78,36 @@ public final class Lore {
             line(Component.text(indent).append(sentence.colorIfAbsent(theme.colour("subtext"))));
         }
         return block();
+    }
+
+    /**
+     * A block of lines that were written somewhere other than here — an item's lore in a config file, say.
+     * They get the shape the rest of a tile has: the column a header's words start in, the pad either side,
+     * and the blank line {@link #build()} closes the box with. A blank line in the middle stays a blank
+     * line; blank lines at either end are dropped, because the air around the block is this class's job and
+     * a file that supplies its own would double it.
+     *
+     * <p>The reason to have this at all is that a plugin whose lore an operator writes would otherwise have
+     * to state the indent and the padding as house rules in its own documentation, and a rule in prose
+     * drifts a space at a time across files nobody diffs against each other.
+     */
+    public Lore lines(List<Component> written) {
+        Objects.requireNonNull(written, "written");
+        written.forEach(line -> Objects.requireNonNull(line, "line"));
+        String indent = indentUnder("title");
+        for (Component line : trimBlankEnds(written)) {
+            line(
+                    Tiles.isBlank(line)
+                            ? Component.empty()
+                            : Component.text(indent).append(line.colorIfAbsent(theme.colour("subtext"))));
+        }
+        return block();
+    }
+
+    /** The same, for lore that arrives as one component with the line breaks written into it. */
+    public Lore lines(Component written) {
+        Objects.requireNonNull(written, "written");
+        return lines(split(written));
     }
 
     /** The details header. Call {@link #row} or {@link #status} after it. */
@@ -186,10 +224,23 @@ public final class Lore {
         return this;
     }
 
+    /** {@code written} without the blank lines it opens or closes with. */
+    private static List<Component> trimBlankEnds(List<Component> written) {
+        int first = 0;
+        int last = written.size();
+        while (first < last && Tiles.isBlank(written.get(first))) {
+            first++;
+        }
+        while (last > first && Tiles.isBlank(written.get(last - 1))) {
+            last--;
+        }
+        return written.subList(first, last);
+    }
+
     /** One component per line of a catalog entry that was written over several lines. */
     private static List<Component> split(Component text) {
         List<Component> lines = new ArrayList<>();
-        for (String line : Text.serialize(text).split("\n", -1)) {
+        for (String line : LINE_BREAK.split(Text.serialize(text), -1)) {
             lines.add(Text.mini(line));
         }
         return lines;

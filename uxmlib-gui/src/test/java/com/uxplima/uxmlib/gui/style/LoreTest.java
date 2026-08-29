@@ -66,8 +66,8 @@ class LoreTest {
                 Lore.of(theme).description(Component.text("About"), text).build();
 
         assertThat(lines(lore)).hasSize(4);
-        assertThat(lines(lore).get(1)).contains("first");
-        assertThat(lines(lore).get(2)).contains("second");
+        assertThat(lines(lore).get(1)).isEqualTo("    first ");
+        assertThat(lines(lore).get(2)).isEqualTo("    second ");
     }
 
     @Test
@@ -115,6 +115,37 @@ class LoreTest {
                 .build();
 
         assertThat(lines(lore)).anySatisfy(line -> assertThat(line).isEqualTo("     • Owned 12 "));
+    }
+
+    /** Lore an operator wrote in a config file lands in the same column as lore built here. */
+    @Test
+    void writtenLinesTakeTheShapeOfTheRest() {
+        Component lore = Lore.of(theme)
+                .lines(List.of(Component.text("A hat."), Component.empty(), Component.text("Worn on the head.")))
+                .build();
+
+        List<String> lines = lines(lore);
+        assertThat(lines.get(0)).isEqualTo("    A hat. ");
+        assertThat(lines.get(1)).isBlank();
+        assertThat(lines.get(2)).isEqualTo("    Worn on the head. ");
+        assertThat(lines.get(3)).isBlank();
+    }
+
+    /** A file that already closes its own box does not get two blank lines when it moves onto this. */
+    @Test
+    void blankLinesAtEitherEndOfAWrittenBlockAreDropped() {
+        Component lore = Lore.of(theme)
+                .lines(List.of(Component.empty(), Component.text("A hat."), Component.text(" ")))
+                .build();
+
+        assertThat(lines(lore)).containsExactly("    A hat. ", " ");
+    }
+
+    @Test
+    void aWrittenBlockSplitsOnTheBreaksItWasWrittenWith() {
+        Component written = Component.text("first").append(Component.newline()).append(Component.text("second"));
+
+        assertThat(lines(Lore.of(theme).lines(written).build())).containsExactly("    first ", "    second ", " ");
     }
 
     /** The last thing a tile says needs air under it, or the text reads as cut off by the tooltip edge. */
