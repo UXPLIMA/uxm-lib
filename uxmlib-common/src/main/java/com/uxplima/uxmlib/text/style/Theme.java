@@ -154,7 +154,7 @@ public final class Theme {
             glyphs.put(entry.getKey(), node.node("glyphs", entry.getKey()).getString(entry.getValue()));
         }
         String legacy = node.node("prefix", "separator").getString();
-        if (legacy != null && node.node("glyphs", "separator").virtual()) {
+        if (legacy != null && node.node("glyphs", "separator").getString() == null) {
             glyphs.put("separator", legacy);
         }
         return glyphs;
