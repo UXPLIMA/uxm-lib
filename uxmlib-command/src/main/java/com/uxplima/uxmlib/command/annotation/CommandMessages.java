@@ -31,6 +31,11 @@ import com.uxplima.uxmlib.common.Durations;
  *
  * <p>Every method has a default, so an implementation overrides only the lines it cares about. The defaults
  * are the English the library shipped before this seam existed, which is what makes adopting it optional.
+ *
+ * <p>The help page routes its whole line through here, colours and separator included, not only its chrome.
+ * A generated help page is text a player reads that no plugin repository contains, so a style pass that
+ * reads a plugin's own resources cannot see it and cannot fix it; the seam is the only place it can be
+ * fixed from.
  */
 public interface CommandMessages {
 
@@ -90,6 +95,34 @@ public interface CommandMessages {
     default Component helpHeader(Locale locale, String command, int page, int pages) {
         Objects.requireNonNull(locale, "locale");
         return Component.text("/" + command + " help (" + page + "/" + pages + ")", NamedTextColor.YELLOW);
+    }
+
+    /**
+     * The clickable command on a help line, e.g. {@code /town create <name>}. The click and the hover are the
+     * renderer's; the wording and the colour are yours.
+     */
+    default Component helpCommand(Locale locale, String command) {
+        Objects.requireNonNull(locale, "locale");
+        return Component.text(command, NamedTextColor.WHITE);
+    }
+
+    /**
+     * What sits between a help line's command and its description. Its own method because punctuation is not
+     * neutral: a server whose style guide bans a character cannot strip it from text that lives in this jar,
+     * so the library has to let it be replaced rather than pick one for everybody.
+     */
+    default Component helpSeparator(Locale locale) {
+        Objects.requireNonNull(locale, "locale");
+        return Component.text(" - ", NamedTextColor.GRAY);
+    }
+
+    /**
+     * A branch's {@code @Subcommand} description, as the help line and its hover show it. The words are the
+     * consumer's own and are passed through unchanged; what this decides is how they are painted.
+     */
+    default Component helpDescription(Locale locale, String description) {
+        Objects.requireNonNull(locale, "locale");
+        return Component.text(description, NamedTextColor.GRAY);
     }
 
     /** The hover on a help entry that has no description of its own. */

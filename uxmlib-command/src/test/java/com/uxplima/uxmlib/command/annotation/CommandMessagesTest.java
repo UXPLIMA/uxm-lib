@@ -46,6 +46,19 @@ class CommandMessagesTest {
         assertThat(plain(EN.helpHeader(Locale.ENGLISH, "town", 2, 3))).isEqualTo("/town help (2/3)");
         assertThat(plain(EN.helpFillHint(Locale.ENGLISH))).isEqualTo("Click to fill in this command");
         assertThat(plain(EN.helpPageHint(Locale.ENGLISH, 4))).isEqualTo("Page 4");
+        assertThat(plain(EN.helpCommand(Locale.ENGLISH, "/town create <name>"))).isEqualTo("/town create <name>");
+        assertThat(plain(EN.helpDescription(Locale.ENGLISH, "Found a town"))).isEqualTo("Found a town");
+    }
+
+    /**
+     * The default separator is plain ASCII on purpose. Whatever goes here is printed to a player by every
+     * consumer that has not overridden it, and a consumer's own style checks cannot reach text inside this
+     * jar, so the default has to be the character least likely to break somebody's rules.
+     */
+    @Test
+    void theDefaultHelpSeparatorIsAPlainHyphen() {
+        assertThat(plain(EN.helpSeparator(Locale.ENGLISH))).isEqualTo(" - ");
+        assertThat(plain(EN.helpSeparator(Locale.ENGLISH))).doesNotContain("\u2014").doesNotContain("\u2013");
     }
 
     @Test
@@ -53,6 +66,9 @@ class CommandMessagesTest {
         assertThat(EN.playerOnly(Locale.ENGLISH).color()).isEqualTo(NamedTextColor.RED);
         assertThat(EN.internalError(Locale.ENGLISH).color()).isEqualTo(NamedTextColor.RED);
         assertThat(EN.helpHeader(Locale.ENGLISH, "town", 1, 1).color()).isEqualTo(NamedTextColor.YELLOW);
+        assertThat(EN.helpCommand(Locale.ENGLISH, "/town").color()).isEqualTo(NamedTextColor.WHITE);
+        assertThat(EN.helpDescription(Locale.ENGLISH, "Found a town").color()).isEqualTo(NamedTextColor.GRAY);
+        assertThat(EN.helpSeparator(Locale.ENGLISH).color()).isEqualTo(NamedTextColor.GRAY);
     }
 
     /** Turkish puts the words in a different order, which is the whole reason the values travel apart. */

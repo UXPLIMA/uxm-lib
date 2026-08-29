@@ -425,9 +425,10 @@ The annotation layer also covers `@Range`/`@Length` bounds, `@Cooldown` rate lim
 and switches, async execution, and paginated help — with SPIs for custom argument resolvers, validators,
 and conditions.
 
-Everything the command layer says on its own behalf — the refusals, the argument rejections, the help
-chrome — goes through `CommandMessages`, so a translated plugin answers each player in that player's own
-language:
+Everything the command layer says on its own behalf — the refusals, the argument rejections, the whole
+generated help page down to the separator between a command and its description — goes through
+`CommandMessages`, so a translated plugin answers each player in that player's own language and paints the
+answer in its own palette:
 
 ```java
 ParamResolvers resolvers = ParamResolvers.withDefaults()
@@ -440,6 +441,10 @@ AnnotatedCommands.register(plugin, new HomeCommand(), resolvers);
 Each method receives the sender's locale and the *values* — the bad input, the allowed ones, the time left
 — never a finished English sentence, since no other language puts those words in the same order. Every
 method has a default, so a plugin that ignores the seam keeps the English it always had.
+
+The help page is worth overriding even in an English-only plugin: `helpCommand`, `helpSeparator` and
+`helpDescription` are the only way to restyle it, because that text is generated inside this jar and no
+style pass over a plugin's own resources can see it.
 
 ### Configuration
 
