@@ -197,4 +197,25 @@ class ItemConfigTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("not_a_real_enchant");
     }
+
+    /**
+     * The key a menu file actually wants, in place of the deprecated {@code HIDE_ADDITIONAL_TOOLTIP} flag
+     * an operator would otherwise reach for. Only the wiring is checked here: MockBukkit accepts a data
+     * component and does not keep it, so what the component ends up holding is proven in
+     * {@link TooltipsTest} where it can be read back.
+     */
+    @Test
+    void readsTheHideVanillaTooltipKey() throws Exception {
+        ConfigurationNode node = hocon(
+                """
+                material = LEATHER_CHESTPLATE
+                name = "<white>Cosmetics"
+                hide-vanilla-tooltip = true
+                """);
+
+        ItemStack item = ItemConfig.load(node).build();
+
+        assertThat(item.getType()).isEqualTo(Material.LEATHER_CHESTPLATE);
+        assertThat(Text.plain(item.getItemMeta().displayName())).isEqualTo("Cosmetics");
+    }
 }
