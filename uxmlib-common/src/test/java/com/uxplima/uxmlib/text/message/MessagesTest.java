@@ -321,6 +321,26 @@ class MessagesTest {
                 .isEqualTo("Willkommen Alex");
     }
 
+    /**
+     * The trap the one-argument reload sets, pinned so the javadoc that warns about it stays true: a new
+     * catalog whose default locale is German still reaches a console in English, because the locale source
+     * from before the reload is the one being asked.
+     */
+    @Test
+    void reloadingTheCatalogAloneKeepsTheLocaleSourceItWasBuiltWith() {
+        Map<Locale, Map<String, String>> templates = Map.of(
+                Locale.ENGLISH, Map.of("join.welcome", "<green>Welcome <name>"),
+                Locale.GERMAN, Map.of("join.welcome", "<green>Willkommen <name>"));
+        Messages messages =
+                new Messages(new MessageCatalog(templates, Locale.ENGLISH), LocaleSource.ofDefault(Locale.ENGLISH));
+        Audience console = Audience.empty();
+
+        messages.reload(new MessageCatalog(templates, Locale.GERMAN));
+
+        assertThat(Text.plain(messages.render(console, WELCOME, Text.placeholder("name", "Alex"))))
+                .isEqualTo("Welcome Alex");
+    }
+
     @Test
     void playerLocaleSourceReadsThePlayersOwnLocale() {
         PlayerMock player = server.addPlayer();
