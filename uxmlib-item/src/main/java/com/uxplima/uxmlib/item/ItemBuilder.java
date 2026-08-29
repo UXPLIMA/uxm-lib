@@ -518,7 +518,17 @@ public final class ItemBuilder {
         return editMeta(meta -> editor.accept(meta.getPersistentDataContainer()));
     }
 
-    /** Build a fresh, independent {@link ItemStack} with everything applied. */
+    /**
+     * Build a fresh, independent {@link ItemStack} with everything applied.
+     *
+     * <p>The copy is Bukkit's copy constructor, which delegates to {@code clone()} on both supported API
+     * lines, so a data component written straight onto the stack — {@link #vanillaTooltip} and
+     * {@link #hiddenComponents} are the ones that do — rides along with the rest of the item. That is an
+     * assumption about somebody else's code, and it is worth writing down because nothing here can catch it
+     * breaking: MockBukkit's clone does not model data components, so a test that built an item and read
+     * one back would fail today for the wrong reason and pass tomorrow for no reason. If a Minecraft
+     * release ever makes this copy shallower, the components go quiet and every test still passes.
+     */
     public ItemStack build() {
         return new ItemStack(stack);
     }
