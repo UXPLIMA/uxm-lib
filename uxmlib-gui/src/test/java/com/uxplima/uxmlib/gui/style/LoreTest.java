@@ -83,6 +83,40 @@ class LoreTest {
         assertThat(lines(built)).anySatisfy(line -> assertThat(line).contains("- Owned"));
     }
 
+    /**
+     * The column: a breadcrumb, a description line and a bullet all start where the header's words start.
+     * A header spends a space, its glyph and a space, which for the shipped glyphs is four spaces' worth.
+     */
+    @Test
+    void everythingUnderAHeaderLinesUpWithItsWords() {
+        Component lore = Lore.of(theme)
+                .crumb(Component.text("Cosmetic"))
+                .description(Component.text("About"), Component.text("What it does"))
+                .details(Component.text("Details"))
+                .row(Component.text("Owned"), Component.text("12"))
+                .build();
+
+        List<String> lines = lines(lore);
+        assertThat(lines.get(0)).isEqualTo("    Cosmetic ");
+        assertThat(lines).anySatisfy(line -> assertThat(line).isEqualTo("    What it does "));
+        assertThat(lines).anySatisfy(line -> assertThat(line).isEqualTo("    ▪ Owned 12 "));
+        assertThat(lines).anySatisfy(line -> assertThat(line).isEqualTo(" ≡ Details "));
+    }
+
+    /** The indent is measured, so a wider glyph moves the column instead of leaving the text behind. */
+    @Test
+    void aWiderGlyphMovesTheColumnWithIt() throws ConfigurateException {
+        ConfigurationNode node = CommentedConfigurationNode.root();
+        node.node("glyphs", "details").set("Æ"); // 10 pixels, where the shipped one is 7
+
+        Component lore = Lore.of(Theme.from(node))
+                .details(Component.text("Details"))
+                .row(Component.text("Owned"), Component.text("12"))
+                .build();
+
+        assertThat(lines(lore)).anySatisfy(line -> assertThat(line).isEqualTo("     ▪ Owned 12 "));
+    }
+
     private static List<String> lines(Component lore) {
         String plain = PlainTextComponentSerializer.plainText().serialize(lore);
         return List.of(plain.split("\n", -1));
