@@ -3,6 +3,7 @@ package com.uxplima.uxmlib.item;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.bukkit.Color;
@@ -31,6 +32,8 @@ import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.bukkit.map.MapView;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.potion.PotionEffect;
+
+import io.papermc.paper.datacomponent.DataComponentType;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.JoinConfiguration;
@@ -286,6 +289,36 @@ public final class ItemBuilder {
     /** Hide the item's tooltip entirely on hover, leaving only the icon. */
     public ItemBuilder hideTooltip(boolean hide) {
         return editMeta(meta -> meta.setHideTooltip(hide));
+    }
+
+    /**
+     * Whether the client may write its own lines under this item's lore. Off, it hides
+     * {@link Tooltips#VANILLA_COMPONENTS}, which is what a menu icon wants: a leather chestplate used as a
+     * button otherwise says "Dyed" and "Armor" underneath whatever the menu wrote, and the client has no
+     * way of knowing it is looking at a button.
+     *
+     * <p>This is about drawing and not about behaviour. Hiding {@code EQUIPPABLE} removes the line, not the
+     * equip; an item that can be worn can still be worn. A menu stops that by cancelling the click, which
+     * is where it belongs.
+     *
+     * <p>Not the same as {@link #hideTooltip(boolean)}, which takes the whole tooltip away, name and lore
+     * included. This one keeps everything the plugin wrote and silences only what the client adds. The two
+     * compose: the whole-tooltip flag survives a call to either of these.
+     */
+    public ItemBuilder vanillaTooltip(boolean shown) {
+        return hiddenComponents(shown ? Set.of() : Tooltips.VANILLA_COMPONENTS);
+    }
+
+    /**
+     * Hide exactly {@code hidden} and nothing else, replacing whatever was hidden before. For the tile that
+     * wants the standard silence with one line back — the trim on a cosmetic armour piece, say — build the
+     * set from {@link Tooltips#VANILLA_COMPONENTS} rather than typing it out, so a component Minecraft adds
+     * later arrives hidden with the next release instead of being forgotten.
+     */
+    public ItemBuilder hiddenComponents(Set<DataComponentType> hidden) {
+        Objects.requireNonNull(hidden, "hidden");
+        Tooltips.hide(stack, hidden);
+        return this;
     }
 
     /**
