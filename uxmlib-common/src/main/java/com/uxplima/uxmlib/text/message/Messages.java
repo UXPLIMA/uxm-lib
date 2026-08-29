@@ -61,8 +61,7 @@ public final class Messages {
      * @param base tags every render resolves on top of the ones it is passed — a house style's colour roles,
      *     say. A call site's own resolver of the same name wins over it.
      */
-    public Messages(
-            MessageCatalog catalog, LocaleSource locales, Map<String, Message> channels, TagResolver base) {
+    public Messages(MessageCatalog catalog, LocaleSource locales, Map<String, Message> channels, TagResolver base) {
         this.content = new Content(catalog, locales, channels, base);
     }
 
@@ -77,8 +76,7 @@ public final class Messages {
      * started with; every send after this returns uses the new one. Pass all four even when only one changed:
      * that is what stops a reload leaving one half of what a player sees behind.
      */
-    public void reload(
-            MessageCatalog catalog, LocaleSource locales, Map<String, Message> channels, TagResolver base) {
+    public void reload(MessageCatalog catalog, LocaleSource locales, Map<String, Message> channels, TagResolver base) {
         this.content = new Content(catalog, locales, channels, base);
     }
 
@@ -136,10 +134,7 @@ public final class Messages {
                 || showFrom(snapshot, viewer, fallback, key, subtitleKey, title, resolvers)) {
             return;
         }
-        title.send(
-                viewer,
-                parse(snapshot, title.template(), resolvers),
-                parse(snapshot, title.subtitle(), resolvers));
+        title.send(viewer, parse(snapshot, title.template(), resolvers), parse(snapshot, title.subtitle(), resolvers));
     }
 
     /** Show the title from {@code locale}'s own lang file, or report that it does not hold both halves. */

@@ -226,8 +226,7 @@ class MessagesTest {
         player.setLocale(Locale.ENGLISH);
         MessageCatalog catalog = new MessageCatalog(
                 Map.of(Locale.ENGLISH, Map.of("join.welcome", "<accent>Welcome <name>")), Locale.ENGLISH);
-        Messages messages = new Messages(
-                catalog, LocaleSource.ofDefault(Locale.ENGLISH), Map.of(), accent());
+        Messages messages = new Messages(catalog, LocaleSource.ofDefault(Locale.ENGLISH), Map.of(), accent());
 
         Component rendered = messages.render(player, WELCOME, Text.placeholder("name", "Alex"));
 
@@ -260,10 +259,7 @@ class MessagesTest {
                                 "join.welcome.subtitle", "<accent>good to see you")),
                 Locale.ENGLISH);
         Messages messages = new Messages(
-                catalog,
-                LocaleSource.ofDefault(Locale.ENGLISH),
-                Map.of(WELCOME.path(), titleChannel()),
-                accent());
+                catalog, LocaleSource.ofDefault(Locale.ENGLISH), Map.of(WELCOME.path(), titleChannel()), accent());
 
         messages.send(viewer, WELCOME);
 
