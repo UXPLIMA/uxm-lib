@@ -13,7 +13,6 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import io.papermc.paper.datacomponent.DataComponentBuilder;
-import io.papermc.paper.datacomponent.DataComponentType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.TooltipDisplay;
 
