@@ -148,6 +148,31 @@ class LoreTest {
         assertThat(lines(Lore.of(theme).lines(written).build())).containsExactly("    first ", "    second ", " ");
     }
 
+    /** A file that draws its own furniture keeps it: no column is applied, only the pad and the air. */
+    @Test
+    void verbatimLinesKeepTheGeometryTheyWereWrittenWith() {
+        Component lore = Lore.of(theme)
+                .verbatim(List.of(
+                        Component.text(" ◆ Server Selector"),
+                        Component.text("    Navigation"),
+                        Component.text(" "),
+                        Component.text(" → Right click to open")))
+                .build();
+
+        assertThat(lines(lore))
+                .containsExactly(" ◆ Server Selector ", "    Navigation ", " ", " → Right click to open ", " ");
+    }
+
+    /** A file that already closes its own box does not close it twice on the way through. */
+    @Test
+    void verbatimDropsTheBlankLinesAFileClosesItselfWith() {
+        Component lore = Lore.of(theme)
+                .verbatim(List.of(Component.text(" ◆ Title"), Component.text(" ")))
+                .build();
+
+        assertThat(lines(lore)).containsExactly(" ◆ Title ", " ");
+    }
+
     /** The last thing a tile says needs air under it, or the text reads as cut off by the tooltip edge. */
     @Test
     void theLoreEndsOnABlankLine() {
