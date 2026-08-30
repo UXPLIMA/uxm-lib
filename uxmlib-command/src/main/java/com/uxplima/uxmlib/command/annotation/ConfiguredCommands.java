@@ -1,0 +1,84 @@
+package com.uxplima.uxmlib.command.annotation;
+
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import com.uxplima.uxmlib.command.annotation.annotations.Command;
+import com.uxplima.uxmlib.command.annotation.annotations.FromConfig;
+import com.uxplima.uxmlib.config.HoconConfig;
+
+/**
+ * Reads {@code commands.conf} and turns it into what the command DSL registers.
+ *
+ * <p>A command label is a thing an operator has to be able to change. Two plugins want {@code /glow}, or a
+ * server runs in a language where the English word means nothing, and neither case should need a rebuild.
+ * The annotation seam is what makes that possible without the label appearing twice: {@link FromConfig}
+ * carries only a key, and this class rewrites it into a real {@code @Command} at registration.
+ *
+ * <p>The file is read once, at wiring. A rename after that needs a restart, because the server registers a
+ * command tree at enable and does not offer a supported way to rename a live one.
+ */
+public final class ConfiguredCommands {
+
+    /** One command's entry in the file. */
+    public record Entry(String name, List<String> aliases, boolean enabled) {
+
+        public Entry {
+            Objects.requireNonNull(name, "name");
+            Objects.requireNonNull(aliases, "aliases");
+            aliases = List.copyOf(aliases);
+            if (name.isBlank()) {
+                throw new IllegalArgumentException("a command name must not be blank");
+            }
+        }
+    }
+
+    private final HoconConfig config;
+
+    private ConfiguredCommands(HoconConfig config) {
+        this.config = config;
+    }
+
+    /** Read the file. A missing file is not an error: every key falls back to what the handler declares. */
+    public static ConfiguredCommands load(Path file) {
+        Objects.requireNonNull(file, "file");
+        return new ConfiguredCommands(HoconConfig.load(file));
+    }
+
+    /** The entry for {@code key}, filled in from {@code fallbackName} where the file says nothing. */
+    public Entry entryOf(String key, String fallbackName) {
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(fallbackName, "fallbackName");
+        String base = "commands." + key + ".";
+        return new Entry(
+                config.getString(base + "name", fallbackName),
+                config.getList(base + "aliases", String.class),
+                config.getBoolean(base + "enabled", true));
+    }
+
+    /**
+     * Whether {@code key} should be registered at all.
+     *
+     * <p>Disabling is a real need: a server that already has a {@code /glow} from another plugin wants ours
+     * off rather than fighting over the label, and an operator who wants only the menu can turn the command
+     * off entirely.
+     */
+    public boolean isEnabled(String key, String fallbackName) {
+        return entryOf(key, fallbackName).enabled();
+    }
+
+    /** The replacer that turns {@link FromConfig} into the {@code @Command} the DSL expects. */
+    public AnnotationReplacer<FromConfig> replacer() {
+        return (fromConfig, element) -> {
+            Entry entry = entryOf(fromConfig.value(), fromConfig.fallbackName());
+            return List.of(Replacements.of(
+                    Command.class,
+                    Map.of(
+                            "name", entry.name(),
+                            "aliases", entry.aliases().toArray(new String[0]),
+                            "description", fromConfig.description())));
+        };
+    }
+}
