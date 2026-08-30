@@ -44,6 +44,22 @@ public interface CommandMessages {
         return new CommandMessages() {};
     }
 
+    /**
+     * Messages read from {@code messages}, the consumer's own catalog, under the {@link CommandLine} keys.
+     *
+     * <p>This is what a plugin with a message catalog wants: every line below comes out in the sender's
+     * language and in the plugin's palette, and an operator can re-word any of it in their language file
+     * without a build. Implement the interface by hand only for a line these keys do not cover.
+     *
+     * <pre>{@code
+     * ParamResolvers resolvers = ParamResolvers.withDefaults()
+     *         .messages(CommandMessages.fromCatalogue(messages));
+     * }</pre>
+     */
+    static CommandMessages fromCatalogue(com.uxplima.uxmlib.text.message.Messages messages) {
+        return new CatalogueCommandMessages(messages);
+    }
+
     /** A player-only command was run from the console or a command block. */
     default Component playerOnly(Locale locale) {
         Objects.requireNonNull(locale, "locale");
