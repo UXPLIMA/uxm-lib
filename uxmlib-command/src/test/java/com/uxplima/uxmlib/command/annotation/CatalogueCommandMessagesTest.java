@@ -2,6 +2,9 @@ package com.uxplima.uxmlib.command.annotation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,6 +59,25 @@ class CatalogueCommandMessagesTest {
         String shown = Text.plain(messages.notOneOf(Locale.ENGLISH, "mode", "spin", List.of("on", "off")));
 
         assertThat(shown).isEqualTo("spin: try on, off");
+    }
+
+    @Test
+    void everyLineTheCommandLayerWritesIsAnsweredFromTheCatalogue() {
+        // A method left at its default is a line a player reads in English, in vanilla colours, from a jar
+        // that no style pass over a plugin's own resources can reach. This fails the day a line is added
+        // here without a key to word it.
+        List<String> written = Arrays.stream(CommandMessages.class.getDeclaredMethods())
+                .filter(Method::isDefault)
+                .map(Method::getName)
+                .sorted()
+                .toList();
+        List<String> answered = Arrays.stream(CatalogueCommandMessages.class.getDeclaredMethods())
+                .filter(method -> Modifier.isPublic(method.getModifiers()))
+                .map(Method::getName)
+                .sorted()
+                .toList();
+
+        assertThat(answered).containsAll(written);
     }
 
     private static CommandMessages messagesHolding(Map<Locale, Map<String, String>> files) {
