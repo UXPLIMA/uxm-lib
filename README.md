@@ -493,6 +493,11 @@ ParamResolvers resolvers = ParamResolvers.withDefaults()
 AnnotatedCommands.register(plugin, new HomeCommand(), resolvers);
 ```
 
+A plugin that already has a message catalog needs none of that by hand: `CommandMessages.fromCatalogue(messages)`
+reads every line from the catalog under the `CommandLine` keys (`command.player-only`, `command.help-header`, and
+the rest), so the command layer is translated and painted with everything else, and an operator can re-word any
+of it in their language file.
+
 Each method receives the sender's locale and the *values*: the bad input, the allowed ones, the time left.
 Never a finished English sentence, since no other language puts those words in the same order. Every
 method has a default, so a plugin that ignores the seam keeps the English it always had.
@@ -584,7 +589,9 @@ new DiscordWebhook(url).sendEmbed(DiscordEmbed.colored("Alert", "Server started"
 ```
 
 The PlaceholderAPI integration also has a write side: register a `PlaceholderProvider` to expose your own
-`%uxm_<prefix>_<params>%` placeholders.
+`%uxm_<prefix>_<params>%` placeholders. A provider is asked about an `OfflinePlayer`, because that is what a
+leaderboard line, a tab-list entry and a hologram name; narrow it with `instanceof Player` when the answer
+needs a player who is here.
 
 ### Holograms
 
