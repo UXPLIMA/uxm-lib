@@ -160,4 +160,23 @@ class ThemeTest {
                     .load();
         }
     }
+
+    @Test
+    void theTonesAreKeptInTheOrderTheFileWritesThem() throws ConfigurateException {
+        ConfigurationNode node = CommentedConfigurationNode.root();
+        node.node("tones", "strawberry").setList(String.class, List.of("#ff6b8b", "#ffa07a"));
+        node.node("tones", "mint").setList(String.class, List.of("#4ecca3", "#48cae4"));
+
+        Theme theme = Theme.from(node);
+
+        assertThat(theme.tones()).hasSize(2);
+        assertThat(theme.tones().getFirst()).isEqualTo(theme.tone("strawberry"));
+        assertThat(theme.tone("MINT")).isEqualTo(theme.tones().get(1));
+    }
+
+    @Test
+    void aThemeThatNamesNoToneHasNone() {
+        assertThat(Theme.defaults().tones()).isEmpty();
+        assertThat(Theme.defaults().tone("mint")).isEmpty();
+    }
 }

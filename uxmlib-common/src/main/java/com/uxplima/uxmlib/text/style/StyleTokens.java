@@ -24,7 +24,8 @@ import org.jspecify.annotations.Nullable;
  *       the category is about, then the separator glyph in the dim colour;
  *   <li>{@code <etag:'ERROR'>}: the same prefix in the failure colour, whichever feature raised the line;
  *   <li>{@code <h:'REWARDS'>}: the bold header a lore block opens with, in the accent colour or in the
- *       theme's {@code header} gradient when it names one.
+ *       theme's {@code header} gradient when it names one. It may name a tone of its own instead:
+ *       {@code <h:'REWARDS':mint>}.
  * </ul>
  *
  * <p>The label of a prefix lives in the template rather than here, because it is a word a player reads and a
@@ -35,9 +36,12 @@ import org.jspecify.annotations.Nullable;
  */
 public final class StyleTokens {
 
-    /** A labelled token: {@code <tag:'HOME'>}, {@code <tag:HOME>} or {@code <tag:"HOME">}. */
-    private static final Pattern LABELLED =
-            Pattern.compile("<(tag|etag|h):(?:'([^']*)'|\"([^\"]*)\"|([^>]*))>", Pattern.CASE_INSENSITIVE);
+    /**
+     * A labelled token: {@code <tag:'HOME'>}, {@code <tag:HOME>} or {@code <tag:"HOME">}, and a header with
+     * a tone of its own: {@code <h:'HOME':mint>}.
+     */
+    private static final Pattern LABELLED = Pattern.compile(
+            "<(tag|etag|h):(?:'([^']*)'|\"([^\"]*)\"|([^:>]*))(?::([a-z0-9_-]+))?>", Pattern.CASE_INSENSITIVE);
 
     /** The gradient a {@code <h:>} header is painted with, when the theme names one. */
     private static final String HEADER = "header";
@@ -70,18 +74,19 @@ public final class StyleTokens {
             if (label.isBlank()) {
                 throw new IllegalArgumentException("a <" + token + "> token needs a label: " + template);
             }
-            matcher.appendReplacement(out, Matcher.quoteReplacement(expanded(token, label, theme, smallCaps)));
+            matcher.appendReplacement(
+                    out, Matcher.quoteReplacement(expanded(token, label, matcher.group(5), theme, smallCaps)));
         }
         matcher.appendTail(out);
         return out.toString();
     }
 
-    private static String expanded(String token, String label, Theme theme, boolean smallCaps) {
+    private static String expanded(String token, String label, @Nullable String tone, Theme theme, boolean smallCaps) {
         String text = smallCaps ? SmallCaps.of(label) : label;
         return switch (token) {
             case "tag" -> prefix(text, theme.hex(theme.categoryRole(label)), theme);
             case "etag" -> prefix(text, theme.hex("bad"), theme);
-            default -> header(text, theme);
+            default -> header(text, stopsOf(theme, tone), theme);
         };
     }
 
@@ -99,10 +104,50 @@ public final class StyleTokens {
     public static Component header(Theme theme, Component text) {
         Objects.requireNonNull(theme, "theme");
         Objects.requireNonNull(text, "text");
+        return painted(theme, text, theme.gradient(HEADER));
+    }
+
+    /**
+     * A title painted with one of the theme's tones, chosen from the title itself.
+     *
+     * <p>A menu whose every title is painted with one gradient reads as one colour. That is the first thing
+     * a player sees and the last thing they remember, and it is what a tile title looked like before this
+     * existed. So a theme may name a set of tones instead, and each title takes the one its own letters
+     * point at: the same title is always the same colour, two titles are usually not, and nobody has to
+     * write a colour beside a word.
+     *
+     * <p>A theme that names no tone keeps the old behaviour exactly, which is also how a server asks for one
+     * colour again: empty the block.
+     *
+     * <p>A component that already carries a colour is handed back untouched, as with a header. A title that
+     * arrived painted was painted on purpose.
+     */
+    public static Component title(Theme theme, Component text) {
+        Objects.requireNonNull(theme, "theme");
+        Objects.requireNonNull(text, "text");
+        List<List<TextColor>> tones = theme.tones();
+        if (tones.isEmpty() || coloured(text)) {
+            return header(theme, text);
+        }
+        return painted(theme, text, tones.get(indexOf(Text.plain(text), tones.size())));
+    }
+
+    /**
+     * Which tone a title takes: the same one every time, from the letters of the title.
+     *
+     * <p>The letters and not the position in the menu. A tile keeps its colour when it moves, when the menu
+     * is re-ordered and when a page is turned, so a player learns the tile by its colour. Case and the
+     * spaces around it do not count, because they are not part of the name a player reads.
+     */
+    private static int indexOf(String title, int tones) {
+        return Math.floorMod(title.strip().toLowerCase(Locale.ROOT).hashCode(), tones);
+    }
+
+    /** {@code text} across {@code stops}: the gradient, the one stop flat, or the accent when there is none. */
+    private static Component painted(Theme theme, Component text, List<TextColor> stops) {
         if (coloured(text)) {
             return text;
         }
-        List<TextColor> stops = theme.gradient(HEADER);
         if (stops.size() < 2) {
             return text.color(stops.size() == 1 ? stops.get(0) : theme.colour("accent"));
         }
@@ -130,12 +175,24 @@ public final class StyleTokens {
     }
 
     /**
-     * A header: the theme's {@code header} gradient when it names two stops or more, and the flat accent
-     * otherwise. A one-stop gradient is a flat colour, so an operator can switch the effect off by shortening
-     * the list rather than by learning a second key.
+     * The stops a {@code <h:'…'>} token paints with: the tone it named, or the theme's header gradient when
+     * it named none. A tone the theme does not know falls back to the header as well, so a spelling mistake
+     * shows as the ordinary colour rather than as no colour at all.
      */
-    private static String header(String text, Theme theme) {
-        List<TextColor> stops = theme.gradient(HEADER);
+    private static List<TextColor> stopsOf(Theme theme, @Nullable String tone) {
+        if (tone == null) {
+            return theme.gradient(HEADER);
+        }
+        List<TextColor> named = theme.tone(tone);
+        return named.isEmpty() ? theme.gradient(HEADER) : named;
+    }
+
+    /**
+     * A header: the gradient when it names two stops or more, and the flat accent otherwise. A one-stop
+     * gradient is a flat colour, so an operator can switch the effect off by shortening the list rather than
+     * by learning a second key.
+     */
+    private static String header(String text, List<TextColor> stops, Theme theme) {
         if (stops.size() < 2) {
             return bold(text, stops.size() == 1 ? hex(stops.get(0)) : theme.hex("accent"));
         }

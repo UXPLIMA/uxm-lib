@@ -63,8 +63,12 @@ public final class Tiles {
 
     /**
      * The title line on its own: the theme's title glyph in the icon colour, then the title, bold and
-     * painted the way {@link StyleTokens#header} paints one: the header gradient when the theme names one,
-     * the accent colour when it does not.
+     * painted the way {@link StyleTokens#title} paints one: one of the theme's tones, chosen from the title
+     * itself, or the header gradient when the theme names no tone.
+     *
+     * <p>The tones are what keeps a menu from reading as one colour. Every title used to take the header
+     * gradient, so a screen of twelve tiles was twelve copies of the same heading and a player could not
+     * tell one from another at a glance.
      *
      * <p>It paints as well as bolds because a catalog that writes a title writes words and nothing else,
      * which is the right assumption for it to make: this line forces bold, so it owns the look of the line,
@@ -76,7 +80,7 @@ public final class Tiles {
         Objects.requireNonNull(title, "title");
         return Component.text(PADDING)
                 .append(Component.text(theme.glyph("title") + PADDING, theme.colour("icon")))
-                .append(StyleTokens.header(theme, title).decoration(TextDecoration.BOLD, true))
+                .append(StyleTokens.title(theme, title).decoration(TextDecoration.BOLD, true))
                 .append(Component.text(PADDING));
     }
 
