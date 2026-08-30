@@ -7,7 +7,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Pure render-downgrade transforms (P50 #193/#194). Given a MiniMessage source
+ * Pure render-downgrade transforms. Given a MiniMessage source
  * string and the recipient's {@link ClientCapabilities}, rewrite the tags that
  * the recipient cannot render into the closest thing they can:
  *

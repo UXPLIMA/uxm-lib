@@ -2,9 +2,10 @@ package com.uxplima.uxmlib.text;
 
 /**
  * Per-recipient client fingerprint used to decide which render flourishes are
- * safe to deliver (P50 #193/#194). A {@code ClientProfile} is resolved once per
- * recipient (Bedrock via Floodgate, protocol version via ViaVersion) and drives
- * the silent render-downgrade in the message sink.
+ * safe to deliver. A {@code ClientProfile} is resolved once per recipient
+ * (Bedrock via Floodgate, protocol version via ViaVersion) and is what a
+ * consumer hands to {@link ClientCapabilities} before calling
+ * {@link RenderDowngrade#apply} for that recipient.
  *
  * <p>Two facts are captured:
  * <ul>

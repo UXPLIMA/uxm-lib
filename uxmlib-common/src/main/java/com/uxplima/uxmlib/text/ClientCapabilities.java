@@ -4,15 +4,19 @@ import java.util.Objects;
 
 /**
  * Pure derivation of which render flourishes are safe for a given
- * {@link ClientProfile} (P50 #193/#194). Computed once per recipient and
- * consulted by the render-downgrade step in the message sink: a {@code false}
- * flag means the corresponding MiniMessage feature is silently flattened or
- * dropped before the recipient's copy is parsed.
+ * {@link ClientProfile}. A {@code false} flag means the recipient cannot render
+ * the corresponding MiniMessage feature.
  *
- * <p>The downgrade is invisible: the message always delivers; only the
- * unsupported flourish is degraded (gradient flattened to its first colour,
- * custom-font tag removed, {@code show_item} hover falling back to
- * {@code show_text}).
+ * <p>Nothing applies this on its own. A consumer computes the capabilities once
+ * per recipient and passes them to {@link RenderDowngrade#apply}, which returns
+ * the MiniMessage source to parse for that recipient. The message sink does not
+ * call it: a downgrade needs a per-viewer profile that only the consumer's own
+ * Floodgate and ViaVersion hooks can supply.
+ *
+ * <p>The downgrade a consumer applies is invisible: the message always
+ * delivers; only the unsupported flourish is degraded (gradient flattened to
+ * its first colour, custom-font tag removed, {@code show_item} hover falling
+ * back to {@code show_text}).
  *
  * <p>Capability flags:
  * <ul>
