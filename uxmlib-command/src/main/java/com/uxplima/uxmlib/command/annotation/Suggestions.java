@@ -14,7 +14,8 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 /**
  * Wires tab-completion onto an argument node as an ordered {@link SuggestionChain decline-chain}: an explicit
  * {@code @}{@link SuggestWith} provider is tried first, then a static {@code @}{@link Suggest} list, then the
- * resolver's own {@link ParamResolver#suggestions()} (e.g. an enum's constants); the first source that offers
+ * resolver's own live {@link ParamResolver#suggestionSource()} and then its static
+ * {@link ParamResolver#suggestions()} (e.g. an enum's constants); the first source that offers
  * a non-empty set wins and a source may compute off-thread. When none of these applies the node keeps the
  * argument type's native suggestions (a player or world arg completes itself), so a provider is attached only
  * when there is something to override with. Replacing the old mutually-exclusive precedence with a chain lets
@@ -60,6 +61,10 @@ final class Suggestions {
         Suggest suggest = view.get(Suggest.class);
         if (suggest != null) {
             sources.add(fromList(List.of(suggest.value())));
+        }
+        SuggestionSource live = resolver.suggestionSource();
+        if (live != null) {
+            sources.add(live);
         }
         Collection<String> fromResolver = resolver.suggestions();
         if (fromResolver != null) {

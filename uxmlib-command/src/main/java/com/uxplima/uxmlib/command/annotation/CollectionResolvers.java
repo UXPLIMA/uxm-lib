@@ -160,6 +160,11 @@ final class CollectionResolvers {
         public @Nullable Collection<String> suggestions() {
             return element.suggestions();
         }
+
+        @Override
+        public @Nullable SuggestionSource suggestionSource() {
+            return element.suggestionSource();
+        }
     }
 
     /** A resolver that consumes one greedy token and is present only when a token was given. */
@@ -184,6 +189,11 @@ final class CollectionResolvers {
         @Override
         public @Nullable Collection<String> suggestions() {
             return element.suggestions();
+        }
+
+        @Override
+        public @Nullable SuggestionSource suggestionSource() {
+            return element.suggestionSource();
         }
     }
 
@@ -221,6 +231,11 @@ final class CollectionResolvers {
         @Override
         public @Nullable Collection<String> suggestions() {
             return element.suggestions();
+        }
+
+        @Override
+        public @Nullable SuggestionSource suggestionSource() {
+            return element.suggestionSource();
         }
     }
 }

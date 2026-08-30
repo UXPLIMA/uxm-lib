@@ -56,8 +56,24 @@ public interface ParamResolver<T> {
      * The completions to offer for this parameter, or {@code null} to leave the argument type's native
      * suggestions (a player/world/material arg completes itself). A resolver over a plain word: an enum,
      * a custom type, overrides this to drive tab-completion.
+     *
+     * <p>The list is read once, when the command tree is built. Override {@link #suggestionSource()}
+     * instead when the completions change while the server runs.
      */
     default @Nullable Collection<String> suggestions() {
+        return null;
+    }
+
+    /**
+     * A completion source consulted on every keystroke, or {@code null} when the resolver has none. It sees
+     * the command source, so it can offer what that sender may know about, and it is asked again each time,
+     * so it can offer what exists now: the players online, the arenas an operator has just created, the ids
+     * a reloaded config holds. {@link #suggestions()} is read once at build time and cannot do any of that.
+     *
+     * <p>Tried before {@link #suggestions()}, and after the parameter's own {@code @Suggest} annotations, so
+     * a command author always overrides the resolver.
+     */
+    default @Nullable SuggestionSource suggestionSource() {
         return null;
     }
 
