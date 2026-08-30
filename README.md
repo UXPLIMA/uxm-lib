@@ -336,9 +336,11 @@ styler.reload(Theme.from(reloaded.root()));
 Component name = Text.mini(styler.apply(colour.displayName(), messages.localeOf(viewer)));
 ```
 
-`Typography` converts a template to small capitals for the languages the theme says are written that way,
-leaving tags, placeholders and anything inside `<plain>…</plain>` alone, so a translator writes ordinary
-words and nothing rewrites the file they work in. `StyleTokens` then turns `<accent>`/`<value>` into the
+`Typography` converts a template to small capitals for the languages the theme names, leaving tags,
+placeholders and anything inside `<plain>…</plain>` alone, so a translator writes ordinary words and nothing
+rewrites the file they work in. It names none until your `theme.conf` does: a typeface is taste, and a
+library that wrote your English in small capitals by itself would repaint a plugin that only wanted the
+colours. `StyleTokens` then turns `<accent>`/`<value>` into the
 theme's colours and `<tag:'HOME'>` into a bold category prefix. Both run once at load, not per message.
 
 Menus draw from the same theme: `MenuTitles.centre` pads a window title into the middle of the frame,
@@ -354,7 +356,8 @@ look that is nothing like this one.
 
 The library ships `uxmlib/theme.conf` as a starting file: colours, glyphs, category colours, named
 gradients and which languages take small capitals. A key it leaves out keeps the shipped answer, and naming
-one language never decides for the others. A `gradients { header = [...] }` block paints every `<h:'…'>`
+one language never decides for the others. The shipped file turns nothing on that a look would notice: the
+small capitals block is an example, commented out. A `gradients { header = [...] }` block paints every `<h:'…'>`
 header across those stops; leave the block out and headers stay the flat accent colour, which is what the
 shipped file does.
 
@@ -658,9 +661,13 @@ nametags.contribute(player, NametagContribution.color("uxmGlow", priorityFromCon
 nametags.withdraw("uxmTags"); // onDisable: take back only your own parts
 ```
 
-Prefixes and suffixes compose in priority order (smaller is earlier), and priority decides layout only.
-The name has a single colour and it belongs to whichever plugin asked for it last, so a glow a player just
-switched on wins over a rank tag that has sat leftmost all session; every claimant is named once in the log.
+Prefixes and suffixes compose in priority order (smaller is earlier), and priority decides layout. The name
+has a single colour, so one claim has to win, and which one is your server's rule rather than the library's:
+pass a `ComposedNametag.ColorOwner` as the fifth constructor argument. `newest()` is the default and gives
+the colour to whoever asked last, so a glow a player just switched on wins over a rank tag that has sat
+leftmost all session. `byPriority()` gives it to the smallest priority instead, which is what an estate that
+sells a rank colour wants. Write your own for anything else. Every claimant is named once in the log,
+together with the winner.
 Read your priority from your own config: which of two plugins comes first is an operator's decision. A team
 uxmLib did not create is never touched, so a third-party plugin managing its own teams is left alone.
 

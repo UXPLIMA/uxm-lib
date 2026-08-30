@@ -107,18 +107,19 @@ class ThemeTest {
     }
 
     /**
-     * The one that has to hold: naming a language must apply on top of the shipped answer rather than
-     * replace it. A file that switches French on would otherwise switch English off, silently, everywhere.
+     * The one that has to hold: a typeface is a thing the file decides, so a file that names no language
+     * converts nothing. A library that wrote English in small capitals by itself would repaint a plugin
+     * that only wanted the colours, and no line anywhere would say why.
      */
     @Test
-    void namingOneLanguageDoesNotDecideForTheOthers() throws ConfigurateException {
+    void nothingIsWrittenInSmallCapitalsUntilTheFileNamesALanguage() throws ConfigurateException {
         ConfigurationNode node = CommentedConfigurationNode.root();
         node.node("small-caps", "fr").set(true);
 
         Theme theme = Theme.from(node);
 
         assertThat(theme.smallCaps(Locale.FRENCH)).isTrue();
-        assertThat(theme.smallCaps(Locale.ENGLISH)).isTrue();
+        assertThat(theme.smallCaps(Locale.ENGLISH)).isFalse();
         assertThat(theme.smallCaps(Locale.of("el"))).isFalse();
     }
 
@@ -146,7 +147,7 @@ class ThemeTest {
         assertThat(fromFile.glyph("title")).isEqualTo(defaults.glyph("title"));
         assertThat(fromFile.separator()).isEqualTo(defaults.separator());
         assertThat(fromFile.categoryRole("error")).isEqualTo("bad");
-        assertThat(fromFile.smallCaps(Locale.ENGLISH)).isTrue();
+        assertThat(fromFile.smallCaps(Locale.ENGLISH)).isFalse();
         assertThat(fromFile.smallCaps(Locale.of("tr"))).isFalse();
     }
 

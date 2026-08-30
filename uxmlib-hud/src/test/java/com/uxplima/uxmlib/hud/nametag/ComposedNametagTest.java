@@ -96,6 +96,25 @@ class ComposedNametagTest {
         assertThat(name.colorSources()).containsExactly("glow");
     }
 
+    /**
+     * The point of the seam: which of two plugins wears the name is the server's rule, so the same two
+     * contributions have to come out differently under a different one.
+     */
+    @Test
+    void theServerSRuleDecidesWhichPluginWearsTheColour() {
+        List<NametagContribution> claims = List.of(
+                NametagContribution.color("tags", 10, NamedTextColor.GOLD),
+                NametagContribution.color("glow", 200, NamedTextColor.RED));
+
+        ComposedNametag newest = ComposedNametag.compose(claims, " ", ComposedNametag.ColorOwner.newest());
+        ComposedNametag ranked = ComposedNametag.compose(claims, " ", ComposedNametag.ColorOwner.byPriority());
+
+        assertThat(newest.colorOwner()).isEqualTo("glow");
+        assertThat(newest.color()).isEqualTo(NamedTextColor.RED);
+        assertThat(ranked.colorOwner()).isEqualTo("tags");
+        assertThat(ranked.color()).isEqualTo(NamedTextColor.GOLD);
+    }
+
     @Test
     void noContributionsComposeToAnEmptyNameWithNoColour() {
         ComposedNametag name = ComposedNametag.compose(List.of(), " ");

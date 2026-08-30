@@ -43,11 +43,17 @@ public final class Theme {
             Map.of("error", "bad", "money", "good", "shop", "good", "event", "event");
 
     /**
-     * The languages written in small capitals unless the file says otherwise. Small capitals exist for the
-     * Latin alphabet only, so the safe default is English and nothing else: a language with letters of its
-     * own keeps them until somebody who reads that language decides otherwise.
+     * The languages written in small capitals unless the file says otherwise: none of them.
+     *
+     * <p>Small capitals are a typeface, and a typeface is taste. A library that turned them on for English
+     * by itself would repaint every message of a plugin that only wanted the colours, and the plugin's
+     * author would have no line anywhere saying why. So the mechanism ships on and the look ships off: name
+     * a language in {@code small-caps} and it is converted, and the file this library ships shows how.
+     *
+     * <p>Small capitals exist for the Latin alphabet only, so a language whose letters have no small-capital
+     * form must not be named.
      */
-    private static final Set<String> DEFAULT_SMALL_CAPS = Set.of("en");
+    private static final Set<String> DEFAULT_SMALL_CAPS = Set.of();
 
     /** The role a colour lookup falls back to, and the colour an unlisted category prefix reads in. */
     private static final String BODY = "body";

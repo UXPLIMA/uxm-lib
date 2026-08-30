@@ -10,13 +10,13 @@ import org.jspecify.annotations.Nullable;
 /**
  * One plugin's claim on a player's name: a prefix, a suffix, a colour, or any combination of the three.
  *
- * <p>{@code priority} is a position, not a rank, and it decides layout only. Contributions compose in
- * ascending order, so the smaller the number the earlier the part sits in the finished name. It says nothing
- * about the colour: a name has one colour and it belongs to whichever plugin asked for it last, because
- * where a part sits and how recently a player asked for an effect are unrelated questions.
- * {@link #DEFAULT_PRIORITY} leaves room on both sides so a plugin can be placed before or after another
- * without every other plugin being edited. Read the number from your own config: settling which of two
- * plugins comes first is an operator's decision, not a compile-time one.
+ * <p>{@code priority} is a position, not a rank, and it decides layout. Contributions compose in ascending
+ * order, so the smaller the number the earlier the part sits in the finished name. Whether it also decides
+ * the one colour a name can carry is the server's rule rather than this record's: the shipped rule gives
+ * the colour to whoever asked last, and {@code ComposedNametag.ColorOwner.byPriority()} gives it to the
+ * smallest number instead. {@link #DEFAULT_PRIORITY} leaves room on both sides so a plugin can be placed
+ * before or after another without every other plugin being edited. Read the number from your own config:
+ * settling which of two plugins comes first is an operator's decision, not a compile-time one.
  *
  * <p>{@code plugin} identifies the contributor. It keys the contribution: a second contribution from the
  * same name replaces the first rather than stacking, it names the plugin in a logged colour clash, and it

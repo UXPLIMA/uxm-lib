@@ -41,6 +41,7 @@ public final class NametagRegistry {
     private final NametagSink sink;
     private final Logger log;
     private final String separator;
+    private final ComposedNametag.ColorOwner colorOwner;
     private final @Nullable Scheduler scheduler;
     private final Map<UUID, PlayerTags> byPlayer = new ConcurrentHashMap<>();
     private final Set<String> reportedClashes = ConcurrentHashMap.newKeySet();
@@ -56,9 +57,25 @@ public final class NametagRegistry {
      * @param scheduler the scheduler that owns the display's thread, or {@code null} to write inline
      */
     public NametagRegistry(NametagSink sink, Logger log, String separator, @Nullable Scheduler scheduler) {
+        this(sink, log, separator, scheduler, ComposedNametag.ColorOwner.newest());
+    }
+
+    /**
+     * @param separator what goes between two contributed parts of the same half
+     * @param scheduler the scheduler that owns the display's thread, or {@code null} to write inline
+     * @param colorOwner which of the plugins that claim a name's colour wears it. Which one should is a
+     *     question about the server rather than about this library: see {@link ComposedNametag.ColorOwner}
+     */
+    public NametagRegistry(
+            NametagSink sink,
+            Logger log,
+            String separator,
+            @Nullable Scheduler scheduler,
+            ComposedNametag.ColorOwner colorOwner) {
         this.sink = Objects.requireNonNull(sink, "sink");
         this.log = Objects.requireNonNull(log, "log");
         this.separator = Objects.requireNonNull(separator, "separator");
+        this.colorOwner = Objects.requireNonNull(colorOwner, "colorOwner");
         this.scheduler = scheduler;
     }
 
@@ -120,7 +137,7 @@ public final class NametagRegistry {
     public ComposedNametag composed(UUID id) {
         Objects.requireNonNull(id, "id");
         PlayerTags tags = byPlayer.get(id);
-        return ComposedNametag.compose(tags == null ? List.of() : arrivalsOf(tags), separator);
+        return ComposedNametag.compose(tags == null ? List.of() : arrivalsOf(tags), separator, colorOwner);
     }
 
     private void refresh(UUID id) {
@@ -128,7 +145,7 @@ public final class NametagRegistry {
         if (tags == null) {
             return;
         }
-        ComposedNametag name = ComposedNametag.compose(arrivalsOf(tags), separator);
+        ComposedNametag name = ComposedNametag.compose(arrivalsOf(tags), separator, colorOwner);
         reportClash(tags.entry(), name);
         run(() -> sink.apply(id, tags.entry(), name));
     }
@@ -155,7 +172,7 @@ public final class NametagRegistry {
             return;
         }
         log.info("More than one plugin colours " + entry + "'s name: " + String.join(", ", sources) + ". "
-                + sources.get(sources.size() - 1) + " has it, as the last one to ask.");
+                + name.colorOwner() + " has it, by this server's colour rule.");
     }
 
     private void run(Runnable write) {
