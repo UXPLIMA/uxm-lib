@@ -1,6 +1,7 @@
 package com.uxplima.uxmlib.storage.migration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.net.URL;
@@ -118,6 +119,22 @@ class MigrationResourcesTest {
         } finally {
             database.close();
         }
+    }
+
+    @Test
+    void loadRequiredAnswersTheSameListWhenTheDirectoryHoldsOne() {
+        List<Migration> required = MigrationResources.loadRequired(getClass().getClassLoader(), "db/testmigration");
+
+        assertThat(required)
+                .isEqualTo(MigrationResources.load(getClass().getClassLoader(), "db/testmigration"))
+                .isNotEmpty();
+    }
+
+    @Test
+    void loadRequiredRefusesAnEmptyDirectoryAndNamesIt() {
+        assertThatThrownBy(() -> MigrationResources.loadRequired(getClass().getClassLoader(), "db/nothing-here"))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("db/nothing-here");
     }
 
     private static void putEntry(JarOutputStream out, String name, String content) throws IOException {

@@ -53,7 +53,7 @@ public final class MigrationResources {
      * problem rather than a state to run with: the resources did not reach the jar, or they landed under a
      * different path. {@link MigrationRunner#apply(List)} cannot tell the two apart and reports zero applied,
      * so a caller that reads its own schema off the classpath should refuse to start on an empty list rather
-     * than let the first query be the thing that fails.
+     * than let the first query be the thing that fails. {@link #loadRequired} is that refusal.
      */
     public static List<Migration> load(ClassLoader classLoader, String directory) {
         Objects.requireNonNull(classLoader, "classLoader");
@@ -74,6 +74,23 @@ public final class MigrationResources {
         }
         migrations.sort(Comparator.comparingInt(Migration::version));
         return List.copyOf(migrations);
+    }
+
+    /**
+     * Every migration under {@code directory}, ordered by version, and never an empty list.
+     *
+     * <p>A plugin that ships a schema and finds none of it cannot serve anybody. Answering with an empty
+     * list lets it enable, and the operator learns about it as a "no such table" ten minutes later, from a
+     * player. This throws at wiring instead, where the message can name the directory it looked in.
+     *
+     * @throws IllegalStateException when the directory holds no migration
+     */
+    public static List<Migration> loadRequired(ClassLoader classLoader, String directory) {
+        List<Migration> migrations = load(classLoader, directory);
+        if (migrations.isEmpty()) {
+            throw new IllegalStateException("No schema migration was found under " + directory);
+        }
+        return migrations;
     }
 
     /**
