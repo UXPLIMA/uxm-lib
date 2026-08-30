@@ -52,23 +52,24 @@ public final class Lore {
     private static final Pattern LINE_BREAK = Pattern.compile("\\R|<newline>|<br>", Pattern.CASE_INSENSITIVE);
 
     /**
-     * The widest a description line may be, counted in visible characters.
+     * The widest a description line may be, counted in visible characters, until a caller says otherwise.
      *
      * <p>A tooltip grows to its longest line, so a description written as one sentence draws a box wider
-     * than the window it hangs over and the tile stops reading as a tile. Thirty four is the width the
-     * house configurations are cut to, and a plugin has to sit beside them without looking like a second
-     * product.
+     * than the window it hangs over and the tile stops reading as a tile. Thirty four is a width that reads
+     * on a chest window at the usual gui scale, and it is a default rather than a rule: how wide a tooltip
+     * should be is a matter of taste, and a plugin that wants a different one says so with {@link #width}.
      *
      * <p>Counted in characters rather than measured in pixels on purpose. The other geometry in this class
      * is measured, because a column that is one pixel out is visible. A wrap is not: it only has to fall in
      * roughly the same place every time, and a character count says the same thing to whoever writes the
      * sentence in the catalog.
      */
-    private static final int DESCRIPTION_WIDTH = 34;
+    public static final int DEFAULT_WIDTH = 34;
 
     private final Theme theme;
     private final List<List<Component>> blocks = new ArrayList<>();
     private List<Component> current = new ArrayList<>();
+    private int width = DEFAULT_WIDTH;
 
     private Lore(Theme theme) {
         this.theme = Objects.requireNonNull(theme, "theme");
@@ -77,6 +78,21 @@ public final class Lore {
     /** A new lore for one tile, drawn with {@code theme}'s glyphs and colours. */
     public static Lore of(Theme theme) {
         return new Lore(theme);
+    }
+
+    /**
+     * The widest a description line may be, in visible characters. It applies to the description blocks
+     * added after it, so a caller sets it before it writes any.
+     *
+     * @throws IllegalArgumentException when {@code characters} is not positive, which would wrap every
+     *     sentence into nothing
+     */
+    public Lore width(int characters) {
+        if (characters < 1) {
+            throw new IllegalArgumentException("a description width must be positive: " + characters);
+        }
+        this.width = characters;
+        return this;
     }
 
     /** The category or type line that sits under the title. */
@@ -93,7 +109,7 @@ public final class Lore {
         header("description", header);
         String indent = indentUnder("description");
         for (Component sentence : split(text)) {
-            for (Component wrapped : wrap(sentence, DESCRIPTION_WIDTH)) {
+            for (Component wrapped : wrap(sentence, width)) {
                 line(Component.text(indent).append(wrapped.colorIfAbsent(theme.colour("subtext"))));
             }
         }

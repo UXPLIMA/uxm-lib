@@ -52,7 +52,7 @@ final class UxmPlaceholderExpansion extends PlaceholderExpansion {
 
     @Override
     public @Nullable String onRequest(@Nullable OfflinePlayer requester, String params) {
-        // PlaceholderAPI passes the text after "uxm_"; our registry routes it by longest-prefix match.
+        // PlaceholderAPI passes the text after the identifier; the registry routes it by longest-prefix match.
         // The requester is handed on as it came: a provider that needs the live player narrows it itself,
         // and one that answers from stored data can serve a player who is not on the server.
         return registry.resolve(requester, params);

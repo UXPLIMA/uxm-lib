@@ -343,7 +343,8 @@ theme's colours and `<tag:'HOME'>` into a bold category prefix. Both run once at
 
 Menus draw from the same theme: `MenuTitles.centre` pads a window title into the middle of the frame,
 `Tiles` puts a tile's title on the first lore line under a blank name (a single space: an empty one makes
-the client fall back to the material's name), `Lore` builds the tooltip in one fixed order, and
+the client fall back to the material's name) and paints it with a gradient the caller names, `Lore` builds
+the tooltip in one fixed order and wraps a description at a width the caller may set, and
 `MenuSounds` reads the three menu sounds from config. Lore an operator wrote in a config file goes through
 `Lore.lines`, which reads every line as body text and gives it the same column, padding and closing air as
 lore built here, so a plugin that ships items never has to write that geometry down as a house rule of its
@@ -356,6 +357,11 @@ gradients and which languages take small capitals. A key it leaves out keeps the
 one language never decides for the others. A `gradients { header = [...] }` block paints every `<h:'…'>`
 header across those stops; leave the block out and headers stay the flat accent colour, which is what the
 shipped file does.
+
+Every other gradient name in that file is yours. A line names one after its label, `<h:'REWARDS':mint>`,
+and a menu names one for a tile title, `Tiles.titled(theme, title, lore, "mint")`, so a screen of twelve
+tiles can carry a colour per subject. The library never picks one for you: which tiles look alike is a
+decision about one interface, and only the file that knows what the tiles are about can make it.
 
 ### Scheduling (Folia-ready)
 

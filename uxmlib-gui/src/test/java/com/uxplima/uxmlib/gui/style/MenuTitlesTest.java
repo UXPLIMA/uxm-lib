@@ -19,12 +19,15 @@ class MenuTitlesTest {
         assertThat(plain.length()).isGreaterThan("ᴛᴀɢꜱ".length());
     }
 
+    /** The padding is this class's, the look is the caller's: a title that arrived coloured stays coloured. */
     @Test
-    void aColourOnATitleIsDroppedSoNoWindowIsPaintedInTwoTones() {
-        Component centred = MenuTitles.centre(Component.text("tags", NamedTextColor.RED));
+    void aColourOnATitleIsKept() {
+        Component title = Component.text("tags", NamedTextColor.RED);
 
-        assertThat(centred.color()).isNull();
-        assertThat(plain(centred)).endsWith("tags");
+        Component centred = MenuTitles.centre(title);
+
+        assertThat(centred.children()).contains(title);
+        assertThat(plain(centred)).startsWith(" ").endsWith("tags");
     }
 
     @Test

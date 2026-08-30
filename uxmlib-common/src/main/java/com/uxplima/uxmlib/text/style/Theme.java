@@ -58,7 +58,6 @@ public final class Theme {
 
     private final Map<String, TextColor> colours;
     private final Map<String, List<TextColor>> gradients;
-    private final Map<String, List<TextColor>> tones;
     private final Map<String, String> glyphs;
     private final Map<String, String> categories;
     private final Set<String> smallCapsLanguages;
@@ -66,15 +65,11 @@ public final class Theme {
     private Theme(
             Map<String, TextColor> colours,
             Map<String, List<TextColor>> gradients,
-            Map<String, List<TextColor>> tones,
             Map<String, String> glyphs,
             Map<String, String> categories,
             Set<String> smallCapsLanguages) {
         this.colours = Map.copyOf(colours);
         this.gradients = Map.copyOf(gradients);
-        // Ordered, not copied into a Map.copyOf: the order a file lists the tones in is the order a menu
-        // walks them in, and an unordered copy would repaint a server's menus on every restart.
-        this.tones = new LinkedHashMap<>(tones);
         this.glyphs = Map.copyOf(glyphs);
         this.categories = Map.copyOf(categories);
         this.smallCapsLanguages = Set.copyOf(smallCapsLanguages);
@@ -84,7 +79,7 @@ public final class Theme {
     public static Theme defaults() {
         Map<String, TextColor> colours = new LinkedHashMap<>();
         DEFAULT_COLOURS.forEach((role, hex) -> colours.put(role, parse(hex)));
-        return new Theme(colours, Map.of(), Map.of(), DEFAULT_GLYPHS, DEFAULT_CATEGORIES, DEFAULT_SMALL_CAPS);
+        return new Theme(colours, Map.of(), DEFAULT_GLYPHS, DEFAULT_CATEGORIES, DEFAULT_SMALL_CAPS);
     }
 
     /**
@@ -97,8 +92,7 @@ public final class Theme {
         Objects.requireNonNull(node, "node");
         return new Theme(
                 colours(node),
-                gradientsAt(node, "gradients"),
-                gradientsAt(node, "tones"),
+                gradients(node),
                 glyphs(node),
                 categories(node),
                 smallCaps(node.node("small-caps").childrenMap()));
@@ -128,33 +122,14 @@ public final class Theme {
      * <p>A gradient is how a heading reads as finished rather than as coloured, but it is also the first
      * thing a server wants to turn off, so nothing here is a gradient unless the file says so. One stop
      * means a flat colour, which is how an operator switches one off without deleting the key.
+     *
+     * <p>The names are the file's own. {@code header} is the one this library asks for by name; every other
+     * name is one a message, a menu or an item file asked to be painted with, so a server may write as many
+     * as its interface has moods and no name here means anything to the code.
      */
     public List<TextColor> gradient(String name) {
         Objects.requireNonNull(name, "name");
-        return gradients.getOrDefault(name, List.of());
-    }
-
-    /**
-     * The stops of the tone named {@code name}, or an empty list when the file names none.
-     *
-     * <p>A tone is a gradient a title may be painted with. They are separate from {@link #gradient} because
-     * they are a set rather than a set of roles: what matters about a tone is that it is one of several, and
-     * what matters about a gradient is which one it is.
-     */
-    public List<TextColor> tone(String name) {
-        Objects.requireNonNull(name, "name");
-        return tones.getOrDefault(name.toLowerCase(Locale.ROOT), List.of());
-    }
-
-    /**
-     * Every tone, in the order the file lists them, or an empty list when the file names none.
-     *
-     * <p>The order is the interface: a title with no tone of its own is given one of these, and it is given
-     * the same one every time. An empty list means a server wants one colour for every title, which is what
-     * this library did before tones existed.
-     */
-    public List<List<TextColor>> tones() {
-        return List.copyOf(tones.values());
+        return gradients.getOrDefault(name.toLowerCase(Locale.ROOT), List.of());
     }
 
     /**
@@ -209,15 +184,11 @@ public final class Theme {
         return glyphs;
     }
 
-    /**
-     * Every named list of stops under {@code section}: the gradients, or the tones. Each one is kept in the
-     * order the file writes it, because the order of the stops is the gradient and the order of the tones is
-     * how a title is given one.
-     */
-    private static Map<String, List<TextColor>> gradientsAt(ConfigurationNode node, String section) {
+    /** Every named list of stops the file writes, each kept in the order it writes them in. */
+    private static Map<String, List<TextColor>> gradients(ConfigurationNode node) {
         Map<String, List<TextColor>> gradients = new LinkedHashMap<>();
         for (Map.Entry<Object, ? extends ConfigurationNode> child :
-                node.node(section).childrenMap().entrySet()) {
+                node.node("gradients").childrenMap().entrySet()) {
             List<TextColor> stops = new ArrayList<>();
             for (ConfigurationNode stop : child.getValue().childrenList()) {
                 String hex = stop.getString();

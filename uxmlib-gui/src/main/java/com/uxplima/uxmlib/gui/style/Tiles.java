@@ -28,6 +28,9 @@ public final class Tiles {
     /** Every lore line is padded one space either side, so no text touches the edge of the tooltip. */
     public static final String PADDING = " ";
 
+    /** The gradient a title takes when the caller names none. */
+    private static final String HEADER = "header";
+
     private Tiles() {}
 
     /**
@@ -51,36 +54,48 @@ public final class Tiles {
      * line higher than every other tile.
      */
     public static Component titled(Theme theme, Component title, Component lore) {
+        return titled(theme, title, lore, HEADER);
+    }
+
+    /** The same, with the title painted across the theme gradient named {@code gradient}. */
+    public static Component titled(Theme theme, Component title, Component lore, String gradient) {
         Objects.requireNonNull(theme, "theme");
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(lore, "lore");
         if (isBlank(title)) {
             return lore;
         }
-        Component titled = head(theme, title).append(Component.newline()).append(lore);
+        Component titled =
+                head(theme, title, gradient).append(Component.newline()).append(lore);
         return endsBlank(lore) ? titled : titled.append(Component.newline()).append(Component.text(PADDING));
+    }
+
+    /** The title line on its own, painted with the theme's {@code header} gradient. */
+    public static Component head(Theme theme, Component title) {
+        return head(theme, title, HEADER);
     }
 
     /**
      * The title line on its own: the theme's title glyph in the icon colour, then the title, bold and
-     * painted the way {@link StyleTokens#title} paints one: one of the theme's tones, chosen from the title
-     * itself, or the header gradient when the theme names no tone.
+     * painted across the theme gradient named {@code gradient}.
      *
-     * <p>The tones are what keeps a menu from reading as one colour. Every title used to take the header
-     * gradient, so a screen of twelve tiles was twelve copies of the same heading and a player could not
-     * tell one from another at a glance.
+     * <p>The name is asked for rather than worked out here. A menu of twelve tiles painted with one gradient
+     * reads as one heading twelve times, and only the file that knows what the twelve tiles are about can
+     * say which of them should look alike: a wardrobe wants a colour per family, a lobby list wants one
+     * colour per lobby, and a page of pets wants the same colour on every pet.
      *
      * <p>It paints as well as bolds because a catalog that writes a title writes words and nothing else,
      * which is the right assumption for it to make: this line forces bold, so it owns the look of the line,
      * and a title left unpainted falls back to the client's own lore colour rather than to the theme. A
      * title that arrives already carrying a colour (a lobby name, a rank) keeps it.
      */
-    public static Component head(Theme theme, Component title) {
+    public static Component head(Theme theme, Component title, String gradient) {
         Objects.requireNonNull(theme, "theme");
         Objects.requireNonNull(title, "title");
+        Objects.requireNonNull(gradient, "gradient");
         return Component.text(PADDING)
                 .append(Component.text(theme.glyph("title") + PADDING, theme.colour("icon")))
-                .append(StyleTokens.title(theme, title).decoration(TextDecoration.BOLD, true))
+                .append(StyleTokens.paint(theme, title, gradient).decoration(TextDecoration.BOLD, true))
                 .append(Component.text(PADDING));
     }
 

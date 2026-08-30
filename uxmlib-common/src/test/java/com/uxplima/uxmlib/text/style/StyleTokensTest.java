@@ -77,90 +77,79 @@ class StyleTokensTest {
     }
 
     @Test
-    void aHeaderMayNameAToneOfItsOwn() throws ConfigurateException {
-        Theme toned = themeWithTones();
+    void aHeaderMayNameAGradientOfItsOwn() throws ConfigurateException {
+        Theme toned = themeWithGradients();
 
         assertThat(StyleTokens.expand("<h:'REWARDS':mint>", toned, false))
                 .isEqualTo("<gradient:#4ecca3:#48cae4><b>REWARDS</b></gradient>");
     }
 
-    /** A tone nobody named is a spelling mistake, and the header it falls back to is still readable. */
+    /** A gradient nobody named is a spelling mistake, and the header it falls back to is still readable. */
     @Test
-    void aToneTheThemeDoesNotKnowFallsBackToTheHeader() throws ConfigurateException {
-        Theme toned = themeWithTones();
+    void aGradientTheThemeDoesNotKnowFallsBackToTheHeader() throws ConfigurateException {
+        Theme many = themeWithGradients();
 
-        assertThat(StyleTokens.expand("<h:'REWARDS':moss>", toned, false))
+        assertThat(StyleTokens.expand("<h:'REWARDS':moss>", many, false))
                 .isEqualTo("<gradient:#ffe66d:#ff6b8b><b>REWARDS</b></gradient>");
     }
 
+    /** A title is painted with the gradient the caller named, and with nothing else. */
     @Test
-    void aTitleTakesOneOfTheTonesAndAlwaysTheSameOne() throws ConfigurateException {
-        Theme toned = themeWithTones();
+    void aTitleTakesTheGradientItWasGiven() throws ConfigurateException {
+        Theme many = themeWithGradients();
 
-        String once = toneOf(StyleTokens.title(toned, Component.text("Emotes")));
-        String again = toneOf(StyleTokens.title(toned, Component.text("  emotes ")));
-
-        assertThat(once).isEqualTo(again).startsWith("<gradient:");
+        assertThat(gradientOf(StyleTokens.paint(many, Component.text("Emotes"), "mint")))
+                .isEqualToIgnoringCase("<gradient:#4ecca3:#48cae4>");
     }
 
     /**
-     * The point of the tones: a menu does not read as one heading repeated.
+     * The point of naming one: a menu is as many colours as it has subjects.
      *
-     * <p>The claim is about the spread and not about one pair. Nothing can promise two given titles differ,
-     * because there are more titles in the world than tones in a theme; what a menu needs is that a screen
-     * of tiles uses several of them.
+     * <p>Two tiles look alike only when the file asked them to, so this is the whole of what a menu needs
+     * from the library and the library never has to guess it.
      */
     @Test
-    void aMenuOfTitlesUsesSeveralTones() throws ConfigurateException {
-        Theme toned = themeWithTones();
-        List<String> titles = List.of(
-                "Particle trails",
-                "Overhead halos",
-                "Cloaks and wings",
-                "Decorative hats",
-                "Armor suits",
-                "Interactive emotes",
-                "Floating balloons",
-                "Fun gadgets",
-                "Companion pets");
+    void aMenuOfTitlesUsesTheGradientsItNames() throws ConfigurateException {
+        Theme many = themeWithGradients();
+        List<String> names = List.of("strawberry", "peach", "buttercup", "mint", "aqua", "periwinkle", "lavender");
 
         Set<String> used = new LinkedHashSet<>();
-        for (String title : titles) {
-            used.add(toneOf(StyleTokens.title(toned, Component.text(title))));
+        for (String name : names) {
+            used.add(gradientOf(StyleTokens.paint(many, Component.text("Trails"), name)));
         }
 
-        assertThat(used).hasSizeGreaterThanOrEqualTo(4);
+        assertThat(used).hasSize(names.size());
     }
 
-    /** A theme that names no tone keeps every title on the header gradient, as it did before tones existed. */
+    /** A caller that names the header, or names nothing, gets the header. */
     @Test
-    void noTonesMeansTheHeaderGradient() throws ConfigurateException {
+    void theHeaderIsWhatAnUnnamedTitleTakes() throws ConfigurateException {
         Theme gradient = themeWithHeaderStops("#48cae4", "#6c8dfb");
 
-        assertThat(serialize(StyleTokens.title(gradient, Component.text("Emotes"))))
+        assertThat(serialize(StyleTokens.paint(gradient, Component.text("Emotes"), "header")))
                 .isEqualTo(serialize(StyleTokens.header(gradient, Component.text("Emotes"))));
     }
 
     /** A title that arrived painted was painted on purpose: a lobby name, a rank, a player's own tag. */
     @Test
     void aTitleThatCarriesAColourKeepsIt() throws ConfigurateException {
-        Theme toned = themeWithTones();
+        Theme many = themeWithGradients();
         Component painted = Component.text("Emotes").color(TextColor.fromHexString("#123456"));
 
-        assertThat(StyleTokens.title(toned, painted)).isEqualTo(painted);
+        assertThat(StyleTokens.paint(many, painted, "mint")).isEqualTo(painted);
     }
 
-    /** The shipped set: seven neighbouring pairs of the pastel palette, in the order the wheel runs. */
-    private static Theme themeWithTones() throws ConfigurateException {
+    /** A header, and seven neighbouring pairs of the pastel palette in the order the wheel runs. */
+    private static Theme themeWithGradients() throws ConfigurateException {
         ConfigurationNode node = CommentedConfigurationNode.root();
         node.node("gradients", "header").setList(String.class, List.of("#ffe66d", "#ff6b8b"));
-        node.node("tones", "strawberry").setList(String.class, List.of("#ff6b8b", "#ffa07a"));
-        node.node("tones", "peach").setList(String.class, List.of("#ffa07a", "#ffe66d"));
-        node.node("tones", "buttercup").setList(String.class, List.of("#ffe66d", "#4ecca3"));
-        node.node("tones", "mint").setList(String.class, List.of("#4ecca3", "#48cae4"));
-        node.node("tones", "aqua").setList(String.class, List.of("#48cae4", "#6c8dfb"));
-        node.node("tones", "periwinkle").setList(String.class, List.of("#6c8dfb", "#b388ff"));
-        node.node("tones", "lavender").setList(String.class, List.of("#b388ff", "#ff6b8b"));
+        node.node("gradients", "strawberry").setList(String.class, List.of("#ff6b8b", "#ffa07a"));
+        node.node("gradients", "peach").setList(String.class, List.of("#ffa07a", "#ffe66d"));
+        node.node("gradients", "buttercup").setList(String.class, List.of("#ffe66d", "#4ecca3"));
+        node.node("gradients", "mint").setList(String.class, List.of("#4ecca3", "#48cae4"));
+        node.node("gradients", "aqua").setList(String.class, List.of("#48cae4", "#6c8dfb"));
+        node.node("gradients", "periwinkle").setList(String.class, List.of("#6c8dfb", "#b388ff"));
+        node.node("gradients", "lavender").setList(String.class, List.of("#b388ff", "#ff6b8b"));
         return Theme.from(node);
     }
 
@@ -168,8 +157,8 @@ class StyleTokensTest {
         return Text.serialize(component);
     }
 
-    /** The gradient tag a painted title opens with, which is the tone and not the words inside it. */
-    private static String toneOf(Component title) {
+    /** The gradient tag a painted title opens with, which is the colour and not the words inside it. */
+    private static String gradientOf(Component title) {
         String written = serialize(title);
         int end = written.indexOf('>');
         return end < 0 ? written : written.substring(0, end + 1);

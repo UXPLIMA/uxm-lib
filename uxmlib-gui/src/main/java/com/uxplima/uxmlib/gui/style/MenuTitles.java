@@ -16,8 +16,9 @@ import com.uxplima.uxmlib.text.GlyphWidthTable;
  * is what makes a whole menu look subtly wrong: it pushes every title two spaces right and the rounding then
  * lands differently for each length.
  *
- * <p>The styling is dropped rather than trusted to every catalog line: a title is flattened to plain text and
- * handed back as one plain component, so a key that still carries a colour cannot paint a two-tone title.
+ * <p>What the title says and how it looks are the caller's: the padding is measured from the plain letters,
+ * and the component is handed back with whatever style it arrived in. A window title that should carry no
+ * colour is a house rule, and a house rule belongs to the house rather than to this class.
  */
 public final class MenuTitles {
 
@@ -31,7 +32,7 @@ public final class MenuTitles {
 
     private MenuTitles() {}
 
-    /** {@code title} with every colour removed and enough leading spaces to sit in the middle of the window. */
+    /** {@code title} with enough leading spaces in front of it to sit in the middle of the window. */
     public static Component centre(Component title) {
         Objects.requireNonNull(title, "title");
         String plain = PlainTextComponentSerializer.plainText().serialize(title);
@@ -40,6 +41,6 @@ public final class MenuTitles {
         }
         int free = WINDOW_WIDTH - 2 * TITLE_ORIGIN - GlyphWidthTable.widthOf(plain, false);
         int spaces = Math.round(free / (2f * GlyphWidthTable.SPACE_WIDTH));
-        return Component.text(spaces <= 0 ? plain : SPACE.repeat(spaces) + plain);
+        return spaces <= 0 ? title : Component.text(SPACE.repeat(spaces)).append(title);
     }
 }

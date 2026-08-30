@@ -1,6 +1,7 @@
 package com.uxplima.uxmlib.gui.style;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -238,5 +239,32 @@ class LoreTest {
     private static List<String> lines(Component lore) {
         String plain = PlainTextComponentSerializer.plainText().serialize(lore);
         return List.of(plain.split("\n", -1));
+    }
+
+    /**
+     * The wrap width is a taste rather than a rule, so a caller may state its own and the sentences follow
+     * it. A tooltip that has to sit beside a wider window is the reason to have the setting at all.
+     */
+    @Test
+    void aCallerMayStateItsOwnDescriptionWidth() {
+        Theme theme = Theme.defaults();
+        Component sentence = Component.text("A line of light that follows your feet everywhere you walk.");
+
+        List<String> narrow = lines(Lore.of(theme)
+                .width(16)
+                .description(Component.text("Description"), sentence)
+                .build());
+        List<String> wide = lines(Lore.of(theme)
+                .width(60)
+                .description(Component.text("Description"), sentence)
+                .build());
+
+        assertThat(narrow).hasSizeGreaterThan(wide.size());
+    }
+
+    /** A width nobody could write a sentence into is a defect in the caller, not a tooltip of empty lines. */
+    @Test
+    void aWidthThatIsNotPositiveIsRefused() {
+        assertThatThrownBy(() -> Lore.of(Theme.defaults()).width(0)).isInstanceOf(IllegalArgumentException.class);
     }
 }

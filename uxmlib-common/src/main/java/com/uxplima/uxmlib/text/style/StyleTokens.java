@@ -24,7 +24,7 @@ import org.jspecify.annotations.Nullable;
  *       the category is about, then the separator glyph in the dim colour;
  *   <li>{@code <etag:'ERROR'>}: the same prefix in the failure colour, whichever feature raised the line;
  *   <li>{@code <h:'REWARDS'>}: the bold header a lore block opens with, in the accent colour or in the
- *       theme's {@code header} gradient when it names one. It may name a tone of its own instead:
+ *       theme's {@code header} gradient when it names one. It may name a gradient of its own instead:
  *       {@code <h:'REWARDS':mint>}.
  * </ul>
  *
@@ -38,7 +38,7 @@ public final class StyleTokens {
 
     /**
      * A labelled token: {@code <tag:'HOME'>}, {@code <tag:HOME>} or {@code <tag:"HOME">}, and a header with
-     * a tone of its own: {@code <h:'HOME':mint>}.
+     * a gradient of its own: {@code <h:'HOME':mint>}.
      */
     private static final Pattern LABELLED = Pattern.compile(
             "<(tag|etag|h):(?:'([^']*)'|\"([^\"]*)\"|([^:>]*))(?::([a-z0-9_-]+))?>", Pattern.CASE_INSENSITIVE);
@@ -81,12 +81,13 @@ public final class StyleTokens {
         return out.toString();
     }
 
-    private static String expanded(String token, String label, @Nullable String tone, Theme theme, boolean smallCaps) {
+    private static String expanded(
+            String token, String label, @Nullable String gradient, Theme theme, boolean smallCaps) {
         String text = smallCaps ? SmallCaps.of(label) : label;
         return switch (token) {
             case "tag" -> prefix(text, theme.hex(theme.categoryRole(label)), theme);
             case "etag" -> prefix(text, theme.hex("bad"), theme);
-            default -> header(text, stopsOf(theme, tone), theme);
+            default -> header(text, stopsOf(theme, gradient), theme);
         };
     }
 
@@ -94,66 +95,33 @@ public final class StyleTokens {
      * A component painted the way a {@code <h:'…'>} token is: across the theme's {@code header} gradient
      * when it names two stops or more, in the single stop when it names one, and in the accent colour when
      * it names none.
+     */
+    public static Component header(Theme theme, Component text) {
+        return paint(theme, text, HEADER);
+    }
+
+    /**
+     * {@code text} painted across the theme's gradient named {@code gradient}.
+     *
+     * <p>This is the seam a menu paints a tile title with, and the reason it takes a name rather than a
+     * colour: which gradient a title takes is a decision about one interface, so it belongs to the file that
+     * knows what the title is about, and a library that chose for the caller would paint a wardrobe and a
+     * lobby list in the same order for reasons neither of them could see.
+     *
+     * <p>A name the theme does not know falls back to {@code header}, so a spelling mistake shows as the
+     * ordinary colour rather than as no colour at all.
      *
      * <p>A component that already carries a colour anywhere inside it is handed back untouched. A header is
      * often not a literal (a lobby name, a rank, a player's chosen tag), and a value that arrived with a
-     * colour of its own means it, so painting over it would lose the one thing that made it that value.
-     * The check walks the whole component, because a colour a caller set on a child is just as deliberate
-     * as one set on the root.
+     * colour of its own means it, so painting over it would lose the one thing that made it that value. The
+     * check walks the whole component, because a colour a caller set on a child is just as deliberate as one
+     * set on the root.
      */
-    public static Component header(Theme theme, Component text) {
+    public static Component paint(Theme theme, Component text, String gradient) {
         Objects.requireNonNull(theme, "theme");
         Objects.requireNonNull(text, "text");
-        return painted(theme, text, theme.gradient(HEADER));
-    }
-
-    /**
-     * A title painted with one of the theme's tones, chosen from the title itself.
-     *
-     * <p>A menu whose every title is painted with one gradient reads as one colour. That is the first thing
-     * a player sees and the last thing they remember, and it is what a tile title looked like before this
-     * existed. So a theme may name a set of tones instead, and each title takes the one its own letters
-     * point at: the same title is always the same colour, two titles are usually not, and nobody has to
-     * write a colour beside a word.
-     *
-     * <p>A theme that names no tone keeps the old behaviour exactly, which is also how a server asks for one
-     * colour again: empty the block.
-     *
-     * <p>A component that already carries a colour is handed back untouched, as with a header. A title that
-     * arrived painted was painted on purpose.
-     */
-    public static Component title(Theme theme, Component text) {
-        Objects.requireNonNull(theme, "theme");
-        Objects.requireNonNull(text, "text");
-        List<List<TextColor>> tones = theme.tones();
-        if (tones.isEmpty() || coloured(text)) {
-            return header(theme, text);
-        }
-        return painted(theme, text, tones.get(indexOf(Text.plain(text), tones.size())));
-    }
-
-    /**
-     * Which tone a title takes: the same one every time, from the letters of the title.
-     *
-     * <p>The letters and not the position in the menu. A tile keeps its colour when it moves, when the menu
-     * is re-ordered and when a page is turned, so a player learns the tile by its colour. Case and the
-     * spaces around it do not count, because they are not part of the name a player reads.
-     *
-     * <p>The hash is stirred before it is divided. A Java string hash of a short phrase keeps most of its
-     * information in the low bits, and the titles of one menu are short phrases that begin alike, so
-     * dividing the raw hash by seven put half a menu on the same tone. The three shifts and two odd
-     * multipliers below are the usual integer finaliser: they carry the high bits down into the low ones,
-     * where the division reads them. Nothing about the colours depends on which finaliser this is, only
-     * that it is always the same one.
-     */
-    private static int indexOf(String title, int tones) {
-        int hash = title.strip().toLowerCase(Locale.ROOT).hashCode();
-        hash ^= hash >>> 16;
-        hash *= 0x7feb352d;
-        hash ^= hash >>> 15;
-        hash *= 0x846ca68b;
-        hash ^= hash >>> 16;
-        return Math.floorMod(hash, tones);
+        Objects.requireNonNull(gradient, "gradient");
+        return painted(theme, text, stopsOf(theme, gradient));
     }
 
     /** {@code text} across {@code stops}: the gradient, the one stop flat, or the accent when there is none. */
@@ -188,15 +156,14 @@ public final class StyleTokens {
     }
 
     /**
-     * The stops a {@code <h:'…'>} token paints with: the tone it named, or the theme's header gradient when
-     * it named none. A tone the theme does not know falls back to the header as well, so a spelling mistake
-     * shows as the ordinary colour rather than as no colour at all.
+     * The stops a line paints with: the gradient it named, or the theme's header when it named none or named
+     * one the theme does not hold.
      */
-    private static List<TextColor> stopsOf(Theme theme, @Nullable String tone) {
-        if (tone == null) {
+    private static List<TextColor> stopsOf(Theme theme, @Nullable String gradient) {
+        if (gradient == null || HEADER.equalsIgnoreCase(gradient)) {
             return theme.gradient(HEADER);
         }
-        List<TextColor> named = theme.tone(tone);
+        List<TextColor> named = theme.gradient(gradient);
         return named.isEmpty() ? theme.gradient(HEADER) : named;
     }
 
