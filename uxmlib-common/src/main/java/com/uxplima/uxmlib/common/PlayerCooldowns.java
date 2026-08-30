@@ -61,13 +61,14 @@ public final class PlayerCooldowns {
         waits.start(owner, Only.WAIT, wait);
     }
 
-    /** End the wait now, which is what a caller does when the action it charged for did not happen. */
+    /**
+     * Drop the wait held against {@code owner}.
+     *
+     * <p>Both callers want this one method: the one giving an action back because what it charged for did
+     * not happen, and the one dropping a player who has left. With no key to tell apart they are the same
+     * operation, and a second name for it would only be a second thing to keep in step.
+     */
     public void clear(UUID owner) {
-        waits.clear(owner, Only.WAIT);
-    }
-
-    /** Drop the wait held against {@code owner}, which is what a plugin does when they leave. */
-    public void forget(UUID owner) {
         waits.forget(owner);
     }
 

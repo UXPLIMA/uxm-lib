@@ -44,14 +44,14 @@ class PlayerCooldownsTest {
     }
 
     @Test
-    @DisplayName("clearing gives the action back, and forgetting drops the player")
-    void clearingAndForgetting() {
+    @DisplayName("clearing gives the action back and drops the player")
+    void clearingGivesTheActionBack() {
         cooldowns.take(player, WAIT);
         cooldowns.clear(player);
         assertThat(cooldowns.remaining(player)).isZero();
 
         cooldowns.take(player, WAIT);
-        cooldowns.forget(player);
+        cooldowns.clear(player);
         assertThat(cooldowns.tracked()).isZero();
     }
 
