@@ -1,6 +1,12 @@
 package com.uxplima.uxmlib.hook.placeholder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.UUID;
+
+import org.bukkit.OfflinePlayer;
 
 import org.junit.jupiter.api.Test;
 
@@ -71,6 +77,23 @@ class PlaceholderRegistryTest {
         registry.register("eco", (player, params) -> "second");
 
         assertThat(registry.resolve(null, "eco_x")).isEqualTo("second");
+    }
+
+    @Test
+    void aSubjectWhoIsNotOnTheServerReachesTheProvider() {
+        // A leaderboard line and a tab-list entry both name a player who is not here. The registry must
+        // hand the subject on rather than drop it, or a provider that answers from stored data sees null.
+        UUID id = UUID.randomUUID();
+        OfflinePlayer away = mock(OfflinePlayer.class);
+        when(away.getUniqueId()).thenReturn(id);
+
+        PlaceholderRegistry registry = new PlaceholderRegistry();
+        registry.register(
+                "who",
+                (player, params) ->
+                        player == null ? "nobody" : player.getUniqueId().toString());
+
+        assertThat(registry.resolve(away, "who")).isEqualTo(id.toString());
     }
 
     @Test

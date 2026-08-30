@@ -4,16 +4,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.bukkit.entity.Player;
+import org.bukkit.OfflinePlayer;
 
 import org.jspecify.annotations.Nullable;
 
 /**
  * Holds the {@link PlaceholderProvider}s a plugin exposes through PlaceholderAPI and routes a request to the
  * right one by longest-prefix match. An instance, not static state, so each consumer owns its own set; the
- * shared {@code UxmPlaceholderExpansion} delegates every request to {@link #resolve(Player, String)}.
+ * shared {@code UxmPlaceholderExpansion} delegates every request to {@link #resolve(OfflinePlayer, String)}.
  *
- * <p>{@link #resolve(Player, String)} is deliberately Bukkit-light and free of any {@code me.clip} symbol so
+ * <p>{@link #resolve(OfflinePlayer, String)} is deliberately Bukkit-light and free of any {@code me.clip} symbol so
  * the dispatch can be unit-tested without PlaceholderAPI on the path. It is exception-proof: a provider that
  * throws yields an empty value rather than propagating into PlaceholderAPI.
  */
@@ -52,7 +52,7 @@ public final class PlaceholderRegistry {
      * string if the provider returns {@code null} or throws, or {@code null} when no prefix matches so
      * PlaceholderAPI falls through to other expansions.
      */
-    public @Nullable String resolve(@Nullable Player player, String identifier) {
+    public @Nullable String resolve(@Nullable OfflinePlayer player, String identifier) {
         Objects.requireNonNull(identifier, "identifier");
         String prefix = longestMatchingPrefix(identifier);
         if (prefix == null) {
@@ -82,7 +82,7 @@ public final class PlaceholderRegistry {
     }
 
     private static @Nullable String invoke(
-            @Nullable PlaceholderProvider provider, @Nullable Player player, String params) {
+            @Nullable PlaceholderProvider provider, @Nullable OfflinePlayer player, String params) {
         if (provider == null) {
             return null;
         }

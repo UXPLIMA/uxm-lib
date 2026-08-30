@@ -3,7 +3,6 @@ package com.uxplima.uxmlib.hook.placeholder;
 import java.util.Objects;
 
 import org.bukkit.OfflinePlayer;
-import org.bukkit.entity.Player;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
 import org.jspecify.annotations.Nullable;
@@ -54,7 +53,8 @@ final class UxmPlaceholderExpansion extends PlaceholderExpansion {
     @Override
     public @Nullable String onRequest(@Nullable OfflinePlayer requester, String params) {
         // PlaceholderAPI passes the text after "uxm_"; our registry routes it by longest-prefix match.
-        Player online = requester == null ? null : requester.getPlayer();
-        return registry.resolve(online, params);
+        // The requester is handed on as it came: a provider that needs the live player narrows it itself,
+        // and one that answers from stored data can serve a player who is not on the server.
+        return registry.resolve(requester, params);
     }
 }
