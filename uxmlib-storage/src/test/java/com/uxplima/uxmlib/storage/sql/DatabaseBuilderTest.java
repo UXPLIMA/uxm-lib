@@ -114,6 +114,25 @@ class DatabaseBuilderTest {
     }
 
     @Test
+    void aSqliteUrlIgnoresTheCredentialsAConfigFileAlwaysCarries(@TempDir Path directory) throws SQLException {
+        // A plugin reads one storage block and hands over everything in it, credentials included, because
+        // the URL is what decides the backend. An empty username is what that block holds for a file
+        // database, and it must not stop the file opening.
+        Path file = directory.resolve("credentials.db");
+        try (Database db = Database.builder()
+                .jdbcUrl("jdbc:sqlite:" + file)
+                .username("")
+                .password("")
+                .maxPoolSize(10)
+                .build()) {
+            assertThat(db.dialect()).isEqualTo(Dialect.SQLITE);
+            assertThat(readJournalMode(db)).isEqualToIgnoringCase("wal");
+            assertThat(((HikariDataSource) db.dataSource()).getMaximumPoolSize())
+                    .isEqualTo(1);
+        }
+    }
+
+    @Test
     void aNetworkUrlStillTakesTheConfiguredPoolSize() {
         // The counterpart: nothing about the fix may narrow a real network pool down to one connection.
         try (Database db = Database.builder()
