@@ -97,6 +97,45 @@ class PlaceholderRegistryTest {
     }
 
     @Test
+    void aFallbackAnswersWhateverNoPrefixClaims() {
+        PlaceholderRegistry registry = new PlaceholderRegistry();
+        registry.register("eco", (player, params) -> "money");
+        registry.fallback((player, params) -> "flat:" + params);
+
+        assertThat(registry.resolve(null, "eco_top")).isEqualTo("money");
+        assertThat(registry.resolve(null, "has")).isEqualTo("flat:has");
+        assertThat(registry.resolve(null, "tag_plain")).isEqualTo("flat:tag_plain");
+    }
+
+    @Test
+    void aFallbackThatKnowsNothingLeavesTheTextAsWritten() {
+        // Null, not empty: PlaceholderAPI leaves an unknown placeholder in the line exactly as the operator
+        // typed it, which is how they find their own typo.
+        PlaceholderRegistry registry = new PlaceholderRegistry();
+        registry.fallback((player, params) -> null);
+
+        assertThat(registry.resolve(null, "nonsense")).isNull();
+    }
+
+    @Test
+    void aThrowingFallbackYieldsEmptyRatherThanBreakingTheLine() {
+        PlaceholderRegistry registry = new PlaceholderRegistry();
+        registry.fallback((player, params) -> {
+            throw new IllegalStateException("boom");
+        });
+
+        assertThat(registry.resolve(null, "anything")).isEmpty();
+    }
+
+    @Test
+    void aRegistryWithOnlyAFallbackIsNotEmpty() {
+        PlaceholderRegistry registry = new PlaceholderRegistry();
+        registry.fallback((player, params) -> "");
+
+        assertThat(registry.isEmpty()).isFalse();
+    }
+
+    @Test
     void rejectsABlankPrefix() {
         PlaceholderRegistry registry = new PlaceholderRegistry();
         assertThat(catchBlank(registry)).isTrue();

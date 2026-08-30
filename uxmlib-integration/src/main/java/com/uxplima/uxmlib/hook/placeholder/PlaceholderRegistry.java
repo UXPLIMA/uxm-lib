@@ -10,7 +10,7 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Holds the {@link PlaceholderProvider}s a plugin exposes through PlaceholderAPI and routes a request to the
- * right one by longest-prefix match. An instance, not static state, so each consumer owns its own set; the
+ * right one by longest-prefix match, or to the {@link #fallback} when no prefix claims it. An instance, not static state, so each consumer owns its own set; the
  * shared {@code UxmPlaceholderExpansion} delegates every request to {@link #resolve(OfflinePlayer, String)}.
  *
  * <p>{@link #resolve(OfflinePlayer, String)} is deliberately Bukkit-light and free of any {@code me.clip} symbol so
@@ -20,6 +20,7 @@ import org.jspecify.annotations.Nullable;
 public final class PlaceholderRegistry {
 
     private final Map<String, PlaceholderProvider> providers = new ConcurrentHashMap<>();
+    private volatile @Nullable PlaceholderProvider fallback;
 
     /**
      * Register {@code provider} under {@code prefix} (the {@code <prefix>} in {@code %uxm_<prefix>_...%}).
@@ -35,15 +36,34 @@ public final class PlaceholderRegistry {
         return this;
     }
 
+    /**
+     * Register {@code provider} as the answer for every identifier no prefix claims, replacing any earlier
+     * fallback. Returns this for chaining.
+     *
+     * <p>This is what a plugin with flat placeholders wants: {@code %uxmtags_has%} and {@code %uxmtags_id%}
+     * carry no namespace of their own, so there is no prefix to route on, and the provider switches on the
+     * whole parameter itself.
+     *
+     * <p>A fallback that returns {@code null} means "no such placeholder", and the expansion says so by
+     * answering {@code null}: PlaceholderAPI then leaves the text exactly as the operator wrote it, which is
+     * how they find their own typo. That is the one place where {@code null} does not become an empty value,
+     * because a prefixed provider has already claimed its namespace and a blank is the right answer there.
+     */
+    public PlaceholderRegistry fallback(PlaceholderProvider provider) {
+        Objects.requireNonNull(provider, "provider");
+        this.fallback = provider;
+        return this;
+    }
+
     /** Remove the provider registered under {@code prefix}; returns whether one was present. */
     public boolean unregister(String prefix) {
         Objects.requireNonNull(prefix, "prefix");
         return providers.remove(prefix) != null;
     }
 
-    /** Whether any provider is registered. */
+    /** Whether any provider is registered, fallback included. */
     public boolean isEmpty() {
-        return providers.isEmpty();
+        return providers.isEmpty() && fallback == null;
     }
 
     /**
@@ -56,9 +76,26 @@ public final class PlaceholderRegistry {
         Objects.requireNonNull(identifier, "identifier");
         String prefix = longestMatchingPrefix(identifier);
         if (prefix == null) {
-            return null;
+            return answerFallback(player, identifier);
         }
         return invoke(providers.get(prefix), player, paramsAfter(prefix, identifier));
+    }
+
+    /**
+     * The fallback's answer, kept as it came: {@code null} for a placeholder it does not know, so
+     * PlaceholderAPI leaves the text written as it is.
+     */
+    private @Nullable String answerFallback(@Nullable OfflinePlayer player, String identifier) {
+        PlaceholderProvider provider = fallback;
+        if (provider == null) {
+            return null;
+        }
+        try {
+            return provider.onRequest(player, identifier);
+        } catch (RuntimeException failure) {
+            // A throwing provider must never break PlaceholderAPI's whole render; swallow to empty.
+            return "";
+        }
     }
 
     private @Nullable String longestMatchingPrefix(String identifier) {
