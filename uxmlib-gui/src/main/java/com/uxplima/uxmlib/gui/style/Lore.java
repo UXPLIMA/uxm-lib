@@ -6,6 +6,8 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.Style;
 
 import com.uxplima.uxmlib.text.GlyphWidthTable;
 import com.uxplima.uxmlib.text.Text;
@@ -33,7 +35,8 @@ import com.uxplima.uxmlib.text.style.Theme;
  * the catalog either: they come from the {@link Theme}, where a server can change them.
  *
  * <p>Blocks are separated by a blank line, and a block a caller never fills in takes no space. A description
- * a translator wrote over several lines is broken again here, so the line breaks are theirs.
+ * a translator wrote over several lines is broken again here, so the line breaks are theirs, and a line that
+ * is still too long for a tooltip is wrapped and evened out.
  *
  * <p>Everything under a header lines up with the header's words, not with its glyph: a breadcrumb, a
  * description line and a bullet all start where the text above them starts. The indent is measured from the
@@ -47,6 +50,21 @@ public final class Lore {
      * line of a description keeps the first one's indent instead of getting its own.
      */
     private static final Pattern LINE_BREAK = Pattern.compile("\\R|<newline>|<br>", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * The widest a description line may be, counted in visible characters.
+     *
+     * <p>A tooltip grows to its longest line, so a description written as one sentence draws a box wider
+     * than the window it hangs over and the tile stops reading as a tile. Thirty four is the width the
+     * house configurations are cut to, and a plugin has to sit beside them without looking like a second
+     * product.
+     *
+     * <p>Counted in characters rather than measured in pixels on purpose. The other geometry in this class
+     * is measured, because a column that is one pixel out is visible. A wrap is not: it only has to fall in
+     * roughly the same place every time, and a character count says the same thing to whoever writes the
+     * sentence in the catalog.
+     */
+    private static final int DESCRIPTION_WIDTH = 34;
 
     private final Theme theme;
     private final List<List<Component>> blocks = new ArrayList<>();
@@ -75,7 +93,9 @@ public final class Lore {
         header("description", header);
         String indent = indentUnder("description");
         for (Component sentence : split(text)) {
-            line(Component.text(indent).append(sentence.colorIfAbsent(theme.colour("subtext"))));
+            for (Component wrapped : wrap(sentence, DESCRIPTION_WIDTH)) {
+                line(Component.text(indent).append(wrapped.colorIfAbsent(theme.colour("subtext"))));
+            }
         }
         return block();
     }
@@ -267,6 +287,125 @@ public final class Lore {
         }
         return written.subList(first, last);
     }
+
+    /**
+     * Break {@code sentence} into lines of at most {@code width} visible characters.
+     *
+     * <p>Two passes. The first packs the words greedily, which answers how many lines the sentence needs.
+     * The second packs them again at the narrowest width that still needs that many, which spreads the
+     * words evenly: a greedy wrap alone leaves the last line holding one word, and one word under a full
+     * line reads as a mistake rather than as a paragraph.
+     *
+     * <p>A word longer than {@code width} keeps its own line rather than being broken, because a broken
+     * word is harder to read than a line that runs over.
+     */
+    private static List<Component> wrap(Component sentence, int width) {
+        List<List<Fragment>> words = words(sentence);
+        if (words.size() <= 1) {
+            return List.of(sentence);
+        }
+        List<List<List<Fragment>>> packed = pack(words, width);
+        int longest = words.stream().mapToInt(Lore::widthOf).max().orElse(width);
+        for (int narrower = longest; narrower < width; narrower++) {
+            List<List<List<Fragment>>> even = pack(words, narrower);
+            if (even.size() == packed.size()) {
+                packed = even;
+                break;
+            }
+        }
+        return packed.stream().map(Lore::join).toList();
+    }
+
+    /** Greedily fill lines of at most {@code width} visible characters. */
+    private static List<List<List<Fragment>>> pack(List<List<Fragment>> words, int width) {
+        List<List<List<Fragment>>> lines = new ArrayList<>();
+        List<List<Fragment>> current = new ArrayList<>();
+        int filled = 0;
+        for (List<Fragment> word : words) {
+            int length = widthOf(word);
+            if (!current.isEmpty() && filled + 1 + length > width) {
+                lines.add(current);
+                current = new ArrayList<>();
+                filled = 0;
+            }
+            filled += current.isEmpty() ? length : length + 1;
+            current.add(word);
+        }
+        if (!current.isEmpty()) {
+            lines.add(current);
+        }
+        return lines;
+    }
+
+    /** One line, with the styling every word arrived with and a plain space between them. */
+    private static Component join(List<List<Fragment>> words) {
+        Component line = Component.empty();
+        for (int index = 0; index < words.size(); index++) {
+            if (index > 0) {
+                line = line.append(Component.text(" "));
+            }
+            for (Fragment fragment : words.get(index)) {
+                line = line.append(Component.text(fragment.text()).style(fragment.style()));
+            }
+        }
+        return line;
+    }
+
+    /**
+     * The words of {@code sentence}, each one carrying the styling of the piece it came from.
+     *
+     * <p>A word is a list of fragments rather than a string, because a colour may change in the middle of
+     * one: {@code <value>5<subtext>s} is one word painted twice, and a wrap that flattened it to text would
+     * hand back a line with the colour thrown away.
+     */
+    private static List<List<Fragment>> words(Component sentence) {
+        List<List<Fragment>> words = new ArrayList<>();
+        List<Fragment> current = new ArrayList<>();
+        for (Fragment fragment : fragments(sentence)) {
+            String[] pieces = fragment.text().split(" ", -1);
+            for (int index = 0; index < pieces.length; index++) {
+                if (index > 0 && !current.isEmpty()) {
+                    words.add(current);
+                    current = new ArrayList<>();
+                }
+                if (!pieces[index].isEmpty()) {
+                    current.add(new Fragment(pieces[index], fragment.style()));
+                }
+            }
+        }
+        if (!current.isEmpty()) {
+            words.add(current);
+        }
+        return words;
+    }
+
+    /** The text pieces of a component tree, each one with the styling it inherits from its parents. */
+    private static List<Fragment> fragments(Component component) {
+        List<Fragment> out = new ArrayList<>();
+        collect(component, Style.empty(), out);
+        return out;
+    }
+
+    private static void collect(Component component, Style inherited, List<Fragment> out) {
+        Style style = component.style().merge(inherited, Style.Merge.Strategy.IF_ABSENT_ON_TARGET);
+        if (component instanceof TextComponent text && !text.content().isEmpty()) {
+            out.add(new Fragment(text.content(), style));
+        }
+        for (Component child : component.children()) {
+            collect(child, style, out);
+        }
+    }
+
+    private static int widthOf(List<Fragment> word) {
+        int width = 0;
+        for (Fragment fragment : word) {
+            width += fragment.text().codePointCount(0, fragment.text().length());
+        }
+        return width;
+    }
+
+    /** One run of text with the styling it is drawn in. */
+    private record Fragment(String text, Style style) {}
 
     /** One component per line of a catalog entry that was written over several lines. */
     private static List<Component> split(Component text) {

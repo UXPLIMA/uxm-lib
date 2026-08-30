@@ -70,6 +70,53 @@ class LoreTest {
         assertThat(lines(lore).get(2)).isEqualTo("    second ");
     }
 
+    /** A sentence too long for a tooltip is broken, and nothing of it is lost. */
+    @Test
+    void aLongDescriptionIsWrapped() {
+        String sentence = "It throws a hook where you look, and pulls you to it.";
+
+        Component lore = Lore.of(theme)
+                .description(Component.text("About"), Component.text(sentence))
+                .build();
+
+        List<String> written = lines(lore).stream()
+                .filter(line -> !line.isBlank() && !line.contains("✎"))
+                .map(String::trim)
+                .toList();
+
+        assertThat(written).hasSizeGreaterThan(1);
+        assertThat(written).allSatisfy(line -> assertThat(line.length()).isLessThanOrEqualTo(34));
+        assertThat(String.join(" ", written)).isEqualTo(sentence);
+    }
+
+    /** A greedy wrap leaves one word alone on the last line. The second pass spreads them out. */
+    @Test
+    void aWrappedDescriptionDoesNotLeaveOneWordOnTheLastLine() {
+        Component lore = Lore.of(theme)
+                .description(
+                        Component.text("About"),
+                        Component.text("A sheep of every colour runs off, and then it goes bang."))
+                .build();
+
+        List<String> written = lines(lore).stream()
+                .filter(line -> !line.isBlank() && !line.contains("✎"))
+                .map(String::trim)
+                .toList();
+
+        assertThat(written).hasSize(2);
+        assertThat(written.get(written.size() - 1).split(" ")).hasSizeGreaterThan(1);
+    }
+
+    /** A short description is left exactly as it was written. */
+    @Test
+    void aShortDescriptionIsNotTouched() {
+        Component lore = Lore.of(theme)
+                .description(Component.text("About"), Component.text("What it does"))
+                .build();
+
+        assertThat(lines(lore)).anySatisfy(line -> assertThat(line).isEqualTo("    What it does "));
+    }
+
     @Test
     void theGlyphsComeFromTheThemeSoAServerCanChangeThem() throws ConfigurateException {
         ConfigurationNode node = CommentedConfigurationNode.root();
