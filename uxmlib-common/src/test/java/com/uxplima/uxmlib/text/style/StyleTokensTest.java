@@ -3,7 +3,9 @@ package com.uxplima.uxmlib.text.style;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextColor;
@@ -101,13 +103,33 @@ class StyleTokensTest {
         assertThat(once).isEqualTo(again).startsWith("<gradient:");
     }
 
-    /** The point of the tones: two tiles of one menu do not read as the same heading. */
+    /**
+     * The point of the tones: a menu does not read as one heading repeated.
+     *
+     * <p>The claim is about the spread and not about one pair. Nothing can promise two given titles differ,
+     * because there are more titles in the world than tones in a theme; what a menu needs is that a screen
+     * of tiles uses several of them.
+     */
     @Test
-    void twoTitlesTakeTwoTones() throws ConfigurateException {
+    void aMenuOfTitlesUsesSeveralTones() throws ConfigurateException {
         Theme toned = themeWithTones();
+        List<String> titles = List.of(
+                "Particle trails",
+                "Overhead halos",
+                "Cloaks and wings",
+                "Decorative hats",
+                "Armor suits",
+                "Interactive emotes",
+                "Floating balloons",
+                "Fun gadgets",
+                "Companion pets");
 
-        assertThat(toneOf(StyleTokens.title(toned, Component.text("Emotes"))))
-                .isNotEqualTo(toneOf(StyleTokens.title(toned, Component.text("Particle trails"))));
+        Set<String> used = new LinkedHashSet<>();
+        for (String title : titles) {
+            used.add(toneOf(StyleTokens.title(toned, Component.text(title))));
+        }
+
+        assertThat(used).hasSizeGreaterThanOrEqualTo(4);
     }
 
     /** A theme that names no tone keeps every title on the header gradient, as it did before tones existed. */
@@ -128,11 +150,16 @@ class StyleTokensTest {
         assertThat(StyleTokens.title(toned, painted)).isEqualTo(painted);
     }
 
+    /** The shipped set: seven neighbouring pairs of the pastel palette, in the order the wheel runs. */
     private static Theme themeWithTones() throws ConfigurateException {
         ConfigurationNode node = CommentedConfigurationNode.root();
         node.node("gradients", "header").setList(String.class, List.of("#ffe66d", "#ff6b8b"));
         node.node("tones", "strawberry").setList(String.class, List.of("#ff6b8b", "#ffa07a"));
+        node.node("tones", "peach").setList(String.class, List.of("#ffa07a", "#ffe66d"));
+        node.node("tones", "buttercup").setList(String.class, List.of("#ffe66d", "#4ecca3"));
         node.node("tones", "mint").setList(String.class, List.of("#4ecca3", "#48cae4"));
+        node.node("tones", "aqua").setList(String.class, List.of("#48cae4", "#6c8dfb"));
+        node.node("tones", "periwinkle").setList(String.class, List.of("#6c8dfb", "#b388ff"));
         node.node("tones", "lavender").setList(String.class, List.of("#b388ff", "#ff6b8b"));
         return Theme.from(node);
     }

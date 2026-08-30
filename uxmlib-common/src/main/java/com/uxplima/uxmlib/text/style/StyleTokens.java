@@ -138,9 +138,22 @@ public final class StyleTokens {
      * <p>The letters and not the position in the menu. A tile keeps its colour when it moves, when the menu
      * is re-ordered and when a page is turned, so a player learns the tile by its colour. Case and the
      * spaces around it do not count, because they are not part of the name a player reads.
+     *
+     * <p>The hash is stirred before it is divided. A Java string hash of a short phrase keeps most of its
+     * information in the low bits, and the titles of one menu are short phrases that begin alike, so
+     * dividing the raw hash by seven put half a menu on the same tone. The three shifts and two odd
+     * multipliers below are the usual integer finaliser: they carry the high bits down into the low ones,
+     * where the division reads them. Nothing about the colours depends on which finaliser this is, only
+     * that it is always the same one.
      */
     private static int indexOf(String title, int tones) {
-        return Math.floorMod(title.strip().toLowerCase(Locale.ROOT).hashCode(), tones);
+        int hash = title.strip().toLowerCase(Locale.ROOT).hashCode();
+        hash ^= hash >>> 16;
+        hash *= 0x7feb352d;
+        hash ^= hash >>> 15;
+        hash *= 0x846ca68b;
+        hash ^= hash >>> 16;
+        return Math.floorMod(hash, tones);
     }
 
     /** {@code text} across {@code stops}: the gradient, the one stop flat, or the accent when there is none. */
