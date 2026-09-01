@@ -202,6 +202,26 @@ class StyleTokensTest {
     }
 
     @Test
+    void aHeaderMayNameAWheelPositionInsteadOfAName() throws Exception {
+        ConfigurationNode node = CommentedConfigurationNode.root();
+        node.node("wheel").setList(String.class, java.util.List.of("#ff6b8b", "#4ecca3", "#48cae4"));
+        Theme wheeled = Theme.from(node);
+
+        assertThat(StyleTokens.expand("<h:'SHOP':1>", wheeled, false))
+                .isEqualTo("<gradient:#4ecca3:#48cae4><b>SHOP</b></gradient>");
+    }
+
+    @Test
+    void aWheelPositionWrapsSoALongMenuKeepsWorking() throws Exception {
+        ConfigurationNode node = CommentedConfigurationNode.root();
+        node.node("wheel").setList(String.class, java.util.List.of("#ff6b8b", "#4ecca3", "#48cae4"));
+        Theme wheeled = Theme.from(node);
+
+        assertThat(StyleTokens.expand("<h:'SHOP':4>", wheeled, false))
+                .isEqualTo(StyleTokens.expand("<h:'SHOP':1>", wheeled, false));
+    }
+
+    @Test
     void aThemeWithNoWheelPaintsAPositionWithTheHeader() {
         assertThat(Text.serialize(StyleTokens.paint(theme, Component.text("SHOP"), 3)))
                 .isEqualTo(Text.serialize(StyleTokens.header(theme, Component.text("SHOP"))));

@@ -38,7 +38,7 @@ public final class StyleTokens {
 
     /**
      * A labelled token: {@code <tag:'HOME'>}, {@code <tag:HOME>} or {@code <tag:"HOME">}, and a header with
-     * a gradient of its own: {@code <h:'HOME':mint>}.
+     * a colour of its own: {@code <h:'HOME':good>} or {@code <h:'HOME':4>}.
      */
     private static final Pattern LABELLED = Pattern.compile(
             "<(tag|etag|h):(?:'([^']*)'|\"([^\"]*)\"|([^:>]*))(?::([a-z0-9_-]+))?>", Pattern.CASE_INSENSITIVE);
@@ -113,8 +113,9 @@ public final class StyleTokens {
      * knows what the title is about, and a library that chose for the caller would paint a wardrobe and a
      * lobby list in the same order for reasons neither of them could see.
      *
-     * <p>A name the theme does not know falls back to {@code header}, so a spelling mistake shows as the
-     * ordinary colour rather than as no colour at all.
+     * <p>The name may be a gradient of the theme, a role, or a wheel position written in digits. A name the
+     * theme does not know falls back to {@code header}, so a spelling mistake shows as the ordinary colour
+     * rather than as no colour at all.
      *
      * <p>A component that already carries a colour anywhere inside it is handed back untouched. A header is
      * often not a literal (a lobby name, a rank, a player's chosen tag), and a value that arrived with a
@@ -176,21 +177,49 @@ public final class StyleTokens {
     }
 
     /**
-     * The stops a line paints with: the gradient it named, then the role it named, then the theme's header.
+     * The stops a line paints with: a wheel position, then the gradient it named, then the role it named,
+     * then the theme's header.
+     *
+     * <p>A number is a position on the theme's wheel, which is how a file that lays several headings out
+     * gives each of them a colour without naming one: the hotbar writes {@code <h:'PvP':2>} in the slot it
+     * writes the item, and a server that re-colours the wheel re-colours the bar with it.
      *
      * <p>A role is accepted because a title that wants one fixed colour should not need a gradient of one
-     * stop declared for it. A name that is neither falls back to the header, so a spelling mistake shows as
-     * the ordinary heading rather than as no colour at all.
+     * stop declared for it. A name that is none of the three falls back to the header, so a spelling mistake
+     * shows as the ordinary heading rather than as no colour at all.
      */
     private static List<TextColor> stopsOf(Theme theme, @Nullable String gradient) {
         if (gradient == null || HEADER.equalsIgnoreCase(gradient)) {
             return theme.gradient(HEADER);
+        }
+        Integer position = positionOf(gradient);
+        if (position != null) {
+            List<TextColor> arc = theme.arc(position);
+            return arc.isEmpty() ? theme.gradient(HEADER) : arc;
         }
         List<TextColor> named = theme.gradient(gradient);
         if (!named.isEmpty()) {
             return named;
         }
         return theme.hasColour(gradient) ? List.of(theme.colour(gradient)) : theme.gradient(HEADER);
+    }
+
+    /**
+     * {@code argument} as a wheel position, or {@code null} when it is a name.
+     *
+     * <p>Long runs of digits are read as a name rather than a number, because a wheel is a handful of
+     * colours and a position of ten digits is a mistake, not a request.
+     */
+    private static @Nullable Integer positionOf(String argument) {
+        if (argument.isEmpty() || argument.length() > 9) {
+            return null;
+        }
+        for (int index = 0; index < argument.length(); index++) {
+            if (!Character.isDigit(argument.charAt(index))) {
+                return null;
+            }
+        }
+        return Integer.valueOf(argument);
     }
 
     /**

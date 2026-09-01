@@ -373,10 +373,11 @@ shipped file does.
 A heading may take its colour three ways, and the file that draws it picks the one that fits. The wheel is
 the one that needs no name: `Tiles.titled(theme, title, lore, position)` paints the tile at that position
 with that arc of the wheel, so twelve tiles read as twelve headings and the layout file stays free of
-colour. A heading that always means the same thing names a role instead, `<h:'REWARDS':good>`. A sweep of
-your own is a named gradient in the file, `<h:'REWARDS':mint>`. The library never picks for you: which
-tiles look alike is a decision about one interface, and only the file that knows what the tiles are about
-can make it.
+colour. A content file reaches the same wheel by writing the position in the token, `<h:'REWARDS':4>`,
+which is what a hotbar or a list written in configuration uses. A heading that always means the same thing
+names a role instead, `<h:'REWARDS':good>`. A sweep of your own is a named gradient in the file,
+`<h:'REWARDS':mint>`. The library never picks for you: which tiles look alike is a decision about one
+interface, and only the file that knows what the tiles are about can make it.
 
 ### Scheduling (Folia-ready)
 
