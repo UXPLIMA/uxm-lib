@@ -46,8 +46,13 @@ public final class StyleTokens {
     /** The gradient a {@code <h:>} header is painted with, when the theme names one. */
     private static final String HEADER = "header";
 
-    /** A colour token, opening or closing: {@code <accent>}, {@code </accent>}. */
-    private static final Pattern COLOUR = Pattern.compile("</?([a-z]+)>");
+    /**
+     * A colour token, opening or closing: {@code <accent>}, {@code </accent>}.
+     *
+     * <p>Digits and dashes are allowed because the roles of a theme are the server's own names, not a list
+     * this class holds. A word that is not a role of the theme is left alone, so somebody else's tag survives.
+     */
+    private static final Pattern COLOUR = Pattern.compile("</?([a-z0-9_-]+)>");
 
     private StyleTokens() {}
 
@@ -124,6 +129,21 @@ public final class StyleTokens {
         return painted(theme, text, stopsOf(theme, gradient));
     }
 
+    /**
+     * {@code text} painted with the arc at {@code position} on the theme's wheel.
+     *
+     * <p>This is what a screen of tiles uses. The caller passes the position of the tile and names no colour
+     * at all, so twelve tiles read as twelve headings and the file that lays them out stays free of colour. A
+     * theme whose wheel is shorter than two colours falls back to the header, which is what a server that
+     * never asked for the effect should see.
+     */
+    public static Component paint(Theme theme, Component text, int position) {
+        Objects.requireNonNull(theme, "theme");
+        Objects.requireNonNull(text, "text");
+        List<TextColor> arc = theme.arc(position);
+        return painted(theme, text, arc.isEmpty() ? theme.gradient(HEADER) : arc);
+    }
+
     /** {@code text} across {@code stops}: the gradient, the one stop flat, or the accent when there is none. */
     private static Component painted(Theme theme, Component text, List<TextColor> stops) {
         if (coloured(text)) {
@@ -156,15 +176,21 @@ public final class StyleTokens {
     }
 
     /**
-     * The stops a line paints with: the gradient it named, or the theme's header when it named none or named
-     * one the theme does not hold.
+     * The stops a line paints with: the gradient it named, then the role it named, then the theme's header.
+     *
+     * <p>A role is accepted because a title that wants one fixed colour should not need a gradient of one
+     * stop declared for it. A name that is neither falls back to the header, so a spelling mistake shows as
+     * the ordinary heading rather than as no colour at all.
      */
     private static List<TextColor> stopsOf(Theme theme, @Nullable String gradient) {
         if (gradient == null || HEADER.equalsIgnoreCase(gradient)) {
             return theme.gradient(HEADER);
         }
         List<TextColor> named = theme.gradient(gradient);
-        return named.isEmpty() ? theme.gradient(HEADER) : named;
+        if (!named.isEmpty()) {
+            return named;
+        }
+        return theme.hasColour(gradient) ? List.of(theme.colour(gradient)) : theme.gradient(HEADER);
     }
 
     /**

@@ -320,8 +320,16 @@ Component line = Text.paint(message, config.getString("chat.format-style")); // 
 A palette, the letters an interface is set in, and the tokens a message file writes instead of colours,
 so a server changes its whole look by editing one file, and no plugin ships a hex code.
 
+A theme has three layers. `palette` is the server's own colours under the server's own names, and nothing
+outside that file speaks those names, so any of them may be renamed or dropped. `roles` is the shared
+vocabulary a message writes: `accent`, `value`, `good`. Each role points at a palette name or a hex code,
+and the map is open, so a server may add a job of its own and use it as a tag the same day. `wheel` is an
+ordered list of colours that decoration is taken from, so a screen of tiles can differ tile by tile without
+any file naming a colour.
+
 ```java
-Theme theme = Theme.from(HoconConfig.load(dataFolder.resolve("theme.conf")).root());
+// One file for the whole server, with this plugin's own file on top of it, key by key.
+Theme theme = ThemeFiles.load(ThemeFiles.shared(dataFolder), dataFolder.resolve("theme.conf"));
 Styler styler = new Styler(theme);
 
 // A catalog line names a role, never a colour:
@@ -329,7 +337,7 @@ Styler styler = new Styler(theme);
 messages.reload(styler.style(catalog, MyKeys.values(), files, Locale.ENGLISH));
 
 // On a /reload, hand the same styler the new palette rather than building a second one:
-styler.reload(Theme.from(reloaded.root()));
+styler.reload(ThemeFiles.load(ThemeFiles.shared(dataFolder), dataFolder.resolve("theme.conf")));
 
 // Text a plugin computes has no catalog entry to style at load, so style it per viewer, and ask
 // Messages which language that viewer is being served rather than reading the player's own locale,
@@ -355,17 +363,20 @@ own. A file that draws its own glyphs and its own margins goes through `Lore.ver
 the padding and the closing air and leaves the geometry alone, so a plugin can still let its buyer write a
 look that is nothing like this one.
 
-The library ships `uxmlib/theme.conf` as a starting file: colours, glyphs, category colours, named
-gradients and which languages take small capitals. A key it leaves out keeps the shipped answer, and naming
+The library ships `uxmlib/theme.conf` as a starting file: the palette, the roles, the wheel, the glyphs,
+the category colours, named gradients and which languages take small capitals. A key it leaves out keeps the shipped answer, and naming
 one language never decides for the others. The shipped file turns nothing on that a look would notice: the
 small capitals block is an example, commented out. A `gradients { header = [...] }` block paints every `<h:'…'>`
 header across those stops; leave the block out and headers stay the flat accent colour, which is what the
 shipped file does.
 
-Every other gradient name in that file is yours. A line names one after its label, `<h:'REWARDS':mint>`,
-and a menu names one for a tile title, `Tiles.titled(theme, title, lore, "mint")`, so a screen of twelve
-tiles can carry a colour per subject. The library never picks one for you: which tiles look alike is a
-decision about one interface, and only the file that knows what the tiles are about can make it.
+A heading may take its colour three ways, and the file that draws it picks the one that fits. The wheel is
+the one that needs no name: `Tiles.titled(theme, title, lore, position)` paints the tile at that position
+with that arc of the wheel, so twelve tiles read as twelve headings and the layout file stays free of
+colour. A heading that always means the same thing names a role instead, `<h:'REWARDS':good>`. A sweep of
+your own is a named gradient in the file, `<h:'REWARDS':mint>`. The library never picks for you: which
+tiles look alike is a decision about one interface, and only the file that knows what the tiles are about
+can make it.
 
 ### Scheduling (Folia-ready)
 

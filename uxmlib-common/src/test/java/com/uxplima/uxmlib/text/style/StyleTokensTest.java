@@ -170,4 +170,40 @@ class StyleTokensTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("label");
     }
+
+    @Test
+    void aRoleTheServerInventedIsATokenLikeAnyOther() throws Exception {
+        ConfigurationNode node = CommentedConfigurationNode.root();
+        node.node("roles", "premium").set("#b388ff");
+
+        assertThat(StyleTokens.expand("<premium>VIP</premium>", Theme.from(node), true))
+                .isEqualTo("<color:#b388ff>VIP</color>");
+    }
+
+    @Test
+    void aHeaderMayNameARoleInsteadOfAGradient() throws Exception {
+        ConfigurationNode node = CommentedConfigurationNode.root();
+        node.node("roles", "value").set("#ffe66d");
+
+        assertThat(StyleTokens.expand("<h:'SHOP':value>", Theme.from(node), false))
+                .isEqualTo("<b><color:#ffe66d>SHOP</color></b>");
+    }
+
+    @Test
+    void aPositionPaintsWithTheArcTheWheelHolds() throws Exception {
+        ConfigurationNode node = CommentedConfigurationNode.root();
+        node.node("wheel").setList(String.class, java.util.List.of("#ff6b8b", "#4ecca3", "#48cae4"));
+        Theme wheeled = Theme.from(node);
+
+        String first = Text.serialize(StyleTokens.paint(wheeled, Component.text("SHOP"), 0));
+        String second = Text.serialize(StyleTokens.paint(wheeled, Component.text("SHOP"), 1));
+
+        assertThat(first).isNotEqualTo(second);
+    }
+
+    @Test
+    void aThemeWithNoWheelPaintsAPositionWithTheHeader() {
+        assertThat(Text.serialize(StyleTokens.paint(theme, Component.text("SHOP"), 3)))
+                .isEqualTo(Text.serialize(StyleTokens.header(theme, Component.text("SHOP"))));
+    }
 }

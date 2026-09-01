@@ -62,11 +62,28 @@ public final class Tiles {
         Objects.requireNonNull(theme, "theme");
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(lore, "lore");
-        if (isBlank(title)) {
-            return lore;
-        }
-        Component titled =
-                head(theme, title, gradient).append(Component.newline()).append(lore);
+        Objects.requireNonNull(gradient, "gradient");
+        return isBlank(title) ? lore : box(head(theme, title, gradient), lore);
+    }
+
+    /**
+     * The same, with the title painted with the arc the theme's wheel holds at {@code position}.
+     *
+     * <p>This is what a menu uses when its tiles should differ from each other and no file should have to
+     * name a colour to say so: the caller passes the position of the tile and the wheel decides. A theme
+     * with no wheel paints every tile with the header, which is the look a server that never asked for the
+     * effect should get.
+     */
+    public static Component titled(Theme theme, Component title, Component lore, int position) {
+        Objects.requireNonNull(theme, "theme");
+        Objects.requireNonNull(title, "title");
+        Objects.requireNonNull(lore, "lore");
+        return isBlank(title) ? lore : box(head(theme, title, position), lore);
+    }
+
+    /** The title line, the lore, and the blank line that closes the box when the lore does not. */
+    private static Component box(Component head, Component lore) {
+        Component titled = head.append(Component.newline()).append(lore);
         return endsBlank(lore) ? titled : titled.append(Component.newline()).append(Component.text(PADDING));
     }
 
@@ -93,9 +110,21 @@ public final class Tiles {
         Objects.requireNonNull(theme, "theme");
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(gradient, "gradient");
+        return line(theme, StyleTokens.paint(theme, title, gradient));
+    }
+
+    /** The title line painted with the arc the theme's wheel holds at {@code position}. */
+    public static Component head(Theme theme, Component title, int position) {
+        Objects.requireNonNull(theme, "theme");
+        Objects.requireNonNull(title, "title");
+        return line(theme, StyleTokens.paint(theme, title, position));
+    }
+
+    /** The glyph, the painted title in bold, and the padding either side of them. */
+    private static Component line(Theme theme, Component painted) {
         return Component.text(PADDING)
                 .append(Component.text(theme.glyph("title") + PADDING, theme.colour("icon")))
-                .append(StyleTokens.paint(theme, title, gradient).decoration(TextDecoration.BOLD, true))
+                .append(painted.decoration(TextDecoration.BOLD, true))
                 .append(Component.text(PADDING));
     }
 

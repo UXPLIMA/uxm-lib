@@ -110,4 +110,29 @@ class TilesTest {
     private static String plain(Component component) {
         return PlainTextComponentSerializer.plainText().serialize(component);
     }
+
+    @Test
+    void twoTilesTakeTwoArcsOfTheWheelWithoutNamingAColour() throws ConfigurateException {
+        ConfigurationNode node = CommentedConfigurationNode.root();
+        node.node("wheel").setList(String.class, List.of("#ff6b8b", "#4ecca3", "#48cae4"));
+        Theme wheeled = Theme.from(node);
+
+        Component first = Tiles.head(wheeled, Component.text("SHOP"), 0);
+        Component second = Tiles.head(wheeled, Component.text("SHOP"), 1);
+
+        assertThat(first).isNotEqualTo(second);
+        assertThat(PlainTextComponentSerializer.plainText().serialize(first))
+                .isEqualTo(PlainTextComponentSerializer.plainText().serialize(second));
+    }
+
+    @Test
+    void aTitledTileByPositionKeepsTheShapeOfOneNamedByGradient() {
+        Component lore = Component.text("a line");
+
+        Component byPosition = Tiles.titled(theme, Component.text("SHOP"), lore, 0);
+        Component byName = Tiles.titled(theme, Component.text("SHOP"), lore, "header");
+
+        assertThat(PlainTextComponentSerializer.plainText().serialize(byPosition))
+                .isEqualTo(PlainTextComponentSerializer.plainText().serialize(byName));
+    }
 }
