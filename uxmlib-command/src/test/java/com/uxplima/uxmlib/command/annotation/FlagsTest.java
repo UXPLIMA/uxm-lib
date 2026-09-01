@@ -8,8 +8,11 @@ import java.lang.reflect.Parameter;
 import java.util.List;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
+import io.papermc.paper.command.brigadier.argument.CustomArgumentType;
 
 import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.arguments.ArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestion;
@@ -97,6 +100,21 @@ class FlagsTest {
         // The positional arg still ends the command (flags are optional), and so does the flags node.
         assertThat(java.util.Objects.requireNonNull(material).getCommand()).isNotNull();
         assertThat(java.util.Objects.requireNonNull(flags).getCommand()).isNotNull();
+    }
+
+    /**
+     * The server refuses a command tree that holds an argument type it cannot name, and it refuses it while
+     * it is building the tree at enable, which stops the server. A flags node therefore has to be a Paper
+     * custom type that says what the client parses. This ran on no server until uxmBackup used a flag.
+     */
+    @Test
+    void theFlagsNodeIsAnArgumentTypeThatPaperCanRegister() throws Exception {
+        ArgumentType<Flags> type = flagType();
+
+        assertThat(type).isInstanceOf(CustomArgumentType.class);
+        ArgumentType<?> nativeType = ((CustomArgumentType<?, ?>) type).getNativeType();
+        assertThat(nativeType).isInstanceOf(StringArgumentType.class);
+        assertThat(((StringArgumentType) nativeType).getType()).isEqualTo(StringArgumentType.StringType.GREEDY_PHRASE);
     }
 
     @Test

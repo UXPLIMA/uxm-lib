@@ -8,9 +8,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
+import io.papermc.paper.command.brigadier.argument.CustomArgumentType;
+
 import com.mojang.brigadier.LiteralMessage;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.arguments.ArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
@@ -28,8 +31,14 @@ import com.mojang.brigadier.suggestion.SuggestionsBuilder;
  *
  * <p>Pattern: Lamp models flags as part of the node IR (MIT); the greedy-arg tokenizer is ours, chosen to
  * stay native to Brigadier.
+ *
+ * <p>It is a Paper {@link CustomArgumentType} and not a bare {@code ArgumentType}, because the server sends
+ * every argument type to the client and refuses at registration a type it cannot name. {@link #getNativeType()}
+ * says what the client parses (the rest of the line), and this class still parses it here, where the flags of
+ * the branch are known. A bare {@code ArgumentType} registers on no server: the first command tree build after
+ * enable throws, and the server stops with it.
  */
-final class FlagArgumentType implements ArgumentType<Flags> {
+final class FlagArgumentType implements CustomArgumentType<Flags, String> {
 
     private static final DynamicCommandExceptionType UNKNOWN_FLAG =
             new DynamicCommandExceptionType(name -> new LiteralMessage("Unknown flag: " + name));
@@ -48,6 +57,11 @@ final class FlagArgumentType implements ArgumentType<Flags> {
                 byShorthand.put(flag.shorthand(), flag);
             }
         }
+    }
+
+    @Override
+    public ArgumentType<String> getNativeType() {
+        return StringArgumentType.greedyString();
     }
 
     @Override
