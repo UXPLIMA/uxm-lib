@@ -50,6 +50,7 @@ and depend on it as a normal plugin. Both work.
   - [Conditions & actions](#conditions--actions)
   - [Cross-server messaging](#cross-server-messaging)
   - [Update checker](#update-checker)
+  - [Backup participation](#backup-participation)
   - [Experimental: packet layer](#experimental-packet-layer)
 - [Architecture & quality](#architecture--quality)
 - [Building from source](#building-from-source)
@@ -99,7 +100,7 @@ what you use. Modules marked **experimental** are previews with unstable APIs (s
 
 | Module | What it gives you |
 | --- | --- |
-| `uxmlib-common` | The shared foundation: a Folia-ready `Scheduler`, MiniMessage `Text`, a config-driven style layer (`Theme`/`Styler`/`Typography`/`StyleTokens`), node-based `HoconConfig` and typed-record `RecordConfig` with hot reload and live `ConfigProperty`, a MiniMessage-native i18n message catalog, a ReDoS-guarded `TimedRegex`, type-safe particle spawning, and `Durations`/`Numbers`/`Sounds`/`SemanticVersion`/`ServerVersion` helpers. |
+| `uxmlib-common` | The shared foundation: a Folia-ready `Scheduler`, MiniMessage `Text`, a config-driven style layer (`Theme`/`Styler`/`Typography`/`StyleTokens`), node-based `HoconConfig` and typed-record `RecordConfig` with hot reload and live `ConfigProperty`, a MiniMessage-native i18n message catalog, a ReDoS-guarded `TimedRegex`, a `BackupParticipants` seam that lets a plugin flush its state before something copies its files, type-safe particle spawning, and `Durations`/`Numbers`/`Sounds`/`SemanticVersion`/`ServerVersion` helpers. |
 | `uxmlib-item` | A fluent `ItemBuilder` (name, lore, enchantments, attributes, flags, durability, banners, components, with removers), sealed `SkullData` player heads with an async skin resolver, registry lookups for the 1.21 key-based enchantments/attributes, component-safe and gzip serialization, single-key `isSimilar`, and typed persistent-data helpers. |
 | `uxmlib-gui` | An inventory-menu framework: simple / paginated / scrolling / storage / typed (hopper, dispenser, …) menus; static, animated, dynamic, and per-viewer stateful items; border/row/column/rect fillers; interaction control; multi-screen navigation; menus defined in HOCON; unified anvil/chat/sign text input; the tile/lore/title/sound side of the style layer; and a facade over Paper's server-side Dialogs. |
 | `uxmlib-command` | A thin facade over Paper's Brigadier (`Cmd`/`Args`/`Sender`/`CommandRegistrar`) **and** an annotation DSL on top of it: `@Command`/`@Subcommand`/`@Arg`, permissions, `@Range`/`@Length`, `@Cooldown`, flags and switches, async execution, help pagination, and resolver/validator/condition SPIs. |
@@ -712,6 +713,23 @@ UpdateChecker checker = new UpdateChecker(
 new UpdateNotifier(plugin, scheduler, checker, "yourplugin.update.notify")
         .start(Duration.ofSeconds(40), Duration.ofHours(6));
 ```
+
+### Backup participation
+
+A plugin that keeps state in memory has, at any moment, work that a file copy would miss. Register once, and
+whatever is about to copy the server's files asks you to save first.
+
+```java
+// In your plugin, on enable.
+BackupParticipants.register(plugin, () -> profiles.saveAll());
+
+// In a backup tool, before it reads anything. The executor decides which thread a save runs on.
+List<String> late = BackupParticipants.prepareAll(Duration.ofSeconds(20), mainThreadExecutor);
+```
+
+The contract is a plain `Runnable` on purpose. Every plugin relocates its shaded copy of uxmLib, so an
+interface of ours would be a different class in each jar. `Runnable` comes from the boot class loader, so it
+is the same type everywhere. Registrations are marked, and an unmarked `Runnable` service is never run.
 
 ### Experimental: packet layer
 
