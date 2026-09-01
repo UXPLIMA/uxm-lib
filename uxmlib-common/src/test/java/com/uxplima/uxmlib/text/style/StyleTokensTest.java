@@ -222,6 +222,32 @@ class StyleTokensTest {
     }
 
     @Test
+    void aNamePaintsAcrossTheWholeWheelWithoutBold() throws Exception {
+        ConfigurationNode node = CommentedConfigurationNode.root();
+        node.node("wheel").setList(String.class, java.util.List.of("#ff6b8b", "#4ecca3", "#48cae4"));
+        Theme wheeled = Theme.from(node);
+
+        assertThat(StyleTokens.expand("<g:'UXM Network':wheel>", wheeled, false))
+                .isEqualTo("<gradient:#ff6b8b:#4ecca3:#48cae4>UXM Network</gradient>");
+    }
+
+    @Test
+    void aNameKeepsItsOwnLettersWhereAHeaderIsWrittenInSmallCapitals() throws Exception {
+        ConfigurationNode node = CommentedConfigurationNode.root();
+        node.node("roles", "value").set("#ffe66d");
+        Theme flat = Theme.from(node);
+
+        assertThat(StyleTokens.expand("<g:'UXM Network':value>", flat, true))
+                .isEqualTo("<color:#ffe66d>UXM Network</color>");
+    }
+
+    @Test
+    void aThemeWithNoWheelPaintsANameWithTheHeader() {
+        assertThat(StyleTokens.expand("<g:'UXM Network':wheel>", theme, false))
+                .isEqualTo(StyleTokens.expand("<g:'UXM Network'>", theme, false));
+    }
+
+    @Test
     void aThemeWithNoWheelPaintsAPositionWithTheHeader() {
         assertThat(Text.serialize(StyleTokens.paint(theme, Component.text("SHOP"), 3)))
                 .isEqualTo(Text.serialize(StyleTokens.header(theme, Component.text("SHOP"))));

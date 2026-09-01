@@ -41,10 +41,13 @@ public final class StyleTokens {
      * a colour of its own: {@code <h:'HOME':good>} or {@code <h:'HOME':4>}.
      */
     private static final Pattern LABELLED = Pattern.compile(
-            "<(tag|etag|h):(?:'([^']*)'|\"([^\"]*)\"|([^:>]*))(?::([a-z0-9_-]+))?>", Pattern.CASE_INSENSITIVE);
+            "<(tag|etag|h|g):(?:'([^']*)'|\"([^\"]*)\"|([^:>]*))(?::([a-z0-9_-]+))?>", Pattern.CASE_INSENSITIVE);
 
     /** The gradient a {@code <h:>} header is painted with, when the theme names one. */
     private static final String HEADER = "header";
+
+    /** The argument that asks for every colour of the wheel, in order, rather than one arc of it. */
+    private static final String WHEEL = "wheel";
 
     /**
      * A colour token, opening or closing: {@code <accent>}, {@code </accent>}.
@@ -92,6 +95,7 @@ public final class StyleTokens {
         return switch (token) {
             case "tag" -> prefix(text, theme.hex(theme.categoryRole(label)), theme);
             case "etag" -> prefix(text, theme.hex("bad"), theme);
+            case "g" -> painted(label, stopsOf(theme, gradient), theme);
             default -> header(text, stopsOf(theme, gradient), theme);
         };
     }
@@ -192,6 +196,10 @@ public final class StyleTokens {
         if (gradient == null || HEADER.equalsIgnoreCase(gradient)) {
             return theme.gradient(HEADER);
         }
+        if (WHEEL.equalsIgnoreCase(gradient)) {
+            List<TextColor> wheel = theme.wheel();
+            return wheel.size() < 2 ? theme.gradient(HEADER) : wheel;
+        }
         Integer position = positionOf(gradient);
         if (position != null) {
             List<TextColor> arc = theme.arc(position);
@@ -220,6 +228,23 @@ public final class StyleTokens {
             }
         }
         return Integer.valueOf(argument);
+    }
+
+    /**
+     * A name painted across {@code stops}, with no bold and in the letters the file wrote.
+     *
+     * <p>A brand name is not a heading: it is the name of the server, in the writing the owner chose, so
+     * this leaves the letters alone where {@code <h:>} makes them bold and writes them in small capitals.
+     */
+    private static String painted(String text, List<TextColor> stops, Theme theme) {
+        if (stops.size() < 2) {
+            return "<color:" + (stops.size() == 1 ? hex(stops.get(0)) : theme.hex("accent")) + ">" + text + "</color>";
+        }
+        StringBuilder tag = new StringBuilder("<gradient");
+        for (TextColor stop : stops) {
+            tag.append(':').append(hex(stop));
+        }
+        return tag.append('>').append(text).append("</gradient>").toString();
     }
 
     /**

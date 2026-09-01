@@ -370,6 +370,11 @@ small capitals block is an example, commented out. A `gradients { header = [...]
 header across those stops; leave the block out and headers stay the flat accent colour, which is what the
 shipped file does.
 
+A name that is not a heading takes `<g:'UXM Network':wheel>`: the same lookup as a heading, painted across
+every colour of the wheel in order, with no bold and in the letters the file wrote. That is the one token a
+server list line or a title screen usually wants, and it keeps the seven colours in the theme rather than in
+the file.
+
 A heading may take its colour three ways, and the file that draws it picks the one that fits. The wheel is
 the one that needs no name: `Tiles.titled(theme, title, lore, position)` paints the tile at that position
 with that arc of the wheel, so twelve tiles read as twelve headings and the layout file stays free of
