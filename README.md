@@ -473,6 +473,47 @@ MenuActions actions = new MenuActions().register("buy", e -> openShop(e));
 SimpleGui fromFile = MenuConfig.load(configNode, actions);
 ```
 
+`MenuConfig` reads the mask shape. A second shape names its slots, so a suite of plugins can ship one
+kind of menu file: an operator who has laid out one has laid out all of them.
+
+```hocon
+title = "@shop.title"
+rows = 6
+open-actions = ["sound:ITEM_BOOK_PAGE_TURN 0.7 1.2"]
+
+items {
+  filler { slots = ["0-53"], material = GRAY_STAINED_GLASS_PANE, name = " ", priority = 0 }
+  buy {
+    slot = 49, material = EMERALD, name = "@shop.buy", priority = 10
+    view  = ["has-permission shop.buy"]
+    click { left = ["shop:buy", "close"], right = ["shop:look"] }
+  }
+  offers {
+    slots = ["10-16"], priority = 5
+    list { source = "shop:offers", template { material = "%icon%", name = "@shop.offer" } }
+  }
+  next { slot = 53, material = ARROW, type = next, priority = 10 }
+}
+```
+
+`MenuSpec.read` turns the file into values and refuses a layout that cannot be drawn, with no server
+running. `MenuDraw` draws it: it wires the four sides of a click through `MenuActionRunner`, hides an item
+whose `view` conditions fail, and fills a `list` from the source the plugin registered. A menu with a list
+is drawn as a paged window over the slots the list names.
+
+```java
+MenuLists lists = new MenuLists().register("shop:offers", viewer -> offersFor(viewer).stream()
+        .map(offer -> MenuLists.Row.of(offer.icon(), Map.of("%price%", offer.price())))
+        .toList());
+
+MenuDraw draw = new MenuDraw(actions, conditions, lists, this::translate, this::openMenu);
+draw.open(MenuSpec.read(configNode), player);
+```
+
+A row carries the values and never the look: the file still writes the name and the lore over the icon the
+row gives. Text the file writes as `@some.key` reaches the `Words` the plugin passed, which is the only
+thing that knows the catalogue, so the library decides no look and holds no language.
+
 ### Commands
 
 Both styles register through Paper's Brigadier lifecycle. Use the annotation DSL for the common case, or
