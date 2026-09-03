@@ -29,7 +29,7 @@ class MenuSpecTest {
                         """
                 title = "@shop.title"
                 rows = 6
-                open-actions = ["sound:ITEM_BOOK_PAGE_TURN 0.7 1.2"]
+                open-actions = ["sound:item.book.page_turn 0.7 1.2"]
 
                 items {
                   filler {
@@ -80,7 +80,7 @@ class MenuSpecTest {
         assertThat(spec.title()).isEqualTo("@shop.title");
         assertThat(spec.rows()).isEqualTo(6);
         assertThat(spec.capacity()).isEqualTo(54);
-        assertThat(spec.openActions()).containsExactly("sound:ITEM_BOOK_PAGE_TURN 0.7 1.2");
+        assertThat(spec.openActions()).containsExactly("sound:item.book.page_turn 0.7 1.2");
 
         MenuSpec.Item filler = itemOf(spec, "filler");
         assertThat(filler.slots()).hasSize(6).contains(45, 47, 51, 53).doesNotContain(48, 49, 50);

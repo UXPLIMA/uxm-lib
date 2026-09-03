@@ -19,6 +19,14 @@
  * server type, so a layout is proved correct without one, and what an action or a source means stays with
  * the plugin that registers it.
  *
+ * <p>{@link com.uxplima.uxmlib.gui.config.MenuAction} reads one line of that shape's {@code click} or
+ * {@code open-actions} list, and {@link com.uxplima.uxmlib.gui.config.MenuActionRunner} performs it for one
+ * viewer. Five verbs mean the same thing in every menu of every plugin ({@code close}, {@code open},
+ * {@code command}, {@code message} and {@code sound}); anything else is a name a plugin registered with
+ * {@link com.uxplima.uxmlib.gui.config.MenuActions#registerVerb}, written {@code <plugin>:<verb>} with the
+ * rest of the line as its argument. A verb nobody registered is refused while the file loads, not on a
+ * click, so an operator sees the typo at the moment they can fix it.
+ *
  * <h2>Shading: keep the service files when minimizing</h2>
  *
  * This menu-config layer leans on libraries that locate their codecs through the JDK {@link
