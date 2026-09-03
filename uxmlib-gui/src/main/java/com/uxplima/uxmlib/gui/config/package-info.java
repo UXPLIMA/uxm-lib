@@ -12,6 +12,13 @@
  * written against an older release is migrated to current key names in place on load (see
  * {@link com.uxplima.uxmlib.gui.config.MenuConfig#migrate}).
  *
+ * <p>{@link com.uxplima.uxmlib.gui.config.MenuSpec} reads the other menu shape: numbered slots and slot
+ * ranges rather than a mask, a draw priority, actions that run when the menu opens, a click block with the
+ * four sides a chest offers, a view list that decides whether an item is drawn at all, and a computed list
+ * that fills a slot range from a source the plugin registers. It is a value and a reader only: it names no
+ * server type, so a layout is proved correct without one, and what an action or a source means stays with
+ * the plugin that registers it.
+ *
  * <h2>Shading: keep the service files when minimizing</h2>
  *
  * This menu-config layer leans on libraries that locate their codecs through the JDK {@link
