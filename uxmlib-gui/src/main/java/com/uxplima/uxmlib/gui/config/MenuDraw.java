@@ -21,6 +21,7 @@ import com.uxplima.uxmlib.gui.PaginatedGui;
 import com.uxplima.uxmlib.gui.item.GuiAction;
 import com.uxplima.uxmlib.gui.item.GuiItem;
 import com.uxplima.uxmlib.gui.item.RenderContext;
+import com.uxplima.uxmlib.gui.style.MenuTitles;
 import com.uxplima.uxmlib.item.ItemBuilder;
 import com.uxplima.uxmlib.text.Text;
 import org.jspecify.annotations.Nullable;
@@ -103,7 +104,10 @@ public final class MenuDraw {
         Objects.requireNonNull(viewer, "viewer");
 
         MenuSpec.Item listed = listed(spec);
-        Component title = words.text(viewer, spec.title(), Map.of());
+        // The client draws a chest title from a fixed origin and offers no alignment, so a title sits in
+        // the middle only when leading spaces put it there. That is arithmetic the client forces, not a
+        // look, so every menu of every plugin gets it here rather than sixteen times by hand.
+        Component title = MenuTitles.centre(words.text(viewer, spec.title(), Map.of()));
         PaginatedGui pages = listed == null
                 ? null
                 : Guis.paginated()

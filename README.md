@@ -497,7 +497,7 @@ items {
 ```
 
 `MenuSpec.read` turns the file into values and refuses a layout that cannot be drawn, with no server
-running. `MenuDraw` draws it: it wires the four sides of a click through `MenuActionRunner`, hides an item
+running. `MenuDraw` draws it, centring the title through `MenuTitles.centre`: it wires the four sides of a click through `MenuActionRunner`, hides an item
 whose `view` conditions fail, and fills a `list` from the source the plugin registered. A menu with a list
 is drawn as a paged window over the slots the list names.
 

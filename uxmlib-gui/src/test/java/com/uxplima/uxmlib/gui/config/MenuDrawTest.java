@@ -100,7 +100,7 @@ class MenuDrawTest {
         Gui gui = draw().draw(spec, viewer);
 
         assertThat(gui.size()).isEqualTo(27);
-        assertThat(plain(gui.title())).isEqualTo("Shop");
+        assertThat(plain(gui.title()).strip()).isEqualTo("Shop");
         assertThat(gui.getItem(0)).isNotNull();
         assertThat(gui.getItem(8)).isNotNull();
         assertThat(gui.getItem(9)).isNull();
@@ -125,7 +125,8 @@ class MenuDrawTest {
 
         Gui gui = draw(catalogue).draw(spec, viewer);
 
-        assertThat(plain(gui.title())).isEqualTo("The Shop");
+        assertThat(plain(gui.title()).strip()).isEqualTo("The Shop");
+        assertThat(plain(gui.title())).startsWith(" "); // the client centres nothing by itself
         assertThat(nameOf(gui, 0, viewer)).isEqualTo("One stone");
     }
 
