@@ -506,13 +506,14 @@ MenuLists lists = new MenuLists().register("shop:offers", viewer -> offersFor(vi
         .map(offer -> MenuLists.Row.of(offer.icon(), Map.of("%price%", offer.price())))
         .toList());
 
-MenuDraw draw = new MenuDraw(actions, conditions, lists, this::translate, this::openMenu);
+MenuDraw draw = new MenuDraw(actions, conditions, lists, this::words, this::openMenu);
 draw.open(MenuSpec.read(configNode), player);
 ```
 
 A row carries the values and never the look: the file still writes the name and the lore over the icon the
-row gives. Text the file writes as `@some.key` reaches the `Words` the plugin passed, which is the only
-thing that knows the catalogue, so the library decides no look and holds no language.
+row gives. Every line a player reads goes through the `Words` the plugin passed, which looks a key such as
+`@shop.title` up in the catalogue, writes the values of the row in, and paints the result in the colours of
+the server. The library parses no text of its own, so it decides no look and holds no language.
 
 ### Commands
 

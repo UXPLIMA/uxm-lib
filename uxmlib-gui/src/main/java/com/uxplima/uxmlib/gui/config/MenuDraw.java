@@ -42,17 +42,35 @@ import org.jspecify.annotations.Nullable;
  */
 public final class MenuDraw {
 
-    /** Turns the text a file writes into the text a player reads. */
+    /**
+     * Turns what a file writes into what a player reads.
+     *
+     * <p>This is the whole of the look. A key such as {@code @shop.title} is looked up here, the values of
+     * a row are written in here, and the colours of the server are painted here. The library does none of
+     * the three, so sixteen plugins keep one drawing and each keeps its own catalogue and its own theme.
+     */
     @FunctionalInterface
     public interface Words {
 
-        /** The words for this viewer. A key such as {@code @shop.title} is looked up here, and nowhere else. */
-        String of(Player viewer, String written);
+        /**
+         * The finished line a player reads.
+         *
+         * @param values what a row of a computed list offers, each key spelled as the file spells it
+         */
+        Component text(Player viewer, String written, Map<String, String> values);
+
+        /**
+         * A line the menu acts on rather than shows: a material, an action, the name of another menu. The
+         * values of the row are written in, and nothing is painted.
+         */
+        default String line(Player viewer, String written, Map<String, String> values) {
+            return fill(written, values);
+        }
     }
 
-    /** Words that leave every line as the file wrote it. */
+    /** Words that write the values in and read the rest as MiniMessage, with no catalogue and no theme. */
     public static Words asWritten() {
-        return (viewer, written) -> written;
+        return (viewer, written, values) -> Text.mini(fill(written, values));
     }
 
     private final MenuActions actions;
@@ -85,7 +103,7 @@ public final class MenuDraw {
         Objects.requireNonNull(viewer, "viewer");
 
         MenuSpec.Item listed = listed(spec);
-        Component title = Text.mini(words.of(viewer, spec.title()));
+        Component title = words.text(viewer, spec.title(), Map.of());
         PaginatedGui pages = listed == null
                 ? null
                 : Guis.paginated()
@@ -120,7 +138,7 @@ public final class MenuDraw {
     public Gui open(MenuSpec spec, Player viewer) {
         Gui gui = draw(spec, viewer);
         gui.open(viewer);
-        new MenuActionRunner(actions, opener, line -> words.of(viewer, line))
+        new MenuActionRunner(actions, opener, line -> words.line(viewer, line, Map.of()))
                 .run(viewer, MenuAction.readAll(spec.openActions(), actions::knows));
         return gui;
     }
@@ -175,21 +193,26 @@ public final class MenuDraw {
     }
 
     private GuiItem row(MenuSpec.Template template, MenuLists.Row row, Player viewer) {
-        // The catalogue answers first, because the line it gives may itself hold the tokens of the row.
-        UnaryOperator<String> text = written -> fill(words.of(viewer, written), row.tokens());
+        Map<String, String> values = row.tokens();
+        UnaryOperator<String> lines = written -> words.line(viewer, written, values);
         ItemStack icon = row.icon() == null
-                ? ItemBuilder.of(material(text.apply(template.material()), "a list row"))
+                ? ItemBuilder.of(material(lines.apply(template.material()), "a list row"))
                         .build()
                 : row.icon().clone();
         return new GuiItem.Static(
-                written(ItemBuilder.from(icon), template.name(), template.lore(), text), click(template.click(), text));
+                written(ItemBuilder.from(icon), template.name(), template.lore(), viewer, values),
+                click(template.click(), lines));
     }
 
     private GuiItem tile(MenuSpec.Item item, Player viewer, @Nullable PaginatedGui pages) {
-        UnaryOperator<String> text = written -> words.of(viewer, written);
+        UnaryOperator<String> lines = written -> words.line(viewer, written, Map.of());
         ItemStack icon = written(
-                ItemBuilder.of(material(text.apply(item.material()), item.id())), item.name(), item.lore(), text);
-        return new GuiItem.Static(icon, action(item, pages, text));
+                ItemBuilder.of(material(lines.apply(item.material()), item.id())),
+                item.name(),
+                item.lore(),
+                viewer,
+                Map.of());
+        return new GuiItem.Static(icon, action(item, pages, lines));
     }
 
     private GuiAction action(MenuSpec.Item item, @Nullable PaginatedGui pages, UnaryOperator<String> text) {
@@ -251,15 +274,15 @@ public final class MenuDraw {
         return type.isLeftClick() ? left : List.of();
     }
 
-    private static ItemStack written(
-            ItemBuilder builder, @Nullable String name, List<String> lore, UnaryOperator<String> text) {
+    private ItemStack written(
+            ItemBuilder builder, @Nullable String name, List<String> lore, Player viewer, Map<String, String> values) {
         if (name != null) {
-            builder.name(Text.mini(text.apply(name)));
+            builder.name(words.text(viewer, name, values));
         }
         if (!lore.isEmpty()) {
             List<Component> lines = new ArrayList<>();
             for (String line : lore) {
-                lines.add(Text.mini(text.apply(line)));
+                lines.add(words.text(viewer, line, values));
             }
             builder.lore(lines);
         }
@@ -275,7 +298,7 @@ public final class MenuDraw {
     }
 
     /** Write the values of the row into the line, each token where the file spelled it. */
-    private static String fill(String line, Map<String, String> tokens) {
+    static String fill(String line, Map<String, String> tokens) {
         String written = line;
         for (Map.Entry<String, String> token : tokens.entrySet()) {
             written = written.replace(token.getKey(), token.getValue());

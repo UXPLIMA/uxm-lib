@@ -21,6 +21,7 @@ import com.uxplima.uxmlib.gui.Gui;
 import com.uxplima.uxmlib.gui.PaginatedGui;
 import com.uxplima.uxmlib.gui.item.GuiItem;
 import com.uxplima.uxmlib.gui.item.RenderContext;
+import com.uxplima.uxmlib.text.Text;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -115,11 +116,12 @@ class MenuDrawTest {
                 items { one { slot = 0, material = STONE, name = "@shop.one" } }
                 """));
         PlayerMock viewer = MockBukkit.getMock().addPlayer();
-        MenuDraw.Words catalogue = (who, written) -> switch (written) {
-            case "@shop.title" -> "The Shop";
-            case "@shop.one" -> "One stone";
-            default -> written;
-        };
+        MenuDraw.Words catalogue = (who, written, values) -> Text.mini(
+                switch (written) {
+                    case "@shop.title" -> "The Shop";
+                    case "@shop.one" -> "One stone";
+                    default -> written;
+                });
 
         Gui gui = draw(catalogue).draw(spec, viewer);
 
