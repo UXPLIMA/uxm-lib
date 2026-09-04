@@ -95,10 +95,14 @@ public final class LanguageResolver implements LocaleSource {
         store.forget(player);
     }
 
-    /** Record what a client reports, so this player's next join opens in the right language. */
+    /**
+     * Record what a client reports, so this player's next join opens in the right language, here and on every
+     * server a provider reaches.
+     */
     public void rememberClient(UUID player, Locale locale) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(locale, "locale");
+        service.get().ifPresent(provider -> provider.rememberClientLanguage(player, locale));
         store.rememberClient(player, locale);
     }
 
@@ -110,6 +114,13 @@ public final class LanguageResolver implements LocaleSource {
         if (!settings.followClient()) {
             return Optional.empty();
         }
-        return store.lastClient(player.getUniqueId()).or(() -> Optional.of(player.locale()));
+        UUID who = player.getUniqueId();
+        return remembered(who).or(() -> Optional.of(player.locale()));
+    }
+
+    private Optional<Locale> remembered(UUID player) {
+        return service.get()
+                .flatMap(provider -> provider.lastClientLanguageOf(player))
+                .or(() -> store.lastClient(player));
     }
 }

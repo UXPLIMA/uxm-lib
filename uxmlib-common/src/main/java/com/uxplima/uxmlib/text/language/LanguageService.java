@@ -26,4 +26,24 @@ public interface LanguageService {
 
     /** Drop this player's choice, so the client language or the server default answers again. */
     void forget(UUID player);
+
+    /**
+     * The language this player's client last reported, anywhere on the network, or empty when nobody has seen
+     * it yet.
+     *
+     * <p>A client reports its language after it joins, so at the moment a player arrives on a server the live
+     * value is still that server's own default. A provider that has seen the player on another server already
+     * knows the answer, which is what makes the first message of a transfer right rather than nearly right.
+     *
+     * <p>A provider that keeps nothing may leave this alone: the plugin then falls back to what it remembers
+     * on its own.
+     */
+    default Optional<Locale> lastClientLanguageOf(UUID player) {
+        return Optional.empty();
+    }
+
+    /** Record what a client reported, for every server the provider reaches. */
+    default void rememberClientLanguage(UUID player, Locale locale) {
+        // A provider that keeps nothing keeps this too.
+    }
 }

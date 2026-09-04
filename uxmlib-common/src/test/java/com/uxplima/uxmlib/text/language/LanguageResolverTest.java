@@ -108,11 +108,67 @@ class LanguageResolverTest {
         assertThat(store.chosen(WHO)).contains(TR);
     }
 
+    @Test
+    void aProviderThatSawTheClientOnAnotherServerAnswersBeforeThisOne() {
+        PlayerLanguages store = PlayerLanguages.inMemory();
+        store.rememberClient(WHO, EN);
+        LanguageResolver resolver = new LanguageResolver(
+                new LanguageSettings(EN, true, null), store, () -> Optional.of(new NetworkClient(TR)));
+
+        assertThat(resolver.localeOf(player(EN))).isEqualTo(TR);
+    }
+
+    @Test
+    void rememberingAClientReachesTheProviderToo() {
+        NetworkClient network = new NetworkClient(null);
+        LanguageResolver resolver = new LanguageResolver(
+                new LanguageSettings(EN, true, null), PlayerLanguages.inMemory(), () -> Optional.of(network));
+
+        resolver.rememberClient(WHO, DE);
+
+        assertThat(network.client).isEqualTo(DE);
+    }
+
     private static Player player(Locale clientLocale) {
         Player player = mock(Player.class);
         when(player.getUniqueId()).thenReturn(WHO);
         when(player.locale()).thenReturn(clientLocale);
         return player;
+    }
+
+    /** A provider that keeps what a client reported, the way a network-wide one does. */
+    private static final class NetworkClient implements LanguageService {
+
+        private @org.jspecify.annotations.Nullable Locale client;
+
+        private NetworkClient(@org.jspecify.annotations.Nullable Locale client) {
+            this.client = client;
+        }
+
+        @Override
+        public Optional<Locale> languageOf(UUID player) {
+            return Optional.empty();
+        }
+
+        @Override
+        public void choose(UUID player, Locale locale) {
+            // Not what this double is for.
+        }
+
+        @Override
+        public void forget(UUID player) {
+            // Not what this double is for.
+        }
+
+        @Override
+        public Optional<Locale> lastClientLanguageOf(UUID player) {
+            return Optional.ofNullable(client);
+        }
+
+        @Override
+        public void rememberClientLanguage(UUID player, Locale locale) {
+            this.client = locale;
+        }
     }
 
     /** A stand-in for uxmLang: it answers for the network, or it does not answer at all. */
