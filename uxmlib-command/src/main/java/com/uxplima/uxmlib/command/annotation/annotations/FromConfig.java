@@ -16,16 +16,35 @@ import java.lang.annotation.Target;
  *
  * <p>{@link #value()} is the key in the file, not the label. The key never changes; the label is what the
  * operator is free to change.
+ *
+ * <p>On a method it names a branch instead, and the key is read under the {@code subcommands} block of the
+ * command the method belongs to:
+ *
+ * <pre>{@code
+ * commands {
+ *   auction {
+ *     name = "auction"
+ *     subcommands {
+ *       sell { name = "sat", aliases = ["satis"] }
+ *       buy  { enabled = false }
+ *     }
+ *   }
+ * }
+ * }</pre>
+ *
+ * <p>A branch that the file turns off is never built, so the method is dropped from the command tree. The
+ * root executor of a command carries no literal, so it keeps a plain {@code @Subcommand("")} and is not
+ * named in the file.
  */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.TYPE)
+@Target({ElementType.TYPE, ElementType.METHOD})
 public @interface FromConfig {
 
     /** The key under {@code commands} in {@code commands.conf}. */
     String value();
 
-    /** The fallback label, used when the file names none. */
-    String fallbackName();
+    /** The fallback label, used when the file names none. Left empty it is {@link #value()} itself. */
+    String fallbackName() default "";
 
     /** Help text shown by the server. */
     String description() default "";

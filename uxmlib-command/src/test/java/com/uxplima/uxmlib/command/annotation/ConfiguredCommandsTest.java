@@ -9,8 +9,13 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
+import io.papermc.paper.command.brigadier.CommandSourceStack;
+
+import com.mojang.brigadier.tree.LiteralCommandNode;
+import com.uxplima.uxmlib.command.Sender;
 import com.uxplima.uxmlib.command.annotation.annotations.Command;
 import com.uxplima.uxmlib.command.annotation.annotations.FromConfig;
+import com.uxplima.uxmlib.command.annotation.annotations.Subcommand;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -99,6 +104,86 @@ final class ConfiguredCommandsTest {
         assertThat(command.name()).isEqualTo("parla");
         assertThat(command.aliases()).containsExactly("renk", "isik");
         assertThat(command.description()).isEqualTo("Shine");
+    }
+
+    @FromConfig(value = "example", fallbackName = "example", description = "An example")
+    static class ExampleCommand {
+
+        @FromConfig("sell")
+        void sell(Sender sender) {}
+
+        @FromConfig("buy")
+        void buy(Sender sender) {}
+
+        @Subcommand("")
+        void front(Sender sender) {}
+    }
+
+    @Test
+    @DisplayName("a renamed subcommand takes the word and the aliases of the file")
+    void abranchIsNamedByTheFile(@TempDir Path folder) throws IOException {
+        Path file = write(
+                folder,
+                """
+                commands {
+                  example {
+                    subcommands {
+                      sell { name = "sat", aliases = ["satis"] }
+                    }
+                  }
+                }
+                """);
+
+        LiteralCommandNode<CommandSourceStack> node = build(file);
+
+        assertThat(node.getChild("sat")).isNotNull();
+        assertThat(node.getChild("satis")).isNotNull();
+        assertThat(node.getChild("sell")).isNull();
+    }
+
+    @Test
+    @DisplayName("a subcommand the file does not name keeps the word the author wrote")
+    void abranchTheFileSkipsKeepsItsFallback(@TempDir Path folder) throws IOException {
+        Path file = write(folder, "commands { example { subcommands { sell { name = \"sat\" } } } }\n");
+
+        LiteralCommandNode<CommandSourceStack> node = build(file);
+
+        assertThat(node.getChild("buy")).isNotNull();
+    }
+
+    @Test
+    @DisplayName("a subcommand can be turned off, and then it is not in the tree")
+    void abranchCanBeTurnedOff(@TempDir Path folder) throws IOException {
+        Path file = write(folder, "commands { example { subcommands { buy { enabled = false } } } }\n");
+
+        LiteralCommandNode<CommandSourceStack> node = build(file);
+
+        assertThat(node.getChild("buy")).isNull();
+        assertThat(node.getChild("sell")).isNotNull();
+    }
+
+    @Test
+    @DisplayName("a name the author leaves out is the key itself")
+    void anemptyFallbackIsTheKey(@TempDir Path folder) {
+        Path file = folder.resolve("commands.conf");
+
+        LiteralCommandNode<CommandSourceStack> node = build(file);
+
+        assertThat(node.getChild("sell")).isNotNull();
+        assertThat(node.getChild("buy")).isNotNull();
+    }
+
+    @Test
+    @DisplayName("the block of one command names no branch of another")
+    void abranchKeySitsUnderItsOwnCommand() {
+        assertThat(ConfiguredCommands.branchKey("example", "sell")).isEqualTo("example.subcommands.sell");
+    }
+
+    /** The node the DSL builds for {@link ExampleCommand} with the file behind it. */
+    private static LiteralCommandNode<CommandSourceStack> build(Path file) {
+        ParamResolvers resolvers = ParamResolvers.withDefaults()
+                .replacer(FromConfig.class, ConfiguredCommands.load(file).replacer());
+        return AnnotatedCommands.buildNode(new ExampleCommand(), resolvers);
     }
 
     /** A class the replacer is asked about; the replacer reads only the annotation, never the element. */

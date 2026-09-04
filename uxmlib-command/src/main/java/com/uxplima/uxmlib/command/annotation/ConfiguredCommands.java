@@ -1,5 +1,8 @@
 package com.uxplima.uxmlib.command.annotation;
 
+import java.lang.annotation.Annotation;
+import java.lang.reflect.AnnotatedElement;
+import java.lang.reflect.Method;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -7,6 +10,7 @@ import java.util.Objects;
 
 import com.uxplima.uxmlib.command.annotation.annotations.Command;
 import com.uxplima.uxmlib.command.annotation.annotations.FromConfig;
+import com.uxplima.uxmlib.command.annotation.annotations.Subcommand;
 import com.uxplima.uxmlib.config.HoconConfig;
 
 /**
@@ -19,6 +23,10 @@ import com.uxplima.uxmlib.config.HoconConfig;
  *
  * <p>The file is read once, at wiring. A rename after that needs a restart, because the server registers a
  * command tree at enable and does not offer a supported way to rename a live one.
+ *
+ * <p>The same annotation on a method names a branch. Its key sits under the {@code subcommands} block of the
+ * command that declares the method, so a branch key is short and cannot collide with the {@code name},
+ * {@code aliases} and {@code enabled} of the command itself.
  */
 public final class ConfiguredCommands {
 
@@ -69,16 +77,58 @@ public final class ConfiguredCommands {
         return entryOf(key, fallbackName).enabled();
     }
 
-    /** The replacer that turns {@link FromConfig} into the {@code @Command} the DSL expects. */
+    /** The key a branch is read under: the {@code subcommands} block of the command that declares it. */
+    public static String branchKey(String commandKey, String branchKey) {
+        Objects.requireNonNull(commandKey, "commandKey");
+        Objects.requireNonNull(branchKey, "branchKey");
+        return commandKey + ".subcommands." + branchKey;
+    }
+
+    /**
+     * The replacer that turns {@link FromConfig} into the annotation the DSL expects: a {@code @Command} on a
+     * class, a {@code @}{@link Subcommand} on a method. A branch the file turns off is replaced by nothing,
+     * so the scan never sees a {@code @Subcommand} and the method leaves the command tree.
+     */
     public AnnotationReplacer<FromConfig> replacer() {
-        return (fromConfig, element) -> {
-            Entry entry = entryOf(fromConfig.value(), fromConfig.fallbackName());
-            return List.of(Replacements.of(
-                    Command.class,
-                    Map.of(
-                            "name", entry.name(),
-                            "aliases", entry.aliases().toArray(new String[0]),
-                            "description", fromConfig.description())));
-        };
+        return (fromConfig, element) ->
+                element instanceof Method method ? branchOf(fromConfig, method) : rootOf(fromConfig);
+    }
+
+    private List<Annotation> rootOf(FromConfig fromConfig) {
+        Entry entry = entryOf(fromConfig.value(), fallbackOf(fromConfig));
+        return List.of(Replacements.of(
+                Command.class,
+                Map.of(
+                        "name", entry.name(),
+                        "aliases", entry.aliases().toArray(new String[0]),
+                        "description", fromConfig.description())));
+    }
+
+    private List<Annotation> branchOf(FromConfig fromConfig, Method method) {
+        Entry entry = entryOf(keyOf(fromConfig, method), fallbackOf(fromConfig));
+        if (!entry.enabled()) {
+            return List.of();
+        }
+        return List.of(Replacements.of(
+                Subcommand.class,
+                Map.of(
+                        "value", entry.name(),
+                        "aliases", entry.aliases().toArray(new String[0]),
+                        "description", fromConfig.description())));
+    }
+
+    /** The label to use when the file names none: what the author wrote, or the key when they wrote nothing. */
+    private static String fallbackOf(FromConfig fromConfig) {
+        return fromConfig.fallbackName().isEmpty() ? fromConfig.value() : fromConfig.fallbackName();
+    }
+
+    /**
+     * Where a branch is read from. The command the method belongs to owns the block, so the key on the
+     * method is the short word an author writes once and an operator finds under that command.
+     */
+    private static String keyOf(FromConfig fromConfig, Method method) {
+        AnnotatedElement owner = method.getDeclaringClass();
+        FromConfig command = owner.getAnnotation(FromConfig.class);
+        return command == null ? fromConfig.value() : branchKey(command.value(), fromConfig.value());
     }
 }
