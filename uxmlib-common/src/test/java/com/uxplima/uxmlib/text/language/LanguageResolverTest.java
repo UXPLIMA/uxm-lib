@@ -133,5 +133,10 @@ class LanguageResolverTest {
         public void choose(UUID player, Locale locale) {
             this.chosen = Optional.of(locale);
         }
+
+        @Override
+        public void forget(UUID player) {
+            this.chosen = Optional.empty();
+        }
     }
 }

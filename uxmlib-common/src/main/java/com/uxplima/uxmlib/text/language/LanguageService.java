@@ -23,4 +23,7 @@ public interface LanguageService {
 
     /** Record this player's choice, for every plugin and every server the provider reaches. */
     void choose(UUID player, Locale locale);
+
+    /** Drop this player's choice, so the client language or the server default answers again. */
+    void forget(UUID player);
 }

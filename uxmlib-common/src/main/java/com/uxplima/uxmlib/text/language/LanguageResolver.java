@@ -88,6 +88,13 @@ public final class LanguageResolver implements LocaleSource {
         store.choose(player, locale);
     }
 
+    /** Drop a player's choice, in the provider as well as here, so the client or the default answers again. */
+    public void forget(UUID player) {
+        Objects.requireNonNull(player, "player");
+        service.get().ifPresent(provider -> provider.forget(player));
+        store.forget(player);
+    }
+
     /** Record what a client reports, so this player's next join opens in the right language. */
     public void rememberClient(UUID player, Locale locale) {
         Objects.requireNonNull(player, "player");
