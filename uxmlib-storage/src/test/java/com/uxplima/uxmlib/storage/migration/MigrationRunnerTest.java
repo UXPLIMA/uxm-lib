@@ -68,6 +68,42 @@ class MigrationRunnerTest {
     }
 
     @Test
+    void keepsOneHistoryPerRunnerSoTwoSchemasCanShareADatabase() {
+        // Two plugins, or two table prefixes of one plugin, pointed at the same backend. With one shared
+        // history the second runner is told everything has run, creates nothing, and fails at its first query.
+        MigrationRunner first = new MigrationRunner(database, "one_schema_history");
+        MigrationRunner second = new MigrationRunner(database, "two_schema_history");
+
+        first.apply(List.of(new Migration(1, "first", "CREATE TABLE one_players (id INTEGER PRIMARY KEY)")));
+        int appliedForSecond =
+                second.apply(List.of(new Migration(1, "second", "CREATE TABLE two_players (id INTEGER PRIMARY KEY)")));
+
+        assertThat(appliedForSecond).isEqualTo(1);
+        assertThat(first.currentVersion()).isEqualTo(1);
+        assertThat(second.currentVersion()).isEqualTo(1);
+        assertThat(sql.queryFirst("SELECT COUNT(*) FROM two_players", ps -> {}, r -> r.getInt(1)))
+                .contains(0);
+    }
+
+    @Test
+    void recordsInTheDefaultHistoryTableWhenGivenNoName() {
+        runner.apply(List.of(new Migration(1, "v1", "CREATE TABLE only (id INTEGER PRIMARY KEY)")));
+
+        assertThat(runner.historyTable()).isEqualTo(MigrationRunner.DEFAULT_HISTORY_TABLE);
+        assertThat(sql.queryFirst(
+                        "SELECT description FROM " + MigrationRunner.DEFAULT_HISTORY_TABLE + " WHERE version = 1",
+                        ps -> {},
+                        r -> r.getString(1)))
+                .contains("v1");
+    }
+
+    @Test
+    void rejectsAHistoryTableThatIsNotASimpleIdentifier() {
+        assertThatThrownBy(() -> new MigrationRunner(database, "history; DROP TABLE players"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void rejectsAnInvalidMigrationVersion() {
         assertThatThrownBy(() -> new Migration(0, "bad", "SELECT 1")).isInstanceOf(IllegalArgumentException.class);
     }

@@ -9,25 +9,57 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 import com.uxplima.uxmlib.storage.StorageException;
 import com.uxplima.uxmlib.storage.sql.Database;
+import com.uxplima.uxmlib.storage.sql.Dialect;
 
 /**
- * Applies a set of {@link Migration}s exactly once each, in ascending version order. Applied versions
- * are recorded in a {@code uxmlib_schema_history} table, so re-running {@link #apply(List)} is idempotent:
- * already-applied migrations are skipped and only newer ones run. Each migration runs in its own
- * transaction: a failure rolls that migration back and aborts, leaving the schema at the last good
- * version. This is intentionally simpler than Flyway: no checksums, no out-of-order handling.
+ * Applies a set of {@link Migration}s exactly once each, in ascending version order. Applied versions are
+ * recorded in a history table, so re-running {@link #apply(List)} is idempotent: already-applied migrations
+ * are skipped and only newer ones run. Each migration runs in its own transaction: a failure rolls that
+ * migration back and aborts, leaving the schema at the last good version. This is intentionally simpler than
+ * Flyway: no checksums, no out-of-order handling.
+ *
+ * <p>The history table defaults to {@code uxmlib_schema_history}, which is one table for every consumer of a
+ * database. Give it a name of your own whenever two schemas can share a backend: a plugin that lets an
+ * operator choose a table prefix, or two plugins pointed at one MySQL. With one shared history the second
+ * schema is told that every migration has run, creates nothing, and fails at its first query.
  */
 public final class MigrationRunner {
 
-    private static final String HISTORY_TABLE = "uxmlib_schema_history";
+    /** The history table a runner uses when it is given no name: one table for every consumer. */
+    public static final String DEFAULT_HISTORY_TABLE = "uxmlib_schema_history";
+
+    // The table name is inlined into DDL, so it is held to a bare identifier and can carry no injection.
+    private static final Pattern TABLE_NAME = Pattern.compile("[A-Za-z_][A-Za-z0-9_]*");
 
     private final Database database;
+    private final String historyTable;
 
     public MigrationRunner(Database database) {
+        this(database, DEFAULT_HISTORY_TABLE);
+    }
+
+    /**
+     * A runner that records what it applied in {@code historyTable}.
+     *
+     * @param historyTable a bare SQL identifier, created when it does not exist
+     */
+    public MigrationRunner(Database database, String historyTable) {
         this.database = Objects.requireNonNull(database, "database");
+        Objects.requireNonNull(historyTable, "historyTable");
+        if (!TABLE_NAME.matcher(historyTable).matches()) {
+            throw new IllegalArgumentException(
+                    "historyTable must be a simple SQL identifier (got '" + historyTable + "')");
+        }
+        this.historyTable = historyTable;
+    }
+
+    /** The table this runner records applied versions in. */
+    public String historyTable() {
+        return historyTable;
     }
 
     /** Apply every migration whose version exceeds the highest already applied. Returns how many ran. */
@@ -63,14 +95,35 @@ public final class MigrationRunner {
 
     private void ensureHistoryTable(Connection conn) throws SQLException {
         try (Statement statement = conn.createStatement()) {
-            statement.execute("CREATE TABLE IF NOT EXISTS " + HISTORY_TABLE
-                    + " (version INTEGER PRIMARY KEY, description TEXT NOT NULL, applied_at_ms INTEGER NOT NULL)");
+            statement.execute("CREATE TABLE IF NOT EXISTS " + historyTable
+                    + " (version INTEGER PRIMARY KEY, description TEXT NOT NULL, applied_at_ms BIGINT NOT NULL)");
+        }
+        widenAppliedAt(conn);
+    }
+
+    /**
+     * Widen {@code applied_at_ms} on a history table written by an earlier version of this class, which
+     * declared it {@code INTEGER}: eight bytes on SQLite, four on MySQL, and a moment in milliseconds has not
+     * fitted in four bytes since 1970.
+     */
+    private void widenAppliedAt(Connection conn) throws SQLException {
+        if (database.dialect() != Dialect.MYSQL || !isFourByteColumn(conn)) {
+            return;
+        }
+        try (Statement statement = conn.createStatement()) {
+            statement.execute("ALTER TABLE " + historyTable + " MODIFY applied_at_ms BIGINT NOT NULL");
+        }
+    }
+
+    private boolean isFourByteColumn(Connection conn) throws SQLException {
+        try (ResultSet columns = conn.getMetaData().getColumns(null, null, historyTable, "applied_at_ms")) {
+            return columns.next() && columns.getInt("DATA_TYPE") == java.sql.Types.INTEGER;
         }
     }
 
     private int currentVersion(Connection conn) throws SQLException {
         try (Statement statement = conn.createStatement();
-                ResultSet rows = statement.executeQuery("SELECT COALESCE(MAX(version), 0) FROM " + HISTORY_TABLE)) {
+                ResultSet rows = statement.executeQuery("SELECT COALESCE(MAX(version), 0) FROM " + historyTable)) {
             return rows.next() ? rows.getInt(1) : 0;
         }
     }
@@ -97,7 +150,7 @@ public final class MigrationRunner {
 
     private void recordApplied(Connection conn, Migration migration) throws SQLException {
         try (PreparedStatement statement = conn.prepareStatement(
-                "INSERT INTO " + HISTORY_TABLE + " (version, description, applied_at_ms) VALUES (?, ?, ?)")) {
+                "INSERT INTO " + historyTable + " (version, description, applied_at_ms) VALUES (?, ?, ?)")) {
             statement.setInt(1, migration.version());
             statement.setString(2, migration.description());
             statement.setLong(3, System.currentTimeMillis());
