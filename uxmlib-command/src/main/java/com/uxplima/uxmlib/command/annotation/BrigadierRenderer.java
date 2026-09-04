@@ -108,56 +108,70 @@ final class BrigadierRenderer {
             if (chain.prefixExecutable) {
                 builder.executes(executor); // the first argument (or the flags node) is optional, so this runs too
             }
+            if (chain.prefixFlags != null) {
+                builder.then(chain.prefixFlags); // every optional argument may be left out and a flag written instead
+            }
         } else {
             builder.executes(executor);
         }
     }
 
     /**
-     * The outermost argument builder of a branch (or {@code null} when it takes no arguments and no flags)
-     * and whether the node above it must also end the command (a leading optional argument, or a branch that
-     * is all flags: flags are always optional).
+     * The outermost argument builder of a branch (or {@code null} when it takes no arguments and no flags),
+     * whether the node above it must also end the command (a leading optional argument, or a branch that is
+     * all flags: flags are always optional), and the flags node the caller attaches beside {@code firstArg}
+     * when every positional argument may be left out.
      */
     private record ArgChain(
-            @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> firstArg, boolean prefixExecutable) {}
+            @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> firstArg,
+            boolean prefixExecutable,
+            @Nullable RequiredArgumentBuilder<CommandSourceStack, ?> prefixFlags) {}
 
     private ArgChain buildArgChain(BranchModel branch, com.mojang.brigadier.Command<CommandSourceStack> executor) {
         List<ArgBinder.ParamArg> args = branch.args();
-        RequiredArgumentBuilder<CommandSourceStack, ?> flagsNode = branch.hasFlags() ? flagsNode(branch) : null;
-        if (flagsNode != null) {
-            flagsNode.executes(executor); // flags are optional, so the flags node always ends the command
-        }
+        boolean hasFlags = branch.hasFlags();
         if (args.isEmpty()) {
             // No positional args: the branch is either bare (executor on the literal) or all-flags (the flags
             // node carries the executor and the literal above must run too).
-            return new ArgChain(flagsNode, flagsNode != null);
+            return new ArgChain(hasFlags ? flagsNode(branch, executor) : null, hasFlags, null);
         }
-        RequiredArgumentBuilder<CommandSourceStack, ?> tail = flagsNode;
-        boolean tailEndsCommand = flagsNode != null;
+        RequiredArgumentBuilder<CommandSourceStack, ?> tail = hasFlags ? flagsNode(branch, executor) : null;
+        boolean tailEndsCommand = hasFlags;
         for (int i = args.size() - 1; i >= 0; i--) {
             ArgBinder.ParamArg pa = args.get(i);
             RequiredArgumentBuilder<CommandSourceStack, ?> builder =
                     Cmd.argument(pa.name(), pa.resolver().argumentType(pa.arg(), pa.parameter()));
             Suggestions.apply(builder, pa.view(), pa.resolver(), resolvers);
+            boolean endsHere;
             if (tail == null) {
-                builder.executes(executor);
+                endsHere = true;
             } else {
                 builder.then(tail);
-                if (tailEndsCommand || args.get(i + 1).arg().optional()) {
-                    builder.executes(executor); // the next node may end the command, so this one may too
+                endsHere = tailEndsCommand || args.get(i + 1).arg().optional();
+            }
+            if (endsHere) {
+                builder.executes(executor); // the next node may end the command, so this one may too
+                if (hasFlags && i < args.size() - 1) {
+                    // The command may end here, so a flag may be written here: every optional argument
+                    // below this one is left out and the flags are still parsed. The positional is
+                    // attached first, so a word that is an argument is read as one.
+                    builder.then(flagsNode(branch, executor));
                 }
             }
             tail = builder;
             tailEndsCommand = false;
         }
-        return new ArgChain(tail, args.get(0).arg().optional());
+        boolean prefixOptional = args.get(0).arg().optional();
+        return new ArgChain(tail, prefixOptional, hasFlags && prefixOptional ? flagsNode(branch, executor) : null);
     }
 
-    /** The single greedy trailing node that parses this branch's flags and switches. */
-    private static RequiredArgumentBuilder<CommandSourceStack, ?> flagsNode(BranchModel branch) {
+    /** One greedy trailing node that parses this branch's flags and switches, and ends the command. */
+    private static RequiredArgumentBuilder<CommandSourceStack, ?> flagsNode(
+            BranchModel branch, com.mojang.brigadier.Command<CommandSourceStack> executor) {
         RequiredArgumentBuilder<CommandSourceStack, Flags> node =
                 Cmd.argument("flags", new FlagArgumentType(branch.flags()));
         node.suggests(new FlagArgumentType(branch.flags())::listSuggestions);
+        node.executes(executor); // flags are optional, so a flags node always ends the command
         return node;
     }
 
