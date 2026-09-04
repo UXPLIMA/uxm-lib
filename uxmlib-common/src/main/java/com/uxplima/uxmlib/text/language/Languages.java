@@ -49,15 +49,24 @@ public final class Languages {
      *
      * @param defaultLocale the language every other one falls back to, and the yardstick the report counts
      *     against
-     * @throws IOException when the folder exists and cannot be listed
      */
-    public static Languages load(Path folder, Locale defaultLocale) throws IOException {
+    public static Languages load(Path folder, Locale defaultLocale) {
         Objects.requireNonNull(folder, "folder");
         Objects.requireNonNull(defaultLocale, "defaultLocale");
-        Map<Locale, Path> files = LanguageFiles.in(folder);
         Map<Locale, Map<String, String>> entries = new LinkedHashMap<>();
         Map<Locale, ConfigurationNode> trees = new HashMap<>();
         List<String> problems = new ArrayList<>();
+        Map<Locale, Path> files;
+        try {
+            files = LanguageFiles.in(folder);
+        } catch (IOException unreadable) {
+            // A folder that cannot be listed leaves every key on its own default, which is a finished
+            // message. The operator has to see why, and the server has to keep running.
+            return new Languages(
+                    MessageCatalogLoader.fromNodes(Map.of(), defaultLocale),
+                    Map.of(),
+                    List.of(folder + " cannot be listed, so no language file was read: " + reasonOf(unreadable)));
+        }
         for (var file : files.entrySet()) {
             read(file.getKey(), file.getValue(), trees, entries, problems);
         }
