@@ -5,7 +5,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Supplier;
 
 /**
  * What a player may choose, and what happens when they choose it. This is the body of a language command
@@ -17,7 +19,9 @@ import java.util.UUID;
  */
 public final class LanguageChoices {
 
-    private final List<Locale> available;
+    private final Supplier<Set<Locale>> languages;
+
+    private final Locale fallback;
 
     private final LanguageResolver resolver;
 
@@ -26,19 +30,31 @@ public final class LanguageChoices {
      * @param settings read for the default, so a server with no file at all still offers one choice
      */
     public LanguageChoices(Languages languages, LanguageResolver resolver, LanguageSettings settings) {
-        Objects.requireNonNull(languages, "languages");
+        this(Objects.requireNonNull(languages, "languages")::locales, resolver, settings);
+    }
+
+    /**
+     * The same, with the language set read on every call.
+     *
+     * <p>A plugin that reads its message folder again when an operator reloads passes its own reader here, so
+     * a language file written while the server runs becomes a choice at the reload rather than at the next
+     * restart.
+     */
+    public LanguageChoices(Supplier<Set<Locale>> languages, LanguageResolver resolver, LanguageSettings settings) {
         Objects.requireNonNull(settings, "settings");
+        this.languages = Objects.requireNonNull(languages, "languages");
+        this.fallback = settings.defaultLocale();
         this.resolver = Objects.requireNonNull(resolver, "resolver");
-        this.available = languages.locales().isEmpty()
-                ? List.of(settings.defaultLocale())
-                : languages.locales().stream()
-                        .sorted(Comparator.comparing(Locale::toLanguageTag))
-                        .toList();
     }
 
     /** The languages a player may pick, sorted by tag, never empty. */
     public List<Locale> available() {
-        return available;
+        Set<Locale> found = languages.get();
+        return found.isEmpty()
+                ? List.of(fallback)
+                : found.stream()
+                        .sorted(Comparator.comparing(Locale::toLanguageTag))
+                        .toList();
     }
 
     /**
@@ -55,13 +71,14 @@ public final class LanguageChoices {
         if (wanted.isEmpty()) {
             return Optional.empty();
         }
+        List<Locale> available = available();
         Optional<Locale> exact = available.stream()
                 .filter(locale -> locale.toLanguageTag().equalsIgnoreCase(wanted))
                 .findFirst();
-        return exact.isPresent() ? exact : byLanguageAlone(wanted);
+        return exact.isPresent() ? exact : byLanguageAlone(available, wanted);
     }
 
-    private Optional<Locale> byLanguageAlone(String wanted) {
+    private static Optional<Locale> byLanguageAlone(List<Locale> available, String wanted) {
         List<Locale> sharing = available.stream()
                 .filter(locale -> locale.getLanguage().equalsIgnoreCase(wanted))
                 .toList();
@@ -72,7 +89,7 @@ public final class LanguageChoices {
     public List<String> suggestions(String typed) {
         Objects.requireNonNull(typed, "typed");
         String prefix = typed.replace('_', '-');
-        return available.stream()
+        return available().stream()
                 .map(Locale::toLanguageTag)
                 .filter(tag -> tag.regionMatches(true, 0, prefix, 0, prefix.length()))
                 .toList();

@@ -61,6 +61,30 @@ class LanguageFilesTest {
         assertThatThrownBy(() -> LanguageFiles.nameOf(Locale.ROOT)).isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    void writesEveryShippedFileOnceAndNeverOverAnEditedOne(@TempDir Path root) throws Exception {
+        Path jar = root.resolve("jar/messages");
+        Files.createDirectories(jar);
+        Files.writeString(jar.resolve("messages_en.conf"), "shipped english");
+        Files.writeString(jar.resolve("messages_tr.conf"), "shipped turkish");
+        Files.writeString(jar.resolve("notes.txt"), "not a language");
+        Path folder = root.resolve("plugin/messages");
+        Files.createDirectories(folder);
+        Files.writeString(folder.resolve("messages_tr.conf"), "the operator wrote this");
+
+        java.util.List<Path> written =
+                LanguageFiles.extractShipped(loaderOver(root.resolve("jar")), "messages", folder);
+
+        assertThat(written).containsExactly(folder.resolve("messages_en.conf"));
+        assertThat(Files.readString(folder.resolve("messages_en.conf"))).isEqualTo("shipped english");
+        assertThat(Files.readString(folder.resolve("messages_tr.conf"))).isEqualTo("the operator wrote this");
+        assertThat(folder.resolve("notes.txt")).doesNotExist();
+    }
+
+    private static ClassLoader loaderOver(Path root) throws Exception {
+        return new java.net.URLClassLoader(new java.net.URL[] {root.toUri().toURL()}, null);
+    }
+
     private static void write(Path folder, String name) throws Exception {
         Files.writeString(folder.resolve(name), "join { welcome = \"hi\" }\n");
     }

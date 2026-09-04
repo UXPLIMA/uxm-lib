@@ -35,7 +35,7 @@ import com.uxplima.uxmlib.text.message.LocaleSource;
  */
 public final class LanguageResolver implements LocaleSource {
 
-    private final LanguageSettings settings;
+    private final Supplier<LanguageSettings> settings;
 
     private final PlayerLanguages store;
 
@@ -52,6 +52,19 @@ public final class LanguageResolver implements LocaleSource {
      */
     public LanguageResolver(
             LanguageSettings settings, PlayerLanguages store, Supplier<Optional<LanguageService>> service) {
+        this(() -> settings, store, service);
+    }
+
+    /**
+     * The same, with the settings read on every call.
+     *
+     * <p>A plugin that swaps in a new snapshot when an operator reloads passes its own reader here, so the
+     * new default, the new follow-client and the new forced language take effect without the resolver being
+     * built again. Every port already holds this one instance, and rebuilding it would leave them on the old
+     * file.
+     */
+    public LanguageResolver(
+            Supplier<LanguageSettings> settings, PlayerLanguages store, Supplier<Optional<LanguageService>> service) {
         this.settings = Objects.requireNonNull(settings, "settings");
         this.store = Objects.requireNonNull(store, "store");
         this.service = Objects.requireNonNull(service, "service");
@@ -59,20 +72,21 @@ public final class LanguageResolver implements LocaleSource {
 
     @Override
     public Locale defaultLocale() {
-        return settings.defaultLocale();
+        return settings.get().defaultLocale();
     }
 
     @Override
     public Locale localeOf(Audience viewer) {
         Objects.requireNonNull(viewer, "viewer");
-        Optional<Locale> forced = settings.forcedLocale();
+        Optional<Locale> forced = settings.get().forcedLocale();
         if (forced.isPresent()) {
             return forced.get();
         }
         if (!(viewer instanceof Player player)) {
-            return settings.defaultLocale();
+            return settings.get().defaultLocale();
         }
-        return chosenBy(player.getUniqueId()).or(() -> fromClient(player)).orElseGet(settings::defaultLocale);
+        return chosenBy(player.getUniqueId()).or(() -> fromClient(player)).orElseGet(() -> settings.get()
+                .defaultLocale());
     }
 
     /**
@@ -111,7 +125,7 @@ public final class LanguageResolver implements LocaleSource {
     }
 
     private Optional<Locale> fromClient(Player player) {
-        if (!settings.followClient()) {
+        if (!settings.get().followClient()) {
             return Optional.empty();
         }
         UUID who = player.getUniqueId();

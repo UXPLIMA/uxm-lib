@@ -129,6 +129,19 @@ class LanguageResolverTest {
         assertThat(network.client).isEqualTo(DE);
     }
 
+    @Test
+    void aReloadedSettingChangesTheAnswerWithNoNewResolver() {
+        LanguageSettings[] settings = {new LanguageSettings(EN, true, null)};
+        LanguageResolver resolver =
+                new LanguageResolver(() -> settings[0], PlayerLanguages.inMemory(), Optional::empty);
+
+        assertThat(resolver.localeOf(player(TR))).isEqualTo(TR);
+
+        settings[0] = new LanguageSettings(EN, true, DE);
+
+        assertThat(resolver.localeOf(player(TR))).isEqualTo(DE);
+    }
+
     private static Player player(Locale clientLocale) {
         Player player = mock(Player.class);
         when(player.getUniqueId()).thenReturn(WHO);

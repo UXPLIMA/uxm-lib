@@ -75,6 +75,23 @@ class LanguageChoicesTest {
         assertThat(store.chosen(WHO)).isEmpty();
     }
 
+    @Test
+    void aLanguageFileWrittenAfterTheStartIsOfferedOnceTheFilesAreReadAgain(@TempDir Path folder) throws Exception {
+        Files.createDirectories(folder);
+        Files.writeString(folder.resolve("messages_en.conf"), "");
+        Languages[] languages = {Languages.load(folder, Locale.ENGLISH)};
+        LanguageSettings settings = new LanguageSettings(Locale.ENGLISH, true, null);
+        LanguageChoices choices = new LanguageChoices(
+                () -> languages[0].locales(), new LanguageResolver(settings, PlayerLanguages.inMemory()), settings);
+
+        assertThat(choices.available()).containsExactly(Locale.ENGLISH);
+
+        Files.writeString(folder.resolve("messages_tr.conf"), "");
+        languages[0] = Languages.load(folder, Locale.ENGLISH);
+
+        assertThat(choices.available()).containsExactly(Locale.ENGLISH, TR);
+    }
+
     private static LanguageChoices choicesIn(Path folder, String... tags) throws Exception {
         return choicesIn(folder, PlayerLanguages.inMemory(), tags);
     }

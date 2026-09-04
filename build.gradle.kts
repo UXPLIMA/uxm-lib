@@ -3,7 +3,10 @@
 // with `apply false` makes Gradle 9.x fail with "plugin already on classpath with an unknown version".
 
 allprojects {
-    group = "com.uxplima.uxmlib"
+    // JitPack publishes under com.github.UXPLIMA.uxm-lib, which is how every plugin names this
+    // library. Pass -PprojectGroup to publish locally under the same coordinates, so a plugin can
+    // build against a version JitPack has not served yet without editing its own build file.
+    group = project.findProperty("projectGroup")?.toString() ?: "com.uxplima.uxmlib"
     version = project.findProperty("projectVersion")?.toString() ?: "0.40.0-SNAPSHOT"
 
     repositories {
