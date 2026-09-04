@@ -62,6 +62,22 @@ final class BrigadierRenderer {
             attachRoot(root, branch, chain, executor);
             return;
         }
+        attachSpine(root, branch, literals, chain, executor);
+        for (String alias : branch.aliases()) {
+            String[] spelling = literals.clone();
+            spelling[spelling.length - 1] = alias;
+            // A builder is spent once it is built, so every spelling gets its own chain of nodes. They all
+            // carry the one executor, so an alias runs the method the declared path runs.
+            attachSpine(root, branch, spelling, buildArgChain(branch, executor), executor);
+        }
+    }
+
+    private void attachSpine(
+            LiteralArgumentBuilder<CommandSourceStack> root,
+            BranchModel branch,
+            String[] literals,
+            ArgChain chain,
+            com.mojang.brigadier.Command<CommandSourceStack> executor) {
         ArgumentBuilder<CommandSourceStack, ?> tail = Cmd.literal(literals[literals.length - 1]);
         applyChain(tail, chain, executor);
         for (int i = literals.length - 2; i >= 0; i--) {

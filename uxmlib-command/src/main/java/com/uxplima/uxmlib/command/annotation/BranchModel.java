@@ -1,6 +1,7 @@
 package com.uxplima.uxmlib.command.annotation;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.OptionalInt;
@@ -97,6 +98,27 @@ final class BranchModel {
     /** Whether this branch declares any {@code @Flag}/{@code @Switch} parameters. */
     boolean hasFlags() {
         return !flags.isEmpty();
+    }
+
+    /**
+     * The other spellings of the last literal of {@link #path()}, blanks dropped and duplicates of the
+     * literal itself removed. Empty for the root executor, which has no literal to spell a second way.
+     */
+    List<String> aliases() {
+        Subcommand sub = methodView.get(Subcommand.class);
+        if (sub == null || path.isEmpty()) {
+            return List.of();
+        }
+        String[] literals = literals();
+        String own = literals[literals.length - 1];
+        List<String> spellings = new ArrayList<>();
+        for (String alias : sub.aliases()) {
+            String word = alias.trim();
+            if (!word.isEmpty() && !word.equals(own) && !spellings.contains(word)) {
+                spellings.add(word);
+            }
+        }
+        return List.copyOf(spellings);
     }
 
     /** The literal tokens of {@link #path()}, or an empty array for the root executor. */
