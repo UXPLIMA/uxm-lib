@@ -36,20 +36,23 @@ final class CommandModels {
         if (command == null) {
             throw new CommandParseException(type.getName() + " is not annotated with @Command");
         }
-        List<Method> methods = orderedSubcommands(type);
+        List<Scanned> methods = orderedSubcommands(type, replacers);
         if (methods.isEmpty()) {
             throw new CommandParseException(type.getName() + " has no @Subcommand methods");
         }
         List<BranchModel> branches = new ArrayList<>();
-        for (Method method : methods) {
-            branches.add(branchOf(method, classView, resolvers, replacers));
+        for (Scanned scanned : methods) {
+            branches.add(branchOf(scanned.method(), scanned.view(), classView, resolvers, replacers));
         }
         return new CommandModel(handler, command, classView, classView.get(Permission.class), branches);
     }
 
     private static BranchModel branchOf(
-            Method method, AnnotatedView classView, ParamResolvers resolvers, Replacers replacers) {
-        AnnotatedView methodView = AnnotatedView.of(method, replacers);
+            Method method,
+            AnnotatedView methodView,
+            AnnotatedView classView,
+            ParamResolvers resolvers,
+            Replacers replacers) {
         List<AnnotatedView> paramViews = paramViews(method, replacers);
         validateSignature(method, resolvers, paramViews);
         List<ArgBinder.ParamArg> args = argParameters(method, resolvers, paramViews);
@@ -91,33 +94,45 @@ final class CommandModels {
         return priority == null ? java.util.OptionalInt.empty() : java.util.OptionalInt.of(priority.value());
     }
 
-    private static List<Method> orderedSubcommands(Class<?> type) {
-        List<Method> methods = new ArrayList<>();
+    /**
+     * The {@code @Subcommand} methods of {@code type}, each with its effective annotation view.
+     *
+     * <p>The view decides, not the raw annotation: a branch may carry a custom annotation that a replacer
+     * turns into a {@code @}{@link Subcommand}, which is how a consumer reads the literal of a branch out of
+     * a file. A method with a raw one keeps it, because a raw annotation always wins over a replacement.
+     */
+    private static List<Scanned> orderedSubcommands(Class<?> type, Replacers replacers) {
+        List<Scanned> methods = new ArrayList<>();
         for (Method method : type.getDeclaredMethods()) {
-            if (method.isAnnotationPresent(Subcommand.class)) {
+            AnnotatedView view = AnnotatedView.of(method, replacers);
+            if (view.isPresent(Subcommand.class)) {
                 method.setAccessible(true);
-                methods.add(method);
+                methods.add(new Scanned(method, view));
             }
         }
         // Longer literal paths first so "admin reload" is attached before a bare "" root executor; this keeps
         // node attachment order deterministic regardless of reflection's method ordering. Where two branches
         // share a path (overlapping overloads), the lower @CommandPriority attaches first so Brigadier, which
         // tries sibling argument nodes in attachment order, runs the higher-priority overload on ambiguity.
-        methods.sort(Comparator.comparingInt((Method m) -> pathLength(m))
+        methods.sort(Comparator.comparingInt((Scanned s) -> pathLength(s.view()))
                 .reversed()
-                .thenComparingInt(CommandModels::priorityRank));
+                .thenComparingInt(scanned -> priorityRank(scanned.view())));
         return methods;
     }
 
-    private static int pathLength(Method method) {
-        return method.getAnnotation(Subcommand.class).value().length();
+    private static int pathLength(AnnotatedView view) {
+        Subcommand sub = view.get(Subcommand.class);
+        return sub == null ? 0 : sub.value().length();
     }
 
     /** The sort rank of a branch's priority: its value, or {@link Integer#MAX_VALUE} when it declares none. */
-    private static int priorityRank(Method method) {
-        CommandPriority priority = method.getAnnotation(CommandPriority.class);
+    private static int priorityRank(AnnotatedView view) {
+        CommandPriority priority = view.get(CommandPriority.class);
         return priority == null ? Integer.MAX_VALUE : priority.value();
     }
+
+    /** One branch method with the effective annotation view it was found through. */
+    private record Scanned(Method method, AnnotatedView view) {}
 
     private static void validateSignature(Method method, ParamResolvers resolvers, List<AnnotatedView> paramViews) {
         Parameter[] params = method.getParameters();

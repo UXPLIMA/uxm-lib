@@ -101,6 +101,61 @@ class AnnotationReplacerTest {
                 .isInstanceOf(NullPointerException.class);
     }
 
+    @Retention(RetentionPolicy.RUNTIME)
+    @Target(ElementType.METHOD)
+    @interface Named {
+        String value();
+    }
+
+    /** A branch whose literal comes from somewhere else, the way a root name comes out of a config file. */
+    @Command(name = "renamed")
+    static class RenamedCommand {
+        @Named("reload")
+        void reload(Sender sender) {}
+
+        @Named("open")
+        @Subcommand("open")
+        void open(Sender sender) {}
+    }
+
+    /** A replacer that turns {@code @Named("x")} into a core {@code @Subcommand("x-of-the-file")}. */
+    private static AnnotationReplacer<Named> subcommandFromNamed() {
+        return (named, element) ->
+                List.of(Replacements.of(Subcommand.class, java.util.Map.of("value", named.value() + "-of-the-file")));
+    }
+
+    @Test
+    void areplacerNamesTheLiteralOfABranch() {
+        ParamResolvers resolvers = ParamResolvers.withDefaults().replacer(Named.class, subcommandFromNamed());
+
+        CommandModel model = CommandModels.reflect(new RenamedCommand(), resolvers);
+
+        assertThat(model.branches()).extracting(BranchModel::path).contains("reload-of-the-file");
+    }
+
+    @Test
+    void arawSubcommandStillWinsOverAReplacement() {
+        // The rule everywhere else: a raw annotation on the element beats one a replacer produced.
+        ParamResolvers resolvers = ParamResolvers.withDefaults().replacer(Named.class, subcommandFromNamed());
+
+        CommandModel model = CommandModels.reflect(new RenamedCommand(), resolvers);
+
+        assertThat(model.branches())
+                .extracting(BranchModel::path)
+                .contains("open")
+                .doesNotContain("open-of-the-file");
+    }
+
+    @Test
+    void arenamedBranchIsTheLiteralOfTheBuiltNode() {
+        ParamResolvers resolvers = ParamResolvers.withDefaults().replacer(Named.class, subcommandFromNamed());
+
+        LiteralCommandNode<CommandSourceStack> node = AnnotatedCommands.buildNode(new RenamedCommand(), resolvers);
+
+        assertThat(node.getChild("reload-of-the-file")).isNotNull();
+        assertThat(node.getChild("reload")).isNull();
+    }
+
     @Command(name = "core")
     static class Annotated {
         @Permission("core.perm")
