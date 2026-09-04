@@ -352,6 +352,19 @@ library that wrote your English in small capitals by itself would repaint a plug
 colours. `StyleTokens` then turns `<accent>`/`<value>` into the
 theme's colours and `<tag:'HOME'>` into a bold category prefix. Both run once at load, not per message.
 
+A value is inserted after that pass and is never converted, because a name, a nickname and a world are what
+a player wrote. When a value is the interface talking instead (the name of an item, the word for a state),
+write `<caps>…</caps>` around it and it is converted at render:
+
+```
+listed = "You listed <caps><item></caps> for <money><price>"   // the item is converted, the player is not
+```
+
+It is the mirror of `<plain>…</plain>` and it follows the same language list: turn small capitals off in
+`theme.conf` and every `<caps>` goes quiet with the rest, so a screen is never half converted. Small
+capitals are Latin only, so a language whose letters have no small-capital form simply does not write the
+tag, which is why the choice is one line at a time rather than one switch for the server.
+
 Menus draw from the same theme: `MenuTitles.centre` pads a window title into the middle of the frame,
 `Tiles` puts a tile's title on the first lore line under a blank name (a single space: an empty one makes
 the client fall back to the material's name) and paints it with a gradient the caller names, `Lore` builds

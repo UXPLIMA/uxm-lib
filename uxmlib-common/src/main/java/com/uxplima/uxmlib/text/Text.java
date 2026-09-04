@@ -8,6 +8,8 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
+import com.uxplima.uxmlib.text.style.SmallCapsTag;
+
 /**
  * MiniMessage convenience API. A single shared {@link MiniMessage} instance parses strings into
  * {@link Component}s, with helpers for the common placeholder shapes and for flattening a component back
@@ -15,7 +17,14 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
  */
 public final class Text {
 
-    private static final MiniMessage MINI = MiniMessage.miniMessage();
+    /**
+     * The parser every message of every plugin of ours goes through. It is the standard one with one tag
+     * added: {@code <caps>…</caps>}, which writes what it holds in small capitals. A template that never
+     * names it is parsed exactly as MiniMessage parses it.
+     */
+    private static final MiniMessage MINI = MiniMessage.builder()
+            .editTags(tags -> tags.resolver(SmallCapsTag.RESOLVER))
+            .build();
 
     /** The placeholder {@link #paint} inserts the body through. Namespaced so a style string cannot shadow it. */
     private static final String BODY = "uxmlib_body";

@@ -15,12 +15,18 @@ import java.util.Objects;
  * nothing further along the chain has to know about them.
  *
  * <p>A value a player supplies (a name, a world, a nickname) is inserted after the template is parsed, so
- * it never reaches this pass and is always shown as they wrote it.
+ * it never reaches this pass and is always shown as they wrote it. A value that is the interface talking
+ * rather than a player is marked in the file with {@link SmallCapsTag}, and that marker is the one thing
+ * kept here rather than removed: it is read at render, where the value is. A language that keeps its
+ * ordinary letters loses it with everything else, so the tag can never convert on its own.
  */
 public final class Typography {
 
     private static final String PLAIN_OPEN = "<plain>";
     private static final String PLAIN_CLOSE = "</plain>";
+
+    private static final String CAPS_OPEN = "<" + SmallCapsTag.NAME + ">";
+    private static final String CAPS_CLOSE = "</" + SmallCapsTag.NAME + ">";
 
     private Typography() {}
 
@@ -52,6 +58,12 @@ public final class Typography {
                 plainDepth++;
             } else if (PLAIN_CLOSE.equals(tag)) {
                 plainDepth = Math.max(0, plainDepth - 1);
+            } else if (CAPS_OPEN.equals(tag) || CAPS_CLOSE.equals(tag)) {
+                // The tag converts a value at render, and a value is only converted where the letters of
+                // the template are. A language that keeps its letters loses the markers here.
+                if (smallCaps && plainDepth == 0) {
+                    out.append(tag);
+                }
             } else {
                 out.append(tag);
             }

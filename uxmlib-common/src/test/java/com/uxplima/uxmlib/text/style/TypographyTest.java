@@ -31,6 +31,22 @@ class TypographyTest {
     }
 
     @Test
+    void thecapsMarkersAreKeptForALanguageThatIsConverted() {
+        assertThat(Typography.apply("Sold by <caps><who></caps>", true)).isEqualTo("ꜱᴏʟᴅ ʙʏ <caps><who></caps>");
+    }
+
+    @Test
+    void thecapsMarkersGoAwayForALanguageThatKeepsItsLetters() {
+        assertThat(Typography.apply("Sold by <caps><who></caps>", false)).isEqualTo("Sold by <who>");
+    }
+
+    @Test
+    void thecapsMarkersGoAwayInsideThePlainMarkers() {
+        assertThat(Typography.apply("id <plain><caps><id></caps></plain>", true))
+                .isEqualTo("ɪᴅ <id>");
+    }
+
+    @Test
     void aBracketInsideAQuotedArgumentDoesNotEndTheTag() {
         assertThat(Typography.apply("<hover:show_text:'a > b'>go", true)).isEqualTo("<hover:show_text:'a > b'>ɢᴏ");
     }
