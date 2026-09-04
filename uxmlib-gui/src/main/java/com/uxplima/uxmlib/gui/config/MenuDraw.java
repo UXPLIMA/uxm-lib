@@ -63,6 +63,12 @@ public final class MenuDraw {
         /**
          * A line the menu acts on rather than shows: a material, an action, the name of another menu. The
          * values of the row are written in, and nothing is painted.
+         *
+         * <p>The default writes a value wherever its key appears, exactly as the key is spelled, which is
+         * what a file that spells its tokens {@code %like_this%} wants. A consumer whose values are named
+         * for MiniMessage tags carries bare keys instead, so that {@code text} can hand them over as
+         * placeholders, and must override this to write {@code <key>}: a bare {@code id} would otherwise be
+         * replaced inside an ordinary word.
          */
         default String line(Player viewer, String written, Map<String, String> values) {
             return fill(written, values);
