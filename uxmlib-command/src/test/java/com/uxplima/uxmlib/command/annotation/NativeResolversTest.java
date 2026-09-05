@@ -27,7 +27,8 @@ import org.junit.jupiter.api.Test;
  * not even fixed: the renderer walks declared methods in the order reflection hands them over.
  *
  * <p>The types the mock cannot build are named here rather than left to abort, so the missing coverage is
- * something a reader can see. {@code verifyNoAbortedTests} keeps it that way.
+ * something a reader can see. {@code verifyNoAbortedTests} keeps it that way, and
+ * {@link MockBukkitArgumentGapsTest} fails when one of those reasons stops being true.
  */
 class NativeResolversTest {
 
