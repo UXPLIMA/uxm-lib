@@ -42,6 +42,10 @@ vaultunlocked  = "2.16"         # net.milkbowl.vault:VaultUnlockedAPI, codemc re
 placeholderapi = "2.11.6"       # me.clip:placeholderapi, extendedclip repo
 worldguard     = "7.0.13"       # com.sk89q.worldguard:worldguard-bukkit, enginehub repo
 towny          = "0.100.4.0"    # com.palmergames.bukkit.towny:towny, glaremasters repo
+# org.geysermc.floodgate:api, on repo.opencollab.dev and not on Maven Central. Cumulus, the Bedrock form
+# library, arrives with it in compile scope, so it needs no coordinate of its own. Upstream publishes no
+# release of the 2.2.x api artifact, only the snapshot, which is why the version is pinned as one.
+floodgate      = "2.2.5-SNAPSHOT"
 
 # tests
 junit    = "5.12.1"
@@ -95,6 +99,7 @@ vaultunlocked-api = { module = "net.milkbowl.vault:VaultUnlockedAPI",   version.
 placeholderapi    = { module = "me.clip:placeholderapi",               version.ref = "placeholderapi" }
 worldguard-bukkit = { module = "com.sk89q.worldguard:worldguard-bukkit", version.ref = "worldguard" }
 towny             = { module = "com.palmergames.bukkit.towny:towny",     version.ref = "towny" }
+floodgate-api     = { module = "org.geysermc.floodgate:api",             version.ref = "floodgate" }
 lettuce-core      = { module = "io.lettuce:lettuce-core",              version.ref = "lettuce" }
 
 junit-bom         = { module = "org.junit:junit-bom",                   version.ref = "junit" }

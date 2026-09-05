@@ -33,6 +33,7 @@ jobs:
             tasks: >-
               -PmcTarget=1.21
               :uxmlib-common:build :uxmlib-item:build :uxmlib-gui:build :uxmlib-hud:build
+              :uxmlib-bedrock:build
               :uxmlib-command:build :uxmlib-condition:build :uxmlib-update:build
               :uxmlib-storage:build :uxmlib-integration:build :uxmlib-redis:build
               :uxmlib-npc:build
