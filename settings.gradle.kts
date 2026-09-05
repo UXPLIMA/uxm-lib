@@ -17,6 +17,7 @@ include(
     ":uxmlib-item",
     ":uxmlib-command",
     ":uxmlib-gui",
+    ":uxmlib-bedrock",
     ":uxmlib-storage",
     ":uxmlib-redis",
     ":uxmlib-integration",

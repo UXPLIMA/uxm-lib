@@ -17,5 +17,6 @@ allprojects {
         maven("https://repo.codemc.io/repository/creatorfromhell/") // VaultUnlocked API
         maven("https://maven.enginehub.org/repo/")        // WorldGuard / WorldEdit
         maven("https://repo.glaremasters.me/repository/towny/") // Towny
+        maven("https://repo.opencollab.dev/main/")        // Floodgate and Cumulus
     }
 }
