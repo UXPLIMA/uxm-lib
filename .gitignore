@@ -60,3 +60,6 @@ AGENTS.md
 
 # Autonomous build state (local only)
 /.uxmlib-build-state.json
+
+# Kotlin build state from buildSrc, written by any local Gradle run.
+buildSrc/.kotlin/
