@@ -11,9 +11,18 @@ import com.uxplima.uxmlib.command.Sender;
 import com.uxplima.uxmlib.command.annotation.annotations.Arg;
 import com.uxplima.uxmlib.command.annotation.annotations.Command;
 import com.uxplima.uxmlib.command.annotation.annotations.Subcommand;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-/** Verifies the resolver registry: rich built-in types build a tree, enums and custom types resolve. */
+/**
+ * Verifies the resolver registry: rich built-in types build a tree, enums and custom types resolve.
+ *
+ * <p>One type per test, and one subcommand per command class. A node is built for a whole class at once, and
+ * MockBukkit answers an argument type it has not implemented with an exception JUnit reads as an abort, so a
+ * type the mock cannot build used to take the assertions for the types it can down with it and the run
+ * reported that as a skip. The mock implements two of its argument types, {@code player()} and
+ * {@code players()}; the ones it does not are named below instead of aborting.
+ */
 class ParamResolversTest {
 
     enum Mode {
@@ -21,19 +30,34 @@ class ParamResolversTest {
         CREATIVE
     }
 
-    @Command(name = "rich")
-    static class RichCommand {
+    @Command(name = "who")
+    static class PlayerCommand {
         @Subcommand("tp")
         void tp(Sender sender, @Arg("target") org.bukkit.entity.Player target) {}
+    }
 
+    @Command(name = "where")
+    static class WorldCommand {
         @Subcommand("world")
         void world(Sender sender, @Arg("w") org.bukkit.World world) {}
+    }
 
+    @Command(name = "how")
+    static class ModeCommand {
         @Subcommand("mode")
         void mode(Sender sender, @Arg("mode") Mode mode) {}
+    }
 
+    @Command(name = "what")
+    static class MaterialCommand {
         @Subcommand("give")
-        void give(Sender sender, @Arg("item") org.bukkit.Material item, @Arg("id") java.util.UUID id) {}
+        void give(Sender sender, @Arg("item") org.bukkit.Material item) {}
+    }
+
+    @Command(name = "which")
+    static class UuidCommand {
+        @Subcommand("id")
+        void id(Sender sender, @Arg("id") java.util.UUID id) {}
     }
 
     record Point(int x, int z) {}
@@ -45,13 +69,31 @@ class ParamResolversTest {
     }
 
     @Test
-    void buildsRichBuiltinArgumentTrees() {
-        LiteralCommandNode<CommandSourceStack> node = AnnotatedCommands.buildNode(new RichCommand());
+    void aPlayerBuildsAnArgumentNode() {
+        assertThat(child(AnnotatedCommands.buildNode(new PlayerCommand()), "tp", "target")).isNotNull();
+    }
 
-        assertThat(child(node, "tp", "target")).isNotNull();
-        assertThat(child(node, "world", "w")).isNotNull();
-        assertThat(child(node, "mode", "mode")).isNotNull();
-        assertThat(child(node, "give", "item")).isNotNull();
+    @Test
+    @Disabled("MockBukkit does not implement ArgumentTypes.world()")
+    void aWorldBuildsAnArgumentNode() {
+        assertThat(child(AnnotatedCommands.buildNode(new WorldCommand()), "world", "w")).isNotNull();
+    }
+
+    @Test
+    void anEnumBuildsAnArgumentNode() {
+        assertThat(child(AnnotatedCommands.buildNode(new ModeCommand()), "mode", "mode")).isNotNull();
+    }
+
+    @Test
+    @Disabled("MockBukkit does not implement ArgumentTypes.resource()")
+    void aMaterialBuildsAnArgumentNode() {
+        assertThat(child(AnnotatedCommands.buildNode(new MaterialCommand()), "give", "item")).isNotNull();
+    }
+
+    @Test
+    @Disabled("MockBukkit does not implement ArgumentTypes.uuid()")
+    void aUuidBuildsAnArgumentNode() {
+        assertThat(child(AnnotatedCommands.buildNode(new UuidCommand()), "id", "id")).isNotNull();
     }
 
     @Test
