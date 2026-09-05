@@ -21,7 +21,8 @@ import org.junit.jupiter.api.Test;
  * MockBukkit answers an argument type it has not implemented with an exception JUnit reads as an abort, so a
  * type the mock cannot build used to take the assertions for the types it can down with it and the run
  * reported that as a skip. The mock implements two of its argument types, {@code player()} and
- * {@code players()}; the ones it does not are named below instead of aborting.
+ * {@code players()}; the ones it does not are named below instead of aborting, and
+ * {@link MockBukkitArgumentGapsTest} fails when one of those reasons stops being true.
  */
 class ParamResolversTest {
 
