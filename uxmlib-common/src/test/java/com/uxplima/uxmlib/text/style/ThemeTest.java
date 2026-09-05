@@ -16,8 +16,8 @@ import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
 
 /**
- * The palette: what it answers with nothing configured, what one line of a file changes, and: the part
- * worth guarding, what a file that names one key does <em>not</em> change for the keys it leaves out.
+ * The palette: what it answers with nothing configured, what one line of a file changes, and the part worth
+ * guarding, which is what a file that names one key does <em>not</em> change for the keys it leaves out.
  */
 class ThemeTest {
 
