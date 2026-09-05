@@ -52,18 +52,21 @@ class NativeResolversTest {
     @Test
     @Disabled("MockBukkit does not implement ArgumentTypes.finePosition()")
     void aLocationBuildsAnArgumentNode() {
-        assertThat(arg(AnnotatedCommands.buildNode(new LocationCommand()), "tp", "where")).isNotNull();
+        assertThat(arg(AnnotatedCommands.buildNode(new LocationCommand()), "tp", "where"))
+                .isNotNull();
     }
 
     @Test
     void anOfflinePlayerBuildsAnArgumentNode() {
-        assertThat(arg(AnnotatedCommands.buildNode(new OfflinePlayerCommand()), "seen", "who")).isNotNull();
+        assertThat(arg(AnnotatedCommands.buildNode(new OfflinePlayerCommand()), "seen", "who"))
+                .isNotNull();
     }
 
     @Test
     @Disabled("MockBukkit does not implement ArgumentTypes.resource()")
     void aSoundBuildsAnArgumentNode() {
-        assertThat(arg(AnnotatedCommands.buildNode(new SoundCommand()), "play", "sound")).isNotNull();
+        assertThat(arg(AnnotatedCommands.buildNode(new SoundCommand()), "play", "sound"))
+                .isNotNull();
     }
 
     @SuppressWarnings("unchecked")

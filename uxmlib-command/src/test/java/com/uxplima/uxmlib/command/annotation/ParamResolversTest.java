@@ -70,30 +70,35 @@ class ParamResolversTest {
 
     @Test
     void aPlayerBuildsAnArgumentNode() {
-        assertThat(child(AnnotatedCommands.buildNode(new PlayerCommand()), "tp", "target")).isNotNull();
+        assertThat(child(AnnotatedCommands.buildNode(new PlayerCommand()), "tp", "target"))
+                .isNotNull();
     }
 
     @Test
     @Disabled("MockBukkit does not implement ArgumentTypes.world()")
     void aWorldBuildsAnArgumentNode() {
-        assertThat(child(AnnotatedCommands.buildNode(new WorldCommand()), "world", "w")).isNotNull();
+        assertThat(child(AnnotatedCommands.buildNode(new WorldCommand()), "world", "w"))
+                .isNotNull();
     }
 
     @Test
     void anEnumBuildsAnArgumentNode() {
-        assertThat(child(AnnotatedCommands.buildNode(new ModeCommand()), "mode", "mode")).isNotNull();
+        assertThat(child(AnnotatedCommands.buildNode(new ModeCommand()), "mode", "mode"))
+                .isNotNull();
     }
 
     @Test
     @Disabled("MockBukkit does not implement ArgumentTypes.resource()")
     void aMaterialBuildsAnArgumentNode() {
-        assertThat(child(AnnotatedCommands.buildNode(new MaterialCommand()), "give", "item")).isNotNull();
+        assertThat(child(AnnotatedCommands.buildNode(new MaterialCommand()), "give", "item"))
+                .isNotNull();
     }
 
     @Test
     @Disabled("MockBukkit does not implement ArgumentTypes.uuid()")
     void aUuidBuildsAnArgumentNode() {
-        assertThat(child(AnnotatedCommands.buildNode(new UuidCommand()), "id", "id")).isNotNull();
+        assertThat(child(AnnotatedCommands.buildNode(new UuidCommand()), "id", "id"))
+                .isNotNull();
     }
 
     @Test
