@@ -43,6 +43,8 @@ class CatalogueWordsTest {
                 description = "Read the server in this language."
                 action = "Click to read in it."
                 state { label = "State", value = "On" }
+                power { label = "Power", value = "<green>Full</green>" }
+                owner { label = "Owner", value = "<coins>" }
               }
             }
             """;
@@ -212,6 +214,98 @@ class CatalogueWordsTest {
     void aCatalogueLineIsAnsweredByName() {
         assertThat(plain(words.text(viewer, "menu.named", asked(Map.of("coins", "12")))))
                 .isEqualTo("12 coins");
+    }
+
+    // -- a fact that is a state -------------------------------------------------------------------------------
+
+    /** The baseline the state mark exists to change: a plain fact reads in the value colour, whatever it says. */
+    @Test
+    @DisplayName("a plain fact reads in the value colour")
+    void aPlainFactReadsInTheValueColour() {
+        Component drawn = words.renderFor(viewer, "tile:5 @menu.tile state", Map.of());
+
+        assertThat(colourOf(drawn, "On")).isEqualTo(NamedTextColor.YELLOW);
+    }
+
+    /**
+     * A state is not a value. A word that means good or bad reading in the same colour as every number on the
+     * tile is the whole of the defect: the mark says which of the two a row is, and a state's value is not
+     * painted in the value colour.
+     */
+    @Test
+    @DisplayName("a fact marked as a state is not painted in the value colour")
+    void aStateIsNotPaintedInTheValueColour() {
+        Component drawn = words.renderFor(viewer, "tile:5 @menu.tile state:state", Map.of());
+
+        assertThat(plain(drawn)).contains("State").contains("On");
+        assertThat(colourOf(drawn, "On")).isNotEqualTo(NamedTextColor.YELLOW);
+    }
+
+    /**
+     * The colour a state takes is a role of the theme, named on the tile line. The role may be a
+     * {@code %token%}, which is how a plugin says "this one is good and that one is bad" without naming a
+     * colour and without handing markup to a catalogue line.
+     */
+    @Test
+    @DisplayName("a state takes the role the line names")
+    void aStateTakesTheRoleTheLineNames() {
+        assertThat(colourOf(words.renderFor(viewer, "tile:5 @menu.tile state:state:good", Map.of()), "On"))
+                .isEqualTo(NamedTextColor.GREEN);
+        assertThat(colourOf(words.renderFor(viewer, "tile:5 @menu.tile state:state:bad", Map.of()), "On"))
+                .isEqualTo(NamedTextColor.RED);
+    }
+
+    /** A role the theme does not hold paints nothing, so a spelling mistake is an unpainted state. */
+    @Test
+    @DisplayName("a role the theme does not hold paints nothing")
+    void anUnknownRolePaintsNothing() {
+        Component named = words.renderFor(viewer, "tile:5 @menu.tile state:state:nothing-like-this", Map.of());
+
+        assertThat(plain(named)).contains("On");
+        assertThat(colourOf(named, "On"))
+                .isEqualTo(colourOf(words.renderFor(viewer, "tile:5 @menu.tile state:state", Map.of()), "On"));
+    }
+
+    /** A line a translator coloured means it, so the role the file names does not paint over it. */
+    @Test
+    @DisplayName("a value the catalogue already coloured keeps its own colour")
+    void aColouredValueKeepsItsOwnColour() {
+        Component drawn = words.renderFor(viewer, "tile:5 @menu.tile state:power:bad", Map.of());
+
+        assertThat(colourOf(drawn, "Full")).isEqualTo(NamedTextColor.GREEN);
+    }
+
+    /**
+     * The protection a state must not cost. A value goes into a catalogue line as text and never as markup, so
+     * a player who named their item {@code <red>} sees those characters on the tile. Painting a state is the
+     * theme's own colour under a role name the file wrote, which is why it can be done at all.
+     */
+    @Test
+    @DisplayName("a player who names their item a colour tag still cannot repaint a state")
+    void aValueStillCannotRepaintAState() {
+        Component drawn =
+                words.renderFor(viewer, "tile:5 @menu.tile state:owner:good", asked(Map.of("coins", "<red>")));
+
+        assertThat(plain(drawn)).contains("<red>");
+        assertThat(colourOf(drawn, "<red>")).isEqualTo(NamedTextColor.GREEN);
+    }
+
+    /** A mark with nothing after it names no row, exactly as an action mark with nothing after it names no key. */
+    @Test
+    @DisplayName("a state mark with nothing after it draws no row")
+    void anEmptyStateMarkDrawsNoRow() {
+        assertThat(plain(words.renderFor(viewer, "tile:5 @menu.tile state: state::good", Map.of())))
+                .contains("English")
+                .doesNotContain("State");
+    }
+
+    /** Facts and states keep the order the file wrote them in, because that is the order they are read in. */
+    @Test
+    @DisplayName("facts and states are drawn in the order the line writes them")
+    void factsAndStatesKeepTheirOrder() {
+        String drawn = plain(words.renderFor(viewer, "tile:5 @menu.tile state:power:good state", Map.of()));
+
+        assertThat(drawn.indexOf("Power")).isLessThan(drawn.indexOf("State"));
     }
 
     /** A map that holds nothing to walk and answers when it is asked, which is what the engine hands over. */

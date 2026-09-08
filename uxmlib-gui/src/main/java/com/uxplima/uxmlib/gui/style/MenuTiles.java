@@ -30,13 +30,19 @@ import com.uxplima.uxmlib.text.style.Styler;
  * no click without a second block of words for it. That is what a tab of a window needs, which says the same
  * thing about itself whether or not you can click it.
  *
+ * <p>A word written {@code state:<fact>} draws that fact as a state rather than as a fact: it takes the theme's
+ * {@code status} glyph and its value is not painted in the value colour. {@code state:<fact>:<role>} names the
+ * role of {@code theme.conf} the value takes when it carries none of its own, and the role may be a
+ * {@code %token%}, so a plugin answers {@code good} or {@code bad} and the theme says what either one looks
+ * like. See {@link #STATE_MARK}.
+ *
  * <p>A word written as {@code action:@<key>} takes the closing sentence from the key it names instead of from
  * {@code <key>.action} under the block. It reads like the mark that opens the line, a name and then what it is
  * set to, and it can sit anywhere after the block key. The sentence stays a line of the catalogue, so it keeps
  * the colour it is written in and the translator keeps the words:
  *
  * <pre>
- *  lore = ["tile:%lobby_colour% @menu.lobby %lobby_players% action:@menu.action.%lobby_state%"]
+ *  lore = ["tile:%lobby_colour% @menu.lobby %lobby_players% state:open:%lobby_state% action:@menu.action.%lobby_state%"]
  * </pre>
  *
  * <p>That is for a tile which says one thing about itself and a different thing about the click, state by
@@ -62,6 +68,29 @@ public final class MenuTiles {
      * {@code action} is untouched by this.
      */
     public static final String ACTION_MARK = "action:";
+
+    /**
+     * What a word of a tile line starts with to draw that fact as a state rather than as a fact.
+     *
+     * <p>A fact is a number, a name or a duration, and it reads in the value colour because that is what a value
+     * is. A state is a word that means something is good or bad or wants attention: a minion that is idle, an
+     * enchant that cannot be applied, a rate that is being held down. Drawn as a fact it reads in the value colour
+     * with every other number on the tile, which is the one thing it must not do.
+     *
+     * <p>{@code state:<fact>} draws the fact through {@link Lore#status}, which leaves the value's own colour
+     * alone rather than painting it, and marks the line with the theme's {@code status} glyph instead of its
+     * {@code row} one.
+     *
+     * <p>{@code state:<fact>:<role>} says which role of {@code theme.conf} the value takes when it carries no
+     * colour of its own: {@code state:power:good}. The role may be a {@code %token%}, which is what makes the
+     * colour follow the state rather than the file: {@code state:power:%minion_health%} lets the plugin answer
+     * {@code good} or {@code bad} and the theme say what either one looks like.
+     *
+     * <p>The plugin names a role and never a colour, and a name the theme does not hold paints nothing. So the
+     * value a player controls still cannot repaint a tile, which is the reason a value goes in as text and never
+     * as markup, and that reason is untouched here.
+     */
+    public static final String STATE_MARK = "state:";
 
     /** The word over the description block, and the word over the facts. Both are the same in every window. */
     private static final String DESCRIPTION = "menu.lore.description";
@@ -116,10 +145,14 @@ public final class MenuTiles {
         }
         if (!spec.facts.isEmpty()) {
             lore.details(words(viewer, DETAILS, resolvers));
-            for (String fact : spec.facts) {
-                lore.row(
-                        words(viewer, spec.key + "." + fact + LABEL, resolvers),
-                        words(viewer, spec.key + "." + fact + VALUE, resolvers));
+            for (Fact fact : spec.facts) {
+                Component label = words(viewer, spec.key + "." + fact.name() + LABEL, resolvers);
+                Component value = words(viewer, spec.key + "." + fact.name() + VALUE, resolvers);
+                if (fact.state()) {
+                    lore.status(label, painted(value, fact.role()));
+                } else {
+                    lore.row(label, value);
+                }
             }
         }
         String action = spec.action();
@@ -147,10 +180,45 @@ public final class MenuTiles {
     }
 
     /**
+     * A state's value in the role the line named, when it carries no colour of its own.
+     *
+     * <p>A value the catalogue already painted keeps that colour, because a line a translator coloured means it.
+     * A role the theme does not hold paints nothing at all rather than something invented, so a spelling mistake
+     * and a {@code %token%} the plugin left unanswered both read as an unpainted state rather than as a colour
+     * nobody chose.
+     */
+    private Component painted(Component value, String role) {
+        if (role.isEmpty() || !styler.theme().hasColour(role)) {
+            return value;
+        }
+        return value.colorIfAbsent(styler.theme().colour(role));
+    }
+
+    /**
+     * One word of the facts part of a tile line: which row of the block it draws, whether it is a state, and the
+     * role a state's value takes when it has no colour of its own.
+     */
+    private record Fact(String name, boolean state, String role) {
+
+        /** A plain fact, drawn in the value colour. */
+        static Fact of(String name) {
+            return new Fact(name, false, "");
+        }
+
+        /** {@code state:<fact>} or {@code state:<fact>:<role>}, with an empty role for the shorter form. */
+        static Fact state(String written) {
+            int at = written.indexOf(':');
+            return at < 0
+                    ? new Fact(written, true, "")
+                    : new Fact(written.substring(0, at), true, written.substring(at + 1));
+        }
+    }
+
+    /**
      * What one {@code tile:} line names: the colour of the title, the block of words, the facts, the closing
      * sentence when the line names one of its own, and what it leaves out.
      */
-    private record Spec(String colour, String key, List<String> facts, Set<String> without, String named) {
+    private record Spec(String colour, String key, List<Fact> facts, Set<String> without, String named) {
 
         private static final Pattern WORDS = Pattern.compile("\\s+");
 
@@ -158,7 +226,7 @@ public final class MenuTiles {
             String[] words = WORDS.split(written.trim(), -1);
             String colour = words[0].substring(MARK.length());
             String key = words.length > 1 ? name(words[1]) : "";
-            List<String> facts = new ArrayList<>();
+            List<Fact> facts = new ArrayList<>();
             Set<String> without = new LinkedHashSet<>();
             String named = "";
             for (int at = 2; at < words.length; at++) {
@@ -166,8 +234,15 @@ public final class MenuTiles {
                     without.add("." + words[at].substring(1));
                 } else if (words[at].startsWith(ACTION_MARK)) {
                     named = name(words[at].substring(ACTION_MARK.length()));
-                } else {
-                    facts.add(words[at]);
+                } else if (words[at].startsWith(STATE_MARK)) {
+                    // A mark with nothing after it names no row, exactly as an action mark with nothing after
+                    // it names no key, so it draws nothing rather than a row whose paths are all dots.
+                    String marked = words[at].substring(STATE_MARK.length());
+                    if (!marked.isEmpty() && marked.charAt(0) != ':') {
+                        facts.add(Fact.state(marked));
+                    }
+                } else if (!words[at].isEmpty()) {
+                    facts.add(Fact.of(words[at]));
                 }
             }
             return new Spec(colour, key, List.copyOf(facts), Set.copyOf(without), named);

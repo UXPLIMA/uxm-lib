@@ -537,6 +537,15 @@ different thing in each state is then one line and one block of words rather tha
 state, and the sentence stays a catalogue line, so it keeps the colour it is written in. The state may be a
 `%token%` inside the key, because the engine fills a token in before the line is read as a tile.
 
+A word on that line is a fact and reads in the value colour, which is right for a number, a name or a
+duration and wrong for a word that means something is good or bad. `state:<fact>` draws that row through
+`Lore.status` instead: the theme's `status` glyph, and a value that is not painted in the value colour.
+`state:<fact>:<role>` names the role of `theme.conf` the value takes when it carries none of its own, and
+that role may be a `%token%`, so a plugin answers `good` or `bad` and the theme says what either one looks
+like. A value the catalogue already coloured keeps its own colour, and a role the theme does not hold
+paints nothing. A value still goes into a catalogue line as text and never as markup, so a player who
+named their item `<red>` reads those characters on the tile and repaints nothing.
+
 > **Removed in 0.46.0.** `com.uxplima.uxmlib.gui.config` shipped in 49 of this library's 50 tags, so it is
 > the largest published surface any release has removed. It is gone: `MenuConfig.load`, `MenuSpec.read`,
 > `MenuDraw`, `MenuActions`, `MenuConditions`, `MenuLists`, `MenuFiles`, `MenuAction`,
