@@ -381,6 +381,121 @@ class MenuRendererTest {
                 .isEqualTo(Material.BLUE_STAINED_GLASS_PANE);
     }
 
+    /**
+     * The {@code view} block on a list template gates one row. A menu file writes it to say who may see a row at all,
+     * and until this it was read off the file and then never asked, so the gate read as working and let everybody
+     * through.
+     */
+    @Test
+    void aRowTheTemplateViewRefusesIsNotDrawn() {
+        conditions.register(
+                "rich", (ctx, args) -> ctx.entry().filter("shop"::equals).isPresent());
+        Inventory inv = inv(27);
+        MenuSpec spec = spec("""
+                rows = 3
+                items {
+                  grid {
+                    slots = [0, 1, 2]
+                    list { source = "warps:all", template { material = PAPER, view = ["rich"] } }
+                  }
+                }
+                """);
+
+        populate(inv, spec, Map.of("warps:all", List.of("spawn", "shop", "mine")));
+
+        assertThat(routed.values()).extracting(RenderedSlot::entry).containsExactly("shop");
+        assertThat(materialAt(inv, 0)).isEqualTo(Material.PAPER);
+        assertThat(materialAt(inv, 1)).isNull();
+    }
+
+    /** A refused row is dropped rather than left as a hole, so the rows that remain close up and the count follows. */
+    @Test
+    void theRowsThatSurviveTheGateCloseUpAndThePageCountFollowsThem() {
+        conditions.register(
+                "even",
+                (ctx, args) -> ctx.entry()
+                        .filter(entry -> entry instanceof String name && name.length() % 2 == 0)
+                        .isPresent());
+        PlaceholderRegistry tokens = new PlaceholderRegistry();
+        MenuPlaceholders.registerPaging(tokens);
+        MenuRenderer counting =
+                new MenuRenderer(new ItemRenderer(new PlainText(), Theme::defaults, tokens), conditions, contents);
+        Inventory inv = inv(27);
+        MenuSpec spec = spec("""
+                rows = 3
+                items {
+                  grid {
+                    slots = [0, 1]
+                    list { source = "warps:all", template { material = PAPER, view = ["even"] } }
+                  }
+                  counter { slot = 8, material = BOOK, name = "%page%/%max_page%" }
+                }
+                """);
+
+        // Four entries over two slots would be two pages. Two of them are refused, so one page holds the rest.
+        counting.populate(inv, spec, ctx(), routed::put, Map.of("warps:all", List.of("ab", "abc", "cd", "abcde")));
+
+        assertThat(routed.keySet()).containsExactly(8, 0, 1);
+        assertThat(routed.values()).extracting(RenderedSlot::entry).containsExactly(null, "ab", "cd");
+        assertThat(nameAt(inv, 8)).isEqualTo("1/1");
+    }
+
+    /** An unregistered condition holds false, so a wiring gap hides the row rather than silently showing it. */
+    @Test
+    void aRowWhoseConditionNobodyRegisteredIsHidden() {
+        Inventory inv = inv(27);
+        MenuSpec spec = spec("""
+                rows = 3
+                items {
+                  grid {
+                    slots = [0, 1, 2]
+                    list { source = "warps:all", template { material = PAPER, view = ["nobody:wired-this"] } }
+                  }
+                }
+                """);
+
+        populate(inv, spec, Map.of("warps:all", List.of("spawn", "shop")));
+
+        assertThat(routed).isEmpty();
+        assertThat(materialAt(inv, 0)).isNull();
+    }
+
+    /** The list item's own view gates the whole list, exactly as it gates a static item. */
+    @Test
+    void aListItemViewThatRefusesDrawsNoListAtAll() {
+        conditions.register("never", (ctx, args) -> false);
+        Inventory inv = inv(27);
+        MenuSpec spec = spec("""
+                rows = 3
+                items {
+                  grid {
+                    slots = [0, 1, 2]
+                    view = ["never"]
+                    list { source = "warps:all", template { material = PAPER } }
+                  }
+                }
+                """);
+
+        populate(inv, spec, Map.of("warps:all", List.of("spawn", "shop")));
+
+        assertThat(routed).isEmpty();
+        assertThat(materialAt(inv, 0)).isNull();
+    }
+
+    /** A template with no view block is handed its entries back untouched, which is every list shipped so far. */
+    @Test
+    void aTemplateWithNoViewBlockDrawsEveryEntry() {
+        Inventory inv = inv(27);
+        MenuSpec spec = spec("""
+                rows = 3
+                items { grid { slots = [0, 1, 2], list { source = "warps:all", template { material = PAPER } } } }
+                """);
+
+        populate(inv, spec, Map.of("warps:all", List.of("spawn", "shop", "mine")));
+
+        assertThat(routed.values()).extracting(RenderedSlot::entry).containsExactly("spawn", "shop", "mine");
+    }
+
     // -- the content regions ----------------------------------------------------------------------------------
 
     @Test

@@ -203,6 +203,8 @@ class MenusBedrockFormTest {
 
     private ListSourceRegistry lists;
 
+    private ConditionRegistry conditions;
+
     private ActionRegistry actions;
 
     private LastMenu history;
@@ -221,6 +223,7 @@ class MenusBedrockFormTest {
         detector.bedrock.add(viewer.getUniqueId());
         screen = new RecordingScreen();
         lists = new ListSourceRegistry();
+        conditions = new ConditionRegistry();
         actions = new ActionRegistry();
         actions.register("note", ran::add);
         history = new LastMenu();
@@ -229,7 +232,7 @@ class MenusBedrockFormTest {
 
     /** The same wiring the fixture uses, on whichever scheduler the test needs. */
     private Menus engine(SameThreadScheduler on) {
-        return new Menus(renderer(), on, lists, null, actions, new ConditionRegistry(), history, detector, screen);
+        return new Menus(renderer(), on, lists, null, actions, conditions, history, detector, screen);
     }
 
     @AfterEach
@@ -237,9 +240,11 @@ class MenusBedrockFormTest {
         MockBukkit.unmock();
     }
 
-    private static MenuRenderer renderer() {
+    private MenuRenderer renderer() {
+        // One registry behind both, so a test can register a condition and have the form read it: the engine and
+        // the renderer share the registry in production wiring too.
         return new MenuRenderer(
-                new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()), new ConditionRegistry());
+                new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()), conditions);
     }
 
     private void open(String id, String hocon) {
@@ -419,6 +424,28 @@ class MenusBedrockFormTest {
 
         assertThat(screen.sent).containsExactly("simple", "simple");
         assertThat(screen.buttonTexts()).containsExactly("warp", MenuKeys.PAGE_PREVIOUS);
+    }
+
+    /**
+     * A row a Java viewer cannot see is not a form button either. The gate is the {@code view} block on the list
+     * template, and a form that ignored it would hand a Bedrock player the row a chest keeps out of their reach.
+     */
+    @Test
+    void aRowTheTemplateViewRefusesIsNotAFormButton() {
+        conditions.register(
+                "rich", (ctx, args) -> ctx.entry().filter("shop"::equals).isPresent());
+        lists.register("warps", ctx -> List.of("spawn", "shop", "mine"));
+        open("warps", """
+                rows = 1
+                items {
+                  grid {
+                    slots = [0, 1]
+                    list { source = warps, template { material = PAPER, name = "warp", view = ["rich"] } }
+                  }
+                }
+                """);
+
+        assertThat(screen.buttonTexts()).containsExactly("warp");
     }
 
     // -- the declared form's submit ------------------------------------------------------------------------------

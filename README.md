@@ -612,7 +612,10 @@ items {
       source = "shop:offers"
       page-size = 14
       sorts = ["price", "name"]
-      template { material = "%offer_icon%", name = "@shop.offer", lore = ["<gray>%offer_price%"] }
+      template {
+        material = "%offer_icon%", name = "@shop.offer", lore = ["<gray>%offer_price%"]
+        view = ["shop:can-afford"]          # who sees this row at all, asked once per entry
+      }
     }
   }
 
@@ -641,6 +644,11 @@ What the engine adds over a plain layout reader:
 
 - **Paged and scrolling lists.** A slot range is filled from a registered source, sorted by the names the
   file asks for, and paged over the range. A paged source is asked for one page rather than for everything.
+  A `view` block on the template gates one row, asked once per entry with that entry in context; a `view`
+  on the list item gates the whole list. A refused row is dropped rather than left as a hole, so the rows
+  that remain close up and the page count follows them, and the Bedrock form reads the same two gates. An
+  entry that implements `PageBreak` ends the page it meets rather than taking a slot on it, which is how a
+  list of runs that belong together is drawn one run to a page.
 - **An expression language.** Any rendered line may carry a `{math: ...}` block, evaluated after the
   placeholders in it are substituted: `{math: %price% * %amount%}`, `{math: min(%stock%, 45)}`. Seven
   functions are callable and nothing else (`min`, `max`, `abs`, `floor`, `ceil`, `round`, `sqrt`), and a

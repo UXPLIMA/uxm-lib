@@ -357,7 +357,7 @@ public final class MenuRenderer {
         if (view != null) {
             return ctx.withPage(view.page()).withPageCount(view.pageCount());
         }
-        List<?> entries = entriesOf(listItem, resolvedLists);
+        List<?> entries = visibleListEntries(listItem, ctx, resolvedLists);
         int count = Pagination.paginate(entries, listItem.slots().slots(), ctx.page())
                 .pageCount();
         return ctx.withPageCount(count);
@@ -367,6 +367,46 @@ public final class MenuRenderer {
     private List<?> entriesOf(MenuItemSpec listItem, Map<String, List<?>> resolvedLists) {
         ListSpec listSpec = listItem.list().orElseThrow();
         return resolvedLists.getOrDefault(listSpec.source().id(), List.of());
+    }
+
+    /**
+     * The entries of {@code listItem} this viewer may see: the two {@code view} gates a list spec can carry, both of
+     * which used to be read off the file and then never asked.
+     *
+     * <p>The list item's own {@code view} gates the whole list, exactly as it gates a static item: a block that does
+     * not pass yields no entries at all, so the content slots clear back to whatever the chrome under them draws. The
+     * {@code view} on the {@code template} gates one row, asked once per entry with that entry in the context, which
+     * is what an operator means by "who sees this row at all". A row that does not pass is dropped from the list
+     * rather than left as a hole, so the rows that remain close up and the page count follows them.
+     *
+     * <p>Both gates are the ordinary view rule: the block decides how its requirements combine, an unregistered
+     * condition holds false so a wiring gap hides rather than shows, and an empty block passes. An empty block is
+     * also the fast path: a template with no {@code view} is handed its entry list back untouched, so a list that
+     * gates nothing costs exactly what it cost before this existed.
+     *
+     * <p>Every road that draws a list reads it here: the chest render, the page count its indicator shows, and the
+     * Bedrock form's button list. A row a Java viewer cannot see is a row a Bedrock viewer cannot see either, which
+     * matters most for the gate that is there to keep a row out of somebody's reach.
+     */
+    public List<?> visibleListEntries(MenuItemSpec listItem, MenuContext ctx, Map<String, List<?>> resolvedLists) {
+        Objects.requireNonNull(listItem, "listItem");
+        Objects.requireNonNull(ctx, "ctx");
+        Objects.requireNonNull(resolvedLists, "resolvedLists");
+        if (!viewPasses(listItem, ctx)) {
+            return List.of();
+        }
+        List<?> entries = entriesOf(listItem, resolvedLists);
+        MenuItemSpec template = listItem.list().orElseThrow().template();
+        if (template.view().requirements().isEmpty()) {
+            return entries;
+        }
+        List<Object> visible = new ArrayList<>(entries.size());
+        for (Object entry : entries) {
+            if (viewPasses(template, ctx.withEntry(entry))) {
+                visible.add(entry);
+            }
+        }
+        return visible;
     }
 
     /** Resolve the static items to one-per-slot, render the survivors, and return the placement the lists layer over. */
@@ -398,7 +438,7 @@ public final class MenuRenderer {
             BiConsumer<Integer, RenderedSlot> clickSink,
             Map<String, List<?>> resolvedLists) {
         ListSpec listSpec = item.list().orElseThrow();
-        List<?> entries = entriesOf(item, resolvedLists);
+        List<?> entries = visibleListEntries(item, ctx, resolvedLists);
         List<Integer> contentSlots = item.slots().slots();
         // A paged source's rows are already the page the query returned, so they are laid out at local page zero;
         // slicing them again at the viewer's page index would show page zero of an already-paged later page. Pinned

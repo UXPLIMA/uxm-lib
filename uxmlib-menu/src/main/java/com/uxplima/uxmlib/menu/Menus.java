@@ -1338,6 +1338,9 @@ public final class Menus {
      * list cell's {@code RenderedSlot(template, entry)}. Only one list-backed item is paged, the one drawn nearest the
      * start of the window (a spec pairs one scrollable list with its controls, mirroring the chest renderer's page-
      * count rule); a static-only menu has none and stays a single page. Returns the page count so the caller knows whether to add page-nav buttons.
+     *
+     * <p>The entries come through {@link MenuRenderer#visibleListEntries}, so the {@code view} block on the list item
+     * and the one on its template are read here exactly as they are on a chest.
      */
     private int appendListButtons(
             MenuSpec spec,
@@ -1351,7 +1354,9 @@ public final class Menus {
             return 1;
         }
         var listSpec = listItem.get().list().orElseThrow();
-        List<?> entries = resolved.getOrDefault(listSpec.source().id(), List.of());
+        // Through the renderer, so a form reads the same two view gates a chest does: the list item's own,
+        // and the template's, asked once per row. A row a Java viewer cannot see is not a form button.
+        List<?> entries = renderer.visibleListEntries(listItem.get(), ctx, resolved);
         MenuItemSpec template = listSpec.template();
         @SuppressWarnings("unchecked") // a list source's element type is opaque to the engine; entries flow as Object
         Pagination.Page<Object> page = Pagination.paginate(
