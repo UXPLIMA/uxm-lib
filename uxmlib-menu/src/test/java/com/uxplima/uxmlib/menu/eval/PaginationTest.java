@@ -75,4 +75,70 @@ class PaginationTest {
         assertThat(page.pageCount()).isEqualTo(1);
         assertThat(page.placements()).containsExactly(Map.entry(0, p0), Map.entry(1, p1));
     }
+
+    /** A test entry that ends the page it lands on. It carries an id so a failure names which break it was. */
+    private record Break(String id) implements PageBreak {}
+
+    @Test
+    void aPageBreakEndsThePageItMeetsAndTakesNoSlot() {
+        var slots = List.of(0, 1, 2);
+        var entries = List.of("a", new Break("after a"), "b", "c");
+        var p0 = Pagination.paginate(entries, slots, 0);
+        // The break ends the page after "a", so "b" opens the second page rather than filling slot 1.
+        assertThat(p0.pageCount()).isEqualTo(2);
+        assertThat(p0.placements()).containsExactly(Map.entry(0, "a"));
+        var p1 = Pagination.paginate(entries, slots, 1);
+        assertThat(p1.placements()).containsExactly(Map.entry(0, "b"), Map.entry(1, "c"));
+    }
+
+    @Test
+    void aPageBreakGivesEachGroupItsOwnPageWhateverTheGroupsAreWorth() {
+        var slots = List.of(0, 1, 2, 3);
+        var entries = List.of("a1", "a2", "a3", new Break("a"), "b1", new Break("b"), "c1", "c2");
+        assertThat(Pagination.paginate(entries, slots, 0).pageCount()).isEqualTo(3);
+        assertThat(Pagination.paginate(entries, slots, 0).placements())
+                .containsExactly(Map.entry(0, "a1"), Map.entry(1, "a2"), Map.entry(2, "a3"));
+        assertThat(Pagination.paginate(entries, slots, 1).placements()).containsExactly(Map.entry(0, "b1"));
+        assertThat(Pagination.paginate(entries, slots, 2).placements())
+                .containsExactly(Map.entry(0, "c1"), Map.entry(1, "c2"));
+    }
+
+    @Test
+    void aGroupLongerThanAPageStillFillsEveryPageItNeeds() {
+        var slots = List.of(0, 1);
+        var entries = List.of("a1", "a2", "a3", new Break("a"), "b1");
+        // Three entries in a group of two slots is two pages, and the break then opens a third.
+        assertThat(Pagination.paginate(entries, slots, 0).pageCount()).isEqualTo(3);
+        assertThat(Pagination.paginate(entries, slots, 1).placements()).containsExactly(Map.entry(0, "a3"));
+        assertThat(Pagination.paginate(entries, slots, 2).placements()).containsExactly(Map.entry(0, "b1"));
+    }
+
+    @Test
+    void aBreakOnAnEmptyPageCostsNoBlankPage() {
+        var slots = List.of(0, 1);
+        var entries = List.of(new Break("leading"), "a", new Break("one"), new Break("two"), "b", new Break("last"));
+        // A leading break, two in a row and a trailing break each meet an empty page and end nothing.
+        assertThat(Pagination.paginate(entries, slots, 0).pageCount()).isEqualTo(2);
+        assertThat(Pagination.paginate(entries, slots, 0).placements()).containsExactly(Map.entry(0, "a"));
+        assertThat(Pagination.paginate(entries, slots, 1).placements()).containsExactly(Map.entry(0, "b"));
+    }
+
+    @Test
+    void aListOfNothingButBreaksIsOneEmptyPage() {
+        var page = Pagination.paginate(List.of(new Break("one"), new Break("two")), List.of(0, 1), 0);
+        assertThat(page.pageCount()).isEqualTo(1);
+        assertThat(page.placements()).isEmpty();
+    }
+
+    @Test
+    void aPinnedEntryHoldsItsSlotOnEveryPageABreakOpens() {
+        var slots = List.of(0, 1, 2);
+        var pin = new Pin("p", 1);
+        var entries = List.of(pin, "a", new Break("after a"), "b");
+        assertThat(Pagination.paginate(entries, slots, 0).pageCount()).isEqualTo(2);
+        assertThat(Pagination.paginate(entries, slots, 0).placements())
+                .containsExactly(Map.entry(1, pin), Map.entry(0, "a"));
+        assertThat(Pagination.paginate(entries, slots, 1).placements())
+                .containsExactly(Map.entry(1, pin), Map.entry(0, "b"));
+    }
 }
