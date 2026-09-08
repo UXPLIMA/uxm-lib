@@ -17,6 +17,10 @@ import org.jspecify.annotations.Nullable;
  * all of them publish a placeholder for the balance and a command for a take, because that is what an
  * operator uses every day. This wallet is that pair.
  *
+ * <p>A pool may name a second line, which is the one that pays money in. A pool that names none can be read
+ * and taken from and not paid into, which is the honest answer for an operator who gave this wallet one
+ * command.
+ *
  * <p>What it costs is written here, because an operator has to know it. A command answers nothing, so this
  * cannot be told that a take failed. It therefore reads the balance first and refuses a take the player
  * cannot afford, and after that it trusts the line it sent. A plugin that refuses the command quietly is a
@@ -39,8 +43,14 @@ public final class PlaceholderWallet implements Wallet {
      *     {@code {amount}} are written into it
      * @param thousands what the plugin puts between the groups of three in its answer, removed before the
      *     number is read. An empty one means the answer carries none
+     * @param give the line the console is sent to pay money in, written the same way, or {@code null} where
+     *     the operator has named none and this pool cannot be paid into
      */
-    public record Pool(String placeholder, String take, String thousands) {
+    public record Pool(
+            String placeholder,
+            String take,
+            String thousands,
+            @Nullable String give) {
 
         public Pool {
             Objects.requireNonNull(thousands, "thousands");
@@ -50,11 +60,28 @@ public final class PlaceholderWallet implements Wallet {
             if (take == null || take.isBlank()) {
                 throw new IllegalArgumentException("a placeholder pool names no take command");
             }
+            if (give != null && give.isBlank()) {
+                throw new IllegalArgumentException("a placeholder pool names a blank give command");
+            }
+        }
+
+        /**
+         * The shape this record had before a pool could be paid into: no give, so a pool written against the
+         * older shape reads and takes exactly as it did and refuses every payment.
+         */
+        public Pool(String placeholder, String take, String thousands) {
+            this(placeholder, take, thousands, null);
         }
 
         /** A pool whose plugin answers a plain number, with nothing between the groups of three. */
         public static Pool of(String placeholder, String take) {
             return new Pool(placeholder, take, "");
+        }
+
+        /** This pool, with the line the console is sent to pay money in. */
+        public Pool paying(String give) {
+            Objects.requireNonNull(give, "give");
+            return new Pool(placeholder, take, thousands, give);
         }
     }
 
@@ -119,6 +146,27 @@ public final class PlaceholderWallet implements Wallet {
             return false;
         }
         return console.run(line(pool.take(), player, amount));
+    }
+
+    /**
+     * Pay the amount in, with the line the pool names.
+     *
+     * <p>Nothing is read first, because there is nothing to refuse: a pay-out cannot overdraw anybody. What
+     * the take's own comment says still holds, though, and it holds harder here: a command answers nothing,
+     * so this trusts the line it sent. A pool that names no give refuses instead of sending the take line
+     * with the sign turned round, which is a guess this class will not make with somebody else's money.
+     */
+    @Override
+    public boolean deposit(@Nullable Player player, String currency, double amount) {
+        Objects.requireNonNull(currency, "currency");
+        if (amount <= 0) {
+            return true;
+        }
+        Pool pool = pools.get(currency);
+        if (player == null || pool == null || pool.give() == null) {
+            return false;
+        }
+        return console.run(line(pool.give(), player, amount));
     }
 
     /**

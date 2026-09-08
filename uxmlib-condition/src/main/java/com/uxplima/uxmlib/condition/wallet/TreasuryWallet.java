@@ -123,6 +123,36 @@ public final class TreasuryWallet implements Wallet {
     }
 
     /**
+     * Pay the amount in. Treasury cannot refuse a payment for want of money, so nothing is read first.
+     *
+     * <p>The same honest gap the take has is here the other way round: if Treasury pays the money and then
+     * fails to answer inside {@code waitFor}, this reads the silence as a refusal, so the caller is told the
+     * money did not arrive when it may have. Nothing this side of the call can tell the two apart, and a
+     * caller that reads {@code false} and pays again through another road would pay twice.
+     */
+    @Override
+    public boolean deposit(@Nullable Player player, String currency, double amount) {
+        Objects.requireNonNull(currency, "currency");
+        if (amount <= 0) {
+            return true;
+        }
+        if (player == null) {
+            return false;
+        }
+        Object treasury = treasury();
+        if (treasury == null) {
+            return false;
+        }
+        try {
+            return TreasuryCalls.deposit(
+                    treasury, player.getUniqueId(), currency.strip(), BigDecimal.valueOf(amount), waitFor);
+        } catch (RuntimeException | LinkageError unreachable) {
+            log.log(System.Logger.Level.WARNING, "Treasury could not be paid, so nothing was", unreachable);
+            return false;
+        }
+    }
+
+    /**
      * The Treasury service, as a plain object, resolved on first use and kept.
      *
      * <p>Every method asks this one first and gives up on a {@code null} answer before it reaches anything
@@ -192,6 +222,28 @@ public final class TreasuryWallet implements Wallet {
             // refusal by the wallet above.
             TreasuryCalls.<BigDecimal>answer(
                     waitFor, subscriber -> account.withdrawBalance(amount, asked, currency, subscriber));
+            return true;
+        }
+
+        /** Pay the whole amount in, or pay nothing at all and say so. */
+        static boolean deposit(Object provider, UUID who, String named, BigDecimal amount, Duration waitFor) {
+            if (!(provider instanceof EconomyProvider treasury)) {
+                return false;
+            }
+            Currency currency = currency(treasury, named);
+            if (currency == null) {
+                return false;
+            }
+            PlayerAccount account = account(treasury, who, waitFor);
+            if (account == null) {
+                return false;
+            }
+            EconomyTransactionInitiator<?> asked =
+                    EconomyTransactionInitiator.createInitiator(EconomyTransactionInitiator.Type.PLAYER, who);
+            // As with the take, the answer is the balance that is left and nothing here reads it: what
+            // matters is that the call answered at all, and a call that did not throws out of the wait.
+            TreasuryCalls.<BigDecimal>answer(
+                    waitFor, subscriber -> account.depositBalance(amount, asked, currency, subscriber));
             return true;
         }
 

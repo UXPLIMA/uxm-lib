@@ -250,6 +250,59 @@ class ExperienceWalletTest {
         assertThat(POINTS.balance(ada, "")).isCloseTo(before - 500, within(1d));
     }
 
+    @Test
+    @DisplayName("a payment in points leaves the player holding what they had and the amount")
+    void paysInPoints() {
+        standing(10, 0.5f);
+        double before = POINTS.balance(ada, "");
+
+        assertThat(POINTS.deposit(ada, "", 500)).isTrue();
+
+        assertThat(POINTS.balance(ada, "")).isCloseTo(before + 500, within(1d));
+    }
+
+    @Test
+    @DisplayName("a payment in levels adds levels and leaves the fraction where it stood")
+    void paysInLevels() {
+        standing(10, 0.5f);
+
+        assertThat(LEVELS.deposit(ada, "", 3)).isTrue();
+
+        assertThat(ada.getLevel()).isEqualTo(13);
+        assertThat(ada.getExp()).isEqualTo(0.5f);
+    }
+
+    @Test
+    @DisplayName("experience is counted in whole units, so a fraction cannot be paid in either")
+    void refusesToPayAFraction() {
+        standing(10, 0f);
+
+        assertThat(POINTS.deposit(ada, "", 1.5)).isFalse();
+        assertThat(ada.getLevel()).isEqualTo(10);
+    }
+
+    @Test
+    @DisplayName("an amount that would not fit in the count is refused whole rather than capped")
+    void refusesToPayMoreThanTheCountHolds() {
+        standing(10, 0f);
+
+        assertThat(LEVELS.deposit(ada, "", Integer.MAX_VALUE)).isFalse();
+        assertThat(ada.getLevel()).isEqualTo(10);
+    }
+
+    @Test
+    @DisplayName("nobody, an unknown currency and a payment of nothing each pay nothing")
+    void paysNobodyAndNothing() {
+        standing(10, 0f);
+
+        assertThat(POINTS.deposit(null, "", 1)).isFalse();
+        assertThat(POINTS.deposit(ada, "coins", 1)).isFalse();
+        assertThat(POINTS.deposit(ada, "", 0)).isTrue();
+        assertThat(POINTS.deposit(ada, "", -5)).isTrue();
+
+        assertThat(ada.getLevel()).isEqualTo(10);
+    }
+
     /** Put the player at {@code level} with {@code progress} of the way into the next one. */
     private void standing(int level, float progress) {
         ada.setLevel(level);

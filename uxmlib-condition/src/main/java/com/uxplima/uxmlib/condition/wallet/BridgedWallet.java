@@ -31,6 +31,11 @@ import org.jspecify.annotations.Nullable;
  * straight back. Where it cannot, because it answers {@link EconomyBinding.Answer#NOTHING}, the balance is
  * read first and the take is refused before the call is made.
  *
+ * <p>A pay-out goes through the method the description names as the give, resolved and kept beside the other
+ * two. It reads nothing first, because there is no overdraft to refuse on the way in. An economy that names
+ * no give, or that has renamed the one it named, still reads a balance and still takes: only the pay-out is
+ * refused, and the log says so once.
+ *
  * <p>Instances are safe to share between threads. Reads and writes may block on the economy plugin, so the
  * driver decides which thread asks; this class only answers.
  */
@@ -51,6 +56,8 @@ public final class BridgedWallet implements Wallet {
     private final Map<String, Optional<Bound>> pools = new ConcurrentHashMap<>();
 
     private final AtomicBoolean warned = new AtomicBoolean();
+
+    private final AtomicBoolean warnedGive = new AtomicBoolean();
 
     public BridgedWallet(
             EconomyBinding binding, EconomyProviders providers, PlayerArguments arguments, System.Logger log) {
@@ -122,6 +129,48 @@ public final class BridgedWallet implements Wallet {
         };
     }
 
+    /**
+     * Pay the amount in, through the method the description names as the give.
+     *
+     * <p>Nothing is read first. A pay-out has no overdraft to refuse: the only question is whether the
+     * economy took the call, and every one of the three answers is read exactly as a take's is. An economy
+     * whose description names no give refuses here, which is what a caller is told when there is nothing to
+     * pay through.
+     */
+    @Override
+    public boolean deposit(@Nullable Player player, String currency, double amount) {
+        Objects.requireNonNull(currency, "currency");
+        if (amount <= 0) {
+            return true;
+        }
+        if (player == null) {
+            return false;
+        }
+        Optional<Bound> found = bound(currency);
+        if (found.isEmpty()) {
+            return false;
+        }
+        Call give = found.get().give();
+        if (give == null) {
+            return false;
+        }
+        // The sign is never put on here. A give is a give whether or not this economy's take is a give of a
+        // negative number, and negating one would take the money instead of paying it.
+        Object written = number(amount, give.amountType(), false);
+        if (written == null) {
+            return false;
+        }
+        Called answered = invoke(give, player, written);
+        if (answered == null) {
+            return false;
+        }
+        return switch (binding.answer()) {
+            case BOOLEAN -> Boolean.TRUE.equals(answered.value());
+            case NOTHING -> true;
+            case VAULT_RESPONSE -> succeeded(answered.value());
+        };
+    }
+
     /** The object the calls go to. It is asked for once and kept, and an absent plugin is asked again. */
     private Optional<Object> provider() {
         Object known = handle;
@@ -161,7 +210,32 @@ public final class BridgedWallet implements Wallet {
             }
             return Optional.empty();
         }
-        return Optional.of(new Bound(balance.get(), take.get()));
+        return Optional.of(
+                new Bound(balance.get(), take.get(), give(object, named).orElse(null)));
+    }
+
+    /**
+     * The method that pays in, when the description names one and the plugin still has it.
+     *
+     * <p>A missing give is not a missing economy. The balance and the take are what a condition and a cost
+     * are built on, so an economy that has lost either of them is turned off; an economy that has only lost
+     * its give still reads and still takes, and only a pay-out is refused. The difference is said once in
+     * the log, because an operator whose wages stopped arriving has to be able to find out why.
+     */
+    private Optional<Call> give(Object object, @Nullable Object named) {
+        Optional<String> name = binding.give();
+        if (name.isEmpty()) {
+            return Optional.empty();
+        }
+        Optional<Call> found = call(object, name.get(), true, named);
+        if (found.isEmpty() && warnedGive.compareAndSet(false, true)) {
+            log.log(
+                    System.Logger.Level.WARNING,
+                    "The {0} economy is here, but it has no {1} this version can call. Nothing is paid into it.",
+                    binding.pluginName(),
+                    name.get());
+        }
+        return found;
     }
 
     /**
@@ -365,8 +439,8 @@ public final class BridgedWallet implements Wallet {
     /** What one call answered. A call that failed is a {@code null} {@link Called}, not a null value. */
     private record Called(@Nullable Object value) {}
 
-    /** The two methods for one currency name. */
-    private record Bound(Call balance, Call take) {}
+    /** The methods for one currency name. The give is null where this economy cannot be paid into. */
+    private record Bound(Call balance, Call take, @Nullable Call give) {}
 
     /** One resolved method, and where each value goes in it. */
     private record Call(

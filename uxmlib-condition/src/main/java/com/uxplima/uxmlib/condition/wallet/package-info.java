@@ -2,9 +2,9 @@
  * The wallet backends this module ships, each one an implementation of {@link
  * com.uxplima.uxmlib.condition.Wallet} and nothing more.
  *
- * <p>A backend answers two questions: what a player's balance is, and whether a whole amount can be taken.
- * It fixes no price, no cost table, no currency name and no way of writing a number for a player to read.
- * Those are the game a plugin plays, and they stay in the plugin.
+ * <p>A backend answers three questions: what a player's balance is, whether a whole amount can be taken, and
+ * whether a whole amount can be paid in. It fixes no price, no cost table, no currency name and no way of
+ * writing a number for a player to read. Those are the game a plugin plays, and they stay in the plugin.
  *
  * <p>Three of them talk to another plugin, and the first of those covers most servers:
  *
@@ -40,6 +40,13 @@
  * <p>None of them takes a part of a cost. Where the economy itself refuses an overdraft the refusal is
  * read straight back; where it does not, the balance is read first and the take is refused before
  * anything moves.
+ *
+ * <p>None of them pays a part of a wage either, and a pay-out reads nothing first because there is no
+ * overdraft on the way in. What a backend needs to pay is one more thing named in the same place the take is
+ * named: a method in an {@link com.uxplima.uxmlib.condition.wallet.EconomyBinding}, a command line on a
+ * {@link com.uxplima.uxmlib.condition.wallet.PlaceholderWallet.Pool}. A backend that has not been given one
+ * refuses every payment and goes on reading and taking, which is what an operator who named one command
+ * should see.
  */
 @NullMarked
 package com.uxplima.uxmlib.condition.wallet;

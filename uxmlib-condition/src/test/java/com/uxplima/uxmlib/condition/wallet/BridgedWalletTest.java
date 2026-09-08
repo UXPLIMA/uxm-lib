@@ -231,6 +231,122 @@ class BridgedWalletTest {
         assertThat(wallet(Economies.vault(), null).binding().pluginName()).isEqualTo("Vault");
     }
 
+    @Test
+    @DisplayName("the Vault shape is paid through its own deposit, and the answer is read the same way")
+    void paysTheVaultShape() {
+        FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(100);
+        BridgedWallet wallet = wallet(Economies.vault(), vault);
+
+        assertThat(wallet.deposit(ada, "", 40)).isTrue();
+        assertThat(vault.balance()).isEqualTo(140);
+    }
+
+    @Test
+    @DisplayName("an economy with one adjust method is paid with a positive number, not the take's negative")
+    void paysByGivingAPositiveNumber() {
+        FakeEconomies.Held bits = FakeEconomies.Held.of("paying", "40");
+        BridgedWallet wallet = wallet(ecoBitsShaped(), FakeEconomies.UtilityShaped.class);
+
+        assertThat(wallet.deposit(ada, "paying", 15)).isTrue();
+        assertThat(bits.balance()).isEqualByComparingTo("55");
+    }
+
+    @Test
+    @DisplayName("an economy of whole numbers cannot be paid a fraction, and nothing arrives trying")
+    void refusesToPayAFractionToAWholeEconomy() {
+        FakeEconomies.PointsShaped points = new FakeEconomies.PointsShaped(50);
+        BridgedWallet wallet = wallet(Economies.playerPoints(), points);
+
+        assertThat(wallet.deposit(ada, "", 20)).isTrue();
+        assertThat(points.points()).isEqualTo(70);
+        assertThat(wallet.deposit(ada, "", 1.5)).isFalse();
+        assertThat(points.points()).isEqualTo(70);
+    }
+
+    @Test
+    @DisplayName("VaultUnlocked is told who is paying too")
+    void paysTheUnlockedShape() {
+        FakeEconomies.UnlockedShaped unlocked = new FakeEconomies.UnlockedShaped("1.00");
+        BridgedWallet wallet = wallet(Economies.vaultUnlocked(CALLER), unlocked);
+
+        assertThat(wallet.deposit(ada, "", 0.05)).isTrue();
+        assertThat(unlocked.balance()).isEqualByComparingTo("1.05");
+        assertThat(unlocked.lastCaller()).isEqualTo(CALLER);
+    }
+
+    @Test
+    @DisplayName("a description that names no give cannot pay, and still reads and still takes")
+    void refusesToPayThroughADescriptionWithNoGive() {
+        FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(100);
+        BridgedWallet wallet = wallet(noGive(), vault);
+
+        assertThat(wallet.deposit(ada, "", 40)).isFalse();
+        assertThat(wallet.balance(ada, "")).isEqualTo(100);
+        assertThat(wallet.withdraw(ada, "", 40)).isTrue();
+        assertThat(vault.balance()).isEqualTo(60);
+    }
+
+    @Test
+    @DisplayName("an economy that lost the give it named keeps its balance and its take, and pays nothing")
+    void keepsReadingAndTakingWhenOnlyTheGiveIsGone() {
+        FakeEconomies.TakeOnly vault = new FakeEconomies.TakeOnly(100);
+        BridgedWallet wallet = wallet(Economies.vault(), vault);
+
+        assertThat(wallet.deposit(ada, "", 40)).isFalse();
+        assertThat(wallet.balance(ada, "")).isEqualTo(100);
+        assertThat(wallet.withdraw(ada, "", 40)).isTrue();
+        assertThat(vault.balance()).isEqualTo(60);
+    }
+
+    @Test
+    @DisplayName("a plugin that is not there pays nothing, and never fails")
+    void paysNothingWhenThePluginIsAbsent() {
+        assertThat(wallet(Economies.vault(), null).deposit(ada, "", 1)).isFalse();
+    }
+
+    @Test
+    @DisplayName("a payment that fails on the way in is read as not having happened")
+    void readsAFailedPaymentAsNoPayment() {
+        assertThat(wallet(Economies.vault(), new FakeEconomies.Broken()).deposit(ada, "", 1))
+                .isFalse();
+    }
+
+    @Test
+    @DisplayName("nobody is not a player, so nothing is paid")
+    void paysNoPlayerAtAll() {
+        FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(100);
+        BridgedWallet wallet = wallet(Economies.vault(), vault);
+
+        assertThat(wallet.deposit(null, "", 1)).isFalse();
+        assertThat(vault.balance()).isEqualTo(100);
+    }
+
+    @Test
+    @DisplayName("a payment of nothing pays nothing and succeeds, as the wallet contract says")
+    void paysNothingForANonPositiveAmount() {
+        FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(100);
+        BridgedWallet wallet = wallet(Economies.vault(), vault);
+
+        assertThat(wallet.deposit(ada, "", 0)).isTrue();
+        assertThat(wallet.deposit(ada, "", -5)).isTrue();
+        assertThat(vault.balance()).isEqualTo(100);
+    }
+
+    /** The Vault description as it was written before an economy could be asked to pay out. */
+    private static EconomyBinding noGive() {
+        return new EconomyBinding(
+                "Vault",
+                "net.milkbowl.vault.economy.Economy",
+                EconomyBinding.Access.SERVICE,
+                null,
+                "getBalance",
+                "withdrawPlayer",
+                EconomyBinding.Argument.OFFLINE_PLAYER,
+                EconomyBinding.Answer.VAULT_RESPONSE,
+                EconomyBinding.Pools.one(),
+                EconomyBinding.Calls.simple());
+    }
+
     /** The EcoBits description, pointed at the classes this test owns. */
     private static EconomyBinding ecoBitsShaped() {
         return new EconomyBinding(

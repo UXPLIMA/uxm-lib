@@ -158,6 +158,55 @@ class TreasuryWalletTest {
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
+    @Test
+    @DisplayName("money arrives in the account, and the balance says so")
+    void paysMoneyIn() {
+        FakeTreasury treasury = new FakeTreasury("gems", true);
+        treasury.holds(ada.getUniqueId(), "100");
+        TreasuryWallet wallet = wallet(treasury);
+
+        assertThat(wallet.deposit(ada, "gems", 40)).isTrue();
+        assertThat(wallet.balance(ada, "gems")).isEqualTo(140);
+    }
+
+    @Test
+    @DisplayName("a player nobody wrote a row for is paid into an account made for them")
+    void paysAnewPlayer() {
+        FakeTreasury treasury = new FakeTreasury("gems", true);
+        TreasuryWallet wallet = wallet(treasury);
+
+        assertThat(wallet.deposit(ada, "gems", 40)).isTrue();
+        assertThat(treasury.made).containsExactly(ada.getUniqueId());
+        assertThat(wallet.balance(ada, "gems")).isEqualTo(40);
+    }
+
+    @Test
+    @DisplayName("a server without Treasury, an unknown currency and a silent economy each pay nothing")
+    void paysNothingWhereThereIsNothingToPayThrough() {
+        assertThat(new TreasuryWallet(Optional::empty, SOON, LOG).deposit(ada, "gems", 1))
+                .isFalse();
+
+        FakeTreasury treasury = new FakeTreasury("coins", true);
+        assertThat(wallet(treasury).deposit(ada, "gems", 1)).isFalse();
+
+        FakeTreasury silent = new FakeTreasury("gems", false);
+        assertThat(new TreasuryWallet(() -> Optional.of(silent.provider()), Duration.ofMillis(50), LOG)
+                        .deposit(ada, "gems", 1))
+                .isFalse();
+    }
+
+    @Test
+    @DisplayName("nobody is not a player, and a payment of nothing succeeds without asking Treasury")
+    void paysNoPlayerAndNoAmount() {
+        FakeTreasury treasury = new FakeTreasury("gems", true);
+        treasury.holds(ada.getUniqueId(), "100");
+        TreasuryWallet wallet = wallet(treasury);
+
+        assertThat(wallet.deposit(null, "gems", 1)).isFalse();
+        assertThat(wallet.deposit(ada, "gems", 0)).isTrue();
+        assertThat(wallet.balance(ada, "gems")).isEqualTo(100);
+    }
+
     private static TreasuryWallet wallet(FakeTreasury treasury) {
         return new TreasuryWallet(() -> Optional.of(treasury.provider()), SOON, LOG);
     }

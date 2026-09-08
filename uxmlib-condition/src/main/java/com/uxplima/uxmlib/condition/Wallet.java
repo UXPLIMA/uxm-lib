@@ -7,8 +7,8 @@ import org.bukkit.entity.Player;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The seam through which a {@link MoneyCondition} reads a balance and a {@code [take-money]} action spends
- * one. It is the money mirror of {@link OperandResolver}: a plain contract this module owns, never a
+ * The seam through which a {@link MoneyCondition} reads a balance, a {@code [take-money]} action spends one
+ * and a plugin that owes a player money pays it. It is the money mirror of {@link OperandResolver}: a plain contract this module owns, never a
  * dependency on the integration module.
  *
  * <p>A consumer that has an economy present passes an adapter over its own bridge (uxmLib ships {@code
@@ -42,7 +42,28 @@ public interface Wallet {
     boolean withdraw(@Nullable Player player, String currency, double amount);
 
     /**
-     * The empty wallet: every balance reads zero and every withdrawal fails. It is the default on a request
+     * Pay {@code amount} of {@code currency} to the subject and report whether the whole amount arrived.
+     *
+     * <p>The mirror of {@link #withdraw}, and it carries the same promise the other way round: an
+     * implementation is all or nothing, so a caller that reads {@code false} is entitled to assume nothing
+     * arrived and may pay again through another road without paying twice. A non-positive amount pays
+     * nothing and succeeds.
+     *
+     * <p>It is a {@code default} that refuses, so a wallet written before this method existed keeps
+     * compiling and keeps its own meaning: it can read a balance and it can take, and it says plainly that
+     * it cannot pay out. A caller that is told {@code false} has been told the truth, which is the whole of
+     * the contract. Every backend this library ships overrides it.
+     *
+     * <p>What is paid, to whom, and whether it is a wage, a refund or a prize is the game a plugin plays.
+     * This is the mechanism and nothing else.
+     */
+    default boolean deposit(@Nullable Player player, String currency, double amount) {
+        Objects.requireNonNull(currency, "currency");
+        return false;
+    }
+
+    /**
+     * The empty wallet: every balance reads zero, and every withdrawal and every payment fails. It is the default on a request
      * and on an action context, so a consumer that wires no economy still parses and runs a list without
      * null-checking, and a {@code [take-money]} in that list fails loudly rather than silently succeeding.
      */
@@ -57,6 +78,12 @@ public interface Wallet {
 
             @Override
             public boolean withdraw(@Nullable Player player, String currency, double amount) {
+                Objects.requireNonNull(currency, "currency");
+                return false;
+            }
+
+            @Override
+            public boolean deposit(@Nullable Player player, String currency, double amount) {
                 Objects.requireNonNull(currency, "currency");
                 return false;
             }

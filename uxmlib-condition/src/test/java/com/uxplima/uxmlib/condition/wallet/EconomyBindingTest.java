@@ -76,4 +76,40 @@ class EconomyBindingTest {
         assertThat(Economies.ecoBits().pools().style()).isEqualTo(Pools.Style.BY_OBJECT);
         assertThat(Economies.ecoBits().calls().takeNegates()).isTrue();
     }
+
+    @Test
+    @DisplayName("each shipped description names the method that pays money in")
+    void namesTheGiveOfEachShippedEconomy() {
+        assertThat(Economies.vault().give()).contains("depositPlayer");
+        assertThat(Economies.vaultUnlocked("uxmLib").give()).contains("deposit");
+        assertThat(Economies.playerPoints().give()).contains("give");
+    }
+
+    @Test
+    @DisplayName("an economy whose take is a give of a negative number pays through that same method")
+    void readsTheGiveOffTheNegatingTake() {
+        // EcoBits names no give. adjustBalance is the give, and the take is that method with a sign on it.
+        assertThat(Economies.ecoBits().giveMethod()).isNull();
+        assertThat(Economies.ecoBits().give()).contains("adjustBalance");
+    }
+
+    @Test
+    @DisplayName("a description written before there was a give names none, and cannot be paid into")
+    void readsTheOlderShapeAsAnEconomyThatCannotBePaid() {
+        EconomyBinding older = new EconomyBinding(
+                "Money",
+                "com.example.Money",
+                Access.SERVICE,
+                null,
+                "getBalance",
+                "take",
+                Argument.PLAYER_ID,
+                Answer.BOOLEAN,
+                Pools.one(),
+                Calls.simple());
+
+        assertThat(older.giveMethod()).isNull();
+        assertThat(older.give()).isEmpty();
+        assertThat(older.takeMethod()).isEqualTo("take");
+    }
 }

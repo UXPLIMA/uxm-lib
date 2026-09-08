@@ -47,6 +47,40 @@ final class FakeEconomies {
             balance -= amount;
             return new Response(true);
         }
+
+        public Response depositPlayer(Object player, double amount) {
+            balance += amount;
+            return new Response(true);
+        }
+    }
+
+    /**
+     * A Vault-shaped plugin that can be read and taken from and not paid into, as a plugin that dropped its
+     * deposit in a later version would be.
+     */
+    public static final class TakeOnly {
+
+        private double balance;
+
+        TakeOnly(double balance) {
+            this.balance = balance;
+        }
+
+        double balance() {
+            return balance;
+        }
+
+        public double getBalance(Object player) {
+            return balance;
+        }
+
+        public Response withdrawPlayer(Object player, double amount) {
+            if (amount > balance) {
+                return new Response(false);
+            }
+            balance -= amount;
+            return new Response(true);
+        }
     }
 
     /** What Vault hands back. It is asked one question. */
@@ -85,6 +119,11 @@ final class FakeEconomies {
                 return false;
             }
             points -= amount;
+            return true;
+        }
+
+        public boolean give(UUID player, int amount) {
+            points += amount;
             return true;
         }
     }
@@ -171,6 +210,12 @@ final class FakeEconomies {
             balance = balance.subtract(amount);
             return new Response(true);
         }
+
+        public Response deposit(String pluginName, UUID account, BigDecimal amount) {
+            lastCaller = pluginName;
+            balance = balance.add(amount);
+            return new Response(true);
+        }
     }
 
     /** A plugin that is here but answers to other names, as a renamed later version would. */
@@ -195,6 +240,10 @@ final class FakeEconomies {
         }
 
         public Response withdrawPlayer(Object player, double amount) {
+            throw new IllegalStateException("its own fault");
+        }
+
+        public Response depositPlayer(Object player, double amount) {
             throw new IllegalStateException("its own fault");
         }
     }

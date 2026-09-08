@@ -25,6 +25,9 @@ import org.jspecify.annotations.Nullable;
  *     getInstance.getAPI}
  * @param balanceMethod the method that answers a balance
  * @param takeMethod the method that takes an amount away
+ * @param giveMethod the method that pays an amount in, or {@code null} where this economy has none. An
+ *     economy whose take is a give of a negative number names none: {@link Calls#takeNegates} already says
+ *     which method pays, and naming it twice would let the two drift apart
  * @param argument what the methods want where the player goes
  * @param answer what a take hands back, and how a success is read out of it
  * @param pools whether this economy holds one balance or several, and how one is named
@@ -37,6 +40,7 @@ public record EconomyBinding(
         @Nullable String accessorName,
         String balanceMethod,
         String takeMethod,
+        @Nullable String giveMethod,
         Argument argument,
         Answer answer,
         Pools pools,
@@ -159,6 +163,47 @@ public record EconomyBinding(
          * the balance itself before it calls, and refuses the take before anything moves.
          */
         NOTHING
+    }
+
+    /**
+     * The shape this record had before an economy could be asked to pay out: every field but the give, which
+     * is read as "this economy has none". A description written against the older shape keeps compiling and
+     * keeps its meaning, and a wallet built from it reads a balance and takes exactly as it did.
+     */
+    public EconomyBinding(
+            String pluginName,
+            String providerClass,
+            Access access,
+            @Nullable String accessorName,
+            String balanceMethod,
+            String takeMethod,
+            Argument argument,
+            Answer answer,
+            Pools pools,
+            Calls calls) {
+        this(
+                pluginName,
+                providerClass,
+                access,
+                accessorName,
+                balanceMethod,
+                takeMethod,
+                null,
+                argument,
+                answer,
+                pools,
+                calls);
+    }
+
+    /**
+     * The method that pays an amount in, or empty where this economy cannot be asked to.
+     *
+     * <p>An economy whose take is a give of a negative number pays through that same method with the sign
+     * left off, so it answers here without naming a second method. That is why {@link Calls#takeNegates} is
+     * read first: one name, one method, and no way for a description to say two different things.
+     */
+    public Optional<String> give() {
+        return calls.takeNegates() ? Optional.of(takeMethod) : Optional.ofNullable(giveMethod);
     }
 
     public EconomyBinding {

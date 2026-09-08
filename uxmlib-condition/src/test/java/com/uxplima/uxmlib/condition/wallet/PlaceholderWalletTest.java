@@ -23,6 +23,8 @@ class PlaceholderWalletTest {
     private static final PlaceholderWallet.Pool TOKENS =
             PlaceholderWallet.Pool.of("%tokens_balance%", "tm remove {player} {amount}");
 
+    private static final PlaceholderWallet.Pool PAYING = TOKENS.paying("tm add {player} {amount}");
+
     private final List<String> sent = new ArrayList<>();
 
     private ServerMock server;
@@ -152,6 +154,52 @@ class PlaceholderWalletTest {
 
         assertThat(wallet().withdraw(ada, "", 12.50)).isTrue();
         assertThat(sent).containsExactly("tm remove Ada 12.5");
+    }
+
+    @Test
+    @DisplayName("a pool that names a give line is paid through it, with no balance read first")
+    void paysThroughTheGiveLine() {
+        answer = "0";
+        PlaceholderWallet wallet = new PlaceholderWallet(Map.of("", PAYING), this::read, this::run);
+
+        assertThat(wallet.deposit(ada, "", 12.50)).isTrue();
+        assertThat(sent).containsExactly("tm add Ada 12.5");
+    }
+
+    @Test
+    @DisplayName("a pool that names no give line refuses every payment, and keeps reading and taking")
+    void refusesToPayThroughAPoolWithNoGiveLine() {
+        assertThat(wallet().deposit(ada, "", 5)).isFalse();
+        assertThat(sent).isEmpty();
+        assertThat(wallet().balance(ada, "")).isEqualTo(100);
+        assertThat(wallet().withdraw(ada, "", 5)).isTrue();
+        assertThat(sent).containsExactly("tm remove Ada 5");
+    }
+
+    @Test
+    @DisplayName("a line the server would not take is a payment that did not happen")
+    void readsARefusedLineAsNoPayment() {
+        serverTakesTheLine = false;
+        PlaceholderWallet wallet = new PlaceholderWallet(Map.of("", PAYING), this::read, this::run);
+
+        assertThat(wallet.deposit(ada, "", 5)).isFalse();
+    }
+
+    @Test
+    @DisplayName("nobody is not a player, an unknown currency is not a pool, and a payment of nothing succeeds")
+    void answersForNoPlayerAndForNoAmountOnTheWayIn() {
+        PlaceholderWallet wallet = new PlaceholderWallet(Map.of("", PAYING), this::read, this::run);
+
+        assertThat(wallet.deposit(null, "", 1)).isFalse();
+        assertThat(wallet.deposit(ada, "coins", 1)).isFalse();
+        assertThat(wallet.deposit(ada, "", 0)).isTrue();
+        assertThat(sent).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a pool that names a blank give line is not a pool")
+    void refusesApoolWhoseGiveLineIsBlank() {
+        assertThatThrownBy(() -> TOKENS.paying(" ")).isInstanceOf(IllegalArgumentException.class);
     }
 
     private PlaceholderWallet wallet() {

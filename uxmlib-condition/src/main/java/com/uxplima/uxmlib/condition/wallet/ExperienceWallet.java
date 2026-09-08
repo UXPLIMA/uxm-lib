@@ -164,6 +164,35 @@ public final class ExperienceWallet implements Wallet {
         return true;
     }
 
+    /**
+     * Writes the subject's experience bar, so it runs on the thread that owns them.
+     *
+     * <p>Experience is counted in an {@code int}, so an amount that would take the player past what an
+     * {@code int} holds cannot be paid and is refused whole rather than capped. Capping would pay a player
+     * less than they earned and say it worked, which is the one answer a wage may never give.
+     */
+    @Override
+    public boolean deposit(@Nullable Player player, String currency, double amount) {
+        Objects.requireNonNull(currency, "currency");
+        if (amount <= 0) {
+            return true;
+        }
+        Unit unit = pools.get(currency);
+        if (unit == null || player == null || !player.isOnline()) {
+            return false;
+        }
+        int wanted = whole(amount);
+        if (wanted == NOT_WHOLE) {
+            return false;
+        }
+        int has = unit.heldBy(player);
+        if (wanted > Integer.MAX_VALUE - has) {
+            return false;
+        }
+        unit.leaveHolding(player, has + wanted);
+        return true;
+    }
+
     /** {@code amount} as the whole number experience is counted in, or {@link #NOT_WHOLE}. */
     private static int whole(double amount) {
         if (!Double.isFinite(amount)) {

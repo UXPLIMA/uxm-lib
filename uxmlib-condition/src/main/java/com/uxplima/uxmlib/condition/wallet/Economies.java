@@ -29,6 +29,7 @@ public final class Economies {
                 null,
                 "getBalance",
                 "withdrawPlayer",
+                "depositPlayer",
                 Argument.OFFLINE_PLAYER,
                 Answer.VAULT_RESPONSE,
                 Pools.one(),
@@ -46,6 +47,9 @@ public final class Economies {
      * <p>A named currency of a VaultUnlocked economy is not described here, because those methods want a
      * world name as well and a world is not a thing a wallet has an opinion about.
      *
+     * <p>Its pay-out is {@code deposit}, the mirror of the {@code withdraw} above, and it asks who is moving
+     * the money in the same place.
+     *
      * @param caller what the calling plugin calls itself, which VaultUnlocked records against the move
      */
     public static EconomyBinding vaultUnlocked(String caller) {
@@ -60,13 +64,19 @@ public final class Economies {
                 null,
                 "getBalance",
                 "withdraw",
+                "deposit",
                 Argument.PLAYER_ID,
                 Answer.VAULT_RESPONSE,
                 Pools.one(),
                 new Calls(false, caller));
     }
 
-    /** PlayerPoints, whose API sits behind two static hops. Whole numbers, and a plain boolean back. */
+    /**
+     * PlayerPoints, whose API sits behind two static hops. Whole numbers, and a plain boolean back.
+     *
+     * <p>Its three methods are {@code look}, {@code take} and {@code give}, which is as plain as the shape
+     * gets.
+     */
     public static EconomyBinding playerPoints() {
         return new EconomyBinding(
                 "PlayerPoints",
@@ -75,6 +85,7 @@ public final class Economies {
                 "getInstance.getAPI",
                 "look",
                 "take",
+                "give",
                 Argument.PLAYER_ID,
                 Answer.BOOLEAN,
                 Pools.one(),
@@ -91,6 +102,9 @@ public final class Economies {
      *
      * <p>Because that take cannot refuse, {@link BridgedWallet} reads the balance first and refuses the
      * whole cost before anything moves. See {@link Answer#NOTHING}.
+     *
+     * <p>It names no give, and it has one: {@code adjustBalance} with the sign left off. {@link
+     * EconomyBinding#give()} reads that off {@link Calls#takeNegates} rather than from a second name here.
      */
     public static EconomyBinding ecoBits() {
         return new EconomyBinding(
@@ -100,6 +114,7 @@ public final class Economies {
                 null,
                 "getBalance",
                 "adjustBalance",
+                null,
                 Argument.OFFLINE_PLAYER,
                 Answer.NOTHING,
                 Pools.byObject("com.willfp.ecobits.currencies.Currencies", "getByID"),
