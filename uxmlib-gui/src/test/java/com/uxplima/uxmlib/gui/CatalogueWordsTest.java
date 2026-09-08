@@ -216,6 +216,49 @@ class CatalogueWordsTest {
                 .isEqualTo("12 coins");
     }
 
+    // -- a value named after a colour role --------------------------------------------------------------------
+
+    /**
+     * The defect this closes. {@code level} is a role of {@code theme.defaults()} and it is also what anybody
+     * would call a level number. The style pass ran over the written line first, painted the token and consumed
+     * it, and the row's value then met nothing to fill: the number was gone and the sentence still read like a
+     * sentence. A written line is styled here, with the row's values already in hand, so the value wins.
+     */
+    @Test
+    @DisplayName("a value beats a colour role of the same name on a written line")
+    void aValueBeatsAColourRoleOfTheSameName() {
+        assertThat(plain(words.renderFor(viewer, "Level <level> of 100", Map.of("level", "7"))))
+                .isEqualTo("Level 7 of 100");
+    }
+
+    /** A line nobody supplies that name for is painted with the role, exactly as it always was. */
+    @Test
+    @DisplayName("a role token nobody claimed is still a colour")
+    void aRoleTokenNobodyClaimedIsStillAColour() {
+        Component drawn = words.renderFor(viewer, "<level>Rank I", Map.of());
+
+        assertThat(plain(drawn)).isEqualTo("Rank I");
+        assertThat(colourOf(drawn, "Rank")).isEqualTo(NamedTextColor.LIGHT_PURPLE);
+    }
+
+    /** A line that closes the token is painting with the role, whatever the row happens to answer for. */
+    @Test
+    @DisplayName("a role the line closes stays a colour even when the row answers that name")
+    void aClosedRoleStaysAColour() {
+        Component drawn = words.renderFor(viewer, "<level>Rank I</level>", Map.of("level", "7"));
+
+        assertThat(plain(drawn)).isEqualTo("Rank I");
+        assertThat(colourOf(drawn, "Rank")).isEqualTo(NamedTextColor.LIGHT_PURPLE);
+    }
+
+    /** A token that is neither a role nor a value is written out, so a mistake is on the screen to be seen. */
+    @Test
+    @DisplayName("a token nobody answers reaches the client as the characters somebody typed")
+    void aTokenNobodyAnswersReachesTheClient() {
+        assertThat(plain(words.renderFor(viewer, "Level <skill_level> of 100", Map.of("level", "7"))))
+                .isEqualTo("Level <skill_level> of 100");
+    }
+
     // -- a fact that is a state -------------------------------------------------------------------------------
 
     /** The baseline the state mark exists to change: a plain fact reads in the value colour, whatever it says. */

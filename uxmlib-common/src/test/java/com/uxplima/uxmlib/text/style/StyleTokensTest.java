@@ -270,4 +270,59 @@ class StyleTokensTest {
         assertThat(Text.serialize(StyleTokens.paint(theme, Component.text("SHOP"), 3)))
                 .isEqualTo(Text.serialize(StyleTokens.header(theme, Component.text("SHOP"))));
     }
+
+    // -- a name that is both a colour role and a value ---------------------------------------------------------
+
+    /**
+     * The root defect of the week, and the one this overload exists for. {@code level} is a role of
+     * {@code theme.conf} and it is also what anybody would call a level number. The colour pass ran first,
+     * painted the token and consumed it, the value resolver then met nothing to fill, and the line still read
+     * like a line: {@code ʟᴇᴠᴇʟ  ᴏꜰ 100}. uxmSkills lost seven lines that way and uxmMinions twenty.
+     */
+    @Test
+    void aSuppliedValueBeatsAColourRoleOfTheSameName() {
+        String written = "Level <level> of 100";
+
+        assertThat(StyleTokens.expand(written, theme, false, "level"::equals)).isEqualTo(written);
+    }
+
+    /** What the same line did, and still does when nobody says the name carries a value. */
+    @Test
+    void aRoleTokenNobodyClaimedIsPaintedAsItAlwaysWas() {
+        assertThat(StyleTokens.expand("Level <level> of 100", theme, false)).isEqualTo("Level <color:#ff55ff> of 100");
+    }
+
+    /**
+     * A line that closes the token is painting with the role, whatever a caller happens to be supplying. A
+     * value that is inserted has nothing to close, so the pair is the shape that is never ambiguous.
+     */
+    @Test
+    void aRoleTheLineClosesIsAColourEvenWhenAValueOfThatNameIsSupplied() {
+        assertThat(StyleTokens.expand("<value>50</value>", theme, false, name -> true))
+                .isEqualTo("<color:#ffff55>50</color>");
+    }
+
+    /**
+     * The third case, and the one that must never be silent either: a token that is neither a role of the theme
+     * nor a value anybody supplies is left exactly as it was written, so MiniMessage hands the characters to the
+     * client and the mistake is on the screen where somebody can see it.
+     */
+    @Test
+    void aTokenThatIsNeitherARoleNorAValueSurvivesToTheClient() {
+        String written = "Level <skill_level> of 100";
+
+        String styled = StyleTokens.expand(written, theme, false, "level"::equals);
+
+        assertThat(styled).isEqualTo(written);
+        assertThat(Text.plain(Text.mini(styled))).isEqualTo("Level <skill_level> of 100");
+    }
+
+    @Test
+    void theValueShapedRolesAreTheOpenOnesAndNotThePairedOnes() {
+        assertThat(StyleTokens.valueShapedRoles("Level <level> of <value>100</value>", theme))
+                .containsExactly("level");
+        assertThat(StyleTokens.valueShapedRoles("<body>plain words", theme)).containsExactly("body");
+        assertThat(StyleTokens.valueShapedRoles("<not_a_role> <b>bold</b>", theme))
+                .isEmpty();
+    }
 }

@@ -81,4 +81,77 @@ class StylerTest {
         assertThat(styler.theme().hex("body")).isEqualTo("#ff0000");
         assertThat(styler.apply("<body>Welcome", Locale.ENGLISH)).isEqualTo("<color:#ff0000>ᴡᴇʟᴄᴏᴍᴇ");
     }
+
+    // -- a name that is both a colour role and a value ---------------------------------------------------------
+
+    private static final MessageKey TILE = MessageKey.of("skill.tile", "Level <level> of 100");
+
+    /**
+     * A catalogue is styled once when the plugin loads, and no value exists then, so this is the only place a
+     * plugin can say that {@code level} is its level number rather than the colour role of the same name.
+     */
+    @Test
+    void aCatalogueMayNameTheValuesItSupplies() {
+        Styler styler = new Styler(Theme.defaults());
+        Map<Locale, Map<String, String>> files = Map.of();
+        MessageCatalog source = new MessageCatalog(files, Locale.ENGLISH);
+
+        MessageCatalog styled = styler.style(source, List.of(TILE), files, Locale.ENGLISH, "level"::equals);
+
+        assertThat(styled.template(TILE, Locale.ENGLISH)).isEqualTo("Level <level> of 100");
+        assertThat(styled.shadowedRoles("skill.tile")).isEmpty();
+    }
+
+    /**
+     * A plugin that says nothing keeps the pass it always had, and the pass writes down what it ate. That note
+     * is what lets the facade rendering the line say the two collided rather than the number simply not being
+     * there.
+     */
+    @Test
+    void aCatalogueThatNamesNothingRecordsWhatThePassAte() {
+        Styler styler = new Styler(Theme.defaults());
+        Map<Locale, Map<String, String>> files = Map.of();
+        MessageCatalog source = new MessageCatalog(files, Locale.ENGLISH);
+
+        MessageCatalog styled = styler.style(source, List.of(TILE), files, Locale.ENGLISH);
+
+        assertThat(styled.template(TILE, Locale.ENGLISH)).isEqualTo("Level <color:#ff55ff> of 100");
+        assertThat(styled.shadowedRoles("skill.tile")).containsExactly("level");
+    }
+
+    /** A line a translator wrote the token into in one language is the line that will be wrong in that language. */
+    @Test
+    void aTokenAnyLanguageWritesIsRecordedForThatPath() {
+        Styler styler = new Styler(Theme.defaults());
+        MessageKey plain = MessageKey.of("skill.tile", "no token here");
+        Map<Locale, Map<String, String>> files = Map.of(Locale.of("tr"), Map.of("skill.tile", "Seviye <level> / 100"));
+        MessageCatalog source = new MessageCatalog(files, Locale.ENGLISH);
+
+        MessageCatalog styled = styler.style(source, List.of(plain), files, Locale.ENGLISH);
+
+        assertThat(styled.shadowedRoles("skill.tile")).containsExactly("level");
+    }
+
+    /** A line that paints with a role has collided with nothing, so nothing is written down for it. */
+    @Test
+    void aPairedRoleTokenIsNotRecordedAsShadowed() {
+        Styler styler = new Styler(Theme.defaults());
+        MessageKey paired = MessageKey.of("shop.price", "<value>50</value> coins");
+        Map<Locale, Map<String, String>> files = Map.of();
+        MessageCatalog source = new MessageCatalog(files, Locale.ENGLISH);
+
+        MessageCatalog styled = styler.style(source, List.of(paired), files, Locale.ENGLISH);
+
+        assertThat(styled.shadowedRoles("shop.price")).isEmpty();
+    }
+
+    /** The render-time pass has both halves in hand, so there is no reason to lose one and it does not. */
+    @Test
+    void aWrittenLineLetsTheValueWinBecauseBothHalvesAreInHand() {
+        Styler styler = new Styler(Theme.defaults());
+
+        assertThat(styler.apply("Level <level> of 100", Locale.ENGLISH, "level"::equals))
+                .isEqualTo("Level <level> of 100");
+        assertThat(styler.apply("Level <level> of 100", Locale.ENGLISH)).isEqualTo("Level <color:#ff55ff> of 100");
+    }
 }

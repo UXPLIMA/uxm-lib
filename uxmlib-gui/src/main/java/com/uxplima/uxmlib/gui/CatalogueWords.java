@@ -41,6 +41,12 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A value of a row goes in as a placeholder and never as text. A player who named their item
  * {@code <red>} sees those characters on the tile: they do not repaint it.
+ *
+ * <p>A value beats a colour role of the same name. {@code <level>} is a role of {@code theme.conf} and it is
+ * also what anybody would call a level number, and the style pass used to paint the token and consume it, so
+ * the number was simply not there and the sentence still read like one. A written line is styled here, with the
+ * row's values already in hand, so the value wins. A catalogue line is styled once when the plugin loads, where
+ * no value exists yet, and {@link Messages} says so in the log instead.
  */
 public final class CatalogueWords implements GuiText {
 
@@ -130,7 +136,11 @@ public final class CatalogueWords implements GuiText {
         if (MenuTiles.marks(raw)) {
             return tiles.lore(viewer, raw, named);
         }
-        return Text.mini(styler.apply(raw, messages.localeOf(viewer)), named);
+        // The values go into the style pass as well as into the parse. A written line is styled here, with the
+        // row's values already in hand, so a token named after a colour role does not have to be lost: a name
+        // the row answers is left in the line for the value rather than painted and eaten. That is the collision
+        // that cost the estate twenty seven lines, and this is the road where it costs nothing to win.
+        return Text.mini(styler.apply(raw, messages.localeOf(viewer), named::has), named);
     }
 
     private Locale defaultLocale() {

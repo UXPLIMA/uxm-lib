@@ -5,6 +5,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 
@@ -19,14 +20,16 @@ import org.jspecify.annotations.Nullable;
  *   <li>the key's own {@link MessageKey#defaultTemplate()}.
  * </ol>
  *
- * <p>The catalog is pure: it holds an immutable per-locale map of {@code path -> template} and a default
- * locale, so its fallback logic is unit-testable with no server. Loading those maps from one HOCON file per
+ * <p>The catalog is pure: it holds an immutable per-locale map of {@code path -> template}, a default locale,
+ * and, for a catalog the style pass built, the colour roles that pass consumed at each path; so its fallback
+ * logic is unit-testable with no server. Loading those maps from one HOCON file per
  * locale lives in {@link MessageCatalogLoader}, which keeps this class within its size cap.
  */
 public final class MessageCatalog {
 
     private final Map<Locale, Map<String, String>> templatesByLocale;
     private final Locale defaultLocale;
+    private final Map<String, Set<String>> shadowedRoles;
 
     /**
      * @param templatesByLocale a map from locale to that locale's {@code path -> template} entries; copied
@@ -34,10 +37,45 @@ public final class MessageCatalog {
      * @param defaultLocale the locale tried after the viewer's own, before a key's built-in default
      */
     public MessageCatalog(Map<Locale, Map<String, String>> templatesByLocale, Locale defaultLocale) {
+        this(templatesByLocale, defaultLocale, Map.of());
+    }
+
+    /**
+     * The same, carrying what the style pass ate on the way in.
+     *
+     * @param shadowedRoles for each path, the colour roles the style pass consumed that a value could have been
+     *     meant by: a bare {@code <level>} in a line, where {@code level} is a role of {@code theme.conf}. The
+     *     catalogue holds them and reads none of them. Whoever renders a line holds the other half, the values a
+     *     caller supplies, and can then say that the two collided instead of the number simply vanishing.
+     */
+    public MessageCatalog(
+            Map<Locale, Map<String, String>> templatesByLocale,
+            Locale defaultLocale,
+            Map<String, Set<String>> shadowedRoles) {
         Objects.requireNonNull(templatesByLocale, "templatesByLocale");
         Objects.requireNonNull(defaultLocale, "defaultLocale");
+        Objects.requireNonNull(shadowedRoles, "shadowedRoles");
         this.templatesByLocale = copy(templatesByLocale);
         this.defaultLocale = defaultLocale;
+        this.shadowedRoles = copyRoles(shadowedRoles);
+    }
+
+    private static Map<String, Set<String>> copyRoles(Map<String, Set<String>> source) {
+        Map<String, Set<String>> result = new HashMap<>();
+        for (var entry : source.entrySet()) {
+            Objects.requireNonNull(entry.getKey(), "path");
+            result.put(entry.getKey(), Set.copyOf(entry.getValue()));
+        }
+        return Map.copyOf(result);
+    }
+
+    /**
+     * The colour roles the style pass consumed at {@code path} that a value could have been meant by, empty for a
+     * catalogue nobody styled and for every path that wrote no such token.
+     */
+    public Set<String> shadowedRoles(String path) {
+        Objects.requireNonNull(path, "path");
+        return shadowedRoles.getOrDefault(path, Set.of());
     }
 
     private static Map<Locale, Map<String, String>> copy(Map<Locale, Map<String, String>> source) {

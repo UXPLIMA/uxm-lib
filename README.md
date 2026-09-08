@@ -360,6 +360,17 @@ library that wrote your English in small capitals by itself would repaint a plug
 colours. `StyleTokens` then turns `<accent>`/`<value>` into the
 theme's colours and `<tag:'HOME'>` into a bold category prefix. Both run once at load, not per message.
 
+A role and a value share one namespace, and one name will always be both: `level` is a job a colour does and
+it is also what anybody calls a level number. **A value that was supplied wins.** Where the pass runs at
+render time (a written menu line, a tile) `CatalogueWords` hands it the row's values, so a bare `<level>` is
+left for the value rather than painted and eaten. A line that closes the token, `<value>50</value>`, is
+painting with the role and keeps it, because a value that is inserted has nothing to close. A catalogue is
+styled once at load, where no value exists yet: name your own value names to
+`styler.style(catalog, keys, files, locale, "level"::equals)` and the pass leaves them alone; say nothing and
+`Messages` reports the collision at ERROR on the first render, naming the line and the token, instead of the
+number quietly not being there. A token that is neither a role nor a value reaches the client as the
+characters somebody typed, so a mistake is on the screen. See `docs/adr/0001`.
+
 A value is inserted after that pass and is never converted, because a name, a nickname and a world are what
 a player wrote. When a value is the interface talking instead (the name of an item, the word for a state),
 write `<caps>…</caps>` around it and it is converted at render:

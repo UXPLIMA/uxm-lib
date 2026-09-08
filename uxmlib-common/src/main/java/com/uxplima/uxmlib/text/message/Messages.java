@@ -4,6 +4,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
@@ -41,6 +43,14 @@ public final class Messages {
      * {@code join.welcome} takes its subtitle from {@code join.welcome.subtitle}.
      */
     public static final String SUBTITLE_SUFFIX = ".subtitle";
+
+    private static final System.Logger LOG = System.getLogger(Messages.class.getName());
+
+    /**
+     * The collisions already reported, as {@code path/role}. A defect is worth saying once: a line that draws on
+     * every tile of a menu would otherwise write the same paragraph into the log sixty times a second.
+     */
+    private final Set<String> reportedCollisions = ConcurrentHashMap.newKeySet();
 
     private volatile Content content;
 
@@ -135,9 +145,58 @@ public final class Messages {
         return content.catalog();
     }
 
-    private static Component render(Content snapshot, Audience viewer, MessageKey key, TagResolver[] resolvers) {
+    private Component render(Content snapshot, Audience viewer, MessageKey key, TagResolver[] resolvers) {
         Locale locale = snapshot.locales().localeOf(viewer);
-        return parse(snapshot, snapshot.catalog().template(key, locale), resolvers);
+        return parse(snapshot, key.path(), snapshot.catalog().template(key, locale), resolvers);
+    }
+
+    /**
+     * Say so when a value a caller supplied cannot reach the line it was meant for.
+     *
+     * <p>{@code <level>} is a colour role in {@code theme.conf} and it is also the natural name for a level
+     * number. The style pass runs once when the plugin loads, long before any value exists, so it paints the
+     * token and consumes it; the resolver then meets nothing to fill and the sentence still reads like a
+     * sentence: {@code Level  of 100}. Nothing threw. uxmSkills lost seven lines that way and uxmMinions twenty,
+     * and both were found by a person looking at a screen.
+     *
+     * <p>So the pass writes down which role tokens it ate that a value could have been meant by, and this is the
+     * one place that holds those and the values a caller actually supplies at the same time. It cannot make the
+     * value win, because the painting happened at load and the line no longer says {@code level}; what it can do
+     * is refuse to let it be silent. Rename the value, rename the role, or name the value to
+     * {@link com.uxplima.uxmlib.text.style.Styler#style(MessageCatalog, Iterable, java.util.Map, Locale,
+     * java.util.function.Predicate)} and the pass will leave the token for it.
+     *
+     * <p>Only the caller's own resolvers are asked. The base resolver is the house style, and a house tag that
+     * shares a name with a role is the house's business.
+     */
+    private void reportShadowed(Content snapshot, String path, TagResolver[] resolvers) {
+        if (resolvers.length == 0) {
+            return;
+        }
+        Set<String> shadowed = snapshot.catalog().shadowedRoles(path);
+        if (shadowed.isEmpty()) {
+            return;
+        }
+        for (String role : shadowed) {
+            if (supplies(resolvers, role) && reportedCollisions.add(path + '/' + role)) {
+                LOG.log(
+                        System.Logger.Level.ERROR,
+                        "The catalogue line at '" + path + "' writes <" + role + ">, which theme.conf owns as a"
+                                + " colour role. The style pass painted it when the plugin loaded, so the value"
+                                + " named '" + role + "' cannot reach that line and the line renders without it."
+                                + " Rename the value, rename the role, or name the value to Styler.style so the"
+                                + " pass leaves the token alone.");
+            }
+        }
+    }
+
+    private static boolean supplies(TagResolver[] resolvers, String role) {
+        for (TagResolver resolver : resolvers) {
+            if (resolver.has(role)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -153,7 +212,7 @@ public final class Messages {
      * render time: one language's file missing a subtitle must not decide anything for the languages whose
      * files are complete.
      */
-    private static void showTitle(
+    private void showTitle(
             Content snapshot, Audience viewer, MessageKey key, Message.TitleText title, TagResolver[] resolvers) {
         MessageKey subtitleKey = subtitleKeyOf(key, title);
         Locale locale = snapshot.locales().localeOf(viewer);
@@ -162,11 +221,14 @@ public final class Messages {
                 || showFrom(snapshot, viewer, fallback, key, subtitleKey, title, resolvers)) {
             return;
         }
-        title.send(viewer, parse(snapshot, title.template(), resolvers), parse(snapshot, title.subtitle(), resolvers));
+        title.send(
+                viewer,
+                parse(snapshot, key.path(), title.template(), resolvers),
+                parse(snapshot, subtitleKey.path(), title.subtitle(), resolvers));
     }
 
     /** Show the title from {@code locale}'s own lang file, or report that it does not hold both halves. */
-    private static boolean showFrom(
+    private boolean showFrom(
             Content snapshot,
             Audience viewer,
             Locale locale,
@@ -179,7 +241,10 @@ public final class Messages {
         if (text.isEmpty() || subtitle.isEmpty()) {
             return false;
         }
-        title.send(viewer, parse(snapshot, text.get(), resolvers), parse(snapshot, subtitle.get(), resolvers));
+        title.send(
+                viewer,
+                parse(snapshot, key.path(), text.get(), resolvers),
+                parse(snapshot, subtitleKey.path(), subtitle.get(), resolvers));
         return true;
     }
 
@@ -188,7 +253,8 @@ public final class Messages {
      * it is handed the final say, so the base goes in first and a call site's {@code <name>} beats a house
      * {@code <name>} rather than being shadowed by it.
      */
-    private static Component parse(Content snapshot, String template, TagResolver[] resolvers) {
+    private Component parse(Content snapshot, String path, String template, TagResolver[] resolvers) {
+        reportShadowed(snapshot, path, resolvers);
         if (resolvers.length == 0) {
             return Text.mini(template, snapshot.base());
         }

@@ -1,8 +1,11 @@
 package com.uxplima.uxmlib.text.style;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -68,9 +71,74 @@ public final class StyleTokens {
      *     separator with nothing in front of it
      */
     public static String expand(String template, Theme theme, boolean smallCaps) {
+        return expand(template, theme, smallCaps, name -> false);
+    }
+
+    /**
+     * The same, told which names carry a value the caller is going to supply.
+     *
+     * <p>This is the answer to a collision that cost the estate twenty seven lines in one week. {@code <level>}
+     * is a colour role in {@code theme.conf} and it is also the natural name for a level number. The colour pass
+     * ran first, painted the token and consumed it, the value resolver then met nothing to fill, and the sentence
+     * still read like a sentence: {@code Level  of 100}. Nothing threw, nothing logged, and no test that reads a
+     * file could see it, because a token eaten by a role is a valid tag in a valid line.
+     *
+     * <p>A name this predicate answers for is left in the template for the value, on one condition: the template
+     * must never close it. {@code <value>50</value>} is a colour and nothing else, because a value that is
+     * inserted has nothing to close; a bare {@code <level>} with no {@code </level>} anywhere in the line is the
+     * shape a value is written in. So a template that paints with a role keeps painting with it even when a
+     * caller happens to supply the same name, and only the ambiguous shape yields.
+     *
+     * <p>A name that is neither a role of the theme nor supplied is left alone here as it always was, and
+     * MiniMessage writes it out as the characters an operator typed. It is then visible on the screen, which is
+     * the point: a token nobody answers has to look wrong.
+     *
+     * @param supplied answers true for a name the caller will resolve as a value at render time
+     */
+    public static String expand(String template, Theme theme, boolean smallCaps, Predicate<String> supplied) {
         Objects.requireNonNull(template, "template");
         Objects.requireNonNull(theme, "theme");
-        return colours(labels(template, theme, smallCaps), theme);
+        Objects.requireNonNull(supplied, "supplied");
+        return colours(labels(template, theme, smallCaps), theme, supplied);
+    }
+
+    /**
+     * The role tokens of {@code template} that a value could have been meant by: named by the theme, opened in
+     * the template, and closed nowhere in it.
+     *
+     * <p>It is what makes the collision reportable rather than silent where it cannot be avoided. A catalogue is
+     * styled once when the plugin loads, and no value exists yet at that moment, so the pass cannot know that a
+     * caller is about to supply {@code level}. Recording which names were open to that reading lets whoever holds
+     * both halves at render time say so, and name the line.
+     *
+     * <p>A paired token is not in this set. {@code <value>50</value>} is a colour under any reading, and a caller
+     * that also supplies a value called {@code value} has collided with nothing.
+     */
+    public static Set<String> valueShapedRoles(String template, Theme theme) {
+        Objects.requireNonNull(template, "template");
+        Objects.requireNonNull(theme, "theme");
+        Set<String> closed = closedIn(template);
+        Set<String> open = new LinkedHashSet<>();
+        Matcher matcher = COLOUR.matcher(template);
+        while (matcher.find()) {
+            String role = matcher.group(1);
+            if (matcher.group().charAt(1) != '/' && theme.hasColour(role) && !closed.contains(role)) {
+                open.add(role);
+            }
+        }
+        return open;
+    }
+
+    /** Every name {@code template} writes a closing tag for, whether or not the theme knows it. */
+    private static Set<String> closedIn(String template) {
+        Set<String> closed = new LinkedHashSet<>();
+        Matcher matcher = COLOUR.matcher(template);
+        while (matcher.find()) {
+            if (matcher.group().charAt(1) == '/') {
+                closed.add(matcher.group(1));
+            }
+        }
+        return closed;
     }
 
     private static String labels(String template, Theme theme, boolean smallCaps) {
@@ -276,7 +344,8 @@ public final class StyleTokens {
         return "<b><color:" + hex + ">" + text + "</color></b>";
     }
 
-    private static String colours(String template, Theme theme) {
+    private static String colours(String template, Theme theme, Predicate<String> supplied) {
+        Set<String> spared = spared(template, theme, supplied);
         Matcher matcher = COLOUR.matcher(template);
         StringBuilder out = new StringBuilder();
         while (matcher.find()) {
@@ -284,12 +353,35 @@ public final class StyleTokens {
             if (!theme.hasColour(role)) {
                 continue; // not a role of this theme, so it is somebody else's tag and is left alone
             }
+            if (spared.contains(role)) {
+                continue; // a value was supplied under this name, and the value wins
+            }
             boolean closing = matcher.group().charAt(1) == '/';
             String replacement = closing ? "</color>" : "<color:" + theme.hex(role) + ">";
             matcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
         }
         matcher.appendTail(out);
         return out.toString();
+    }
+
+    /**
+     * The roles this pass leaves for a value: the value-shaped ones the caller says it will supply.
+     *
+     * <p>Nothing is walked when the caller supplies nothing, which is every call the library made before this
+     * existed and most of the calls it makes now.
+     */
+    private static Set<String> spared(String template, Theme theme, Predicate<String> supplied) {
+        Set<String> shaped = valueShapedRoles(template, theme);
+        if (shaped.isEmpty()) {
+            return Set.of();
+        }
+        Set<String> spared = new LinkedHashSet<>();
+        for (String role : shaped) {
+            if (supplied.test(role)) {
+                spared.add(role);
+            }
+        }
+        return spared;
     }
 
     /** The first alternative the regex actually matched; the others are null by construction. */
