@@ -37,12 +37,21 @@ public final class ParamResolvers {
         return new ParamResolvers();
     }
 
-    /** A registry pre-loaded with the built-in resolvers (primitives, player, world, material, enum, uuid). */
+    /**
+     * A registry pre-loaded with the built-in resolvers (primitives, player, world, material, enum, uuid) and
+     * with the suggestion sources every consumer would otherwise write for itself.
+     *
+     * <p>{@link PlayerNames} is registered under {@link PlayerNames#KEY} so an argument that takes a player by
+     * name rather than by {@code Player} can suggest without each plugin carrying the same eight lines. A
+     * {@code String} argument suggests nothing on its own, and twenty five of ours across five plugins were
+     * typed blind until 2026-09-08.
+     */
     public static ParamResolvers withDefaults() {
         ParamResolvers resolvers = new ParamResolvers();
         BuiltinResolvers.installInto(resolvers);
         CollectionResolvers.installInto(resolvers);
         ContextParameters.installInto(resolvers);
+        resolvers.suggestions(PlayerNames.KEY, new PlayerNames());
         return resolvers;
     }
 
