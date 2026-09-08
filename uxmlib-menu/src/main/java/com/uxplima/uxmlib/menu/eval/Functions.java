@@ -12,7 +12,13 @@ import java.util.function.DoubleUnaryOperator;
  */
 final class Functions {
 
-    private static final Set<String> NAMES = Set.of("min", "max", "abs", "floor", "ceil", "round", "sqrt");
+    /**
+     * The sandbox's arithmetic. {@code sin}, {@code cos} and {@code tau} joined it on 2026-09-08 so a motion
+     * can be written in a file: a circle is a sine and a cosine of the same turn, and without them the only
+     * curves an operator could have were the ones somebody had already compiled in.
+     */
+    private static final Set<String> NAMES =
+            Set.of("min", "max", "abs", "floor", "ceil", "round", "sqrt", "sin", "cos", "tau", "pi");
 
     private Functions() {}
 
@@ -28,6 +34,10 @@ final class Functions {
             case "floor" -> unary(name, args, Math::floor);
             case "ceil" -> unary(name, args, Math::ceil);
             case "round" -> unary(name, args, x -> (double) Math.round(x));
+            case "sin" -> unary(name, args, Math::sin);
+            case "cos" -> unary(name, args, Math::cos);
+            case "tau" -> constant(name, args, Math.TAU);
+            case "pi" -> constant(name, args, Math.PI);
             case "sqrt" -> sqrt(args);
             default -> throw new ExpressionException("unknown function: " + name);
         };
@@ -42,6 +52,14 @@ final class Functions {
             acc = op.applyAsDouble(acc, args.get(i));
         }
         return acc;
+    }
+
+    /** A constant written like a call, {@code tau()}, so the grammar stays one shape. */
+    private static double constant(String name, List<Double> args, double value) throws ExpressionException {
+        if (!args.isEmpty()) {
+            throw new ExpressionException(name + " takes no arguments");
+        }
+        return value;
     }
 
     private static double unary(String name, List<Double> args, DoubleUnaryOperator op) throws ExpressionException {

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.within;
 
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -14,6 +15,46 @@ import org.junit.jupiter.api.Test;
  * rather than a crash or a runaway evaluation.
  */
 class ExpressionsTest {
+
+    /**
+     * A motion is written about the turn it is at, so an expression has to be able to name one.
+     *
+     * <p>The sandbox knew functions and literals and nothing else, which is enough for a menu deciding a page
+     * count and not enough for an animation file: without a name for the turn, the only curves an operator
+     * could have were the ones somebody had already compiled in. uxmCrates shipped five and no way to write a
+     * sixth, which the owner asked about on 2026-09-08.
+     */
+    @Test
+    @DisplayName("an expression can name a number the caller supplies")
+    void aNamedNumberIsInScope() throws ExpressionException {
+        assertThat(Expressions.evaluateNumber("t * 2", java.util.Map.of("t", 3d)))
+                .isEqualTo(6d);
+    }
+
+    @Test
+    @DisplayName("a circle can be written, which is what the trigonometry is for")
+    void aCircleCanBeWritten() throws ExpressionException {
+        double x = Expressions.evaluateNumber("cos(t * tau()) * r", java.util.Map.of("t", 0d, "r", 2d));
+        double z = Expressions.evaluateNumber("sin(t * tau()) * r", java.util.Map.of("t", 0d, "r", 2d));
+
+        assertThat(x).isCloseTo(2d, within(1e-9));
+        assertThat(z).isCloseTo(0d, within(1e-9));
+    }
+
+    @Test
+    @DisplayName("a quarter turn puts the point where a quarter turn should")
+    void aQuarterTurn() throws ExpressionException {
+        double x = Expressions.evaluateNumber("cos(t * tau())", java.util.Map.of("t", 0.25d));
+
+        assertThat(x).isCloseTo(0d, within(1e-9));
+    }
+
+    @Test
+    @DisplayName("a name nothing supplies is still an unknown identifier")
+    void anUnsuppliedNameIsRefused() {
+        assertThatExceptionOfType(ExpressionException.class)
+                .isThrownBy(() -> Expressions.evaluateNumber("q * 2", java.util.Map.of("t", 1d)));
+    }
 
     @Test
     void arithmeticPrecedenceAndParentheses() throws ExpressionException {

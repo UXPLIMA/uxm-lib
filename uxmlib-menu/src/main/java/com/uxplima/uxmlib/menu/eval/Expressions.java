@@ -1,5 +1,6 @@
 package com.uxplima.uxmlib.menu.eval;
 
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -16,6 +17,28 @@ public final class Expressions {
     private static final int MAX_LENGTH = 1024;
 
     private Expressions() {}
+
+    /**
+     * Evaluate with named numbers in scope, so an expression can be written about something.
+     *
+     * <p>The sandbox knew functions and literals and nothing else, which is enough for a menu deciding a page
+     * count and not enough for a file describing a motion: a circle is written about the turn it is at. The
+     * <p>A name is resolved as a token and never substituted into the text first. Substitution looks simpler
+     * and is wrong: replacing {@code t} with its value in {@code cos(t * tau())} rewrites the {@code t} of
+     * {@code tau} too, and the expression stops parsing. It failed on the first circle anybody wrote.
+     */
+    public static double evaluateNumber(String expression, Map<String, Double> named) throws ExpressionException {
+        Objects.requireNonNull(expression, "expression");
+        Objects.requireNonNull(named, "named");
+        if (expression.length() > MAX_LENGTH) {
+            throw new ExpressionException("expression exceeds the maximum length of " + MAX_LENGTH);
+        }
+        Object value = new Parser(new Lexer(expression).tokenize(), named).parse();
+        if (value instanceof Double number) {
+            return number;
+        }
+        throw new ExpressionException("expression did not evaluate to a number");
+    }
 
     /** Evaluate {@code expression} to a finite number, or throw if it is malformed or does not yield a number. */
     public static double evaluateNumber(String expression) throws ExpressionException {

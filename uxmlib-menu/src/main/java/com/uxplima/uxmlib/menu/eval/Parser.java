@@ -2,6 +2,7 @@ package com.uxplima.uxmlib.menu.eval;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.jspecify.annotations.Nullable;
 
@@ -18,12 +19,26 @@ final class Parser {
 
     private final List<Token> tokens;
 
+    /**
+     * Numbers the caller put in scope, looked up when an identifier is neither a keyword nor a function.
+     *
+     * <p>They are resolved here rather than substituted into the text before the parse. Substitution looks
+     * simpler and is wrong: replacing {@code t} with its value in {@code cos(t * tau())} rewrites the
+     * {@code t} of {@code tau} as well, and the expression stops parsing. A name is a token or it is nothing.
+     */
+    private final Map<String, Double> named;
+
     private int index;
 
     private int depth;
 
     Parser(List<Token> tokens) {
+        this(tokens, Map.of());
+    }
+
+    Parser(List<Token> tokens, Map<String, Double> named) {
         this.tokens = tokens;
+        this.named = Map.copyOf(named);
     }
 
     Object parse() throws ExpressionException {
@@ -152,6 +167,11 @@ final class Parser {
                 throw new ExpressionException(name + " is a function and needs brackets: " + name + "(...)");
             }
             return call(name);
+        }
+        Double supplied = named.get(name);
+        if (supplied != null) {
+            advance();
+            return supplied;
         }
         throw new ExpressionException("unknown identifier: " + name);
     }
