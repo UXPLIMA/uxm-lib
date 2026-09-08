@@ -252,6 +252,49 @@ class EditorRendererTest {
         assertThat(state.propertyAt(12)).isEmpty();
     }
 
+    /**
+     * A property tile is a tile.
+     *
+     * <p>Every editor in the estate drew a title and one bare line: no {@code ✎} description, no {@code ≡}
+     * header over the value, no {@code →} click line, and the value hard against the left edge with no
+     * padding. UI-STYLE 7.2 asks for six filled lines and says a tile with one line of lore looks unfinished
+     * next to a competitor. The owner reported it against uxmCrates on 2026-09-08; it was never that plugin's
+     * to fix, because this class draws every editor of every plugin.
+     */
+    @Test
+    void aSpecThatNamesItsBlocksDrawsAProperTile() {
+        EditorState state = new EditorState("spec", "subject");
+        Inventory inv = draw(
+                editor(layout())
+                        .blocks("About", "What this setting decides.", "Details", "Click to change it")
+                        .build(),
+                state);
+
+        List<String> lore = loreOf(inv, 10);
+        assertThat(lore).anyMatch(line -> line.contains("About"));
+        assertThat(lore).anyMatch(line -> line.contains("What this setting decides."));
+        assertThat(lore).anyMatch(line -> line.contains("Details"));
+        assertThat(lore).anyMatch(line -> line.contains("value: hard"));
+        assertThat(lore).anyMatch(line -> line.contains("Click to change it"));
+        assertThat(lore)
+                .describedAs("UI-STYLE 7.2: a tile that says something carries at least six filled lines")
+                .hasSizeGreaterThanOrEqualTo(6);
+    }
+
+    /**
+     * A spec that names none of the four keys draws what it always drew, so no consumer's screens change
+     * shape on the day the library grows the option.
+     */
+    @Test
+    void aSpecThatNamesNoBlocksIsUnchanged() {
+        EditorState state = new EditorState("spec", "subject");
+        Inventory inv = draw(editor(layout()).build(), state);
+
+        List<String> lore = loreOf(inv, 10);
+        assertThat(lore).anyMatch(line -> line.contains("value: hard"));
+        assertThat(lore).noneMatch(line -> line.contains("Details"));
+    }
+
     @Test
     void theBackButtonIsPaintedAtItsSlotAndRoutedToTheSpecsHandler() {
         EditorState state = new EditorState("spec", "subject");

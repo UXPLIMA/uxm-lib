@@ -12,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 import net.kyori.adventure.text.Component;
 
 import com.uxplima.uxmlib.gui.GuiText;
+import com.uxplima.uxmlib.gui.style.Lore;
 import com.uxplima.uxmlib.gui.style.Tiles;
 import com.uxplima.uxmlib.item.ItemBuilder;
 import com.uxplima.uxmlib.menu.EditorSpec;
@@ -83,12 +84,39 @@ public final class EditorRenderer {
      * shares ("setting") rather than on the setting the player is looking at.
      */
     private ItemStack propertyButton(Player viewer, EditorSpec spec, EditableProperty property) {
-        List<Component> lore =
-                List.of(guiText.text(viewer, spec.valueLore(), Map.of("value", property.valueLore(viewer))));
+        Component value = guiText.text(viewer, spec.valueLore(), Map.of("value", property.valueLore(viewer)));
+        Component title = guiText.text(viewer, property.label());
         return ItemBuilder.of(property.icon())
                 .name(Tiles.blankName())
-                .lore(Tiles.titled(theme.get(), guiText.text(viewer, property.label()), lore))
+                .lore(Tiles.titled(theme.get(), title, body(viewer, spec, title, value)))
                 .build();
+    }
+
+    /**
+     * The blocks under a property's title.
+     *
+     * <p>A spec that names the four keys gets the tile UI-STYLE 7.2 describes: the {@code ✎} header with the
+     * words that say what the setting is, the {@code ≡} header with the current value as a fact under it, and
+     * the {@code →} click line. One that names none gets the single unpadded line every editor drew before,
+     * which is what keeps an existing consumer's screens exactly as they were.
+     *
+     * <p>The label is used as the fact's own label, because it is already the word for this setting and a tile
+     * that repeats it under its own title reads as a stutter. {@code Lore} adds the padding and the indents.
+     */
+    private List<Component> body(Player viewer, EditorSpec spec, Component title, Component value) {
+        if (spec.detailsHeader().isEmpty()) {
+            return List.of(value);
+        }
+        Lore lore = Lore.of(theme.get());
+        if (!spec.descriptionHeader().isEmpty() && !spec.description().isEmpty()) {
+            lore = lore.description(
+                    guiText.text(viewer, spec.descriptionHeader()), guiText.text(viewer, spec.description()));
+        }
+        lore = lore.details(guiText.text(viewer, spec.detailsHeader())).row(title, value);
+        if (!spec.action().isEmpty()) {
+            lore = lore.action(guiText.text(viewer, spec.action()));
+        }
+        return List.of(lore.build());
     }
 
     /** Paint the back button and record it as a plain-button slot whose click runs the spec's back callback. */

@@ -35,6 +35,26 @@ public final class EditorSpec {
     private final EntityEditorLayout layout;
     private final BiFunction<Player, @Nullable Object, Component> title;
     private final String valueLore;
+
+    /**
+     * The blocks a property tile carries besides its title and its value: the {@code ✎} header and the words
+     * under it, the {@code ≡} header over the value, and the {@code →} click line. Each is a catalogue key the
+     * consumer supplies and each is optional.
+     *
+     * <p>An editor used to draw a title and one bare line, so every editor screen in the estate was two lines
+     * where UI-STYLE 7.2 asks for six, and the value sat hard against the left edge with no padding. The owner
+     * reported it against uxmCrates on 2026-09-08, and it was never that plugin's to fix: every editor of
+     * every plugin is drawn by {@code EditorRenderer}. A spec that names none of these draws what it drew
+     * before, so nothing already shipped changes shape until its author asks.
+     */
+    private final String descriptionHeader;
+
+    private final String description;
+
+    private final String detailsHeader;
+
+    private final String action;
+
     private final String backName;
     private final @Nullable Delete delete;
     private final Function<@Nullable Object, List<EditableProperty>> properties;
@@ -50,6 +70,10 @@ public final class EditorSpec {
         this.layout = Objects.requireNonNull(builder.layout, "layout");
         this.title = Objects.requireNonNull(builder.title, "title");
         this.valueLore = Objects.requireNonNull(builder.valueLore, "valueLore");
+        this.descriptionHeader = builder.descriptionHeader == null ? "" : builder.descriptionHeader;
+        this.description = builder.description == null ? "" : builder.description;
+        this.detailsHeader = builder.detailsHeader == null ? "" : builder.detailsHeader;
+        this.action = builder.action == null ? "" : builder.action;
         this.backName = Objects.requireNonNull(builder.backName, "backName");
         this.delete = builder.delete;
         this.properties = Objects.requireNonNull(builder.properties, "properties");
@@ -67,6 +91,26 @@ public final class EditorSpec {
 
     public String valueLore() {
         return valueLore;
+    }
+
+    /** The catalogue key of the {@code ✎} header, or empty when this spec draws no description block. */
+    public String descriptionHeader() {
+        return descriptionHeader;
+    }
+
+    /** The catalogue key of the words under the {@code ✎} header, or empty. */
+    public String description() {
+        return description;
+    }
+
+    /** The catalogue key of the {@code ≡} header over the value, or empty. */
+    public String detailsHeader() {
+        return detailsHeader;
+    }
+
+    /** The catalogue key of the {@code →} click line, or empty. */
+    public String action() {
+        return action;
     }
 
     public String backName() {
@@ -113,6 +157,10 @@ public final class EditorSpec {
         private @Nullable EntityEditorLayout layout;
         private @Nullable BiFunction<Player, @Nullable Object, Component> title;
         private @Nullable String valueLore;
+        private @Nullable String descriptionHeader;
+        private @Nullable String description;
+        private @Nullable String detailsHeader;
+        private @Nullable String action;
         private @Nullable String backName;
         private @Nullable Delete delete;
         private @Nullable Function<@Nullable Object, List<EditableProperty>> properties;
@@ -134,6 +182,18 @@ public final class EditorSpec {
         /** The catalog line each property's current value renders into (carries a {@code {value}} placeholder). */
         public Builder valueLore(String valueLore) {
             this.valueLore = Objects.requireNonNull(valueLore, "valueLore");
+            return this;
+        }
+
+        /**
+         * The four catalogue keys that turn a property button into a tile: the {@code ✎} header, the words
+         * under it, the {@code ≡} header over the value, and the {@code →} click line.
+         */
+        public Builder blocks(String descriptionHeader, String description, String detailsHeader, String action) {
+            this.descriptionHeader = Objects.requireNonNull(descriptionHeader, "descriptionHeader");
+            this.description = Objects.requireNonNull(description, "description");
+            this.detailsHeader = Objects.requireNonNull(detailsHeader, "detailsHeader");
+            this.action = Objects.requireNonNull(action, "action");
             return this;
         }
 
