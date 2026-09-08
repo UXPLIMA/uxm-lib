@@ -1,8 +1,11 @@
 package com.uxplima.uxmlib.condition.action;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+
+import net.kyori.adventure.bossbar.BossBar;
 
 /**
  * The pure parser turning one config action string into a {@link ParsedAction}. The grammar is a bracketed
@@ -54,6 +57,9 @@ public final class ActionParser {
             case BROADCAST -> Actions.broadcast(payload);
             case ACTIONBAR -> Actions.actionBar(payload);
             case TITLE -> Actions.title(payload);
+            case SUBTITLE -> Actions.subtitle(parseTitle(payload));
+            case BOSSBAR -> Actions.bossBar(parseBossBar(payload));
+            case PARTICLE -> Actions.particle(parseParticle(payload));
             case CONSOLE -> Actions.console(payload);
             case PLAYER -> Actions.playerCommand(payload);
             case CLOSE -> Actions.close();
@@ -61,6 +67,84 @@ public final class ActionParser {
             case TAKE_MONEY -> Actions.takeMoney(parseMoneyCost(payload));
             case TAKE_ITEM -> Actions.takeItem(parseItemCost(payload));
         };
+    }
+
+    /**
+     * {@code <title> | <subtitle> [fade-in stay fade-out]}: the two lines, then the three times in seconds.
+     *
+     * <p>The pipe separates the lines because a title is words and a space cannot: "Not enough keys | You need
+     * one more" is one line an operator reads at a glance. The times are optional and default to the vanilla
+     * half a second, three and a half, one.
+     */
+    private static Actions.TitleSpec parseTitle(String payload) {
+        int pipe = payload.indexOf('|');
+        String head = pipe < 0 ? payload.strip() : payload.substring(0, pipe).strip();
+        String rest = pipe < 0 ? "" : payload.substring(pipe + 1).strip();
+        List<String> tail = new ArrayList<>(List.of(rest.isEmpty() ? new String[0] : rest.split("\\s+")));
+        Duration fadeIn = Duration.ofMillis(500);
+        Duration stay = Duration.ofMillis(3500);
+        Duration fadeOut = Duration.ofSeconds(1);
+        List<String> times = new ArrayList<>();
+        while (tail.size() > 1 && isNumber(tail.get(tail.size() - 1)) && times.size() < 3) {
+            times.add(0, tail.remove(tail.size() - 1));
+        }
+        if (times.size() == 3) {
+            fadeIn = seconds(times.get(0), payload);
+            stay = seconds(times.get(1), payload);
+            fadeOut = seconds(times.get(2), payload);
+        }
+        return new Actions.TitleSpec(head, String.join(" ", tail), fadeIn, stay, fadeOut);
+    }
+
+    /**
+     * {@code <seconds> <colour> <overlay> | <text>}: how long the bar stays, what colour it is, how it is
+     * divided, and what it says. The colour and the overlay are optional and default to white and a solid bar.
+     */
+    private static Actions.BossBarSpec parseBossBar(String payload) {
+        int pipe = payload.indexOf('|');
+        if (pipe < 0) {
+            throw new IllegalArgumentException(
+                    "[bossbar] is written '<seconds> [colour] [overlay] | <text>', got: " + payload);
+        }
+        List<String> head = List.of(payload.substring(0, pipe).strip().split("\\s+"));
+        String text = payload.substring(pipe + 1).strip();
+        Duration duration = seconds(head.get(0), payload);
+        BossBar.Color colour =
+                head.size() > 1 ? named(BossBar.Color.values(), head.get(1), BossBar.Color.WHITE) : BossBar.Color.WHITE;
+        BossBar.Overlay overlay = head.size() > 2
+                ? named(BossBar.Overlay.values(), head.get(2), BossBar.Overlay.PROGRESS)
+                : BossBar.Overlay.PROGRESS;
+        return new Actions.BossBarSpec(text, colour, overlay, duration);
+    }
+
+    /** {@code <name> [count] [spread]}: which particle, how many, and how far they scatter, in blocks. */
+    private static Actions.ParticleSpec parseParticle(String payload) {
+        List<String> parts = List.of(payload.strip().split("\\s+"));
+        int count = parts.size() > 1 ? (int) parseFloat(parts.get(1), "count", payload) : 12;
+        double spread = parts.size() > 2 ? parseFloat(parts.get(2), "spread", payload) : 0.4;
+        return new Actions.ParticleSpec(parts.get(0), count, spread);
+    }
+
+    private static <E extends Enum<E>> E named(E[] values, String written, E fallback) {
+        for (E value : values) {
+            if (value.name().equalsIgnoreCase(written.strip())) {
+                return value;
+            }
+        }
+        return fallback;
+    }
+
+    private static boolean isNumber(String written) {
+        try {
+            Double.parseDouble(written);
+            return true;
+        } catch (NumberFormatException notANumber) {
+            return false;
+        }
+    }
+
+    private static Duration seconds(String written, String payload) {
+        return Duration.ofMillis(Math.round(parseFloat(written, "seconds", payload) * 1000d));
     }
 
     /**

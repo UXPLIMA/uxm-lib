@@ -1,14 +1,17 @@
 package com.uxplima.uxmlib.condition.action;
 
+import java.time.Duration;
 import java.util.Objects;
 
+import org.bukkit.Particle;
+
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 
 import com.uxplima.uxmlib.condition.ItemStore;
-import com.uxplima.uxmlib.condition.Wallet;
 import com.uxplima.uxmlib.text.Text;
 import org.jspecify.annotations.Nullable;
 
@@ -53,6 +56,71 @@ public final class Actions {
                 context -> context.target().showTitle(Title.title(render(context, template), Component.empty())));
     }
 
+    /**
+     * {@code [subtitle] <title> | <subtitle> [fade-in stay fade-out]}: a title with a second line under it, and
+     * the three times in seconds.
+     *
+     * <p>{@code [title]} sends an empty subtitle and the vanilla timings, which is the whole of what it can
+     * say. A refusal that wants "Not enough keys" over "You need one more" had no way to write it, and neither
+     * did a win that wants to stay on screen longer than half a second. The two verbs are separate rather than
+     * one growing optional parts, because a line that reads {@code [title] Welcome} in a hundred shipped files
+     * has to keep meaning what it meant.
+     */
+    public static Action subtitle(TitleSpec spec) {
+        Objects.requireNonNull(spec, "spec");
+        return asyncText(context -> context.target()
+                .showTitle(Title.title(
+                        render(context, spec.titleTemplate()),
+                        render(context, spec.subtitleTemplate()),
+                        Title.Times.times(spec.fadeIn(), spec.stay(), spec.fadeOut()))));
+    }
+
+    /**
+     * {@code [bossbar] <seconds> <colour> <overlay> | <text>}: a bar across the top of the screen for a while.
+     *
+     * <p>It is shown to whoever the action targets and taken down again when the time is up, so nothing has to
+     * be tracked by the caller and a reload cannot leave a bar on a player forever. A bar is the one surface
+     * that says "this is happening now" without taking the screen, which is why an interaction that lasts (a
+     * crate opening, a job payout window, a cooldown) wants one and had nothing to write.
+     */
+    public static Action bossBar(BossBarSpec spec) {
+        Objects.requireNonNull(spec, "spec");
+        return asyncText(context -> context.player().ifPresent(player -> {
+            BossBar bar = BossBar.bossBar(render(context, spec.textTemplate()), 1.0f, spec.colour(), spec.overlay());
+            player.showBossBar(bar);
+            context.later(spec.duration(), () -> player.hideBossBar(bar));
+        }));
+    }
+
+    /**
+     * {@code [particle] <name> [count] [spread]}: a puff of particles where the player is standing.
+     *
+     * <p>The one visual an interaction can carry that is not text. A name the server does not know is skipped
+     * rather than thrown, the same way an unparseable sound key is: an operator's typo in a cosmetic line may
+     * not stop the message and the sound beside it from happening.
+     */
+    public static Action particle(ParticleSpec spec) {
+        Objects.requireNonNull(spec, "spec");
+        return asyncText(context -> context.player().ifPresent(player -> {
+            Particle drawn = particleNamed(context.resolve(spec.nameTemplate()));
+            if (drawn == null) {
+                return;
+            }
+            player.getWorld()
+                    .spawnParticle(
+                            drawn, player.getLocation(), spec.count(), spec.spread(), spec.spread(), spec.spread());
+        }));
+    }
+
+    private static @Nullable Particle particleNamed(String written) {
+        for (Particle particle : Particle.values()) {
+            if (particle.name().equalsIgnoreCase(written.strip())) {
+                return particle;
+            }
+        }
+        return null;
+    }
+
     /** {@code [console] <command>}: dispatch the resolved command through the console sink. */
     public static Action console(String commandTemplate) {
         Objects.requireNonNull(commandTemplate, "commandTemplate");
@@ -87,6 +155,44 @@ public final class Actions {
             context.target()
                     .playSound(Sound.sound(Key.key(resolved), Sound.Source.MASTER, spec.volume(), spec.pitch()));
         });
+    }
+
+    /** A title, the line under it, and the three times a title is shown for. */
+    public record TitleSpec(
+            String titleTemplate, String subtitleTemplate, Duration fadeIn, Duration stay, Duration fadeOut) {
+
+        public TitleSpec {
+            Objects.requireNonNull(titleTemplate, "titleTemplate");
+            Objects.requireNonNull(subtitleTemplate, "subtitleTemplate");
+            Objects.requireNonNull(fadeIn, "fadeIn");
+            Objects.requireNonNull(stay, "stay");
+            Objects.requireNonNull(fadeOut, "fadeOut");
+        }
+    }
+
+    /** A boss bar: what it says, what colour it is, how it is divided, and how long it stays. */
+    public record BossBarSpec(String textTemplate, BossBar.Color colour, BossBar.Overlay overlay, Duration duration) {
+
+        public BossBarSpec {
+            Objects.requireNonNull(textTemplate, "textTemplate");
+            Objects.requireNonNull(colour, "colour");
+            Objects.requireNonNull(overlay, "overlay");
+            Objects.requireNonNull(duration, "duration");
+        }
+    }
+
+    /** A puff of particles: which, how many, and how far they scatter. */
+    public record ParticleSpec(String nameTemplate, int count, double spread) {
+
+        public ParticleSpec {
+            Objects.requireNonNull(nameTemplate, "nameTemplate");
+            if (count < 1) {
+                throw new IllegalArgumentException("a particle count is one or more, got: " + count);
+            }
+            if (!Double.isFinite(spread) || spread < 0) {
+                throw new IllegalArgumentException("a particle spread is a finite number of zero or more");
+            }
+        }
     }
 
     /**

@@ -1,7 +1,9 @@
 package com.uxplima.uxmlib.condition.action;
 
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 
 import org.bukkit.entity.Player;
 
@@ -41,6 +43,21 @@ public final class ActionContext {
     private final Wallet wallet;
     private final ItemStore itemStore;
 
+    /**
+     * How an action asks for something to happen later. It exists for {@code [bossbar]}, which has to take its
+     * bar down again.
+     *
+     * <p>This module does not know the {@code Scheduler} on purpose: it supplies the closures and the caller
+     * routes them, which is what keeps it safe under Folia without knowing what Folia is. So the delay is a
+     * seam, wired by whoever builds the context to their own scheduler, and it is one line.
+     *
+     * <p>Left unwired it throws rather than doing nothing. A verb an operator wrote that silently does not
+     * happen is the failure this estate keeps paying for: the file is right, the log is clean, and the thing
+     * never occurs. The first {@code [bossbar]} on an unwired plugin says so, in the console, with the name of
+     * the method that is missing.
+     */
+    private final BiConsumer<Duration, Runnable> later;
+
     private ActionContext(Builder builder) {
         this.target = builder.target;
         this.broadcast = builder.broadcast;
@@ -50,11 +67,19 @@ public final class ActionContext {
         this.resolver = builder.resolver;
         this.wallet = builder.wallet;
         this.itemStore = builder.itemStore;
+        this.later = builder.later;
     }
 
     /** Start a context builder with the resolver seam every placeholder action needs. */
     public static Builder builder(OperandResolver resolver) {
         return new Builder(resolver);
+    }
+
+    /** Run {@code what} after {@code delay}. See the field: unwired, this throws and names what to wire. */
+    public void later(Duration delay, Runnable what) {
+        Objects.requireNonNull(delay, "delay");
+        Objects.requireNonNull(what, "what");
+        later.accept(delay, what);
     }
 
     /** The audience messages, sounds, titles and action bars are delivered to. */
@@ -114,9 +139,26 @@ public final class ActionContext {
         private CommandSink playerSink = CommandSink.noop();
         private Wallet wallet = Wallet.empty();
         private ItemStore itemStore = ItemStore.empty();
+        private BiConsumer<Duration, Runnable> later = (delay, what) -> {
+            throw new IllegalStateException("an action asked for something to happen in " + delay
+                    + " and this ActionContext has no delay wired. Call ActionContext.Builder.later(...) with "
+                    + "your Scheduler: [bossbar] needs it to take its bar down again.");
+        };
 
         private Builder(OperandResolver resolver) {
             this.resolver = Objects.requireNonNull(resolver, "resolver");
+        }
+
+        /**
+         * Wire the delay {@code [bossbar]} needs, to this plugin's own {@code Scheduler}.
+         *
+         * <p>Not wiring it is safe: no other verb asks for one, and a plugin whose files carry no
+         * {@code [bossbar]} never reaches it. A plugin whose files do carry one and has not wired this hears
+         * about it the first time the line runs, rather than watching the bar never appear.
+         */
+        public Builder later(BiConsumer<Duration, Runnable> later) {
+            this.later = Objects.requireNonNull(later, "later");
+            return this;
         }
 
         /** Set the audience messages/sounds/titles/action bars are delivered to. */

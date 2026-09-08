@@ -18,6 +18,59 @@ class ActionParserTest {
         assertThat(parsed.payload()).isEqualTo("<green>Hello, %player_name%!");
     }
 
+    /**
+     * The three verbs an interaction needed and did not have.
+     *
+     * <p>{@code [title]} sends an empty subtitle and the vanilla timings, so a refusal that wants a second
+     * line under it, or a win that wants to stay on screen, could not be written. There was no bar and no
+     * visual at all. The owner set the standard on 2026-09-08: every interaction fires as many effects as the
+     * operator writes, in the order they wrote them, and that is not a question to be asked per plugin.
+     */
+    @Test
+    void theThreeNewVerbsParse() {
+        assertThat(ActionParser.parse("[subtitle] Not enough keys | You need one more")
+                        .type())
+                .isEqualTo(ActionType.SUBTITLE);
+        assertThat(ActionParser.parse("[bossbar] 5 RED PROGRESS | Opening").type())
+                .isEqualTo(ActionType.BOSSBAR);
+        assertThat(ActionParser.parse("[particle] HAPPY_VILLAGER 20 0.5").type())
+                .isEqualTo(ActionType.PARTICLE);
+    }
+
+    @Test
+    void aSubtitleSplitsOnThePipeAndReadsItsThreeTimes() {
+        ParsedAction parsed = ActionParser.parse("[subtitle] Won | A diamond 1 4 1");
+
+        assertThat(parsed.payload()).isEqualTo("Won | A diamond 1 4 1");
+        assertThat(parsed.action()).isNotNull();
+    }
+
+    /** A subtitle with no times keeps the vanilla ones rather than refusing the line. */
+    @Test
+    void aSubtitleWithoutTimesStillParses() {
+        assertThat(ActionParser.parse("[subtitle] Won | A diamond").type()).isEqualTo(ActionType.SUBTITLE);
+    }
+
+    /** A bar has to say how long it stays, because nothing else takes it down. */
+    @Test
+    void aBossBarWithoutItsTextIsRefused() {
+        assertThatThrownBy(() -> ActionParser.parse("[bossbar] 5 RED"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("<seconds>");
+    }
+
+    /** A colour or an overlay the server does not know falls back rather than refusing the whole line. */
+    @Test
+    void anUnknownBossBarColourFallsBack() {
+        assertThat(ActionParser.parse("[bossbar] 3 chartreuse | Hi").type()).isEqualTo(ActionType.BOSSBAR);
+    }
+
+    /** A particle with no count and no spread takes the defaults, so the short form is the usual one. */
+    @Test
+    void aParticleNeedsOnlyItsName() {
+        assertThat(ActionParser.parse("[particle] FLAME").type()).isEqualTo(ActionType.PARTICLE);
+    }
+
     @Test
     void prefixMatchingIsCaseInsensitive() {
         assertThat(ActionParser.parse("[BROADCAST] hi").type()).isEqualTo(ActionType.BROADCAST);

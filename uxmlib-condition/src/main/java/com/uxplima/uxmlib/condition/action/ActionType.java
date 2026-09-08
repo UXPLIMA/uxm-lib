@@ -23,6 +23,9 @@ public enum ActionType {
 
     /** Show a MiniMessage template as a title to the target. */
     TITLE("title", true),
+    SUBTITLE("subtitle", true),
+    BOSSBAR("bossbar", true),
+    PARTICLE("particle", true),
 
     /** Play a sound (an Adventure sound key) to the target. */
     SOUND("sound", true),
