@@ -12,15 +12,20 @@ import java.util.concurrent.TimeUnit;
 import io.lettuce.core.RedisClient;
 import io.lettuce.core.RedisURI;
 import org.jspecify.annotations.Nullable;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
  * Round-trip test for {@link LettuceRedisBus} against a real Redis: a publishing bus PUBLISHes a binary frame
- * and a second subscribing bus receives the exact bytes. Resolves the broker from
- * {@code UXMLIB_TEST_REDIS_URI} (or {@code redis://localhost:6379}) and skips cleanly (never fails) when no
- * Redis is reachable, so {@code ./gradlew build} stays green on hosts without one.
+ * and a second subscribing bus receives the exact bytes. The broker comes from {@code UXMLIB_TEST_REDIS_URI},
+ * or {@code redis://localhost:6379}.
+ *
+ * <p>It needs a machine the build cannot promise, so it lives in its own source set and {@code check} never
+ * runs it. It sat in {@code src/test} until 2026-09-08 and opened with an {@code assumeTrue} that aborted when
+ * no broker answered: JUnit records an abort as a skip, so {@code build} on a host without Redis went green
+ * having proved nothing. This machine happens to run a Redis, which is exactly why the hole was invisible
+ * here. Run it with {@code ./gradlew :uxmlib-redis:integrationTest}: no broker is a failure now, because
+ * somebody who asked for this task asked for one.
  */
 @org.jspecify.annotations.NullUnmarked
 class RedisBusIntegrationTest {
@@ -31,7 +36,9 @@ class RedisBusIntegrationTest {
     static void resolveRedis() {
         String env = System.getenv("UXMLIB_TEST_REDIS_URI");
         String uri = env != null && !env.isBlank() ? env : "redis://localhost:6379";
-        Assumptions.assumeTrue(reachable(uri), "no Redis reachable at " + uri + ": skipping");
+        if (!reachable(uri)) {
+            throw new IllegalStateException("no Redis reachable at " + uri + ". Set UXMLIB_TEST_REDIS_URI.");
+        }
         redisUri = uri;
     }
 

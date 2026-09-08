@@ -11,7 +11,6 @@ import com.uxplima.uxmlib.command.Sender;
 import com.uxplima.uxmlib.command.annotation.annotations.Arg;
 import com.uxplima.uxmlib.command.annotation.annotations.Command;
 import com.uxplima.uxmlib.command.annotation.annotations.Subcommand;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -51,10 +50,8 @@ class NativeResolversTest {
     }
 
     @Test
-    @Disabled("MockBukkit does not implement ArgumentTypes.finePosition()")
-    void aLocationBuildsAnArgumentNode() {
-        assertThat(arg(AnnotatedCommands.buildNode(new LocationCommand()), "tp", "where"))
-                .isNotNull();
+    void aLocationIsResolvedByANativeArgument() {
+        assertThatTypeIsNative(org.bukkit.Location.class);
     }
 
     @Test
@@ -64,10 +61,28 @@ class NativeResolversTest {
     }
 
     @Test
-    @Disabled("MockBukkit does not implement ArgumentTypes.resource()")
-    void aSoundBuildsAnArgumentNode() {
-        assertThat(arg(AnnotatedCommands.buildNode(new SoundCommand()), "play", "sound"))
+    void aSoundIsResolvedByANativeArgument() {
+        assertThatTypeIsNative(org.bukkit.Sound.class);
+    }
+
+    /**
+     * Both used to build the whole node and were {@code @Disabled}, because MockBukkit implements neither
+     * {@code ArgumentTypes.finePosition()} nor {@code ArgumentTypes.resource()}. A disabled test protects
+     * nothing and reports as green, and the workspace rule is that no test is skipped, so the question is asked
+     * in the one way that runs here: the type has a resolver, and the resolver says it is Paper-native.
+     *
+     * <p>What is not asked is what {@code argumentType} returns, because calling it is exactly what MockBukkit
+     * cannot do. Brigadier calls it on a live server on every command that carries the type.
+     */
+    private static void assertThatTypeIsNative(Class<?> type) {
+        ParamResolver<?> resolver = ParamResolvers.withDefaults().resolverFor(type);
+
+        assertThat(resolver)
+                .describedAs("%s must have a resolver", type.getSimpleName())
                 .isNotNull();
+        assertThat(java.util.Objects.requireNonNull(resolver).nativeArgument())
+                .describedAs("%s is resolved by a Paper-native argument type", type.getSimpleName())
+                .isTrue();
     }
 
     @SuppressWarnings("unchecked")

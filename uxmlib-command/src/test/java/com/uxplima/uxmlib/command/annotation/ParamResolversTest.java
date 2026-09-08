@@ -11,7 +11,6 @@ import com.uxplima.uxmlib.command.Sender;
 import com.uxplima.uxmlib.command.annotation.annotations.Arg;
 import com.uxplima.uxmlib.command.annotation.annotations.Command;
 import com.uxplima.uxmlib.command.annotation.annotations.Subcommand;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -76,10 +75,8 @@ class ParamResolversTest {
     }
 
     @Test
-    @Disabled("MockBukkit does not implement ArgumentTypes.world()")
-    void aWorldBuildsAnArgumentNode() {
-        assertThat(child(AnnotatedCommands.buildNode(new WorldCommand()), "world", "w"))
-                .isNotNull();
+    void aWorldIsResolvedByANativeArgument() {
+        assertThatTypeIsNative(org.bukkit.World.class);
     }
 
     @Test
@@ -89,17 +86,34 @@ class ParamResolversTest {
     }
 
     @Test
-    @Disabled("MockBukkit does not implement ArgumentTypes.resource()")
-    void aMaterialBuildsAnArgumentNode() {
-        assertThat(child(AnnotatedCommands.buildNode(new MaterialCommand()), "give", "item"))
-                .isNotNull();
+    void aMaterialIsResolvedByANativeArgument() {
+        assertThatTypeIsNative(org.bukkit.Material.class);
     }
 
     @Test
-    @Disabled("MockBukkit does not implement ArgumentTypes.uuid()")
-    void aUuidBuildsAnArgumentNode() {
-        assertThat(child(AnnotatedCommands.buildNode(new UuidCommand()), "id", "id"))
+    void aUuidIsResolvedByANativeArgument() {
+        assertThatTypeIsNative(java.util.UUID.class);
+    }
+
+    /**
+     * These three used to build the whole node and were {@code @Disabled} because MockBukkit implements none of
+     * {@code ArgumentTypes.world()}, {@code resource()} or {@code uuid()}. A disabled test protects nothing and
+     * reports as green, and the workspace rule is that no test is skipped, so the question is asked in the one
+     * way that runs here: the type has a resolver, and the resolver says it is a Paper-native argument.
+     *
+     * <p>What is not asked is what {@code argumentType} returns, because calling it is precisely what MockBukkit
+     * cannot do. Brigadier calls it on a live server on every command that carries the type, which is a harder
+     * test than any mock would be.
+     */
+    private static void assertThatTypeIsNative(Class<?> type) {
+        ParamResolver<?> resolver = ParamResolvers.withDefaults().resolverFor(type);
+
+        assertThat(resolver)
+                .describedAs("%s must have a resolver", type.getSimpleName())
                 .isNotNull();
+        assertThat(java.util.Objects.requireNonNull(resolver).nativeArgument())
+                .describedAs("%s is resolved by a Paper-native argument type", type.getSimpleName())
+                .isTrue();
     }
 
     @Test
