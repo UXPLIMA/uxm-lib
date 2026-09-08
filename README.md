@@ -655,7 +655,10 @@ What the engine adds over a plain layout reader:
   block that cannot be read renders blank rather than leaking its own text at a player.
 - **A requirement and an action chain on each of the eight click gestures** (left, right, the two shifted
   forms, middle, drop, control-drop, and double-click), with a `deny` fallback, a `delay`, and a `chance`
-  on any single action.
+  on any single action. The chain runs in order on the viewer's own thread, and an action that calls
+  `MenuActionContext.refuse()` stops the ones after it, so a cost can be an action of its own rather than
+  something the verb that gives has to fold into itself. An action carrying a `delay` is waited off the
+  chain and cannot stop it.
 - **Continuations.** An `input:` or a `confirm:` action splits the chain: the rest of it runs when the
   viewer answers, through the same anvil, chat, sign, or dialog input `uxmlib-gui` installs.
 - **A property editor.** Text, number, toggle, enum, colour, and list properties over one object, each

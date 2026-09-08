@@ -741,9 +741,7 @@ public final class MenuListener implements Listener {
         }
         MenuContext base = dragContext(holder, rs, cursor);
         ClickKind kind = kindOf(event.getClick());
-        for (Ref ref : drag.actions()) {
-            runRef(holder, base, kind, ref);
-        }
+        runEach(holder, base, kind, drag.actions());
         if (drag.consume()) {
             consumeCursor(event, cursor, Math.max(1, drag.rules().minAmount()));
         }
@@ -1197,7 +1195,8 @@ public final class MenuListener implements Listener {
     }
 
     /**
-     * Walk a gesture's success actions as a continuation-aware chain: an ordinary ref dispatches inline through
+     * Walk a gesture's success actions as a continuation-aware chain, on the viewer's own thread and stopping at the
+     * first ref that refuses: an ordinary ref dispatches inline through
      * {@link #runRef}, but a {@code input:}/{@code confirm:} step ({@link Ref#continuation()}) whose outcome only
      * arrives on a later callback stops the walk, taking ownership of the rest of the chain. An {@code input:} step
      * prompts and, on submit, re-enters this walk over the remaining refs with the typed line exposed as
@@ -1211,6 +1210,23 @@ public final class MenuListener implements Listener {
      * nested chain the engine cannot cleanly suspend.
      */
     private void runChain(MenuHolder holder, MenuContext base, ClickKind kind, List<Ref> refs, int from) {
+        hop(holder, () -> walk(holder, base, kind, refs, from));
+    }
+
+    /**
+     * Walk a list of refs in order on the viewer's own thread, stopping at the first one that refuses.
+     *
+     * <p>This is where a cost became possible to write. Every ref of a gesture used to be handed to the entity
+     * scheduler on its own, and that scheduler always defers, so the refs of one list were separate tasks: they kept
+     * their order and nothing that ran in one could reach the next. A file that wrote a charge as the action before
+     * the thing it paid for handed the thing over whether or not the charge went through, which is why the estate
+     * folded every charge into the verb that gives. One hop for the whole list, and a walk that reads what each
+     * action answered, is the difference.
+     *
+     * <p>An action that throws is logged and the walk goes on, which is what a list of separate tasks did: one bad
+     * binding must not silently swallow the four verbs after it.
+     */
+    private void walk(MenuHolder holder, MenuContext base, ClickKind kind, List<Ref> refs, int from) {
         for (int i = from; i < refs.size(); i++) {
             Ref ref = refs.get(i);
             Optional<Continuation> continuation = ref.continuation();
@@ -1218,8 +1234,21 @@ public final class MenuListener implements Listener {
                 beginContinuation(holder, base, kind, continuation.get(), refs.subList(i + 1, refs.size()));
                 return;
             }
-            runRef(holder, base, kind, ref);
+            if (!runRef(holder, base, kind, ref)) {
+                return;
+            }
         }
+    }
+
+    /**
+     * Hop onto the viewer's own thread once, for a whole list of refs.
+     *
+     * <p>The hop is what keeps an action off the thread the click event is still being processed on: an {@code open}
+     * cannot open a window from inside the click that asked for it. It is made once per list rather than once per ref
+     * because a list is one thing, and because a walk that stops has to be able to see what stopped it.
+     */
+    private void hop(MenuHolder holder, Runnable work) {
+        scheduler.entity(holder.ctx().viewer(), work);
     }
 
     /**
@@ -1396,11 +1425,25 @@ public final class MenuListener implements Listener {
         return result;
     }
 
-    /** Run each ref in {@code refs} through {@link #runRef}, so a per-requirement or block deny list honours modifiers. */
+    /**
+     * Run each ref in {@code refs} through {@link #runRef}, so a per-requirement or block deny list honours modifiers.
+     *
+     * <p>The same one hop and the same stop as a gesture's own chain: a deny list, an else-branch and a
+     * per-requirement list are lists of actions like any other, and an action in one that refuses stops the rest of
+     * that list. A continuation ({@code input:}, {@code confirm:}) is not supported in one of these lists and never
+     * was; it falls through to the registered marker action and is logged there.
+     */
     private void runEach(MenuHolder holder, MenuContext base, ClickKind kind, List<Ref> refs) {
-        for (Ref ref : refs) {
-            runRef(holder, base, kind, ref);
+        if (refs.isEmpty()) {
+            return;
         }
+        hop(holder, () -> {
+            for (Ref ref : refs) {
+                if (!runRef(holder, base, kind, ref)) {
+                    return;
+                }
+            }
+        });
     }
 
     /**
@@ -1443,21 +1486,25 @@ public final class MenuListener implements Listener {
      * ref with no modifiers (fires immediately, always, no fallback) takes the direct dispatch and behaves exactly as
      * the action loop did before modifiers existed.
      */
-    private void runRef(MenuHolder holder, MenuContext base, ClickKind kind, Ref ref) {
+    private boolean runRef(MenuHolder holder, MenuContext base, ClickKind kind, Ref ref) {
         Ref effective = resolveEffective(ref);
         if (rolledDenied(effective)) {
-            effective.deny().ifPresent(fallback -> runRef(holder, base, kind, fallback));
-            return;
+            Optional<Ref> fallback = effective.deny();
+            return fallback.isEmpty() || runRef(holder, base, kind, fallback.get());
         }
-        actions.get(effective.id()).ifPresent(handler -> {
-            if (effective.delayTicks() > 0) {
-                scheduler.asyncLater(
-                        Duration.ofMillis(effective.delayTicks() * 50L),
-                        () -> dispatch(holder, base, kind, effective, handler));
-            } else {
-                dispatch(holder, base, kind, effective, handler);
-            }
-        });
+        Optional<Consumer<MenuActionContext>> handler = actions.get(effective.id());
+        if (handler.isEmpty()) {
+            return true;
+        }
+        if (effective.delayTicks() > 0) {
+            // A delayed ref is waited off the list and hops back on its own, so the walk has already moved past it
+            // by the time it runs. It cannot refuse anything, and MenuActionContext.refuse says so.
+            scheduler.asyncLater(
+                    Duration.ofMillis(effective.delayTicks() * 50L),
+                    () -> dispatch(holder, base, kind, effective, handler.get()));
+            return true;
+        }
+        return invoke(holder, base, kind, effective, handler.get());
     }
 
     /**
@@ -1495,17 +1542,36 @@ public final class MenuListener implements Listener {
      */
     private void dispatch(
             MenuHolder holder, MenuContext base, ClickKind kind, Ref ref, Consumer<MenuActionContext> handler) {
-        scheduler.entity(holder.ctx().viewer(), () -> {
-            Player viewer = holder.ctx().viewer();
-            if (!viewer.isOnline()) {
-                return;
-            }
-            Map<String, String> args = ActionArguments.resolve(ref.args(), base.arguments());
-            // Expand the menu-local placeholders too (the open spec's own placeholders{} block, and the item-drag
-            // flow's %drag_*% tokens) so an action reads the dropped item the same way the renderer reads it in text.
-            args = ActionArguments.resolveLocals(args, base.localPlaceholders());
-            handler.accept(new MenuActionContext(base, viewer, kind, args, new HolderControl(holder)));
-        });
+        hop(holder, () -> invoke(holder, base, kind, ref, handler));
+    }
+
+    /**
+     * Run one bound action on the thread the caller is already on, and report whether the list may go on.
+     *
+     * <p>{@code false} means one of two things, and both stop the list: the action called {@link
+     * MenuActionContext#refuse()}, or the viewer went offline between the click and here, in which case there is
+     * nobody left to run anything for.
+     */
+    private boolean invoke(
+            MenuHolder holder, MenuContext base, ClickKind kind, Ref ref, Consumer<MenuActionContext> handler) {
+        Player viewer = holder.ctx().viewer();
+        if (!viewer.isOnline()) {
+            return false;
+        }
+        Map<String, String> args = ActionArguments.resolve(ref.args(), base.arguments());
+        // Expand the menu-local placeholders too (the open spec's own placeholders{} block, and the item-drag
+        // flow's %drag_*% tokens) so an action reads the dropped item the same way the renderer reads it in text.
+        args = ActionArguments.resolveLocals(args, base.localPlaceholders());
+        MenuActionContext context = new MenuActionContext(base, viewer, kind, args, new HolderControl(holder));
+        try {
+            handler.accept(context);
+        } catch (RuntimeException failure) {
+            // A list of separate tasks let the ones after a throwing action still run, and so does this. The action
+            // is named, because a stack trace out of a lambda names nothing an operator can act on.
+            LOG.log(Level.SEVERE, "event=menu_action_threw menu=" + holder.specId() + " action=" + ref.id(), failure);
+            return true;
+        }
+        return !context.refused();
     }
 
     /**

@@ -321,6 +321,95 @@ class MenuListenerTest {
         assertThat(event.isCancelled()).isTrue();
     }
 
+    // -- an action that refuses -------------------------------------------------------------------------------
+
+    /**
+     * The hole this closes: every ref of a gesture used to be handed to the entity scheduler on its own, and that
+     * scheduler always defers, so a charge written as the action before the thing it paid for could not stop the
+     * thing being handed over. A file writes the cost and the give as two actions and means the second only if the
+     * first worked.
+     */
+    @Test
+    void anActionThatRefusesStopsTheOnesAfterIt() {
+        actions.register("cost", ctx -> {
+            fired.add("cost");
+            ctx.refuse();
+        });
+        open("rows = 3\nitems { go { slot = 4, material = DIAMOND, click { left = [\"cost\", \"one\", \"two\"] } } }");
+
+        leftClick(4);
+
+        assertThat(fired).containsExactly("cost");
+    }
+
+    /** An action that does not refuse leaves the list alone, which is every action written before this existed. */
+    @Test
+    void anActionThatDoesNotRefuseLeavesTheListAlone() {
+        actions.register("cost", ctx -> fired.add("cost"));
+        open("rows = 3\nitems { go { slot = 4, material = DIAMOND, click { left = [\"cost\", \"one\", \"two\"] } } }");
+
+        leftClick(4);
+
+        assertThat(fired).containsExactly("cost", "one", "two");
+    }
+
+    /** A deny list is a list of actions like any other, so an action in one stops the rest of it. */
+    @Test
+    void anActionThatRefusesStopsTheRestOfADenyList() {
+        actions.register("cost", ctx -> {
+            fired.add("cost");
+            ctx.refuse();
+        });
+        open("""
+                rows = 3
+                items {
+                  go {
+                    slot = 4, material = DIAMOND
+                    click { left { click = ["one"], requirements = ["nobody-registered-this"], deny = ["cost", "two"] } }
+                  }
+                }
+                """);
+
+        leftClick(4);
+
+        assertThat(fired).containsExactly("cost");
+    }
+
+    /**
+     * A binding that throws is logged and the list goes on. It has to: the refs of a gesture used to be separate
+     * scheduler tasks, and one bad binding must not silently swallow the actions written after it.
+     */
+    @Test
+    void anActionThatThrowsDoesNotStopTheOnesAfterIt() {
+        actions.register("boom", ctx -> {
+            fired.add("boom");
+            throw new IllegalStateException("its own fault");
+        });
+        open("rows = 3\nitems { go { slot = 4, material = DIAMOND, click { left = [\"boom\", \"one\"] } } }");
+
+        leftClick(4);
+
+        assertThat(fired).containsExactly("boom", "one");
+    }
+
+    /** A refusal is per click. The next click starts a fresh list and is not held by the last one's refusal. */
+    @Test
+    void aRefusalDoesNotOutliveTheClickThatMadeIt() {
+        List<Boolean> refusing = new ArrayList<>(List.of(true, false));
+        actions.register("cost", ctx -> {
+            fired.add("cost");
+            if (refusing.remove(0)) {
+                ctx.refuse();
+            }
+        });
+        open("rows = 3\nitems { go { slot = 4, material = DIAMOND, click { left = [\"cost\", \"one\"] } } }");
+
+        leftClick(4);
+        leftClick(4);
+
+        assertThat(fired).containsExactly("cost", "cost", "one");
+    }
+
     // -- installation -----------------------------------------------------------------------------------------
 
     @Test
