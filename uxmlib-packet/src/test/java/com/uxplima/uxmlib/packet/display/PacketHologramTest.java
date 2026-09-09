@@ -262,6 +262,37 @@ class PacketHologramTest {
                 .hasMessageContaining("viewDistance");
     }
 
+    /**
+     * The gap between stacked lines is the operator's, not a constant.
+     *
+     * <p>It was a private {@code 0.28f} in this class until 2026-09-09, so a hologram with a large scale had
+     * its lines written through each other and nobody could do anything about it. ExcellentCrates has sold a
+     * {@code LineGap} key for years.
+     */
+    @Test
+    @DisplayName("the gap between two lines is the one the appearance names")
+    void thelineGapComesOffTheAppearance() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+
+        PacketHologram.show(
+                packets,
+                scheduler,
+                anchor,
+                HologramAppearance.defaults().withLineGap(1.0f),
+                viewer -> List.of(Component.text("top"), Component.text("bottom")));
+        scheduler.firstFrame();
+
+        FakeHologramPackets.Bundle frame =
+                (FakeHologramPackets.Bundle) packets.packetsFor(alice).get(0);
+        FakeHologramPackets.Metadata top =
+                (FakeHologramPackets.Metadata) frame.packets().get(1);
+        FakeHologramPackets.Metadata bottom =
+                (FakeHologramPackets.Metadata) frame.packets().get(3);
+
+        assertThat(top.translation().y() - bottom.translation().y())
+                .isCloseTo(1.0f, org.assertj.core.api.Assertions.within(1e-6f));
+    }
+
     private PacketHologram show(java.util.function.Function<Player, List<Component>> text) {
         return PacketHologram.show(packets, scheduler, anchor, HologramAppearance.defaults(), text);
     }

@@ -59,9 +59,6 @@ public final class PacketHologram {
     /** How far a viewer may stand from the anchor and still be sent the hologram, when a caller names none. */
     public static final double DEFAULT_VIEW_DISTANCE = 32.0;
 
-    /** Vertical gap between stacked lines, in display-translation units; the first line sits highest. */
-    private static final float LINE_STEP_Y = 0.28f;
-
     private final HologramPackets packets;
     private final Location anchor;
     private final double viewDistanceSquared;
@@ -270,7 +267,7 @@ public final class PacketHologram {
 
     /** Offset a line within the stack: line 0 is the top, so an earlier index sits higher. */
     private Vector3f translationForLine(int index, int lineCount) {
-        return appearance.translation().add(0f, (lineCount - 1 - index) * LINE_STEP_Y, 0f);
+        return appearance.translation().add(0f, (lineCount - 1 - index) * appearance.lineGap(), 0f);
     }
 
     /** Resolve, allocating if needed, the stable entity id bound to line {@code index}. */

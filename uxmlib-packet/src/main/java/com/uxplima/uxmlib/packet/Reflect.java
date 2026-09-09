@@ -69,4 +69,24 @@ public final class Reflect {
         }
         return accessor(owner, field);
     }
+
+    /**
+     * Read a static {@code int} constant off {@code owner}, whatever its access.
+     *
+     * <p>A flag bit written as a literal is a literal that goes wrong the version the bit moves. The server
+     * declares its own, so this reads that rather than repeating it.
+     *
+     * @throws IllegalStateException when the field is absent or is not a static int
+     */
+    public static int intConstant(Class<?> owner, String field) {
+        Objects.requireNonNull(owner, "owner");
+        Objects.requireNonNull(field, "field");
+        try {
+            java.lang.reflect.Field found = owner.getDeclaredField(field);
+            found.setAccessible(true);
+            return found.getInt(null);
+        } catch (ReflectiveOperationException | RuntimeException missing) {
+            throw new IllegalStateException("no static int " + owner.getName() + "." + field, missing);
+        }
+    }
 }

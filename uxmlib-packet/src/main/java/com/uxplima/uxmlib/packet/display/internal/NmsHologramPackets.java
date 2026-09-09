@@ -52,6 +52,13 @@ public final class NmsHologramPackets implements HologramPackets {
     private final EntityDataAccessor<Float> viewRangeAccessor;
     private final EntityDataAccessor<org.joml.Vector3fc> translationAccessor;
     private final EntityDataAccessor<org.joml.Vector3fc> scaleAccessor;
+    private final EntityDataAccessor<Integer> glowAccessor;
+    private final EntityDataAccessor<Integer> brightnessAccessor;
+    private final EntityDataAccessor<Float> shadowRadiusAccessor;
+    private final EntityDataAccessor<Float> shadowStrengthAccessor;
+    private final EntityDataAccessor<Byte> sharedFlagsAccessor;
+    /** The shared-flag bit that makes an entity glow, read off the class rather than written as 0x40. */
+    private final int glowingFlag;
     /** The registry's own text-display type, read once rather than named as a constant. */
     private final EntityType<?> textDisplayType;
 
@@ -75,6 +82,14 @@ public final class NmsHologramPackets implements HologramPackets {
         this.viewRangeAccessor = Reflect.accessor(net.minecraft.world.entity.Display.class, "DATA_VIEW_RANGE_ID");
         this.translationAccessor = Reflect.accessor(net.minecraft.world.entity.Display.class, "DATA_TRANSLATION_ID");
         this.scaleAccessor = Reflect.accessor(net.minecraft.world.entity.Display.class, "DATA_SCALE_ID");
+        this.glowAccessor = Reflect.accessor(net.minecraft.world.entity.Display.class, "DATA_GLOW_COLOR_OVERRIDE_ID");
+        this.brightnessAccessor =
+                Reflect.accessor(net.minecraft.world.entity.Display.class, "DATA_BRIGHTNESS_OVERRIDE_ID");
+        this.shadowRadiusAccessor = Reflect.accessor(net.minecraft.world.entity.Display.class, "DATA_SHADOW_RADIUS_ID");
+        this.shadowStrengthAccessor =
+                Reflect.accessor(net.minecraft.world.entity.Display.class, "DATA_SHADOW_STRENGTH_ID");
+        this.sharedFlagsAccessor = Reflect.accessor(net.minecraft.world.entity.Entity.class, "DATA_SHARED_FLAGS_ID");
+        this.glowingFlag = Reflect.intConstant(net.minecraft.world.entity.Entity.class, "FLAG_GLOWING");
     }
 
     @Override
@@ -98,7 +113,7 @@ public final class NmsHologramPackets implements HologramPackets {
 
     private List<SynchedEntityData.DataValue<?>> dataValues(
             Component text, HologramAppearance appearance, Vector3f translation) {
-        List<SynchedEntityData.DataValue<?>> values = new ArrayList<>(9);
+        List<SynchedEntityData.DataValue<?>> values = new ArrayList<>(14);
         values.add(SynchedEntityData.DataValue.create(textAccessor, Components.asVanilla(text)));
         values.add(SynchedEntityData.DataValue.create(billboardAccessor, billboardId(appearance.billboard())));
         values.add(SynchedEntityData.DataValue.create(backgroundAccessor, appearance.backgroundArgb()));
@@ -108,6 +123,7 @@ public final class NmsHologramPackets implements HologramPackets {
         values.add(SynchedEntityData.DataValue.create(viewRangeAccessor, appearance.viewRange()));
         values.add(SynchedEntityData.DataValue.create(translationAccessor, new Vector3f(translation)));
         values.add(SynchedEntityData.DataValue.create(scaleAccessor, appearance.scale()));
+        addOptional(values, appearance);
         return values;
     }
 
@@ -119,6 +135,34 @@ public final class NmsHologramPackets implements HologramPackets {
             case HORIZONTAL -> (byte) 2;
             case CENTER -> (byte) 3;
         };
+    }
+
+    /**
+     * The five properties that mean nothing until an operator asks for them.
+     *
+     * <p>Each is written only when it was set. Writing the sentinel instead would tell the client that the
+     * text is unlit, unshadowed and outlined in black, which is not what "left alone" looks like.
+     *
+     * <p>The outline needs two fields, not one: the colour override says which colour, and the entity's own
+     * glowing flag says to draw an outline at all. A colour on its own draws nothing, and that is the bug
+     * every hand-rolled version of this has.
+     */
+    private void addOptional(List<SynchedEntityData.DataValue<?>> values, HologramAppearance appearance) {
+        if (appearance.hasGlow()) {
+            values.add(SynchedEntityData.DataValue.create(glowAccessor, appearance.glowArgb()));
+            values.add(SynchedEntityData.DataValue.create(sharedFlagsAccessor, (byte) glowingFlag));
+        }
+        if (appearance.hasBrightness()) {
+            values.add(SynchedEntityData.DataValue.create(brightnessAccessor, appearance.brightnessPacked()));
+        }
+        if (appearance.hasShadow()) {
+            if (appearance.shadowRadius() != HologramAppearance.VANILLA_SHADOW) {
+                values.add(SynchedEntityData.DataValue.create(shadowRadiusAccessor, appearance.shadowRadius()));
+            }
+            if (appearance.shadowStrength() != HologramAppearance.VANILLA_SHADOW) {
+                values.add(SynchedEntityData.DataValue.create(shadowStrengthAccessor, appearance.shadowStrength()));
+            }
+        }
     }
 
     /** OR together the {@code TextDisplay} style bits the appearance selects. */
