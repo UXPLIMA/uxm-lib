@@ -18,6 +18,7 @@ import com.uxplima.uxmlib.item.ItemBuilder;
 import com.uxplima.uxmlib.menu.EditorSpec;
 import com.uxplima.uxmlib.menu.EntityEditorLayout;
 import com.uxplima.uxmlib.menu.SlotFit;
+import com.uxplima.uxmlib.menu.property.ConfirmOpener;
 import com.uxplima.uxmlib.menu.property.EditableProperty;
 import com.uxplima.uxmlib.menu.runtime.EditorState;
 import com.uxplima.uxmlib.text.style.Theme;
@@ -138,9 +139,13 @@ public final class EditorRenderer {
     }
 
     /**
-     * Paint the optional delete button when the spec carries one, recording its click as a plain button. The click
-     * runs the spec's delete handler directly; gating it behind a confirm menu is the confirm increment's seam, so
-     * an editor opened before that increment lands carries no consumer that relies on the gate.
+     * Paint the optional delete button when the spec carries one, recording its click as a plain button.
+     *
+     * <p>The click goes through the confirm window the spec has always named. It used to run the handler straight,
+     * with the confirm title carried and never drawn, so a spec that asked to be gated was not: one misclick on a
+     * six-slot editor took the subject away with nothing in between. The gate needs the engine's confirm opener,
+     * which the editor now carries, so an editor opened through the engine is gated and one opened without an
+     * opener still runs the handler directly rather than losing its delete button.
      */
     private void paintDelete(Inventory inv, EditorSpec spec, EditorState state, Player viewer) {
         if (!spec.hasDelete()) {
@@ -152,7 +157,22 @@ public final class EditorRenderer {
                 .build();
         int slot = layout.deleteSlot().getAsInt();
         inv.setItem(slot, delete);
-        state.recordButton(slot, () -> spec.onDelete().orElseThrow().accept(viewer, state.subject()));
+        state.recordButton(slot, () -> askThenDelete(spec, state, viewer));
+    }
+
+    /** Ask through the engine's confirm window, then delete; delete straight when no opener was handed over. */
+    private void askThenDelete(EditorSpec spec, EditorState state, Player viewer) {
+        Runnable delete = () -> spec.onDelete().orElseThrow().accept(viewer, state.subject());
+        ConfirmOpener opener = state.clicks().map(EditorState.Clicks::confirm).orElse(null);
+        if (opener == null) {
+            delete.run();
+            return;
+        }
+        opener.openConfirm(
+                viewer,
+                guiText.text(viewer, spec.deleteConfirmTitle().orElseThrow()),
+                delete,
+                () -> spec.onBack().accept(viewer));
     }
 
     /** Fill every slot with the layout's filler so no vanilla slot shows through behind the buttons. */

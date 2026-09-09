@@ -369,6 +369,39 @@ class EditorRendererTest {
         assertThat(deleted).containsExactly("a-warp");
     }
 
+    /**
+     * The delete button asks first.
+     *
+     * <p>A spec has always named a confirm title beside its delete handler and the button ran the handler straight
+     * through, so a title an author wrote was carried and never drawn: one misclick took the subject away with
+     * nothing in between. The gate needs the engine's confirm opener, which an editor opened through the engine
+     * now carries.
+     */
+    @Test
+    void aDeleteButtonAsksThroughTheConfirmTheSpecNames() {
+        List<Object> deleted = new ArrayList<>();
+        List<String> asked = new ArrayList<>();
+        EditorState state = new EditorState(
+                "spec",
+                "a-warp",
+                new EditorState.Clicks(
+                        renderer,
+                        (who, title, rows, filler, buttons) -> {},
+                        (who, title, yes, no) -> asked.add(plain(title))));
+        draw(
+                editor(EntityEditorLayout.withDelete(List.of(10, 11), 26, 25))
+                        .onDelete("delete", "really?", (who, subject) -> deleted.add(subject))
+                        .build(),
+                state);
+
+        state.buttonAt(25).orElseThrow().run();
+
+        assertThat(asked).containsExactly("really?");
+        assertThat(deleted)
+                .describedAs("nothing goes until the viewer says yes")
+                .isEmpty();
+    }
+
     // -- the list is a function of the subject, not a snapshot ---------------------------------------------------
 
     /**
