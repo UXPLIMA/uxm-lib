@@ -598,7 +598,8 @@ public final class Menus {
         }
         MenuContext ctx = MenuContext.of(viewer, subject, 0);
         MenuHolder holder = new MenuHolder(editorSpecId(spec), editorMenuSpec(spec), ctx);
-        EditorState state = new EditorState(spec, subject);
+        EditorState state = new EditorState(
+                spec, subject, new EditorState.Clicks(requireEditorRenderer(), selectorOpener, confirmOpener));
         holder.attachEditor(state);
         Inventory inv = Bukkit.createInventory(
                 holder, spec.layout().rows() * 9, MenuTitles.centre(spec.title(viewer, subject)));

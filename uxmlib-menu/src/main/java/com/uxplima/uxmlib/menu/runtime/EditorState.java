@@ -5,7 +5,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import com.uxplima.uxmlib.menu.property.ConfirmOpener;
 import com.uxplima.uxmlib.menu.property.EditableProperty;
+import com.uxplima.uxmlib.menu.property.SelectorOpener;
+import com.uxplima.uxmlib.menu.render.EditorRenderer;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -38,9 +41,50 @@ public final class EditorState {
 
     private final Map<Integer, Runnable> buttonSlots = new HashMap<>();
 
+    /** What a click on this editor needs from the engine that opened it, or null on an editor opened without one. */
+    @Nullable private final Clicks clicks;
+
+    /**
+     * What a click on one of this editor's properties needs from the engine that opened it: the renderer that
+     * repaints the window after a value changes, the opener a property shows its picker through, and the opener a
+     * removal is gated behind.
+     *
+     * <p>They are carried here rather than asked of the click listener, because a consumer builds its engine and its
+     * listener separately and nothing made the two agree. uxmCrates wired an engine that could open an editor and a
+     * listener that could not serve one: every click on a property threw {@code an editor listener needs a selector
+     * opener} into the console, the window sat there doing nothing, and the whole editor read as broken. Every other
+     * plugin in the estate wires its listener the same way, so every editor in the estate had the same hole.
+     *
+     * <p>An editor opened through the engine now carries the engine's own three, so the pair cannot disagree. The
+     * listener's own fields stay as the fallback for a listener built with them directly.
+     *
+     * @param renderer repaints this editor in place after a property writes a value
+     * @param selector opens a property's picker as an engine child window
+     * @param confirm gates a property's removal behind an engine confirm child
+     */
+    public record Clicks(EditorRenderer renderer, SelectorOpener selector, ConfirmOpener confirm) {
+
+        public Clicks {
+            Objects.requireNonNull(renderer, "renderer");
+            Objects.requireNonNull(selector, "selector");
+            Objects.requireNonNull(confirm, "confirm");
+        }
+    }
+
     public EditorState(Object spec, @Nullable Object subject) {
+        this(spec, subject, null);
+    }
+
+    /** The same, carrying what the opening engine hands a click on one of this editor's properties. */
+    public EditorState(Object spec, @Nullable Object subject, @Nullable Clicks clicks) {
         this.spec = Objects.requireNonNull(spec, "spec");
         this.subject = subject;
+        this.clicks = clicks;
+    }
+
+    /** What a property click uses, when the engine that opened this editor handed it over. */
+    public Optional<Clicks> clicks() {
+        return Optional.ofNullable(clicks);
     }
 
     /** The {@code EditorSpec} this editor was opened from, opaque here and cast back by the editor renderer. */

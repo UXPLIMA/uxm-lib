@@ -873,7 +873,7 @@ public final class MenuListener implements Listener {
             MenuHolder holder, EditorState editor, int slot, boolean rightClick, boolean shiftClick) {
         EditableProperty property = editor.propertyAt(slot).orElse(null);
         if (property != null) {
-            runProperty(holder, property, rightClick, shiftClick);
+            runProperty(holder, editor, property, rightClick, shiftClick);
             return;
         }
         editor.buttonAt(slot)
@@ -884,27 +884,46 @@ public final class MenuListener implements Listener {
                 }));
     }
 
-    /** Hop to the viewer's entity thread, re-resolve the live player, and run one property's click there. */
-    private void runProperty(MenuHolder holder, EditableProperty property, boolean rightClick, boolean shiftClick) {
-        // A property click only reaches here when an editor is open, and an editor-capable listener is always wired
-        // with both openers (the engine threads its own in); a missing one is a wiring error, surfaced here rather
-        // than deep in the click context.
-        SelectorOpener selector = Objects.requireNonNull(selectorOpener, "an editor listener needs a selector opener");
-        ConfirmOpener confirm = Objects.requireNonNull(confirmOpener, "an editor listener needs a confirm opener");
+    /**
+     * Hop to the viewer's entity thread, re-resolve the live player, and run one property's click there.
+     *
+     * <p>The openers come from the editor first and from this listener second. An editor opened through the engine
+     * carries the engine's own pair on its {@link EditorState}, which is what makes a property click work whatever a
+     * consumer passed to this constructor: a plugin builds its engine and its listener separately, and uxmCrates wired
+     * an engine that could open an editor beside a listener that could not serve one. Every property click threw here
+     * and the window sat there doing nothing.
+     */
+    private void runProperty(
+            MenuHolder holder, EditorState editor, EditableProperty property, boolean rightClick, boolean shiftClick) {
+        EditorState.Clicks wired = editor.clicks().orElse(null);
+        // A property click only reaches here when an editor is open, and an editor opened by the engine always carries
+        // its openers; a listener built with neither, serving an editor built with neither, is a wiring error and is
+        // surfaced here rather than deep in the click context.
+        SelectorOpener selector = wired != null
+                ? wired.selector()
+                : Objects.requireNonNull(selectorOpener, "an editor listener needs a selector opener");
+        ConfirmOpener confirm = wired != null
+                ? wired.confirm()
+                : Objects.requireNonNull(confirmOpener, "an editor listener needs a confirm opener");
         Player viewer = holder.ctx().viewer();
         scheduler.entity(viewer, () -> {
             if (!viewer.isOnline()) {
                 return;
             }
-            Runnable reopen = () -> reRenderEditor(holder);
+            Runnable reopen = () -> reRenderEditor(holder, editor);
             property.onClick(new PropertyClick(viewer, rightClick, shiftClick, reopen, selector, confirm));
         });
     }
 
-    /** Repaint {@code holder}'s editor in place; a no-op when the engine was wired without editor support. */
-    private void reRenderEditor(MenuHolder holder) {
-        if (editorRenderer != null) {
-            EditorRefresh.reRender(holder, editorRenderer, scheduler);
+    /**
+     * Repaint {@code holder}'s editor in place, through the renderer the editor was opened with and this listener's
+     * own only as a fallback; a no-op when neither exists.
+     */
+    private void reRenderEditor(MenuHolder holder, EditorState editor) {
+        EditorRenderer renderer =
+                editor.clicks().map(EditorState.Clicks::renderer).orElse(editorRenderer);
+        if (renderer != null) {
+            EditorRefresh.reRender(holder, renderer, scheduler);
         }
     }
 

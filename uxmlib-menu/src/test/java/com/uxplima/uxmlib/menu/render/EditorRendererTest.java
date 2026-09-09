@@ -264,11 +264,7 @@ class EditorRendererTest {
     @Test
     void aSpecThatNamesItsBlocksDrawsAProperTile() {
         EditorState state = new EditorState("spec", "subject");
-        Inventory inv = draw(
-                editor(layout())
-                        .blocks("About", "What this setting decides.", "Details", "Click to change it")
-                        .build(),
-                state);
+        Inventory inv = draw(tiled(), state);
 
         List<String> lore = loreOf(inv, 10);
         assertThat(lore).anyMatch(line -> line.contains("About"));
@@ -279,6 +275,49 @@ class EditorRendererTest {
         assertThat(lore)
                 .describedAs("UI-STYLE 7.2: a tile that says something carries at least six filled lines")
                 .hasSizeGreaterThanOrEqualTo(6);
+    }
+
+    /** The tiled editor every shape assertion below is made against: one property, all five blocks named. */
+    private EditorSpec tiled() {
+        return editor(layout())
+                .blocks("Crate", "About", "What this setting decides.", "Details", "Click to change it")
+                .build();
+    }
+
+    /**
+     * The tile closes on exactly one blank line.
+     *
+     * <p>It closed on two until 2026-09-09, because the lore went to {@link
+     * com.uxplima.uxmlib.gui.style.Tiles#titled(Theme, Component, List)} as a list holding one multi-line
+     * component. That overload asks whether the last <em>entry</em> is blank, a whole tile is not, so it added a
+     * second closing line and every property button in the estate sat a line taller than every other tile. The
+     * owner read it off a uxmCrates screenshot: "en alttan 2 boşluk var".
+     */
+    @Test
+    void theTileClosesOnOneBlankLineAndNotOnTwo() {
+        List<String> lore = loreOf(draw(tiled(), new EditorState("spec", "subject")), 10);
+
+        assertThat(lore.get(lore.size() - 1)).isEqualTo(" ");
+        assertThat(lore.get(lore.size() - 2))
+                .describedAs("a tile closes on one blank line, so the line above it says something")
+                .isNotBlank();
+    }
+
+    /**
+     * The breadcrumb sits under the title and the blank line comes after it.
+     *
+     * <p>UI-STYLE 7.2 fixes the order: title, breadcrumb, blank, {@code ✎} block. A property tile carried no
+     * breadcrumb, so its description header sat hard against its title with no air between them, which is what
+     * the owner reported on 2026-09-09: "name desc arası boşluk yok".
+     */
+    @Test
+    void theBreadcrumbSitsUnderTheTitleAndTheBlankLineFollowsIt() {
+        List<String> lore = loreOf(draw(tiled(), new EditorState("spec", "subject")), 10);
+
+        assertThat(lore.get(0)).contains("difficulty");
+        assertThat(lore.get(1)).contains("Crate");
+        assertThat(lore.get(2)).isEqualTo(" ");
+        assertThat(lore.get(3)).contains("About");
     }
 
     /**

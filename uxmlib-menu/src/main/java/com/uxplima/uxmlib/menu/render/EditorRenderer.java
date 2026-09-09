@@ -93,21 +93,29 @@ public final class EditorRenderer {
     }
 
     /**
-     * The blocks under a property's title.
+     * The blocks under a property's title, as one component with the line breaks in it.
      *
-     * <p>A spec that names the four keys gets the tile UI-STYLE 7.2 describes: the {@code ✎} header with the
-     * words that say what the setting is, the {@code ≡} header with the current value as a fact under it, and
-     * the {@code →} click line. One that names none gets the single unpadded line every editor drew before,
-     * which is what keeps an existing consumer's screens exactly as they were.
+     * <p>One component rather than a list of one, which is what this handed {@link Tiles#titled} until 2026-09-09.
+     * That overload asks whether the last <em>line</em> it was given is blank, a multi-line component is not, and so
+     * every property tile in the estate closed on two blank lines and sat a line taller than every other tile. The
+     * component overload measures the last line of the text, which is the question that was meant.
+     *
+     * <p>A spec that names the keys gets the tile UI-STYLE 7.2 describes: the breadcrumb under the title, the
+     * {@code ✎} header with the words that say what the setting is, the {@code ≡} header with the current value
+     * as a fact under it, and the {@code →} click line. One that names none gets the single unpadded line every
+     * editor drew before, which is what keeps an existing consumer's screens exactly as they were.
      *
      * <p>The label is used as the fact's own label, because it is already the word for this setting and a tile
      * that repeats it under its own title reads as a stutter. {@code Lore} adds the padding and the indents.
      */
-    private List<Component> body(Player viewer, EditorSpec spec, Component title, Component value) {
+    private Component body(Player viewer, EditorSpec spec, Component title, Component value) {
         if (spec.detailsHeader().isEmpty()) {
-            return List.of(value);
+            return value;
         }
         Lore lore = Lore.of(theme.get());
+        if (!spec.crumb().isEmpty()) {
+            lore = lore.crumb(guiText.text(viewer, spec.crumb()));
+        }
         if (!spec.descriptionHeader().isEmpty() && !spec.description().isEmpty()) {
             lore = lore.description(
                     guiText.text(viewer, spec.descriptionHeader()), guiText.text(viewer, spec.description()));
@@ -116,7 +124,7 @@ public final class EditorRenderer {
         if (!spec.action().isEmpty()) {
             lore = lore.action(guiText.text(viewer, spec.action()));
         }
-        return List.of(lore.build());
+        return lore.build();
     }
 
     /** Paint the back button and record it as a plain-button slot whose click runs the spec's back callback. */

@@ -47,6 +47,8 @@ public final class EditorSpec {
      * every plugin is drawn by {@code EditorRenderer}. A spec that names none of these draws what it drew
      * before, so nothing already shipped changes shape until its author asks.
      */
+    private final String crumb;
+
     private final String descriptionHeader;
 
     private final String description;
@@ -70,6 +72,7 @@ public final class EditorSpec {
         this.layout = Objects.requireNonNull(builder.layout, "layout");
         this.title = Objects.requireNonNull(builder.title, "title");
         this.valueLore = Objects.requireNonNull(builder.valueLore, "valueLore");
+        this.crumb = builder.crumb == null ? "" : builder.crumb;
         this.descriptionHeader = builder.descriptionHeader == null ? "" : builder.descriptionHeader;
         this.description = builder.description == null ? "" : builder.description;
         this.detailsHeader = builder.detailsHeader == null ? "" : builder.detailsHeader;
@@ -91,6 +94,17 @@ public final class EditorSpec {
 
     public String valueLore() {
         return valueLore;
+    }
+
+    /**
+     * The catalogue key of the breadcrumb under the title, or empty when this spec draws none.
+     *
+     * <p>UI-STYLE 7.2 puts a breadcrumb on every tile and the blank line that separates the blocks comes after it,
+     * so a tile without one reads with its {@code ✎} header hard against its title. That is what a property button
+     * looked like until 2026-09-09.
+     */
+    public String crumb() {
+        return crumb;
     }
 
     /** The catalogue key of the {@code ✎} header, or empty when this spec draws no description block. */
@@ -157,6 +171,7 @@ public final class EditorSpec {
         private @Nullable EntityEditorLayout layout;
         private @Nullable BiFunction<Player, @Nullable Object, Component> title;
         private @Nullable String valueLore;
+        private @Nullable String crumb;
         private @Nullable String descriptionHeader;
         private @Nullable String description;
         private @Nullable String detailsHeader;
@@ -186,10 +201,12 @@ public final class EditorSpec {
         }
 
         /**
-         * The four catalogue keys that turn a property button into a tile: the {@code ✎} header, the words
-         * under it, the {@code ≡} header over the value, and the {@code →} click line.
+         * The five catalogue keys that turn a property button into a tile: the breadcrumb under the title, the
+         * {@code ✎} header, the words under it, the {@code ≡} header over the value, and the {@code →} click line.
          */
-        public Builder blocks(String descriptionHeader, String description, String detailsHeader, String action) {
+        public Builder blocks(
+                String crumb, String descriptionHeader, String description, String detailsHeader, String action) {
+            this.crumb = Objects.requireNonNull(crumb, "crumb");
             this.descriptionHeader = Objects.requireNonNull(descriptionHeader, "descriptionHeader");
             this.description = Objects.requireNonNull(description, "description");
             this.detailsHeader = Objects.requireNonNull(detailsHeader, "detailsHeader");
