@@ -28,6 +28,9 @@ import org.spongepowered.configurate.serialize.SerializationException;
  * custom-model-data = 42
  * unbreakable = true
  * glow = true
+ * damage = 25                        # how worn a tool arrives
+ * item-model = "namespace:path"      # the 1.21.4 item model
+ * stored-enchants { mending = 1 }    # what an enchanted book holds, which is not what it carries
  * hide-vanilla-tooltip = true         # silence the lines the client writes under the lore
  * skull = "Notch"                     # only for PLAYER_HEAD; routed through SkullData.parse
  * }</pre>
@@ -57,8 +60,11 @@ import org.spongepowered.configurate.serialize.SerializationException;
  * into an item an operator will sell, so a mistyped potion name must not quietly become a water bottle.
  *
  * <p>Name and lore pass through MiniMessage with any supplied {@link TagResolver placeholders}; lore can be
- * auto-wrapped to a width. One-way for now (config to item); a writer can come later. Lives in the item
- * module on purpose: it has no GUI dependency.
+ * auto-wrapped to a width. Lives in the item module on purpose: it has no GUI dependency.
+ *
+ * <p>{@link ItemWriter} is the other direction, and the two share this vocabulary key for key. A plugin that
+ * takes an item out of a player's hand and writes it into a file is reading its own file back on the next
+ * start, so a key one half spells and the other does not is a reward that quietly loses half of itself.
  */
 public final class ItemConfig {
 
@@ -92,6 +98,7 @@ public final class ItemConfig {
         applyName(node, builder, tags);
         applyLore(node, builder, tags, wrapWidth);
         applyEnchants(node, builder);
+        applyStoredEnchants(node, builder);
         applyFlags(node, builder);
         applyScalars(node, builder);
         applySkull(node, builder);
@@ -180,10 +187,37 @@ public final class ItemConfig {
         }
     }
 
+    /**
+     * The enchantments an enchanted book stores rather than carries.
+     *
+     * <p>Written apart from {@code enchants} because they are a different thing to the client: a book with
+     * {@code enchants} is a glowing book that does nothing, and a book with {@code stored-enchants} is the
+     * book a player puts on an anvil. An enchanted book is one of the two most common rewards a crate gives
+     * and it could not be written down at all before this.
+     */
+    private static void applyStoredEnchants(ConfigurationNode node, ItemBuilder builder) {
+        for (var entry : node.node("stored-enchants").childrenMap().entrySet()) {
+            String key = String.valueOf(entry.getKey());
+            int level = entry.getValue().getInt(-1);
+            if (level < 1) {
+                throw new IllegalArgumentException("stored enchant '" + key + "' needs a level >= 1");
+            }
+            builder.storedEnchant(enchantment(key), level);
+        }
+    }
+
     private static void applyScalars(ConfigurationNode node, ItemBuilder builder) {
         ConfigurationNode cmd = node.node("custom-model-data");
         if (!cmd.virtual()) {
             builder.customModelData(cmd.getInt());
+        }
+        ConfigurationNode damage = node.node("damage");
+        if (!damage.virtual() && damage.getInt(0) > 0) {
+            builder.damage(damage.getInt());
+        }
+        String itemModel = node.node("item-model").getString();
+        if (itemModel != null && !itemModel.isBlank()) {
+            builder.itemModel(org.bukkit.NamespacedKey.fromString(itemModel));
         }
         if (node.node("unbreakable").getBoolean(false)) {
             builder.unbreakable(true);
