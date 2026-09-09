@@ -28,12 +28,36 @@ public final class ActionProperty implements EditableProperty {
     private final Function<Player, String> valueHint;
     private final BiConsumer<Player, Runnable> handler;
 
+    /** This button's own click line, or empty to take the editor's. */
+    private final String action;
+
     public ActionProperty(
             String label, Material icon, Function<Player, String> valueHint, BiConsumer<Player, Runnable> handler) {
+        this(label, icon, valueHint, "", handler);
+    }
+
+    /**
+     * The same, with a click line of this button's own.
+     *
+     * <p>An editor names one click line for every button it draws, and a do-it-now button is exactly the one
+     * that does not write a value: it opens something, or it takes what the viewer is holding.
+     */
+    public ActionProperty(
+            String label,
+            Material icon,
+            Function<Player, String> valueHint,
+            String action,
+            BiConsumer<Player, Runnable> handler) {
         this.label = Objects.requireNonNull(label, "label");
         this.icon = Objects.requireNonNull(icon, "icon");
         this.valueHint = Objects.requireNonNull(valueHint, "valueHint");
+        this.action = Objects.requireNonNull(action, "action");
         this.handler = Objects.requireNonNull(handler, "handler");
+    }
+
+    @Override
+    public String action() {
+        return action;
     }
 
     /** A convenience for an action whose hint is the same fixed string for every viewer. */
