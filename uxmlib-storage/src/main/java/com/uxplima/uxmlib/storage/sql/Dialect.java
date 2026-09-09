@@ -83,6 +83,55 @@ public enum Dialect {
         };
     }
 
+    /**
+     * Build an upsert whose conflict branch <em>adds</em> to a column rather than replacing it: insert the row,
+     * or add the bound value to the column that already stands there.
+     *
+     * <p>This is the statement a counter needs, and it exists because the shape it replaces is a race. Reading
+     * a count and writing the sum back is safe on SQLite, whose transactions serialise, and is a lost update on
+     * MySQL, whose default REPEATABLE READ takes no lock on a plain {@code SELECT}: two openings at the same
+     * moment both read one and both write two, and a key is spent twice or a win limit of one is passed twice.
+     * A conditional statement has no read to lose.
+     *
+     * <p>Every column not in {@code added} and not a key column is left exactly as it was, which is what a
+     * column like {@code counted_since} means: the moment the counting started, not the moment of the last win.
+     *
+     * @param added the columns whose bound value is added to the value already there
+     * @throws UnsupportedOperationException on a backend with no portable form of it
+     */
+    public String upsertAdding(String table, List<String> keyColumns, List<String> columns, List<String> added) {
+        Objects.requireNonNull(table, "table");
+        Objects.requireNonNull(keyColumns, "keyColumns");
+        Objects.requireNonNull(columns, "columns");
+        Objects.requireNonNull(added, "added");
+        if (added.isEmpty()) {
+            throw new IllegalArgumentException("an adding upsert must name a column to add to");
+        }
+        if (!columns.containsAll(added) || !columns.containsAll(keyColumns)) {
+            throw new IllegalArgumentException("every key and added column must also be bound: " + columns);
+        }
+        if (added.stream().anyMatch(keyColumns::contains)) {
+            throw new IllegalArgumentException("a key column cannot be added to: " + keyColumns);
+        }
+        String placeholders = String.join(", ", Collections.nCopies(columns.size(), "?"));
+        String insert = "INSERT INTO " + table + " (" + String.join(", ", columns) + ") VALUES (" + placeholders + ")";
+        return switch (this) {
+            case SQLITE, POSTGRES ->
+                insert + " ON CONFLICT(" + String.join(", ", keyColumns) + ") DO UPDATE SET "
+                        + added.stream()
+                                .map(c -> c + " = " + table + "." + c + " + excluded." + c)
+                                .collect(Collectors.joining(", "));
+            case MYSQL ->
+                insert + " ON DUPLICATE KEY UPDATE "
+                        + added.stream()
+                                .map(c -> c + " = " + c + " + VALUES(" + c + ")")
+                                .collect(Collectors.joining(", "));
+            case H2, GENERIC ->
+                throw new UnsupportedOperationException(
+                        "no portable adding upsert for this JDBC backend; use SQLite, MySQL, MariaDB or Postgres");
+        };
+    }
+
     private static String onConflict(String keyList, List<String> updates) {
         if (updates.isEmpty()) {
             return " ON CONFLICT(" + keyList + ") DO NOTHING";
