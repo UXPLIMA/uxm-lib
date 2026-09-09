@@ -117,6 +117,33 @@ class ListPropertyTest {
     }
 
     private ListProperty property() {
+        return property(new ListPropertyText(
+                "list.title",
+                "entry: %entry%",
+                "list.hints",
+                "list.add",
+                "list.add-prompt",
+                "list.edit-prompt",
+                "list.remove-confirm",
+                "list.back"));
+    }
+
+    /** The same list, told what to say when it holds nothing and what its own click line is. */
+    private static ListPropertyText words(String empty) {
+        return new ListPropertyText(
+                "list.title",
+                "entry: %entry%",
+                "list.hints",
+                "list.add",
+                "list.add-prompt",
+                "list.edit-prompt",
+                "list.remove-confirm",
+                "list.back",
+                empty,
+                "list.action");
+    }
+
+    private ListProperty property(ListPropertyText keys) {
         return new ListProperty(
                 "editor.list-line",
                 "label",
@@ -128,15 +155,7 @@ class ListPropertyTest {
                     written.add(next);
                     value.set(next);
                 },
-                new ListPropertyText(
-                        "list.title",
-                        "entry: %entry%",
-                        "list.hints",
-                        "list.add",
-                        "list.add-prompt",
-                        "list.edit-prompt",
-                        "list.remove-confirm",
-                        "list.back"),
+                keys,
                 new ListPropertyLayout(
                         3,
                         ENTRY_SLOTS,
@@ -190,6 +209,44 @@ class ListPropertyTest {
         value.set(List.of());
 
         assertThat(property().valueLore(viewer)).isEqualTo("0");
+    }
+
+    /**
+     * What the button draws is the lines, not how many there are.
+     *
+     * <p>A count after a label reads as the value: {@code ᴍᴏɴᴇʏ ɪᴛ ᴘᴀʏꜱ 0} says the reward pays nothing, and
+     * says it with a number that is not the amount. The owner read it off a uxmCrates screen on 2026-09-09.
+     */
+    @Test
+    void theButtonDrawsTheLinesRatherThanHowManyThereAre() {
+        assertThat(plain(property(words("none")).drawnValue(viewer).orElseThrow()))
+                .isEqualTo("one, two, three");
+    }
+
+    @Test
+    void anEmptyListDrawsTheWordTheCallerNamedForIt() {
+        value.set(List.of());
+
+        assertThat(plain(property(words("none")).drawnValue(viewer).orElseThrow()))
+                .isEqualTo("none");
+    }
+
+    /** A caller that names no word for an empty list keeps the count it had, so no screen changes on its own. */
+    @Test
+    void aCallerThatNamesNoEmptyWordKeepsTheCount() {
+        value.set(List.of());
+
+        assertThat(property().drawnValue(viewer)).isEmpty();
+    }
+
+    /** Joined lines are cut to the width a tooltip reads at, so one long lore cannot draw a box that wide. */
+    @Test
+    void theLinesAreCutToTheWidthATooltipReadsAt() {
+        value.set(List.of("a".repeat(20), "b".repeat(20), "c".repeat(20)));
+
+        String drawn = plain(property(words("none")).drawnValue(viewer).orElseThrow());
+
+        assertThat(drawn).hasSize(34).endsWith("…");
     }
 
     @Test

@@ -85,11 +85,12 @@ public final class EditorRenderer {
      * shares ("setting") rather than on the setting the player is looking at.
      */
     private ItemStack propertyButton(Player viewer, EditorSpec spec, EditableProperty property) {
-        Component value = guiText.text(viewer, spec.valueLore(), Map.of("value", property.valueLore(viewer)));
+        Component value = property.drawnValue(viewer)
+                .orElseGet(() -> guiText.text(viewer, spec.valueLore(), Map.of("value", property.valueLore(viewer))));
         Component title = guiText.text(viewer, property.label());
         return ItemBuilder.of(property.icon())
                 .name(Tiles.blankName())
-                .lore(Tiles.titled(theme.get(), title, body(viewer, spec, title, value)))
+                .lore(Tiles.titled(theme.get(), title, body(viewer, spec, property, title, value)))
                 .build();
     }
 
@@ -108,8 +109,12 @@ public final class EditorRenderer {
      *
      * <p>The label is used as the fact's own label, because it is already the word for this setting and a tile
      * that repeats it under its own title reads as a stutter. {@code Lore} adds the padding and the indents.
+     *
+     * <p>The {@code →} line is the property's own where it names one and the spec's otherwise, because a
+     * toggle steps, a list opens a window and neither of them writes a new value.
      */
-    private Component body(Player viewer, EditorSpec spec, Component title, Component value) {
+    private Component body(
+            Player viewer, EditorSpec spec, EditableProperty property, Component title, Component value) {
         if (spec.detailsHeader().isEmpty()) {
             return value;
         }
@@ -122,8 +127,9 @@ public final class EditorRenderer {
                     guiText.text(viewer, spec.descriptionHeader()), guiText.text(viewer, spec.description()));
         }
         lore = lore.details(guiText.text(viewer, spec.detailsHeader())).row(title, value);
-        if (!spec.action().isEmpty()) {
-            lore = lore.action(guiText.text(viewer, spec.action()));
+        String action = property.action().isEmpty() ? spec.action() : property.action();
+        if (!action.isEmpty()) {
+            lore = lore.action(guiText.text(viewer, action));
         }
         return lore.build();
     }

@@ -4,12 +4,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+
+import net.kyori.adventure.text.Component;
 
 import com.uxplima.uxmlib.gui.GuiText;
 import com.uxplima.uxmlib.gui.input.InputRequest;
@@ -38,6 +41,9 @@ import org.jspecify.annotations.NullMarked;
  */
 @NullMarked
 public final class ListProperty implements EditableProperty {
+
+    /** How wide the joined lines may read on the button, in visible characters. The width Lore wraps at. */
+    private static final int VALUE_WIDTH = 34;
 
     private final String inputKey;
     private final String label;
@@ -93,6 +99,43 @@ public final class ListProperty implements EditableProperty {
     public String valueLore(Player viewer) {
         Objects.requireNonNull(viewer, "viewer");
         return Integer.toString(current.get().size());
+    }
+
+    /**
+     * What the button reports: the lines themselves, or the word for a list that holds none.
+     *
+     * <p>It used to be the count, and a count after a label reads as the value: {@code ᴍᴏɴᴇʏ ɪᴛ ᴘᴀʏꜱ 0} says
+     * the reward pays nothing, which is true, and says it with a number that is not the amount. The owner
+     * read it off a uxmCrates screen on 2026-09-09. A caller that names no word for an empty list keeps the
+     * count it had.
+     *
+     * <p>Cut to the width a tooltip reads at, because a tooltip grows to its longest line and four lines of a
+     * lore joined together would draw a box wider than the window it hangs over.
+     */
+    @Override
+    public Optional<Component> drawnValue(Player viewer) {
+        Objects.requireNonNull(viewer, "viewer");
+        List<String> lines = current.get();
+        if (lines.isEmpty()) {
+            return keys.emptyValue().isEmpty()
+                    ? Optional.empty()
+                    : Optional.of(guiText.text(viewer, keys.emptyValue()));
+        }
+        return Optional.of(Component.text(cut(String.join(", ", lines))));
+    }
+
+    @Override
+    public String action() {
+        return keys.actionLine();
+    }
+
+    /** {@code written} at the width a tooltip reads at, with a leader where it was cut. */
+    private static String cut(String written) {
+        int width = written.codePointCount(0, written.length());
+        if (width <= VALUE_WIDTH) {
+            return written;
+        }
+        return written.substring(0, written.offsetByCodePoints(0, VALUE_WIDTH - 1)) + "…";
     }
 
     @Override

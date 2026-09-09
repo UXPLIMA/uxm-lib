@@ -1,7 +1,11 @@
 package com.uxplima.uxmlib.menu.property;
 
+import java.util.Optional;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+
+import net.kyori.adventure.text.Component;
 
 import org.jspecify.annotations.NullMarked;
 
@@ -33,6 +37,34 @@ public interface EditableProperty {
      * value-lore catalog line, so this returns the bare value text, not a full lore block.
      */
     String valueLore(Player viewer);
+
+    /**
+     * The value already painted, for a property whose value carries a colour of its own.
+     *
+     * <p>Empty is the ordinary answer and means {@link #valueLore} is the whole of it: plain words the editor
+     * puts through the spec's value line and the catalogue inserts <em>as text</em>. That is deliberate and it
+     * has to stay: a text property's value is whatever an operator typed, and an operator who names a crate
+     * {@code <red>} has to read those characters back rather than have them parsed.
+     *
+     * <p>Which leaves nowhere for a value that is genuinely markup. A toggle's state is a coloured word by
+     * UI-STYLE 9, and a toggle that answered {@code "<good>On"} had those characters printed on the button:
+     * the owner read {@code ANNOUNCED TO THE SERVER <#9AA5BE>ᴏꜰꜰ} off a uxmCrates screen on 2026-09-09. A
+     * property that has already painted its value says so here and the editor draws it as it is.
+     */
+    default Optional<Component> drawnValue(Player viewer) {
+        return Optional.empty();
+    }
+
+    /**
+     * The catalogue key of this button's own {@code →} line, or empty to take the editor's.
+     *
+     * <p>An editor names one click line for every button it draws, which is right while every button does the
+     * same thing. A toggle steps, a list opens a window, and a button that takes the item out of your hand
+     * does neither: all three read "click to write a new value" until they say otherwise.
+     */
+    default String action() {
+        return "";
+    }
 
     /** The button icon material; from the editor layout conf, never hardcoded by a property. */
     Material icon();

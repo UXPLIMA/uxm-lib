@@ -321,6 +321,79 @@ class EditorRendererTest {
     }
 
     /**
+     * A value that arrives already painted is drawn as it is, and never as the characters of its own tags.
+     *
+     * <p>A value goes through the catalogue and the catalogue inserts it <em>as text</em>, which is right and
+     * has to stay: a text property's value is whatever an operator typed, and one who names a crate {@code
+     * <red>} must read those characters back. A toggle's state is not that. It is a coloured word by
+     * UI-STYLE 9, and a toggle that answered {@code "<good>On"} had the tag printed on the button. The owner
+     * read {@code ANNOUNCED TO THE SERVER <#9AA5BE>ᴏꜰꜰ} off a uxmCrates screen on 2026-09-09.
+     */
+    @Test
+    void aPaintedValueIsDrawnAndNeverPrintedAsItsOwnTags() {
+        properties.clear();
+        properties.add(new Painted());
+
+        List<String> lore = loreOf(draw(tiled(), new EditorState("spec", "subject")), 10);
+
+        assertThat(lore).anyMatch(line -> line.contains("on"));
+        assertThat(lore)
+                .describedAs("a painted value never reaches the button as the letters of its own tags")
+                .noneMatch(line -> line.contains("<"));
+    }
+
+    /** A property that names its own click line gets it, and the editor's is left for the rest. */
+    @Test
+    void aPropertyThatNamesItsOwnClickLineGetsIt() {
+        properties.clear();
+        properties.add(new Painted());
+
+        List<String> lore = loreOf(draw(tiled(), new EditorState("spec", "subject")), 10);
+
+        assertThat(lore).anyMatch(line -> line.contains("Click to turn it on and off"));
+        assertThat(lore)
+                .describedAs("the editor's own click line is not drawn beside the property's")
+                .noneMatch(line -> line.contains("Click to change it"));
+    }
+
+    /** A property whose value is already a component and which names a click line of its own. */
+    private record Painted() implements EditableProperty {
+
+        @Override
+        public String label() {
+            return "announced";
+        }
+
+        @Override
+        public Material icon() {
+            return Material.BELL;
+        }
+
+        /**
+         * The plain-text answer a caller with a component in hand is forced into: the component written back
+         * out as MiniMessage. That is what uxmCrates handed over, and it is what put the tag on the button.
+         */
+        @Override
+        public String valueLore(Player viewer) {
+            return "<green>on";
+        }
+
+        @Override
+        public java.util.Optional<Component> drawnValue(Player viewer) {
+            return java.util.Optional.of(
+                    Component.text("on").color(net.kyori.adventure.text.format.NamedTextColor.GREEN));
+        }
+
+        @Override
+        public String action() {
+            return "Click to turn it on and off";
+        }
+
+        @Override
+        public void onClick(PropertyClick click) {}
+    }
+
+    /**
      * A spec that names none of the four keys draws what it always drew, so no consumer's screens change
      * shape on the day the library grows the option.
      */

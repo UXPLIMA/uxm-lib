@@ -19,6 +19,8 @@ import org.jspecify.annotations.NullMarked;
  * @param editPrompt the anvil hint shown when editing an entry; carries an {@code {entry}} placeholder
  * @param removeConfirm the confirm-menu title shown before removing an entry
  * @param backName the back button name
+ * @param emptyValue the word the button shows when the list holds nothing; empty to show the count instead
+ * @param actionLine the {@code →} line of the button that opens this list; empty to take the editor's
  */
 @NullMarked
 public record ListPropertyText(
@@ -29,9 +31,32 @@ public record ListPropertyText(
         String addPrompt,
         String editPrompt,
         String removeConfirm,
-        String backName) {
+        String backName,
+        String emptyValue,
+        String actionLine) {
+
+    /**
+     * The eight keys a list editor needed before it had a word for an empty list or a click line of its own.
+     *
+     * <p>Kept so every caller that names them compiles unchanged and keeps the button it had: the count, and
+     * the editor's own click line. A caller that wants the button to read as a value rather than as a number
+     * names the two extra keys.
+     */
+    public ListPropertyText(
+            String title,
+            String entryName,
+            String entryHints,
+            String addName,
+            String addPrompt,
+            String editPrompt,
+            String removeConfirm,
+            String backName) {
+        this(title, entryName, entryHints, addName, addPrompt, editPrompt, removeConfirm, backName, "", "");
+    }
 
     public ListPropertyText {
+        Objects.requireNonNull(emptyValue, "emptyValue");
+        Objects.requireNonNull(actionLine, "actionLine");
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(entryName, "entryName");
         Objects.requireNonNull(entryHints, "entryHints");
