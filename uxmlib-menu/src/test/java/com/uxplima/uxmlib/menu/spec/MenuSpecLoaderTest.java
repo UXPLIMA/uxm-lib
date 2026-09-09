@@ -918,6 +918,52 @@ class MenuSpecLoaderTest {
                 .containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26);
     }
 
+    /**
+     * A drawing and a readable file were mutually exclusive.
+     *
+     * <p>The grid was claimed by an item whose whole id is the character, so a menu that wanted a mask had to
+     * call its reward list {@code x}. An operator should be able to look at both the picture and the names, and
+     * every product in this market that ships masks lets the item say which character it is.
+     */
+    @Test
+    void anItemNamesTheLayoutCharacterItClaims() {
+        MenuSpec spec = new MenuSpecLoader().parse("""
+                        layout = [
+                          "GGGGGGGGG"
+                          "G.xxxxx.G"
+                          "GGGGGGGGG"
+                        ]
+                        items {
+                          rewards { material = PAPER, layout-char = "x", slots = [40] }
+                          border  { material = GRAY_STAINED_GLASS_PANE, layout-char = "G" }
+                        }
+                        """);
+
+        assertThat(java.util.Objects.requireNonNull(spec.items().get("rewards"))
+                        .slots()
+                        .slots())
+                .as("the readable id keeps its name and the drawing still decides where it sits")
+                .containsExactly(11, 12, 13, 14, 15);
+        assertThat(java.util.Objects.requireNonNull(spec.items().get("border"))
+                        .slots()
+                        .slots())
+                .hasSize(20);
+    }
+
+    /** A half edited mask must never take a menu down: the item simply keeps the slots it declared. */
+    @Test
+    void anItemClaimingACharacterTheDrawingDoesNotUseKeepsItsOwnSlots() {
+        MenuSpec spec = new MenuSpecLoader().parse("""
+                        layout = [ "GGGGGGGGG" ]
+                        items { rewards { material = PAPER, layout-char = "q", slots = [40] } }
+                        """);
+
+        assertThat(java.util.Objects.requireNonNull(spec.items().get("rewards"))
+                        .slots()
+                        .slots())
+                .containsExactly(40);
+    }
+
     @Test
     void aLayoutCharWithNoMatchingItemLeavesThoseSlotsEmptyWithoutError() {
         // 'X' is drawn but no item declares it, so nothing occupies those cells and the parse still succeeds.

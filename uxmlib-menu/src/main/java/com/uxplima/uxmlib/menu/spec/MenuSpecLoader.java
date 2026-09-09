@@ -311,10 +311,14 @@ public final class MenuSpecLoader {
     }
 
     /**
-     * Parse the {@code items} block. An item whose id is a single character present in the menu's {@code layout} grid
-     * takes its slots from that grid, the drawing wins over any {@code slot}/{@code slots} it declares, while every
-     * other item keeps its own slots. A menu with no {@code layout} passes an empty grid, so no id is ever a grid
-     * character and every item parses exactly as it did before.
+     * Parse the {@code items} block. An item takes its slots from the menu's {@code layout} grid when it names the
+     * character it claims with {@code layout-char}, or when its whole id is a single character in the grid. The
+     * drawing wins over any {@code slot}/{@code slots} it declares, while every other item keeps its own slots. A menu
+     * with no {@code layout} passes an empty grid, so no item is ever a grid item and every one parses as before.
+     *
+     * <p>{@code layout-char} exists because the single-character rule made a drawing and a readable file mutually
+     * exclusive: a menu that wanted a mask had to call its reward list {@code x}. An operator should be able to look
+     * at both the picture and the names.
      */
     private Map<String, MenuItemSpec> parseItems(
             ConfigurationNode itemsNode,
@@ -327,7 +331,10 @@ public final class MenuSpecLoader {
                 itemsNode.childrenMap().entrySet()) {
             String id = String.valueOf(entry.getKey());
             try {
-                items.put(id, parseItem(entry.getValue(), slotCeiling, patterns, layoutOverride(id, layout)));
+                items.put(
+                        id,
+                        parseItem(
+                                entry.getValue(), slotCeiling, patterns, layoutOverride(id, entry.getValue(), layout)));
             } catch (RuntimeException invalid) {
                 throw new MenuSpecException(
                         "invalid item '" + id + "' in " + origin + ": " + invalid.getMessage(), invalid);
@@ -359,8 +366,19 @@ public final class MenuSpecLoader {
         return grid;
     }
 
-    /** The grid positions a single-character item id claims, or {@code null} when the id is not a grid character so the item keeps its own declared slots. */
-    private static @Nullable List<Integer> layoutOverride(String id, Map<Character, List<Integer>> layout) {
+    /**
+     * The grid positions this item claims, or {@code null} when it claims none and keeps its own declared slots.
+     *
+     * <p>{@code layout-char} is asked first, because an operator who wrote one meant it. A character that the drawing
+     * does not use is not an error: the item simply keeps its own slots, the same as an id that is not in the grid,
+     * so a mask an operator is halfway through editing never takes the menu down.
+     */
+    private static @Nullable List<Integer> layoutOverride(
+            String id, ConfigurationNode item, Map<Character, List<Integer>> layout) {
+        String claimed = item.node("layout-char").getString("").strip();
+        if (!claimed.isEmpty()) {
+            return layout.get(claimed.charAt(0));
+        }
         return id.length() == 1 ? layout.get(id.charAt(0)) : null;
     }
 
