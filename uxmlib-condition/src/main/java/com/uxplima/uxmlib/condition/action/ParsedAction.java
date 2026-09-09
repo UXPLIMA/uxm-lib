@@ -9,12 +9,18 @@ import java.util.Objects;
  * kind without having to run the side effect, while still running the closure against a fake context to assert
  * the effect itself.
  */
-public record ParsedAction(ActionType type, String payload, Action action) {
+public record ParsedAction(ActionType type, String payload, Action action, ActionModifiers modifiers) {
+
+    /** The form from before an action could carry modifiers, which is one that runs once and at once. */
+    public ParsedAction(ActionType type, String payload, Action action) {
+        this(type, payload, action, ActionModifiers.none());
+    }
 
     /** Canonical constructor null-checks every component. */
     public ParsedAction {
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(payload, "payload");
         Objects.requireNonNull(action, "action");
+        Objects.requireNonNull(modifiers, "modifiers");
     }
 }

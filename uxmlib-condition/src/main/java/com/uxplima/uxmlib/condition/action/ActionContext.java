@@ -9,6 +9,7 @@ import org.bukkit.entity.Player;
 
 import net.kyori.adventure.audience.Audience;
 
+import com.uxplima.uxmlib.condition.ConditionRequest;
 import com.uxplima.uxmlib.condition.ItemStore;
 import com.uxplima.uxmlib.condition.OperandResolver;
 import com.uxplima.uxmlib.condition.Wallet;
@@ -126,6 +127,26 @@ public final class ActionContext {
     public String resolve(String template) {
         Objects.requireNonNull(template, "template");
         return resolver.resolve(player, template);
+    }
+
+    /**
+     * The same world, asked as a condition would ask it.
+     *
+     * <p>An action that carries an {@code if} has to be able to test it against exactly what the action
+     * itself would see: the same player, the same wallet, the same inventory and the same resolver. Building
+     * a second request by hand at every call site is how the two drift apart, and a condition that reads a
+     * different balance from the action beside it is a bug nobody can reproduce.
+     */
+    public ConditionRequest asConditionRequest() {
+        ConditionRequest.Builder request = ConditionRequest.builder(resolver)
+                .wallet(wallet)
+                .itemStore(itemStore)
+                .consoleSink(consoleSink)
+                .playerSink(playerSink);
+        if (player != null) {
+            request.player(player);
+        }
+        return request.build();
     }
 
     /** A builder so the optional parts stay readable at call sites. */

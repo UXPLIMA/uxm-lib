@@ -18,6 +18,15 @@ import net.kyori.adventure.bossbar.BossBar;
  *   [close]
  * }</pre>
  *
+ * <p>A verb may be followed by a brace block naming when and how often it runs. Every part of it is optional
+ * and a line without one behaves exactly as it always did. See {@link ActionModifiers}.
+ *
+ * <pre>{@code
+ *   [message] {delay=40} <accent>Two seconds later
+ *   [broadcast] {if=%player_level% >= 10} <accent>A veteran won something
+ *   [sound] {repeat=3, every=5} UI_BUTTON_CLICK 1 1
+ * }</pre>
+ *
  * <p>Parsing happens once, at load: the returned closure carries the static payload and only resolves
  * placeholders at run time. An unknown prefix, a missing {@code ]}, or a payload-less string for a type that
  * needs one all raise {@link IllegalArgumentException} with a message naming the offending input, so a config
@@ -40,9 +49,13 @@ public final class ActionParser {
         }
         String keyword = trimmed.substring(1, close).strip();
         ActionType type = ActionType.fromPrefix(keyword);
-        String payload = trimmed.substring(close + 1).strip();
+        // The brace block is optional and comes between the verb and the payload. A line without one reads
+        // exactly as it did before this feature, which is why every file already written keeps working.
+        ActionModifiers.Parsed modified = ActionModifiers.parse(trimmed.substring(close + 1));
+        String payload = modified.payload();
         requirePayload(type, payload, line);
-        return new ParsedAction(type, payload, build(type, payload));
+        return new ParsedAction(
+                type, payload, ModifiedAction.of(build(type, payload), modified.modifiers()), modified.modifiers());
     }
 
     private static void requirePayload(ActionType type, String payload, String line) {
