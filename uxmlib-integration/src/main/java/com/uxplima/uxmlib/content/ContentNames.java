@@ -105,6 +105,21 @@ public final class ContentNames {
                 .orElseGet(() -> block.getType().name());
     }
 
+    /**
+     * The same for an item, upper case, for a table that spells a material the way the server does.
+     *
+     * <p>An enchantment's item list is written in upper case because that is how a material reads, and a
+     * server running a custom item plugin has swords that are not a material at all. A custom id keeps the
+     * vendor's own spelling, so an operator writes {@code "oraxen:ruby_sword"} beside {@code
+     * "DIAMOND_SWORD"} and both mean the item they name.
+     */
+    public static String upperOf(ItemStack stack) {
+        Objects.requireNonNull(stack, "stack");
+        return harvests.catchOf(stack)
+                .or(() -> items.idOf(stack))
+                .orElseGet(() -> stack.getType().name());
+    }
+
     private static String plain(Material material) {
         return material.name().toLowerCase(Locale.ROOT);
     }

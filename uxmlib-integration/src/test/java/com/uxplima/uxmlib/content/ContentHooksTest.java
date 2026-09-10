@@ -225,6 +225,7 @@ final class ContentHooksTest {
 
         assertThat(ContentNames.active()).isFalse();
         assertThat(ContentNames.of(new ItemStack(Material.DEEPSLATE))).isEqualTo("deepslate");
+        assertThat(ContentNames.upperOf(new ItemStack(Material.DEEPSLATE))).isEqualTo("DEEPSLATE");
         assertThat(ContentNames.countOf(server.addPlayer())).isEqualTo(1);
     }
 
@@ -234,6 +235,7 @@ final class ContentHooksTest {
         ContentNames.namedBy(fakeItems("oraxen:ruby_ore"), CustomMobs.NONE, CustomHarvests.NONE);
 
         assertThat(ContentNames.of(new ItemStack(Material.DEEPSLATE))).isEqualTo("oraxen:ruby_ore");
+        assertThat(ContentNames.upperOf(new ItemStack(Material.DEEPSLATE))).isEqualTo("oraxen:ruby_ore");
         assertThat(ContentNames.active()).isTrue();
         ContentNames.forgetEverything();
     }
