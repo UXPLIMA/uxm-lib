@@ -44,6 +44,17 @@ class ClaimProviderRegistryDriftTest {
     }
 
     @Test
+    void everyCandidateNamesThePluginItLooksFor() {
+        assertThat(ClaimProviders.candidatePluginNames())
+                .describedAs("a consumer declares these in its paper-plugin.yml, and a claim plugin that is"
+                        + " not declared loads after us on some servers and reads as absent for the whole run")
+                .hasSameSizeAs(ClaimProviders.candidateKeys())
+                .doesNotHaveDuplicates()
+                .contains("WorldGuard", "Lands", "SuperiorSkyblock2", "uxmClaims")
+                .allSatisfy(name -> assertThat(name).isNotBlank());
+    }
+
+    @Test
     void everyKeyIsLowerCaseAndUnique() {
         List<String> keys = ClaimProviders.candidateKeys();
         assertThat(keys).doesNotHaveDuplicates();

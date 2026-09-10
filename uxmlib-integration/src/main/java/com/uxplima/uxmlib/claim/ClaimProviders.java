@@ -44,25 +44,25 @@ public final class ClaimProviders {
      * set off {@link #candidateKeys()} rather than keeping a second copy that drifts.
      */
     private static final List<Registration> REGISTRY = List.of(
-            new Registration("uxmclaims", UxmClaimsClaimProvider::new),
-            new Registration("lands", LandsClaimProvider::new),
-            new Registration("griefprevention", GriefPreventionClaimProvider::new),
-            new Registration("griefdefender", GriefDefenderClaimProvider::new),
-            new Registration("excellentclaims", ExcellentClaimsClaimProvider::new),
-            new Registration("simpleclaimsystem", SimpleClaimSystemClaimProvider::new),
-            new Registration("rclaim", RClaimClaimProvider::new),
-            new Registration("xclaim", XClaimClaimProvider::new),
-            new Registration("homestead", HomesteadClaimProvider::new),
-            new Registration("worldguard", WorldGuardClaimProvider::new),
-            new Registration("towny", TownyClaimProvider::new),
-            new Registration("kingdoms", KingdomsClaimProvider::new),
-            new Registration("huskclaims", HuskClaimsClaimProvider::new),
-            new Registration("husktowns", HuskTownsClaimProvider::new),
-            new Registration("factions", FactionsClaimProvider::new),
-            new Registration("bentobox", BentoBoxClaimProvider::new),
-            new Registration("residence", ResidenceClaimProvider::new),
-            new Registration("plotsquared", PlotSquaredClaimProvider::new),
-            new Registration("superiorskyblock", SuperiorSkyblockClaimProvider::new));
+            new Registration("uxmclaims", "uxmClaims", UxmClaimsClaimProvider::new),
+            new Registration("lands", "Lands", LandsClaimProvider::new),
+            new Registration("griefprevention", "GriefPrevention", GriefPreventionClaimProvider::new),
+            new Registration("griefdefender", "GriefDefender", GriefDefenderClaimProvider::new),
+            new Registration("excellentclaims", "ExcellentClaims", ExcellentClaimsClaimProvider::new),
+            new Registration("simpleclaimsystem", "SimpleClaimSystem", SimpleClaimSystemClaimProvider::new),
+            new Registration("rclaim", "RClaim", RClaimClaimProvider::new),
+            new Registration("xclaim", "XClaim", XClaimClaimProvider::new),
+            new Registration("homestead", "Homestead", HomesteadClaimProvider::new),
+            new Registration("worldguard", "WorldGuard", WorldGuardClaimProvider::new),
+            new Registration("towny", "Towny", TownyClaimProvider::new),
+            new Registration("kingdoms", "Kingdoms", KingdomsClaimProvider::new),
+            new Registration("huskclaims", "HuskClaims", HuskClaimsClaimProvider::new),
+            new Registration("husktowns", "HuskTowns", HuskTownsClaimProvider::new),
+            new Registration("factions", "Factions", FactionsClaimProvider::new),
+            new Registration("bentobox", "BentoBox", BentoBoxClaimProvider::new),
+            new Registration("residence", "Residence", ResidenceClaimProvider::new),
+            new Registration("plotsquared", "PlotSquared", PlotSquaredClaimProvider::new),
+            new Registration("superiorskyblock", "SuperiorSkyblock2", SuperiorSkyblockClaimProvider::new));
 
     /**
      * Binds a composite over every claim plugin that is both installed-and-active and enabled in
@@ -90,6 +90,22 @@ public final class ClaimProviders {
      */
     public static List<String> candidateKeys() {
         return REGISTRY.stream().map(Registration::key).toList();
+    }
+
+    /**
+     * The Bukkit plugin name every candidate looks for, in registry order.
+     *
+     * <p>What a consumer declares in its {@code paper-plugin.yml}, each with {@code load: BEFORE} and
+     * {@code required: false}. A claim plugin that is not declared there is a coin flip on the load order:
+     * on the servers where it loses, this detects nothing for the whole run and the only symptom is a
+     * plugin that stops respecting claims. Reading the set from here rather than retyping nineteen names
+     * is what keeps a consumer's file in step with the registry.
+     *
+     * <p>{@code uxmClaims} is in the list even though its provider is reached by class rather than by the
+     * plugin manager: declaring it is what makes the class there to be found.
+     */
+    public static List<String> candidatePluginNames() {
+        return REGISTRY.stream().map(Registration::pluginName).toList();
     }
 
     /**
@@ -129,11 +145,19 @@ public final class ClaimProviders {
         ClaimProvider create(Plugin plugin, Server server, Log log);
     }
 
-    /** A registry entry: a {@code claims.providers} key paired with the factory that builds its provider. */
-    private record Registration(String key, ProviderFactory factory) {
+    /**
+     * One candidate: the {@code claims.providers} key an operator toggles, the Bukkit plugin name it looks
+     * for, and the factory that builds it.
+     *
+     * <p>The plugin name is here rather than only inside the provider because a consumer needs it before
+     * anything is built: a claim plugin that is not declared in a {@code paper-plugin.yml} may load after
+     * the plugin that asks for it, and then it reads as absent for the whole run and nothing says why.
+     */
+    private record Registration(String key, String pluginName, ProviderFactory factory) {
 
         Registration {
             Objects.requireNonNull(key, "key");
+            Objects.requireNonNull(pluginName, "pluginName");
             Objects.requireNonNull(factory, "factory");
         }
     }
