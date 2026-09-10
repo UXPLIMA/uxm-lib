@@ -19,6 +19,9 @@ dependencies {
     // The item module, for the one call that lets an item file name a custom item. One direction only:
     // nothing in uxmlib-item knows this module exists, so there is no cycle to untangle later.
     api(project(":uxmlib-item"))
+    // The operand resolver the content seams answer through. The direction is integration to condition
+    // and never back: the condition module holds the contract and knows nothing about a vendor.
+    api(project(":uxmlib-condition"))
     compileOnly(libs.paper.api)
     compileOnly(libs.bundles.adventure)
     // Soft-depend integrations: reached only past a plugin-present guard, so a server without them is fine.

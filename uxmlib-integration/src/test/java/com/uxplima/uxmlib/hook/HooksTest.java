@@ -31,6 +31,20 @@ class HooksTest {
         assertThat(Hooks.isPresent("Vault")).isFalse();
     }
 
+    /**
+     * A presence check is asked from anywhere, and a unit test that mocks a player stands no server behind
+     * Bukkit. This used to throw there, which made every static hook a call a test had to route around.
+     */
+    @Test
+    void aServerThatDoesNotExistHasNothingInstalled() {
+        MockBukkit.unmock();
+        try {
+            assertThat(Hooks.isPresent("PlaceholderAPI")).isFalse();
+        } finally {
+            MockBukkit.mock();
+        }
+    }
+
     @Test
     void placeholdersReturnTextUnchangedWhenApiAbsent() {
         var player = MockBukkit.getMock().addPlayer();

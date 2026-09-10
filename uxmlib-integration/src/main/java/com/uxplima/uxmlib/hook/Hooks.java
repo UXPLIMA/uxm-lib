@@ -20,6 +20,9 @@ public final class Hooks {
     /** Whether a plugin with this name is installed and enabled. */
     public static boolean isPresent(String pluginName) {
         Objects.requireNonNull(pluginName, "pluginName");
-        return Bukkit.getPluginManager().isPluginEnabled(pluginName);
+        // Asked from anywhere, including a unit test that mocks a player and stands no server behind
+        // Bukkit. Nothing is installed on a server that does not exist, so that answers false rather than
+        // throwing, and a presence check stays a read that cannot fail.
+        return Bukkit.getServer() != null && Bukkit.getPluginManager().isPluginEnabled(pluginName);
     }
 }
