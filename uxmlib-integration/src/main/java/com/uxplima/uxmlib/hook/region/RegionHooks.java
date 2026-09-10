@@ -32,6 +32,26 @@ public final class RegionHooks {
         return Optional.empty();
     }
 
+    /**
+     * Every present provider, folded into one.
+     *
+     * <p>{@link #active()} answers with the first and nothing else, which is correct for "may this player
+     * build here" and wrong for everything else. A server running WorldGuard for its spawn and Towny for
+     * its towns has two region models, and a caller that reads a region name has to see both or a town is
+     * invisible to it.
+     *
+     * <p>Empty when no provider is present, so a caller keeps the same "nothing is installed" path.
+     */
+    public Optional<RegionService> everyProvider() {
+        List<RegionService> present = new ArrayList<>();
+        for (RegionService service : candidates) {
+            if (service.isAvailable()) {
+                present.add(service);
+            }
+        }
+        return present.isEmpty() ? Optional.empty() : Optional.of(new CompositeRegionService(present));
+    }
+
     /** Whether any registered provider is currently present. */
     public boolean hasProvider() {
         return active().isPresent();
