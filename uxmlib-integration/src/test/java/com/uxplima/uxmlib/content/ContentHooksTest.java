@@ -217,4 +217,34 @@ final class ContentHooksTest {
             }
         };
     }
+
+    @Test
+    @DisplayName("with nothing installed a name is the vanilla one, which is what every file already reads")
+    void abareServerNamesTheVanillaThing() {
+        ContentNames.forgetEverything();
+
+        assertThat(ContentNames.active()).isFalse();
+        assertThat(ContentNames.of(new ItemStack(Material.DEEPSLATE))).isEqualTo("deepslate");
+        assertThat(ContentNames.countOf(server.addPlayer())).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("a custom item is named by its own id, and the upper case form keeps the vendor's spelling")
+    void acustomItemKeepsItsOwnSpelling() {
+        ContentNames.namedBy(fakeItems("oraxen:ruby_ore"), CustomMobs.NONE, CustomHarvests.NONE);
+
+        assertThat(ContentNames.of(new ItemStack(Material.DEEPSLATE))).isEqualTo("oraxen:ruby_ore");
+        assertThat(ContentNames.active()).isTrue();
+        ContentNames.forgetEverything();
+    }
+
+    @Test
+    @DisplayName("a stacked mob counts as its stack through the static seam too")
+    void thestaticSeamCountsAStack() {
+        ContentNames.namedBy(CustomItems.NONE, fakeMobs("mythicmobs:king", 40), CustomHarvests.NONE);
+
+        assertThat(ContentNames.countOf(server.addPlayer())).isEqualTo(40);
+        assertThat(ContentNames.of(server.addPlayer())).isEqualTo("mythicmobs:king");
+        ContentNames.forgetEverything();
+    }
 }
