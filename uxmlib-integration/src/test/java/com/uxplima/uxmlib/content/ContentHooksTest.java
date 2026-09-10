@@ -247,4 +247,31 @@ final class ContentHooksTest {
         assertThat(ContentNames.of(server.addPlayer())).isEqualTo("mythicmobs:king");
         ContentNames.forgetEverything();
     }
+
+    @Test
+    @DisplayName("a foreign enchantment keeps the namespace its own key carries")
+    void aforeignEnchantmentKeepsItsNamespace() {
+        MockBukkit.createMockPlugin("EcoEnchants");
+        ItemStack sword = new ItemStack(Material.DIAMOND_SWORD);
+        sword.editMeta(meta -> {
+            meta.getPersistentDataContainer()
+                    .set(
+                            new org.bukkit.NamespacedKey("ecoenchants", "telekinesis"),
+                            org.bukkit.persistence.PersistentDataType.INTEGER,
+                            2);
+            meta.getPersistentDataContainer()
+                    .set(
+                            new org.bukkit.NamespacedKey("someone-else", "windup"),
+                            org.bukkit.persistence.PersistentDataType.INTEGER,
+                            1);
+        });
+
+        var found = new EcoEnchantsEnchantments(server).on(sword);
+
+        assertThat(found)
+                .describedAs("stamping one namespace over all of them would rename a third plugin's"
+                        + " enchantment into EcoEnchants'")
+                .containsEntry("ecoenchants:telekinesis", 2)
+                .containsEntry("someone-else:windup", 1);
+    }
 }

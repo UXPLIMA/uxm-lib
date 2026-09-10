@@ -28,9 +28,6 @@ public final class EcoEnchantsEnchantments implements ForeignEnchantments {
     /** The Bukkit plugin name, which is the whole of the present guard. */
     static final String PLUGIN = "EcoEnchants";
 
-    /** The namespace an id read this way carries, so it is never confused with one of our own. */
-    static final String NAMESPACE = "ecoenchants";
-
     private final Server server;
 
     public EcoEnchantsEnchantments(Server server) {
@@ -56,7 +53,10 @@ public final class EcoEnchantsEnchantments implements ForeignEnchantments {
         for (NamespacedKey key : meta.getPersistentDataContainer().getKeys()) {
             Integer level = meta.getPersistentDataContainer().get(key, PersistentDataType.INTEGER);
             if (level != null && level > 0) {
-                found.put(NAMESPACE + ":" + key.getKey(), level);
+                // The key's own namespace and not a fixed one. Writing "ecoenchants" over every key would
+                // rename a third plugin's enchantment into one of EcoEnchants', which is worse than not
+                // reading it: an operator writing a conflict against it would be naming the wrong thing.
+                found.put(key.toString(), level);
             }
         }
         return Map.copyOf(found);
