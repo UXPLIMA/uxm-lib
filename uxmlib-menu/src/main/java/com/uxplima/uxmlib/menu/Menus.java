@@ -992,7 +992,13 @@ public final class Menus {
         scheduler.entity(viewer, () -> openGridResolved(viewer, spec, handlers));
     }
 
-    /** On the viewer's entity thread: build the grid holder + window, render page zero, show it. No refresh. */
+    /**
+     * On the viewer's entity thread: build the grid holder + window, render page zero, show it. No refresh.
+     *
+     * <p>The one surface with no Bedrock branch, and it is the same reason a menu writes {@code chest-only}: a grid
+     * is a place a player puts items into and takes them out of, and a Cumulus form has no shape for that. Every
+     * other open in this engine redirects a Floodgate viewer to a form. This one cannot, so it does not pretend to.
+     */
     private void openGridResolved(Player viewer, GridSpec spec, GridHandlers handlers) {
         if (!viewer.isOnline()) {
             return;
