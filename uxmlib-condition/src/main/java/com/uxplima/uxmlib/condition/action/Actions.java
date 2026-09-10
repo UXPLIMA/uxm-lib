@@ -3,7 +3,11 @@ package com.uxplima.uxmlib.condition.action;
 import java.time.Duration;
 import java.util.Objects;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
+import org.bukkit.Registry;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.key.Key;
@@ -178,6 +182,60 @@ public final class Actions {
             Objects.requireNonNull(colour, "colour");
             Objects.requireNonNull(overlay, "overlay");
             Objects.requireNonNull(duration, "duration");
+        }
+    }
+
+    /**
+     * Give the target a potion effect.
+     *
+     * <p>Not async: a potion effect is a write to a living entity, so it belongs to the thread that owns
+     * that entity. On Folia that is the difference between working and a thread check failure, and on Paper
+     * it is the same thread either way.
+     *
+     * <p>An effect the server does not know is nothing rather than an exception. A resource pack, a version
+     * or another plugin may add one, and a file that names one this server has not got should not stop the
+     * rest of the list from running.
+     */
+    public static Action effect(EffectSpec spec) {
+        Objects.requireNonNull(spec, "spec");
+        return context -> context.player().ifPresent(player -> {
+            PotionEffectType kind = effectNamed(context.resolve(spec.nameTemplate()));
+            if (kind == null) {
+                return;
+            }
+            int ticks = (int) Math.max(1, spec.duration().toMillis() / 50L);
+            player.addPotionEffect(
+                    new PotionEffect(kind, ticks, spec.level() - 1, false, !spec.hidden(), !spec.hidden()));
+        });
+    }
+
+    private static @Nullable PotionEffectType effectNamed(String written) {
+        String wanted = written.strip().toLowerCase(java.util.Locale.ROOT);
+        NamespacedKey key =
+                wanted.indexOf(':') >= 0 ? NamespacedKey.fromString(wanted) : NamespacedKey.minecraft(wanted);
+        if (key == null) {
+            return null;
+        }
+        return Registry.EFFECT.get(key);
+    }
+
+    /**
+     * One potion effect: which, for how long, how strong, and whether the swirls are hidden.
+     *
+     * <p>The level is written the way an operator reads a potion and not the way the server counts one:
+     * level 1 is the ordinary effect. The conversion happens once, where the effect is applied.
+     */
+    public record EffectSpec(String nameTemplate, Duration duration, int level, boolean hidden) {
+
+        public EffectSpec {
+            Objects.requireNonNull(nameTemplate, "nameTemplate");
+            Objects.requireNonNull(duration, "duration");
+            if (duration.isNegative() || duration.isZero()) {
+                throw new IllegalArgumentException("an effect lasts longer than nothing, got: " + duration);
+            }
+            if (level < 1) {
+                throw new IllegalArgumentException("an effect level starts at 1, got: " + level);
+            }
         }
     }
 

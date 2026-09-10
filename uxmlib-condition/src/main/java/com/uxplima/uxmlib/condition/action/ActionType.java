@@ -30,6 +30,16 @@ public enum ActionType {
     /** Play a sound (an Adventure sound key) to the target. */
     SOUND("sound", true),
 
+    /**
+     * Give the target a potion effect. Payload: {@code <effect> <seconds> [amplifier] [hidden]}.
+     *
+     * <p>Reachable before this as {@code [console]effect give %player% ...}, which spends a command dispatch
+     * and a permission check on something the server API does directly, and which a plugin cannot do at all
+     * for a player it is holding rather than naming. Every plugin that heals, blesses or curses anybody
+     * wants this, and each of them was about to write it.
+     */
+    EFFECT("effect", true),
+
     /** Dispatch a command from the console sender. */
     CONSOLE("console", true),
 

@@ -1,6 +1,7 @@
 package com.uxplima.uxmlib.condition.action;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.jupiter.api.Test;
@@ -140,5 +141,30 @@ class ActionParserTest {
         assertThat(ActionParser.parse("[console] say hi").action().async()).isFalse();
         assertThat(ActionParser.parse("[player] spawn").action().async()).isFalse();
         assertThat(ActionParser.parse("[close]").action().async()).isFalse();
+    }
+
+    /**
+     * The verb every plugin that heals, blesses or curses anybody was about to write for itself.
+     *
+     * <p>Reachable before this as a console command, which spends a dispatch and a permission check on
+     * something the server API does directly. The level is written the way an operator reads a potion and
+     * not the way the server counts one, because a file copied from a vanilla command has to mean what it
+     * says.
+     */
+    @Test
+    void anEffectParsesItsFourParts() {
+        assertThat(ActionParser.parse("[effect] regeneration 5").type()).isEqualTo(ActionType.EFFECT);
+        assertThat(ActionParser.parse("[effect] minecraft:speed 12.5 2 true").type())
+                .isEqualTo(ActionType.EFFECT);
+    }
+
+    @Test
+    void anEffectWithNoDurationIsRefusedAtLoad() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> ActionParser.parse("[effect] regeneration"))
+                .withMessageContaining("effect");
+        assertThatIllegalArgumentException().isThrownBy(() -> ActionParser.parse("[effect] regeneration 5 0"));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> ActionParser.parse("[effect] regeneration 5 1 true extra"));
     }
 }

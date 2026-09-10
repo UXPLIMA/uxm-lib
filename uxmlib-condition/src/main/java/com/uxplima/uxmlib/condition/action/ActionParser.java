@@ -77,6 +77,7 @@ public final class ActionParser {
             case PLAYER -> Actions.playerCommand(payload);
             case CLOSE -> Actions.close();
             case SOUND -> Actions.sound(parseSound(payload));
+            case EFFECT -> Actions.effect(parseEffect(payload));
             case TAKE_MONEY -> Actions.takeMoney(parseMoneyCost(payload));
             case TAKE_ITEM -> Actions.takeItem(parseItemCost(payload));
         };
@@ -154,6 +155,28 @@ public final class ActionParser {
         } catch (NumberFormatException notANumber) {
             return false;
         }
+    }
+
+    /**
+     * {@code <effect> <seconds> [amplifier] [hidden]}: what to give, for how long, how strong, and whether
+     * the swirls are hidden.
+     *
+     * <p>The amplifier is written the way an operator reads a potion rather than the way the server counts
+     * one: level 1 is the ordinary effect, level 2 is the second tier. Writing zero here would be a command
+     * an operator copied from vanilla producing nothing, so 1 is the default and the conversion happens once.
+     */
+    private static Actions.EffectSpec parseEffect(String payload) {
+        List<String> parts = tokenize(payload);
+        if (parts.size() < 2 || parts.size() > 4) {
+            throw new IllegalArgumentException(
+                    "action [effect] takes <effect> <seconds> [level] [hidden], got: " + payload);
+        }
+        int level = parts.size() >= 3 ? (int) parseFloat(parts.get(2), "level", payload) : 1;
+        if (level < 1) {
+            throw new IllegalArgumentException("an effect level starts at 1, got: " + payload);
+        }
+        boolean hidden = parts.size() == 4 && Boolean.parseBoolean(parts.get(3));
+        return new Actions.EffectSpec(parts.get(0), seconds(parts.get(1), payload), level, hidden);
     }
 
     private static Duration seconds(String written, String payload) {
