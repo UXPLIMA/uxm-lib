@@ -28,34 +28,35 @@ public final class ContentHooks {
 
     /** The custom mob vendors, in the order they are asked. */
     private static final List<Registration<CustomMobs>> CUSTOM_MOBS = List.of(
-            new Registration<>("mythicmobs", MythicMobsCustomMobs::new),
-            new Registration<>("levelledmobs", LevelledMobsCustomMobs::new),
-            new Registration<>("rosestacker", RoseStackerCustomMobs::new));
+            new Registration<>("mythicmobs", "MythicMobs", MythicMobsCustomMobs::new),
+            new Registration<>("levelledmobs", "LevelledMobs", LevelledMobsCustomMobs::new),
+            new Registration<>("rosestacker", "RoseStacker", RoseStackerCustomMobs::new));
 
     /** The custom crop and fishing vendors, in the order they are asked. */
     private static final List<Registration<CustomHarvests>> CUSTOM_HARVESTS = List.of(
-            new Registration<>("customcrops", CustomCropsHarvests::new),
-            new Registration<>("customfishing", CustomFishingHarvests::new),
-            new Registration<>("pyrofishingpro", PyroFishingHarvests::new),
-            new Registration<>("infinitefishing", InfiniteFishingHarvests::new));
+            new Registration<>("customcrops", "CustomCrops", CustomCropsHarvests::new),
+            new Registration<>("customfishing", "CustomFishing", CustomFishingHarvests::new),
+            new Registration<>("pyrofishingpro", "PyroFishingPro", PyroFishingHarvests::new),
+            new Registration<>("infinitefishing", "InfiniteFishing", InfiniteFishingHarvests::new));
 
     /** The skill plugins whose levels can be read. */
     private static final List<Registration<SkillLevels>> SKILLS =
-            List.of(new Registration<>("mcmmo", McMmoSkillLevels::new));
+            List.of(new Registration<>("mcmmo", "mcMMO", McMmoSkillLevels::new));
 
     /** The pet plugins whose kills belong to their owner. */
-    private static final List<Registration<PetOwners>> PETS = List.of(new Registration<>("mypet", MyPetOwners::new));
+    private static final List<Registration<PetOwners>> PETS =
+            List.of(new Registration<>("mypet", "MyPet", MyPetOwners::new));
 
     /** The enchantment plugins whose enchantments can trigger us. */
     private static final List<Registration<ForeignEnchantments>> ENCHANTMENTS =
-            List.of(new Registration<>("ecoenchants", EcoEnchantsEnchantments::new));
+            List.of(new Registration<>("ecoenchants", "EcoEnchants", EcoEnchantsEnchantments::new));
 
     /** The custom item vendors, in the order they are asked. */
     private static final List<Registration<CustomItems>> CUSTOM_ITEMS = List.of(
-            new Registration<>("oraxen", OraxenCustomItems::new),
-            new Registration<>("nexo", NexoCustomItems::new),
-            new Registration<>("itemsadder", ItemsAdderCustomItems::new),
-            new Registration<>("craftengine", CraftEngineCustomItems::new));
+            new Registration<>("oraxen", "Oraxen", OraxenCustomItems::new),
+            new Registration<>("nexo", "Nexo", NexoCustomItems::new),
+            new Registration<>("itemsadder", "ItemsAdder", ItemsAdderCustomItems::new),
+            new Registration<>("craftengine", "CraftEngine", CraftEngineCustomItems::new));
 
     /**
      * Every custom item plugin this server runs and this operator left on.
@@ -91,6 +92,45 @@ public final class ContentHooks {
     public static void nameItemsInFiles(CustomItems items) {
         Objects.requireNonNull(items, "items");
         ItemConfig.itemsFrom(items::itemOf);
+    }
+
+    /** One family of vendors, which is what a consumer wires and therefore what it declares. */
+    public enum Family {
+        CUSTOM_ITEMS,
+        CUSTOM_MOBS,
+        CUSTOM_HARVESTS,
+        SKILL_LEVELS,
+        PET_OWNERS,
+        FOREIGN_ENCHANTMENTS
+    }
+
+    /**
+     * The plugin name every vendor of one family looks for, in the order they are asked.
+     *
+     * <p>What a consumer declares in its {@code paper-plugin.yml}, each with {@code load: BEFORE} and
+     * {@code required: false}, for the families it wires. A vendor that is not declared is a coin flip on
+     * the load order: on the servers where it loses, this finds nothing for the whole run and the only
+     * symptom is a plugin that stopped seeing custom items. Reading the set from here is what keeps a
+     * consumer's file in step with the registry.
+     */
+    public static List<String> pluginNames(Family family) {
+        Objects.requireNonNull(family, "family");
+        return switch (family) {
+            case CUSTOM_ITEMS -> namesOf(CUSTOM_ITEMS);
+            case CUSTOM_MOBS -> namesOf(CUSTOM_MOBS);
+            case CUSTOM_HARVESTS -> namesOf(CUSTOM_HARVESTS);
+            case SKILL_LEVELS -> namesOf(SKILLS);
+            case PET_OWNERS -> namesOf(PETS);
+            case FOREIGN_ENCHANTMENTS -> namesOf(ENCHANTMENTS);
+        };
+    }
+
+    private static List<String> namesOf(List<? extends Registration<?>> registry) {
+        List<String> names = new ArrayList<>(registry.size());
+        for (Registration<?> entry : registry) {
+            names.add(entry.pluginName());
+        }
+        return List.copyOf(names);
     }
 
     /** The ids an operator writes to switch one custom item vendor on or off. */
@@ -226,11 +266,18 @@ public final class ContentHooks {
         return Set.copyOf(ids);
     }
 
-    /** One vendor: the id an operator writes, and what builds its provider. */
-    private record Registration<T>(String id, Function<Server, T> factory) {
+    /**
+     * One vendor: the id an operator toggles, the plugin name it looks for, and the factory.
+     *
+     * <p>The plugin name is here because a consumer needs it before anything is built. A vendor that is
+     * not declared in a {@code paper-plugin.yml} may load after the plugin that asks for it, and then it
+     * reads as absent for the whole run and nothing says why.
+     */
+    private record Registration<T>(String id, String pluginName, Function<Server, T> factory) {
 
         Registration {
             Objects.requireNonNull(id, "id");
+            Objects.requireNonNull(pluginName, "pluginName");
             Objects.requireNonNull(factory, "factory");
         }
     }

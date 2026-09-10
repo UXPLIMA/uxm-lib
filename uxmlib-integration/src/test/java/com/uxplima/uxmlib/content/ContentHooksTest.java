@@ -276,4 +276,32 @@ final class ContentHooksTest {
                 .containsEntry("ecoenchants:telekinesis", 2)
                 .containsEntry("someone-else:windup", 1);
     }
+
+    @Test
+    void everyVendorFamilyNamesThePluginsItLooksFor() {
+        assertThat(ContentHooks.pluginNames(ContentHooks.Family.CUSTOM_ITEMS))
+                .describedAs("a consumer declares these in its paper-plugin.yml, and a vendor that is not"
+                        + " declared loads after us on some servers and reads as absent for the whole run")
+                .containsExactly("Oraxen", "Nexo", "ItemsAdder", "CraftEngine");
+        assertThat(ContentHooks.pluginNames(ContentHooks.Family.CUSTOM_MOBS))
+                .containsExactly("MythicMobs", "LevelledMobs", "RoseStacker");
+        assertThat(ContentHooks.pluginNames(ContentHooks.Family.CUSTOM_HARVESTS))
+                .containsExactly("CustomCrops", "CustomFishing", "PyroFishingPro", "InfiniteFishing");
+        assertThat(ContentHooks.pluginNames(ContentHooks.Family.SKILL_LEVELS)).containsExactly("mcMMO");
+        assertThat(ContentHooks.pluginNames(ContentHooks.Family.PET_OWNERS)).containsExactly("MyPet");
+        assertThat(ContentHooks.pluginNames(ContentHooks.Family.FOREIGN_ENCHANTMENTS))
+                .containsExactly("EcoEnchants");
+    }
+
+    @Test
+    void everyFamilyHasAsManyNamesAsIds() {
+        assertThat(ContentHooks.pluginNames(ContentHooks.Family.CUSTOM_ITEMS))
+                .describedAs("a name per registration, so a vendor added to the registry is a name a"
+                        + " consumer is told about on the same day")
+                .hasSameSizeAs(ContentHooks.customItemVendors());
+        assertThat(ContentHooks.pluginNames(ContentHooks.Family.CUSTOM_MOBS))
+                .hasSameSizeAs(ContentHooks.customMobVendors());
+        assertThat(ContentHooks.pluginNames(ContentHooks.Family.CUSTOM_HARVESTS))
+                .hasSameSizeAs(ContentHooks.customHarvestVendors());
+    }
 }
