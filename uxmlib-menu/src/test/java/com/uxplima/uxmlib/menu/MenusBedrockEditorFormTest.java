@@ -14,6 +14,7 @@ import java.util.function.IntConsumer;
 
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import net.kyori.adventure.text.Component;
 
@@ -361,5 +362,57 @@ class MenusBedrockEditorFormTest {
                 .properties(subject -> list)
                 .onBack(player -> {})
                 .build();
+    }
+
+    @Test
+    @DisplayName("a selector of plain choices is a form, labelled with the names the chest would draw")
+    void aselectorOfChoicesIsAForm() {
+        List<String> chosen = new ArrayList<>();
+
+        menus.openSelector(
+                viewer,
+                Component.text("Rarity"),
+                3,
+                Material.GRAY_STAINED_GLASS_PANE,
+                List.of(
+                        com.uxplima.uxmlib.menu.property.SelectorButton.of(
+                                11, named(Material.PAPER, "Common"), () -> chosen.add("common")),
+                        com.uxplima.uxmlib.menu.property.SelectorButton.of(
+                                13, named(Material.PAPER, "Rare"), () -> chosen.add("rare"))));
+
+        assertThat(screen.sent).containsExactly("simple");
+        assertThat(screen.title).isEqualTo("Rarity");
+        assertThat(screen.buttonTexts()).containsExactly("Common", "Rare");
+        screen.tap(1);
+        assertThat(chosen).containsExactly("rare");
+    }
+
+    @Test
+    @DisplayName("a selector holding a gesture aware button stays a chest, so its other three verbs survive")
+    void agestureAwareSelectorStaysAChest() {
+        List<String> ran = new ArrayList<>();
+
+        menus.openSelector(
+                viewer,
+                Component.text("Items"),
+                3,
+                Material.GRAY_STAINED_GLASS_PANE,
+                List.of(
+                        com.uxplima.uxmlib.menu.property.SelectorButton.of(
+                                11, named(Material.PAPER, "Add"), () -> ran.add("add")),
+                        new com.uxplima.uxmlib.menu.property.SelectorButton(
+                                13,
+                                named(Material.PAPER, "DIAMOND_SWORD"),
+                                (right, shift) -> ran.add(right + ":" + shift))));
+
+        assertThat(screen.sent)
+                .describedAs("a form sends one tap, and this button is four verbs on one square")
+                .isEmpty();
+        assertThat(holderOfOpenWindow()).isInstanceOf(MenuHolder.class);
+    }
+
+    /** An icon with a display name on it, which is what the chest draws and what the form label reads. */
+    private static ItemStack named(Material material, String name) {
+        return ItemBuilder.of(material).name(Component.text(name)).build();
     }
 }

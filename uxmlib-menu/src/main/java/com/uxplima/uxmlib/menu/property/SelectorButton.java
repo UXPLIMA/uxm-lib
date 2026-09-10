@@ -18,12 +18,29 @@ import org.jspecify.annotations.NullMarked;
  * an {@link EnumProperty} or a {@link ListProperty} hands the opener: a property builds one {@code SelectorButton} per
  * slot and lets the engine paint and route them, keeping the property free of the menu runtime it opens into.
  *
+ * <p>A button says whether the gesture matters to it, because a Bedrock form sends one tap and no modifier. A
+ * selector whose buttons all ignore the gesture is a list of choices, and the engine sends a Floodgate viewer that
+ * list as a form. One that holds a gesture-aware button is four verbs on one square, and a form would take three of
+ * them away, so it stays a chest where Geyser can still send the other three.
+ *
  * @param slot the inventory slot the button is drawn at
  * @param icon the prepared icon to place (name/lore/glint already applied)
  * @param onClick the handler run once when the viewer clicks the button, given the click gesture
+ * @param gestureAware whether the handler branches on the gesture, which keeps a Bedrock viewer on the chest
  */
 @NullMarked
-public record SelectorButton(int slot, ItemStack icon, ChildClickHandler onClick) {
+public record SelectorButton(int slot, ItemStack icon, ChildClickHandler onClick, boolean gestureAware) {
+
+    /**
+     * The form from before a button had to say whether the gesture matters to it.
+     *
+     * <p>It answers yes, which is the safe answer: a selector holding one keeps a Bedrock viewer on the chest,
+     * where Geyser can still send a right click and a shift click. A caller that means no says so through
+     * {@link #of(int, ItemStack, Runnable)}.
+     */
+    public SelectorButton(int slot, ItemStack icon, ChildClickHandler onClick) {
+        this(slot, icon, onClick, true);
+    }
 
     public SelectorButton {
         Objects.requireNonNull(icon, "icon");
@@ -32,6 +49,6 @@ public record SelectorButton(int slot, ItemStack icon, ChildClickHandler onClick
 
     /** A single-gesture button (an option, add, or back) whose action ignores left/right/shift. */
     public static SelectorButton of(int slot, ItemStack icon, Runnable action) {
-        return new SelectorButton(slot, icon, ChildClickHandler.ignoring(action));
+        return new SelectorButton(slot, icon, ChildClickHandler.ignoring(action), false);
     }
 }

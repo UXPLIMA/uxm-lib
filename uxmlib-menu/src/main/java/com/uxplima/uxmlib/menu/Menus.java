@@ -853,7 +853,11 @@ public final class Menus {
 
     /** What the chest would call this entity: the display name of the icon the list renders for it. */
     private static String iconText(Player viewer, EntityListSpec spec, Object entity) {
-        ItemStack icon = spec.iconRenderer().apply(viewer, entity);
+        return iconName(spec.iconRenderer().apply(viewer, entity));
+    }
+
+    /** An already-built icon's display name as plain text, or its material when it carries none. */
+    private static String iconName(ItemStack icon) {
         ItemMeta meta = icon.getItemMeta();
         Component name = meta == null ? null : meta.displayName();
         return name == null
@@ -915,6 +919,14 @@ public final class Menus {
         if (!viewer.isOnline()) {
             return;
         }
+        // A selector of plain choices is a list of buttons, so a Bedrock viewer gets it as a form like every other
+        // open. One holding a gesture-aware button is not: that button is four verbs on one square, a form sends one
+        // tap and no modifier, and turning it into a form would take three of the four away. Such a selector stays a
+        // chest, where Geyser can still send a right click and a shift click.
+        if (bedrock.isBedrock(viewer.getUniqueId()) && buttons.stream().noneMatch(SelectorButton::gestureAware)) {
+            sendSelectorForm(viewer, title, buttons);
+            return;
+        }
         MenuContext ctx = MenuContext.of(viewer, null, 0);
         MenuHolder holder = new MenuHolder("selector", selectorMenuSpec(rows), ctx);
         Map<Integer, ChildClickHandler> choices = new HashMap<>();
@@ -926,6 +938,34 @@ public final class Menus {
         holder.attach(inv);
         selectorRenderer.populate(inv, filler, buttons);
         viewer.openInventory(inv);
+    }
+
+    /**
+     * The Bedrock render of a selector: one form button per choice, in slot order.
+     *
+     * <p>The label is the display name of the icon the chest would have drawn, so a rarity reads the same on both
+     * clients and the caller writes its naming once. A tap runs the choice's handler with neither the right click
+     * nor the shift flag, which is the gesture every button on a form-eligible selector already ignores.
+     */
+    private void sendSelectorForm(Player viewer, Component title, List<SelectorButton> buttons) {
+        List<SelectorButton> inSlotOrder = new ArrayList<>(buttons);
+        inSlotOrder.sort(java.util.Comparator.comparingInt(SelectorButton::slot));
+        List<BedrockButton> shown = new ArrayList<>();
+        List<Runnable> handlers = new ArrayList<>();
+        for (SelectorButton button : inSlotOrder) {
+            shown.add(new BedrockButton(iconName(button.icon()), null));
+            handlers.add(() -> scheduler.entity(viewer, () -> {
+                if (viewer.isOnline()) {
+                    button.onClick().onClick(false, false);
+                }
+            }));
+        }
+        bedrockScreen.sendSimpleForm(
+                viewer, PlainTextComponentSerializer.plainText().serialize(title), null, shown, index -> {
+                    if (index >= 0 && index < handlers.size()) {
+                        handlers.get(index).run();
+                    }
+                });
     }
 
     /**
