@@ -8,6 +8,8 @@ import java.util.function.Function;
 
 import org.bukkit.Server;
 
+import com.uxplima.uxmlib.item.ItemConfig;
+
 /**
  * Which of somebody else's content plugins this server runs, and the one seam per question that answers for
  * all of them.
@@ -71,6 +73,24 @@ public final class ContentHooks {
     /** Every custom item plugin this server runs, whatever the operator said. */
     public static CustomItems customItems(Server server) {
         return customItems(server, customItemVendors());
+    }
+
+    /**
+     * Let every item file on this server name a custom item.
+     *
+     * <p>The one call that closes the gap four analyses named. A file that writes
+     * {@code material = "oraxen:ruby"} failed at load with "unknown material", and the operator's only
+     * remaining option was to write the block it is drawn as, which is a different item. After this it is
+     * the ruby, and everything else in the spec, the name, the lore, the enchantments, is applied on top
+     * of it exactly as it would be on an ordinary one.
+     *
+     * <p>Called once at enable by whichever plugin of ours starts first, and it is safe for all of them to
+     * call it: the source is the same seam either way. A server with no custom item plugin installs a
+     * source that answers nothing, which is what every reader already assumed.
+     */
+    public static void nameItemsInFiles(CustomItems items) {
+        Objects.requireNonNull(items, "items");
+        ItemConfig.itemsFrom(items::itemOf);
     }
 
     /** The ids an operator writes to switch one custom item vendor on or off. */

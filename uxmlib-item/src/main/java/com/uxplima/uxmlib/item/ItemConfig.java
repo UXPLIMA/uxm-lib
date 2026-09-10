@@ -4,9 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
 
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 
@@ -70,6 +72,42 @@ public final class ItemConfig {
 
     private ItemConfig() {}
 
+    /**
+     * Where an item this server's own material list does not know may still come from.
+     *
+     * <p>A custom item plugin owns items nothing else can name. Without this, a file that writes
+     * {@code material = "oraxen:ruby"} fails at load with "unknown material" and the operator's only
+     * remaining option is to write the block it is drawn as, which is a different item.
+     *
+     * <p>Static and set once, the way the placeholder hook is. It is a property of the server rather than
+     * of a plugin: four of ours read item files and all four want the same answer, and threading a source
+     * through every reader would be four copies of the same wiring.
+     */
+    @FunctionalInterface
+    public interface ItemSource {
+
+        /** The item one namespaced id names, or nothing when nothing here owns it. */
+        Optional<ItemStack> byId(String id);
+    }
+
+    /** Where an unknown material is looked for, which is nowhere until something says otherwise. */
+    private static volatile ItemSource items = id -> Optional.empty();
+
+    /**
+     * Say where an item this server's material list does not know comes from.
+     *
+     * <p>Called once, at enable, by whichever plugin of ours starts first. Calling it again replaces the
+     * source, which is what a reload does.
+     */
+    public static void itemsFrom(ItemSource source) {
+        items = Objects.requireNonNull(source, "source");
+    }
+
+    /** Forget the source, which a shutdown does so a reload does not hold the old server's plugins. */
+    public static void forgetItemSource() {
+        items = id -> Optional.empty();
+    }
+
     /** Load the spec at {@code node} into a builder, with no placeholders and no lore wrapping. */
     public static ItemBuilder load(ConfigurationNode node) {
         return load(node, List.of(), 0);
@@ -93,7 +131,7 @@ public final class ItemConfig {
             throw new IllegalArgumentException("wrapWidth must be >= 0");
         }
         TagResolver[] tags = resolvers.toArray(TagResolver[]::new);
-        ItemBuilder builder = ItemBuilder.of(material(node));
+        ItemBuilder builder = base(node);
         applyAmount(node, builder);
         applyName(node, builder, tags);
         applyLore(node, builder, tags, wrapWidth);
@@ -104,6 +142,27 @@ public final class ItemConfig {
         applySkull(node, builder);
         ItemConfigMeta.apply(node, builder);
         return builder;
+    }
+
+    /**
+     * What the spec starts from: a material this server knows, or an item another plugin owns.
+     *
+     * <p>An id with a namespace that is not {@code minecraft} is asked of the item source first, and only
+     * a source that answers nothing falls through to the material list. Everything else in the spec is then
+     * applied on top, so a file may take a vendor's item and rename it, re-lore it or enchant it exactly as
+     * it may with an ordinary one.
+     */
+    private static ItemBuilder base(ConfigurationNode node) {
+        String raw = node.node("material").getString();
+        if (raw != null
+                && raw.indexOf(':') >= 0
+                && !raw.toLowerCase(Locale.ROOT).startsWith("minecraft:")) {
+            Optional<ItemStack> owned = items.byId(raw.trim());
+            if (owned.isPresent()) {
+                return ItemBuilder.from(owned.get());
+            }
+        }
+        return ItemBuilder.of(material(node));
     }
 
     private static Material material(ConfigurationNode node) {

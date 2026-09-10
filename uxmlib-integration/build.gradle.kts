@@ -16,6 +16,9 @@ fun ExternalModuleDependency.withoutServerProvidedLibraries() {
 
 dependencies {
     api(project(":uxmlib-common"))
+    // The item module, for the one call that lets an item file name a custom item. One direction only:
+    // nothing in uxmlib-item knows this module exists, so there is no cycle to untangle later.
+    api(project(":uxmlib-item"))
     compileOnly(libs.paper.api)
     compileOnly(libs.bundles.adventure)
     // Soft-depend integrations: reached only past a plugin-present guard, so a server without them is fine.
