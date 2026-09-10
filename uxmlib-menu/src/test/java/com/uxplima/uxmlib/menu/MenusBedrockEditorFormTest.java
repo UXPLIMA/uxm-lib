@@ -104,6 +104,10 @@ class MenusBedrockEditorFormTest {
             this.onSelect = onSelect;
         }
 
+        private @Nullable Runnable onYes;
+
+        private @Nullable Runnable onNo;
+
         @Override
         public void sendModalForm(
                 Player player,
@@ -114,6 +118,9 @@ class MenusBedrockEditorFormTest {
                 Runnable onButton1,
                 Runnable onButton2) {
             sent.add("modal");
+            this.title = title;
+            this.onYes = onButton1;
+            this.onNo = onButton2;
         }
 
         @Override
@@ -146,6 +153,14 @@ class MenusBedrockEditorFormTest {
 
         private void tap(int index) {
             Objects.requireNonNull(onSelect, "onSelect").accept(index);
+        }
+
+        private void answerYes() {
+            Objects.requireNonNull(onYes, "onYes").run();
+        }
+
+        private void answerNo() {
+            Objects.requireNonNull(onNo, "onNo").run();
         }
     }
 
@@ -303,7 +318,40 @@ class MenusBedrockEditorFormTest {
 
         assertThat(screen.buttonTexts()).containsExactly("gui.back", "gui.delete");
         screen.tap(1);
+
+        // The chest editor asks before it deletes, so the form asks too: the same button on the same editor
+        // cannot be one question on Java and none here.
+        assertThat(deleted)
+                .describedAs("the tap opens the gate, it does not delete")
+                .isEmpty();
+        assertThat(screen.sent).endsWith("modal");
+        assertThat(screen.title).isEqualTo("gui.delete.confirm");
+
+        screen.answerYes();
         assertThat(deleted).containsExactly("gone");
+    }
+
+    @Test
+    @DisplayName("saying no to that modal comes back to the editor form rather than closing on nothing")
+    void thenoOfTheDeleteModalComesBackToTheEditor() {
+        List<String> deleted = new ArrayList<>();
+        EditorSpec spec = EditorSpec.builder()
+                .layout(EntityEditorLayout.withDelete(List.of(11), 22, 26))
+                .title((player, subject) -> Component.text("Editing"))
+                .valueLore("gui.value")
+                .backName("gui.back")
+                .properties(subject -> List.of())
+                .onBack(player -> {})
+                .onDelete("gui.delete", "gui.delete.confirm", (player, subject) -> deleted.add("gone"))
+                .build();
+
+        menus.openEditor(viewer, spec, "subject");
+        screen.tap(1);
+        screen.answerNo();
+
+        assertThat(deleted).isEmpty();
+        assertThat(screen.sent).endsWith("simple");
+        assertThat(screen.buttonTexts()).containsExactly("gui.back", "gui.delete");
     }
 
     @Test

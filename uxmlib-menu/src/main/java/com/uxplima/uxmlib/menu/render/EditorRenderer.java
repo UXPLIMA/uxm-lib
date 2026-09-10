@@ -166,17 +166,24 @@ public final class EditorRenderer {
         state.recordButton(slot, () -> askThenDelete(spec, state, viewer));
     }
 
-    /** Ask through the engine's confirm window, then delete; delete straight when no opener was handed over. */
+    /**
+     * Ask through the engine's confirm window, then delete.
+     *
+     * <p>Straight through in two cases, and neither is an unguarded delete. A spec with no confirm title is a
+     * caller that gates inside its own handler, which is what {@code EntityEditorView} does; a state with no
+     * opener is a listener wired without one, and there is no window to ask in.
+     */
     private void askThenDelete(EditorSpec spec, EditorState state, Player viewer) {
         Runnable delete = () -> spec.onDelete().orElseThrow().accept(viewer, state.subject());
+        String confirmTitle = spec.deleteConfirmTitle().orElse(null);
         ConfirmOpener opener = state.clicks().map(EditorState.Clicks::confirm).orElse(null);
-        if (opener == null) {
+        if (opener == null || confirmTitle == null) {
             delete.run();
             return;
         }
         opener.openConfirm(
                 viewer,
-                guiText.text(viewer, spec.deleteConfirmTitle().orElseThrow()),
+                guiText.text(viewer, confirmTitle),
                 delete,
                 () -> spec.onBack().accept(viewer));
     }

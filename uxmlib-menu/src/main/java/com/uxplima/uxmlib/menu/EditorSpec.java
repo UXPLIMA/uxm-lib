@@ -63,10 +63,15 @@ public final class EditorSpec {
     private final Consumer<Player> onBack;
 
     /**
-     * The three parts of the optional delete button. They are one field rather than three because they are wired
-     * together or not at all: a button with a handler but no confirm title is not a state this spec can hold.
+     * The parts of the optional delete button. They are one field rather than three because they are wired
+     * together or not at all: a button with a confirm title but no handler is not a state this spec can hold.
+     *
+     * <p>{@code confirmTitle} is nullable, and null is not "no gate": it is a caller who gates the delete itself,
+     * inside the handler. {@link EntityEditorView} does, because its gate reopens the editor on a no and because
+     * it goes through {@link Menus#confirm}, which draws a native form for a Bedrock viewer. A caller who hands a
+     * title asks the engine to gate instead, and then the handler deletes.
      */
-    private record Delete(String name, String confirmTitle, BiConsumer<Player, @Nullable Object> handler) {}
+    private record Delete(String name, @Nullable String confirmTitle, BiConsumer<Player, @Nullable Object> handler) {}
 
     private EditorSpec(Builder builder) {
         this.layout = Objects.requireNonNull(builder.layout, "layout");
@@ -135,8 +140,9 @@ public final class EditorSpec {
         return delete == null ? Optional.empty() : Optional.of(delete.name());
     }
 
+    /** The catalogue key of the confirm window the engine gates the delete with, or empty when the caller gates. */
     public Optional<String> deleteConfirmTitle() {
-        return delete == null ? Optional.empty() : Optional.of(delete.confirmTitle());
+        return delete == null ? Optional.empty() : Optional.ofNullable(delete.confirmTitle());
     }
 
     public Consumer<Player> onBack() {
@@ -235,6 +241,21 @@ public final class EditorSpec {
             this.delete = new Delete(
                     Objects.requireNonNull(deleteName, "deleteName"),
                     Objects.requireNonNull(deleteConfirmTitle, "deleteConfirmTitle"),
+                    Objects.requireNonNull(onDelete, "onDelete"));
+            return this;
+        }
+
+        /**
+         * The same, for a caller that gates the delete inside its own handler.
+         *
+         * <p>The engine then draws the button and calls the handler, and asks nothing: the one window the player
+         * sees is the caller's. Handing a title here as well is what put two identical confirm windows in front of
+         * every editor in the estate, so the two forms are separate rather than one form with a nullable argument.
+         */
+        public Builder onDelete(String deleteName, BiConsumer<Player, @Nullable Object> onDelete) {
+            this.delete = new Delete(
+                    Objects.requireNonNull(deleteName, "deleteName"),
+                    null,
                     Objects.requireNonNull(onDelete, "onDelete"));
             return this;
         }

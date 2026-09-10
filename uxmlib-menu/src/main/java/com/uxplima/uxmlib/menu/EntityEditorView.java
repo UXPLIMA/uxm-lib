@@ -75,12 +75,10 @@ public final class EntityEditorView<T> {
                 .properties(subject -> properties.apply(require(subject)))
                 .onBack(onBack);
         if (builder.deleteName != null && builder.deleteConfirmTitle != null && builder.onDelete != null) {
-            // The delete button does not delete on click: it opens the engine confirm, whose yes runs the delete and
-            // whose no reopens this editor.
-            specBuilder.onDelete(
-                    builder.deleteName,
-                    builder.deleteConfirmTitle,
-                    (player, subject) -> confirmDelete(player, require(subject)));
+            // The delete button does not delete on click: it opens one confirm, whose yes runs the delete and whose
+            // no reopens this editor. The title is deliberately not handed to the spec: the engine gates a delete
+            // itself when it has one, and this view gating as well is two identical windows in a row.
+            specBuilder.onDelete(builder.deleteName, (player, subject) -> confirmDelete(player, require(subject)));
         }
         this.spec = specBuilder.build();
     }

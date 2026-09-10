@@ -777,7 +777,7 @@ public final class Menus {
             buttons.add(new BedrockButton(renderer.plainMessage(viewer, name), null));
             handlers.add(() -> scheduler.entity(viewer, () -> {
                 if (viewer.isOnline()) {
-                    spec.onDelete().ifPresent(delete -> delete.accept(viewer, subject));
+                    askThenDelete(viewer, spec, subject, reopen);
                 }
             }));
         });
@@ -791,6 +791,25 @@ public final class Menus {
                         handlers.get(index).run();
                     }
                 });
+    }
+
+    /**
+     * The delete button of the editor form: a modal first when the spec carries a confirm title, the handler
+     * straight when it does not.
+     *
+     * <p>A spec with no title is a caller that gates inside its own handler, and on this platform that gate is a
+     * modal too, because {@link #confirm} redirects a Bedrock viewer to one. What this closes is the other case:
+     * the chest editor asks before it deletes, and the form used to delete on the first tap. The same button on
+     * the same editor cannot be one question on Java and none on Bedrock.
+     */
+    private void askThenDelete(Player viewer, EditorSpec spec, @Nullable Object subject, Runnable reopen) {
+        Runnable delete = () -> spec.onDelete().ifPresent(handler -> handler.accept(viewer, subject));
+        String confirmTitle = spec.deleteConfirmTitle().orElse(null);
+        if (confirmTitle == null) {
+            delete.run();
+            return;
+        }
+        sendConfirmModal(viewer, Component.text(renderer.plainMessage(viewer, confirmTitle)), delete, reopen);
     }
 
     /** One property as a button label: the setting's name, and the value it holds now on the line under it. */
