@@ -264,6 +264,20 @@ public final class Actions {
     }
 
     /**
+     * {@code [give-money] [currency] <amount>}: pay the amount into the context's {@link
+     * com.uxplima.uxmlib.condition.Wallet}.
+     *
+     * <p>Not a {@link CostAction}: it takes nothing, so a list holding one has nothing to check before it
+     * runs. A wallet that refuses the payment throws {@link ActionCostException} rather than returning
+     * quietly, for the reason that exception was written: a reward that paid nothing and said nothing is
+     * exactly the defect this verb removes.
+     */
+    public static Action giveMoney(MoneyCost payment) {
+        Objects.requireNonNull(payment, "payment");
+        return new GiveMoneyAction(payment);
+    }
+
+    /**
      * {@code [take-item] <item> [amount]}: take the amount from the context's {@link ItemStore}. The take is
      * all or nothing: the store either consumes the whole amount or the action throws {@link
      * ActionCostException} having consumed nothing.
@@ -353,6 +367,37 @@ public final class Actions {
         // unaffordable rather than as free: run() then refuses loudly instead of taking an accidental zero.
         private double amount(ActionContext context) {
             Double parsed = number(context.resolve(cost.amountTemplate()));
+            return parsed == null ? -1 : parsed;
+        }
+    }
+
+    // The mirror of TakeMoneyAction, and sync for the same reason: an economy call may block and the lane
+    // is the driver's to pick.
+    private record GiveMoneyAction(MoneyCost payment) implements Action {
+
+        @Override
+        public void run(ActionContext context) {
+            double amount = amount(context);
+            String currency = currency(context);
+            if (amount <= 0 || !context.wallet().deposit(context.player().orElse(null), currency, amount)) {
+                throw new ActionCostException("cannot pay " + describe(context));
+            }
+        }
+
+        private String describe(ActionContext context) {
+            String currency = currency(context);
+            String rendered = context.resolve(payment.amountTemplate()).strip();
+            return currency.isEmpty() ? rendered : rendered + " " + currency;
+        }
+
+        private String currency(ActionContext context) {
+            return context.resolve(payment.currencyTemplate()).strip();
+        }
+
+        // A template that resolves to something that is not a number cannot name an amount, so it reads as
+        // nothing rather than as a free pass: run() then refuses loudly instead of paying an accidental zero.
+        private double amount(ActionContext context) {
+            Double parsed = number(context.resolve(payment.amountTemplate()));
             return parsed == null ? -1 : parsed;
         }
     }

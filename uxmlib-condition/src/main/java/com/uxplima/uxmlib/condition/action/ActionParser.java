@@ -78,7 +78,8 @@ public final class ActionParser {
             case CLOSE -> Actions.close();
             case SOUND -> Actions.sound(parseSound(payload));
             case EFFECT -> Actions.effect(parseEffect(payload));
-            case TAKE_MONEY -> Actions.takeMoney(parseMoneyCost(payload));
+            case TAKE_MONEY -> Actions.takeMoney(parseMoney(payload, "take-money"));
+            case GIVE_MONEY -> Actions.giveMoney(parseMoney(payload, "give-money"));
             case TAKE_ITEM -> Actions.takeItem(parseItemCost(payload));
         };
     }
@@ -188,7 +189,7 @@ public final class ActionParser {
      * spends the wallet's default currency; two tokens name the currency first. A literal amount is checked
      * now so a typo is a load error rather than a run-time refusal an operator meets in production.
      */
-    private static Actions.MoneyCost parseMoneyCost(String payload) {
+    private static Actions.MoneyCost parseMoney(String payload, String verb) {
         List<String> parts = tokenize(payload);
         Actions.MoneyCost cost =
                 switch (parts.size()) {
@@ -196,9 +197,9 @@ public final class ActionParser {
                     case 2 -> new Actions.MoneyCost(parts.get(0), parts.get(1));
                     default ->
                         throw new IllegalArgumentException(
-                                "action [take-money] takes <amount> or <currency> <amount>, got: " + payload);
+                                "action [" + verb + "] takes <amount> or <currency> <amount>, got: " + payload);
                 };
-        requirePositiveLiteral(cost.amountTemplate(), "take-money", payload);
+        requirePositiveLiteral(cost.amountTemplate(), verb, payload);
         return cost;
     }
 

@@ -52,6 +52,15 @@ public enum ActionType {
     /** Take money from the target through the context's wallet. Payload: {@code [currency] <amount>}. */
     TAKE_MONEY("take-money", true),
 
+    /**
+     * Pay money to the target through the context's wallet. Payload: {@code [currency] <amount>}.
+     *
+     * <p>The mirror of {@link #TAKE_MONEY} and written the same way round. Without it a content file that
+     * hands a player a wage, a prize or a refund had to name a console command against an economy plugin,
+     * which pays nothing on a server that does not run that plugin and says nothing about it either.
+     */
+    GIVE_MONEY("give-money", true),
+
     /** Take items from the target through the context's item store. Payload: {@code <item> [amount]}. */
     TAKE_ITEM("take-item", true);
 
