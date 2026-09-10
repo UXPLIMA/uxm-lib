@@ -20,6 +20,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -41,6 +43,8 @@ import com.uxplima.uxmlib.menu.eval.PagedResult;
 import com.uxplima.uxmlib.menu.eval.Pagination;
 import com.uxplima.uxmlib.menu.property.ChildClickHandler;
 import com.uxplima.uxmlib.menu.property.ConfirmOpener;
+import com.uxplima.uxmlib.menu.property.EditableProperty;
+import com.uxplima.uxmlib.menu.property.PropertyClick;
 import com.uxplima.uxmlib.menu.property.SelectorButton;
 import com.uxplima.uxmlib.menu.property.SelectorOpener;
 import com.uxplima.uxmlib.menu.render.ConfirmRenderer;
@@ -596,6 +600,13 @@ public final class Menus {
         if (!viewer.isOnline()) {
             return;
         }
+        // A Bedrock viewer gets a native form here for the same reason they get one at every other open: a chest is
+        // a window they cannot use properly. An editor has no chest-only escape and needs none, because it is a
+        // list of settings and a form is a list of buttons: the two shapes match exactly.
+        if (bedrock.isBedrock(viewer.getUniqueId())) {
+            sendEditorForm(viewer, spec, subject);
+            return;
+        }
         MenuContext ctx = MenuContext.of(viewer, subject, 0);
         MenuHolder holder = new MenuHolder(editorSpecId(spec), editorMenuSpec(spec), ctx);
         EditorState state = new EditorState(
@@ -638,6 +649,13 @@ public final class Menus {
     /** On the viewer's entity thread: build the list holder + window, render page zero, show it. No refresh. */
     private void openListResolved(Player viewer, EntityListSpec spec) {
         if (!viewer.isOnline()) {
+            return;
+        }
+        // The same redirect the editor and the confirm take. A list of entities is already a list of buttons, so a
+        // form carries the whole of it: every entity, the create button and the action button, with no paging
+        // because a form scrolls on its own.
+        if (bedrock.isBedrock(viewer.getUniqueId())) {
+            sendListForm(viewer, spec);
             return;
         }
         MenuContext ctx = MenuContext.of(viewer, null, 0);
@@ -713,6 +731,134 @@ public final class Menus {
                 no,
                 () -> scheduler.entity(viewer, onYes),
                 () -> scheduler.entity(viewer, onNo));
+    }
+
+    /**
+     * The Bedrock render of an editor: one form button per property, then back, then delete.
+     *
+     * <p>A property tile and a form button are the same thing said twice. The chest paints an icon whose tooltip
+     * holds the setting's name and the value it carries now; the form shows a button labelled with the same two,
+     * the name on the first line and the value under it, and the same icon beside it.
+     *
+     * <p>A tap runs the property's own click, which is the click the chest runs on a left click. Nothing here
+     * reaches the right click or the shift click: a form sends one tap and no modifier, and an editor property
+     * that could only be changed by a modifier would be a setting half this server's players cannot change. Every
+     * property type the engine ships opens its prompt on a plain click.
+     *
+     * <p>The reopen a property gets back re-sends this form rather than repainting a window, because there is no
+     * window: the properties are read from the subject again, so the value the operator just wrote is the value
+     * the next form shows.
+     */
+    private void sendEditorForm(Player viewer, EditorSpec spec, @Nullable Object subject) {
+        List<BedrockButton> buttons = new ArrayList<>();
+        List<Runnable> handlers = new ArrayList<>();
+        Runnable reopen = () -> scheduler.entity(viewer, () -> {
+            if (viewer.isOnline()) {
+                sendEditorForm(viewer, spec, subject);
+            }
+        });
+        for (EditableProperty property : spec.propertiesFor(subject)) {
+            buttons.add(new BedrockButton(
+                    editorButtonText(viewer, property),
+                    BedrockIcons.forMaterialSpec(property.icon().name(), viewer.getUniqueId())));
+            handlers.add(() -> scheduler.entity(viewer, () -> {
+                if (viewer.isOnline()) {
+                    property.onClick(new PropertyClick(viewer, false, false, reopen, selectorOpener, confirmOpener));
+                }
+            }));
+        }
+        buttons.add(new BedrockButton(renderer.plainMessage(viewer, spec.backName()), null));
+        handlers.add(() -> scheduler.entity(viewer, () -> {
+            if (viewer.isOnline()) {
+                spec.onBack().accept(viewer);
+            }
+        }));
+        spec.deleteName().ifPresent(name -> {
+            buttons.add(new BedrockButton(renderer.plainMessage(viewer, name), null));
+            handlers.add(() -> scheduler.entity(viewer, () -> {
+                if (viewer.isOnline()) {
+                    spec.onDelete().ifPresent(delete -> delete.accept(viewer, subject));
+                }
+            }));
+        });
+        bedrockScreen.sendSimpleForm(
+                viewer,
+                PlainTextComponentSerializer.plainText().serialize(spec.title(viewer, subject)),
+                null,
+                buttons,
+                index -> {
+                    if (index >= 0 && index < handlers.size()) {
+                        handlers.get(index).run();
+                    }
+                });
+    }
+
+    /** One property as a button label: the setting's name, and the value it holds now on the line under it. */
+    private String editorButtonText(Player viewer, EditableProperty property) {
+        String name = renderer.plainMessage(viewer, property.label());
+        String value = property.drawnValue(viewer)
+                .map(drawn -> PlainTextComponentSerializer.plainText().serialize(drawn))
+                .orElseGet(() -> property.valueLore(viewer));
+        return value.isBlank() ? name : name + "\n" + value;
+    }
+
+    /**
+     * The Bedrock render of an entity list: one form button per entity, then create, then action, then the extras.
+     *
+     * <p>No paging. A chest holds as many entities as it has content slots and needs a previous and a next button
+     * to reach the rest; a Cumulus form scrolls, so the whole list goes on it and the two nav buttons have nothing
+     * to do. A tap runs the same {@code onSelect} the chest icon runs.
+     *
+     * <p>The label of an entity is the display name of the icon the chest would have drawn for it, so a list reads
+     * the same on both clients and a caller writes its naming once.
+     */
+    private void sendListForm(Player viewer, EntityListSpec spec) {
+        List<BedrockButton> buttons = new ArrayList<>();
+        List<Runnable> handlers = new ArrayList<>();
+        for (Object entity : spec.entities()) {
+            buttons.add(new BedrockButton(iconText(viewer, spec, entity), null));
+            handlers.add(() -> scheduler.entity(viewer, () -> {
+                if (viewer.isOnline()) {
+                    spec.onSelect().accept(viewer, entity);
+                }
+            }));
+        }
+        spec.createName()
+                .ifPresent(name -> spec.onCreate().ifPresent(create -> {
+                    buttons.add(new BedrockButton(
+                            PlainTextComponentSerializer.plainText().serialize(name), null));
+                    handlers.add(() -> scheduler.entity(viewer, () -> {
+                        if (viewer.isOnline()) {
+                            create.accept(viewer);
+                        }
+                    }));
+                }));
+        spec.actionName()
+                .ifPresent(name -> spec.onAction().ifPresent(action -> {
+                    buttons.add(new BedrockButton(
+                            PlainTextComponentSerializer.plainText().serialize(name), null));
+                    handlers.add(() -> scheduler.entity(viewer, () -> {
+                        if (viewer.isOnline()) {
+                            action.accept(viewer);
+                        }
+                    }));
+                }));
+        bedrockScreen.sendSimpleForm(
+                viewer, PlainTextComponentSerializer.plainText().serialize(spec.title()), null, buttons, index -> {
+                    if (index >= 0 && index < handlers.size()) {
+                        handlers.get(index).run();
+                    }
+                });
+    }
+
+    /** What the chest would call this entity: the display name of the icon the list renders for it. */
+    private static String iconText(Player viewer, EntityListSpec spec, Object entity) {
+        ItemStack icon = spec.iconRenderer().apply(viewer, entity);
+        ItemMeta meta = icon.getItemMeta();
+        Component name = meta == null ? null : meta.displayName();
+        return name == null
+                ? icon.getType().name()
+                : PlainTextComponentSerializer.plainText().serialize(name);
     }
 
     /** The minimal {@link MenuSpec} a confirm holder carries: three rows, refresh off, no items: clicks ride state. */
