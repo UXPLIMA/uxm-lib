@@ -43,6 +43,20 @@ public final class MessageCatalogLoader {
         return new MessageCatalog(templates, defaultLocale);
     }
 
+    /**
+     * One loaded tree, flattened to the {@code path -> template} map the catalog holds, as an immutable copy.
+     *
+     * <p>The same walk {@link #fromNodes} does, for a caller holding one tree rather than a set: a plugin's
+     * language layer wants the flat map itself as well as the catalog built from it, and had its own copy of
+     * this walk until the two were made one.
+     */
+    public static Map<String, String> flatten(ConfigurationNode node) {
+        Objects.requireNonNull(node, "node");
+        Map<String, String> flat = new LinkedHashMap<>();
+        flatten(node, "", flat);
+        return Map.copyOf(flat);
+    }
+
     private static void flatten(ConfigurationNode node, String prefix, Map<String, String> out) {
         if (node.isMap()) {
             for (var child : node.childrenMap().entrySet()) {
