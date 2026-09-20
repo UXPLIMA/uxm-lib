@@ -2,6 +2,7 @@ package com.uxplima.uxmlib.condition.wallet;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -278,6 +279,52 @@ class BridgedWalletTest {
         BridgedWallet wallet = wallet(Economies.vault(), vault);
 
         assertThat(wallet.balance(ada, "")).isEqualTo(wallet.balanceOf(ada.getUniqueId(), ""));
+    }
+
+    // -- money that must not be rounded ------------------------------------------------------------------
+
+    /**
+     * An auction house prices in exact sums and a double is not one.
+     *
+     * <p>{@link Wallet} answers in doubles because a cost check asks "is there enough", and there a double
+     * is honest. A house that takes a bid, holds it and pays it out again cannot round any of the three,
+     * which is the second reason uxmAuction and uxmShop each carried their own copy of this class. The
+     * exact road hands the economy the number it was given, in the shape that economy's parameter asks
+     * for.
+     */
+    @Test
+    @DisplayName("an exact amount reaches an economy that counts in decimals unrounded")
+    void keepsAnExactAmount() {
+        FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(100);
+        BridgedWallet wallet = wallet(Economies.vault(), vault);
+
+        assertThat(wallet.withdrawExact(ada.getUniqueId(), "", new BigDecimal("40.25")))
+                .isTrue();
+        assertThat(vault.balance()).isEqualTo(59.75);
+    }
+
+    @Test
+    @DisplayName("the exact balance is the balance, as a number nothing was dropped from")
+    void readsAnExactBalance() {
+        FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(12.5);
+        BridgedWallet wallet = wallet(Economies.vault(), vault);
+
+        assertThat(wallet.balanceExact(ada.getUniqueId(), "")).isEqualByComparingTo(new BigDecimal("12.5"));
+    }
+
+    /**
+     * An economy that counts in whole numbers cannot be paid a fraction, and the refusal is made here
+     * rather than by rounding it into one that can.
+     */
+    @Test
+    @DisplayName("an economy of whole numbers refuses a fraction rather than rounding it")
+    void refusesAFractionAWholeEconomyCannotHold() {
+        FakeEconomies.PointsShaped points = new FakeEconomies.PointsShaped(50);
+        BridgedWallet wallet = wallet(Economies.playerPoints(), points);
+
+        assertThat(wallet.withdrawExact(ada.getUniqueId(), "", new BigDecimal("0.5")))
+                .isFalse();
+        assertThat(points.points()).isEqualTo(50);
     }
 
     @Test

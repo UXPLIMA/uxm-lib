@@ -94,14 +94,30 @@ public final class BridgedWallet implements Wallet {
      * directly. An auction's seller is usually asleep when the listing sells.
      */
     public double balanceOf(UUID player, String currency) {
+        return balanceExact(player, currency).doubleValue();
+    }
+
+    /**
+     * The balance as the economy holds it, with nothing rounded off it.
+     *
+     * <p>{@link Wallet} answers in doubles because a cost check asks whether there is enough, and there a
+     * double is honest. A house that takes a bid, holds it and pays it out again cannot round any of the
+     * three, so it reads the sum here instead.
+     */
+    public BigDecimal balanceExact(UUID player, String currency) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(currency, "currency");
         Optional<Bound> found = bound(currency);
         if (found.isEmpty()) {
-            return 0;
+            return BigDecimal.ZERO;
         }
         Called answered = invoke(found.get().balance(), player, null);
-        return answered != null && answered.value() instanceof Number number ? number.doubleValue() : 0;
+        return answered != null && answered.value() instanceof Number number ? decimal(number) : BigDecimal.ZERO;
+    }
+
+    /** A number as the economy answered it, keeping every digit an exact one already has. */
+    private static BigDecimal decimal(Number number) {
+        return number instanceof BigDecimal exact ? exact : BigDecimal.valueOf(number.doubleValue());
     }
 
     @Override
@@ -118,9 +134,15 @@ public final class BridgedWallet implements Wallet {
 
     /** The same take, for a player who need not be on the server. */
     public boolean withdrawFrom(UUID player, String currency, double amount) {
+        return withdrawExact(player, currency, BigDecimal.valueOf(amount));
+    }
+
+    /** The same take, in the exact sum a house priced it at. */
+    public boolean withdrawExact(UUID player, String currency, BigDecimal amount) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(currency, "currency");
-        if (amount <= 0) {
+        Objects.requireNonNull(amount, "amount");
+        if (amount.signum() <= 0) {
             return true;
         }
         Optional<Bound> found = bound(currency);
@@ -136,7 +158,8 @@ public final class BridgedWallet implements Wallet {
             // paid more than its own numbers hold. Both refuse here, before anything moves.
             return false;
         }
-        if (binding.answer() == EconomyBinding.Answer.NOTHING && balanceOf(player, currency) < amount) {
+        if (binding.answer() == EconomyBinding.Answer.NOTHING
+                && balanceExact(player, currency).compareTo(amount) < 0) {
             // This economy cannot refuse an overdraft, so the refusal is made here. Reading the balance
             // first is the whole of the promise that a take is never a part of a cost.
             return false;
@@ -174,9 +197,15 @@ public final class BridgedWallet implements Wallet {
 
     /** The same pay-out, for a player who need not be on the server. */
     public boolean depositTo(UUID player, String currency, double amount) {
+        return depositExact(player, currency, BigDecimal.valueOf(amount));
+    }
+
+    /** The same pay-out, in the exact sum a house owes. */
+    public boolean depositExact(UUID player, String currency, BigDecimal amount) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(currency, "currency");
-        if (amount <= 0) {
+        Objects.requireNonNull(amount, "amount");
+        if (amount.signum() <= 0) {
             return true;
         }
         Optional<Bound> found = bound(currency);
@@ -445,8 +474,8 @@ public final class BridgedWallet implements Wallet {
      * sum larger than its own numbers hold. Both answer the same way, because the caller does the same
      * thing with either: it refuses the take and nothing moves.
      */
-    private static @Nullable Object number(double amount, Class<?> type, boolean negated) {
-        BigDecimal written = BigDecimal.valueOf(negated ? -amount : amount);
+    private static @Nullable Object number(BigDecimal amount, Class<?> type, boolean negated) {
+        BigDecimal written = negated ? amount.negate() : amount;
         if (type.isAssignableFrom(BigDecimal.class)) {
             return written;
         }
