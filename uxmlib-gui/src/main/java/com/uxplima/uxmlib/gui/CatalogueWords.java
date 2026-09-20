@@ -3,6 +3,7 @@ package com.uxplima.uxmlib.gui;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.entity.Player;
@@ -40,7 +41,9 @@ import org.jspecify.annotations.Nullable;
  * {@link #render} has only the catalogue's own to fall back on.
  *
  * <p>A value of a row goes in as a placeholder and never as text. A player who named their item
- * {@code <red>} sees those characters on the tile: they do not repaint it.
+ * {@code <red>} sees those characters on the tile: they do not repaint it. A plugin may name the few values
+ * that are the operator's own content rather than a player's, and those are drawn as written: see the
+ * four argument constructor.
  *
  * <p>A value beats a colour role of the same name. {@code <level>} is a role of {@code theme.conf} and it is
  * also what anybody would call a level number, and the style pass used to paint the token and consume it, so
@@ -73,6 +76,7 @@ public final class CatalogueWords implements GuiText {
     private final Styler styler;
     private final Window window;
     private final MenuTiles tiles;
+    private final Set<String> written;
 
     /** Words for a plugin whose windows are about nothing but their rows. */
     public CatalogueWords(Messages messages, Styler styler) {
@@ -80,9 +84,29 @@ public final class CatalogueWords implements GuiText {
     }
 
     public CatalogueWords(Messages messages, Styler styler, Window window) {
+        this(messages, styler, window, Set.of());
+    }
+
+    /**
+     * The same, told which of its values are content the operator wrote.
+     *
+     * <p>A value goes in as text, and that is the rule: a player who renamed their pet {@code <red>} sees
+     * those five characters rather than repainting the tile. Some values are not a player's: a skill name, an
+     * ability line, a shop category are written by the operator in a content file, in the same MiniMessage
+     * every line of theirs is. Handing one of those in as characters puts the markup on the screen where the
+     * colour should be.
+     *
+     * <p>So the exception is named, one value at a time, by the plugin that knows which of its values came out
+     * of its own files. Everything outside {@code written} stays text. Never put a value a player can set in
+     * here: that is the whole reason the default is what it is.
+     *
+     * @param written the value names whose content is parsed as MiniMessage rather than inserted as characters
+     */
+    public CatalogueWords(Messages messages, Styler styler, Window window, Set<String> written) {
         this.messages = Objects.requireNonNull(messages, "messages");
         this.styler = Objects.requireNonNull(styler, "styler");
         this.window = Objects.requireNonNull(window, "window");
+        this.written = Set.copyOf(Objects.requireNonNull(written, "written"));
         this.tiles = new MenuTiles(messages, styler);
     }
 
@@ -166,16 +190,20 @@ public final class CatalogueWords implements GuiText {
      * line of its own catalogue. Name a placeholder after the thing it holds and this never arises.
      */
     private TagResolver named(Player viewer, Map<String, String> values) {
-        return new Values(values, window.valuesOf(viewer.getUniqueId()));
+        return new Values(values, window.valuesOf(viewer.getUniqueId()), written);
     }
 
     /** The two maps behind one name, the row's first and the window's second. */
-    private record Values(Map<String, String> row, Map<String, String> opened) implements TagResolver {
+    private record Values(Map<String, String> row, Map<String, String> opened, Set<String> written)
+            implements TagResolver {
 
         @Override
         public @Nullable Tag resolve(String name, ArgumentQueue arguments, Context context) {
             String value = valueOf(name);
-            return value == null ? null : Tag.inserting(Component.text(value));
+            if (value == null) {
+                return null;
+            }
+            return Tag.inserting(written.contains(name) ? Text.mini(value) : Component.text(value));
         }
 
         @Override
