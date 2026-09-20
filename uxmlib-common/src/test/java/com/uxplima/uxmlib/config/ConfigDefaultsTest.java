@@ -52,6 +52,45 @@ class ConfigDefaultsTest {
         assertThat(config.getBoolean("feature.enabled", false)).isTrue(); // missing key injected from default
     }
 
+    /**
+     * A merge rewrites a file somebody wrote by hand, so the file as it was is kept beside it.
+     *
+     * <p>This is the half that makes the merge safe to ship in every plugin rather than in one. The merge
+     * itself is careful: it adds what is absent and never touches a value. It still renders the whole
+     * document again from the tree, so an operator's own alignment and the odd comment in an unusual place
+     * can move, and an operator who spent an afternoon on that file deserves the copy. A merge that adds
+     * nothing writes nothing, so the copy appears only on the run that changed something.
+     */
+    @Test
+    void mergeDefaultsKeepsTheFileAsItWas(@TempDir Path dir) throws Exception {
+        Path file = dir.resolve("config.conf");
+        Files.writeString(file, "greeting = \"mine\"\n");
+        HoconConfig config = HoconConfig.load(file);
+
+        assertThat(config.mergeDefaults("default-config.conf", loader())).isTrue();
+
+        Path backup = dir.resolve("config.conf.bak");
+        assertThat(backup).exists();
+        assertThat(Files.readString(backup))
+                .describedAs("the copy is the file as it was, before the merge rendered it again")
+                .isEqualTo("greeting = \"mine\"\n");
+    }
+
+    @Test
+    void mergeDefaultsKeepsNoCopyWhenNothingWasAdded(@TempDir Path dir) throws Exception {
+        Path file = dir.resolve("config.conf");
+        Files.writeString(file, "greeting = \"mine\"\nextra = 1\n");
+        HoconConfig config = HoconConfig.load(file);
+        config.mergeDefaults("default-config.conf", loader());
+        Files.deleteIfExists(dir.resolve("config.conf.bak"));
+
+        assertThat(config.mergeDefaults("default-config.conf", loader())).isFalse();
+
+        assertThat(dir.resolve("config.conf.bak"))
+                .describedAs("a run that changes nothing leaves nothing behind")
+                .doesNotExist();
+    }
+
     @Test
     void mergeDefaultsWritesNothingWhenAlreadyComplete(@TempDir Path dir) throws Exception {
         Path target = dir.resolve("config.conf");

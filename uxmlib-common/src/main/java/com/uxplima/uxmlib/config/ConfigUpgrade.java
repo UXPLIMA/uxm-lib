@@ -22,11 +22,20 @@ final class ConfigUpgrade {
         return to;
     }
 
-    /** Additively merge {@code defaults} into {@code live}, save once if anything was added; return whether. */
-    static boolean mergeDefaults(CommentedConfigurationNode live, ConfigurationNode defaults, Runnable save) {
+    /**
+     * Additively merge {@code defaults} into {@code live}, save once if anything was added; return whether.
+     *
+     * <p>{@code keep} is run before the save and only when something was added: it is where the file as it
+     * was is copied aside. The merge is careful, and it still renders the whole document again from the
+     * tree, so an operator's own alignment and a comment in an unusual place can move. A copy costs nothing
+     * and it is the difference between a bad merge being an annoyance and being a loss.
+     */
+    static boolean mergeDefaults(
+            CommentedConfigurationNode live, ConfigurationNode defaults, Runnable keep, Runnable save) {
         int before = ConfigDefaults.nodeCount(live);
         live.mergeFrom(defaults);
         if (ConfigDefaults.nodeCount(live) != before) {
+            keep.run();
             save.run();
             return true;
         }

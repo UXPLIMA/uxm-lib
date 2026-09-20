@@ -154,10 +154,34 @@ public final class HoconConfig {
     /**
      * Deep-merge a default tree into the live config: adding absent keys, never overwriting a user value,
      * and save once if anything was added. Returns whether anything was written.
+     *
+     * <p>This is how an operator who has run a plugin since its first release gets the key a later one
+     * added. A plugin that only writes its file on the first run gives every later knob to a new server and
+     * to no existing one, and the operator finds out by reading a changelog.
+     *
+     * <p>A run that adds something keeps the file as it was, beside it, as {@code <name>.bak}. A run that
+     * adds nothing writes nothing and leaves nothing behind.
      */
     public synchronized boolean mergeDefaults(ConfigurationNode defaults) {
         Objects.requireNonNull(defaults, "defaults");
-        return ConfigUpgrade.mergeDefaults(currentRoot(), defaults, this::save);
+        return ConfigUpgrade.mergeDefaults(currentRoot(), defaults, this::keepAsItWas, this::save);
+    }
+
+    /** Copy the file beside itself, before a merge renders it again. A file that is not there has none. */
+    private void keepAsItWas() {
+        if (!java.nio.file.Files.isRegularFile(file)) {
+            return;
+        }
+        java.nio.file.Path parent = file.getParent();
+        String name = file.getFileName() + ".bak";
+        java.nio.file.Path copy = parent == null ? java.nio.file.Path.of(name) : parent.resolve(name);
+        try {
+            java.nio.file.Files.copy(file, copy, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+        } catch (java.io.IOException unwritable) {
+            // A copy that cannot be written must not stop the merge: the merge itself adds keys and changes
+            // no value, so the worst case is the operator losing their own formatting with no copy of it.
+            throw new ConfigException("cannot keep a copy of " + file + " before merging into it", unwritable);
+        }
     }
 
     /** Deep-merge defaults from a bundled classpath resource. Returns whether anything was written. */
