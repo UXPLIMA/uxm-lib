@@ -51,15 +51,18 @@ class CatalogueWordsTest {
 
     private PlayerMock viewer;
     private CatalogueWords words;
+    private Messages messages;
+    private Styler styler;
 
     @BeforeEach
     void setUp() throws Exception {
         MockBukkit.mock();
         viewer = MockBukkit.getMock().addPlayer();
-        Messages messages = new Messages(
+        messages = new Messages(
                 MessageCatalogLoader.fromNodes(Map.of(Locale.ENGLISH, parse(CATALOGUE)), Locale.ENGLISH),
                 LocaleSource.ofDefault(Locale.ENGLISH));
-        words = new CatalogueWords(messages, new Styler(Theme.defaults()));
+        styler = new Styler(Theme.defaults());
+        words = new CatalogueWords(messages, styler);
     }
 
     @AfterEach
@@ -365,6 +368,60 @@ class CatalogueWordsTest {
                 return Set.of();
             }
         };
+    }
+
+    // -- a value the operator wrote ---------------------------------------------------------------------------
+
+    /**
+     * A value goes in as text, which is the rule and stays the rule: a player who renamed their pet
+     * {@code <red>} sees those five characters and does not repaint the tile around them.
+     */
+    @Test
+    @DisplayName("a value is text, so a player cannot write markup into a tile")
+    void aValueIsText() {
+        assertThat(plain(words.renderFor(viewer, "Name: <pet>", Map.of("pet", "<red>x</red>"))))
+                .isEqualTo("Name: <red>x</red>");
+    }
+
+    /**
+     * The exception, and it is named one value at a time. A skill name, an ability line, a shop category: those
+     * are written by the operator in a content file, in the same MiniMessage every other line of theirs is, and
+     * handing them in as characters puts the markup on the screen instead of the colour.
+     *
+     * <p>uxmSkills had to write its own {@link GuiText} for exactly this and carried a copy of this class for
+     * months to get it. The set is the whole difference, so the set is what this takes.
+     */
+    @Test
+    @DisplayName("a value the caller named as written content is drawn as the operator wrote it")
+    void aWrittenValueKeepsItsColour() {
+        CatalogueWords written = new CatalogueWords(messages, styler, CatalogueWords.Window.none(), Set.of("skill"));
+
+        Component drawn = written.renderFor(viewer, "Name: <skill>", Map.of("skill", "<green>Mining</green>"));
+
+        assertThat(plain(drawn)).isEqualTo("Name: Mining");
+        assertThat(colourOf(drawn, "Mining")).isEqualTo(NamedTextColor.GREEN);
+    }
+
+    /** Naming one value does not trust the rest: everything outside the set is still text. */
+    @Test
+    @DisplayName("naming one value as written leaves every other value as text")
+    void namingOneValueTrustsOnlyThatOne() {
+        CatalogueWords written = new CatalogueWords(messages, styler, CatalogueWords.Window.none(), Set.of("skill"));
+
+        assertThat(plain(written.renderFor(viewer, "Name: <pet>", Map.of("pet", "<red>x</red>"))))
+                .isEqualTo("Name: <red>x</red>");
+    }
+
+    /** A catalogue line asks by name too, so the same value reads the same through {@link CatalogueWords#text}. */
+    @Test
+    @DisplayName("a written value reads the same on a catalogue line")
+    void aWrittenValueReadsTheSameOnACatalogueLine() {
+        CatalogueWords written = new CatalogueWords(messages, styler, CatalogueWords.Window.none(), Set.of("coins"));
+
+        Component drawn = written.text(viewer, "menu.named", asked(Map.of("coins", "<green>12</green>")));
+
+        assertThat(plain(drawn)).isEqualTo("12 coins");
+        assertThat(colourOf(drawn, "12")).isEqualTo(NamedTextColor.GREEN);
     }
 
     /**
