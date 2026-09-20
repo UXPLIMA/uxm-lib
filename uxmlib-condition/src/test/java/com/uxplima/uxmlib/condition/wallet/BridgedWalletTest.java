@@ -327,6 +327,34 @@ class BridgedWalletTest {
         assertThat(points.points()).isEqualTo(50);
     }
 
+    // -- whether there is anything behind it -------------------------------------------------------------
+
+    /**
+     * A house that offers a currency has to know whether it can pay in it.
+     *
+     * <p>Reading zero and refusing every take is the right answer for a cost check, which is what
+     * {@link Wallet} is for. It is the wrong answer for a house: an auction that lists an item priced in a
+     * currency nothing answers takes a seller's item and can never sell it. So the house asks first, and
+     * leaves the currency out of the list when the answer is no.
+     */
+    @Test
+    @DisplayName("a wallet says whether the economy behind it can answer at all")
+    void saysWhetherItReachesTheEconomy() {
+        FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(100);
+
+        assertThat(wallet(Economies.vault(), vault).reaches("")).isTrue();
+        assertThat(wallet(Economies.vault(), null).reaches(""))
+                .describedAs("the plugin is not on this server")
+                .isFalse();
+    }
+
+    @Test
+    @DisplayName("an economy that is here but has renamed its methods does not reach either")
+    void doesNotReachARenamedEconomy() {
+        assertThat(wallet(Economies.vault(), new FakeEconomies.Renamed()).reaches(""))
+                .isFalse();
+    }
+
     @Test
     @DisplayName("a wallet says which economy it reads, so a caller can log it")
     void namesItsOwnBinding() {

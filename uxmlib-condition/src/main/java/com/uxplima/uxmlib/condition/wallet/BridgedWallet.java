@@ -73,6 +73,23 @@ public final class BridgedWallet implements Wallet {
         return new BridgedWallet(binding, new ServerEconomyProviders(log), PlayerArguments.ofServer(), log);
     }
 
+    /**
+     * Whether this economy is here and answers the calls its description names.
+     *
+     * <p>Every other method on this class answers a caller who only needs the money to move or not: a
+     * balance of zero and a refused take are the honest answer for a cost nobody can pay. A house is the
+     * other kind of caller. An auction that lists an item priced in a currency nothing answers has taken a
+     * seller's item for a sale that cannot happen, so it asks this first and leaves the currency out of
+     * the list when the answer is no.
+     *
+     * <p>Asking resolves the economy, which is the same work the first real call would do, and the result
+     * is kept exactly as it is for that call.
+     */
+    public boolean reaches(String currency) {
+        Objects.requireNonNull(currency, "currency");
+        return bound(currency).isPresent();
+    }
+
     /** The description this wallet reads its economy through. */
     public EconomyBinding binding() {
         return binding;
