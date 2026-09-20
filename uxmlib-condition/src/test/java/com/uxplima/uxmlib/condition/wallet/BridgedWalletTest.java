@@ -3,6 +3,7 @@ package com.uxplima.uxmlib.condition.wallet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.entity.Player;
@@ -216,13 +217,67 @@ class BridgedWalletTest {
         AtomicInteger asked = new AtomicInteger();
         FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(100);
         BridgedWallet wallet =
-                new BridgedWallet(Economies.vault(), counting(vault, asked), PlayerArguments.ofPlayer(), LOG);
+                new BridgedWallet(Economies.vault(), counting(vault, asked), PlayerArguments.ofServer(), LOG);
 
         wallet.balance(ada, "");
         wallet.balance(ada, "");
         wallet.withdraw(ada, "", 1);
 
         assertThat(asked).hasValue(1);
+    }
+
+    // -- a player who is not here ------------------------------------------------------------------------
+
+    /**
+     * The whole reason this wallet works from an id.
+     *
+     * <p>An auction pays the seller when the listing sells, and the seller is usually asleep. uxmAuction and
+     * uxmShop each carried a copy of this class for exactly that, because the wallet took a live
+     * {@link Player} and there was none to pass. An economy that keeps a balance in a table does not care
+     * whether the owner is connected, so neither does this.
+     */
+    @Test
+    @DisplayName("a balance is read for a player who is not on the server")
+    void readsTheBalanceOfAnAbsentPlayer() {
+        FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(100);
+        BridgedWallet wallet = wallet(Economies.vault(), vault);
+        UUID absent = UUID.randomUUID();
+
+        assertThat(wallet.balanceOf(absent, "")).isEqualTo(100);
+    }
+
+    @Test
+    @DisplayName("a player who is not on the server is paid and charged like anybody else")
+    void movesTheMoneyOfAnAbsentPlayer() {
+        FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(100);
+        BridgedWallet wallet = wallet(Economies.vault(), vault);
+        UUID absent = UUID.randomUUID();
+
+        assertThat(wallet.withdrawFrom(absent, "", 40)).isTrue();
+        assertThat(vault.balance()).isEqualTo(60);
+        assertThat(wallet.depositTo(absent, "", 15)).isTrue();
+        assertThat(vault.balance()).isEqualTo(75);
+    }
+
+    /** The overdraft refusal is the same on both roads, because it is the same method underneath. */
+    @Test
+    @DisplayName("an absent player is refused an overdraft exactly as a present one is")
+    void refusesAnAbsentOverdraft() {
+        FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(10);
+        BridgedWallet wallet = wallet(Economies.vault(), vault);
+
+        assertThat(wallet.withdrawFrom(UUID.randomUUID(), "", 40)).isFalse();
+        assertThat(vault.balance()).isEqualTo(10);
+    }
+
+    /** The player road is the id road with the id taken off the player, and this pins that they agree. */
+    @Test
+    @DisplayName("the player road and the id road are the same road")
+    void thePlayerRoadIsTheIdRoad() {
+        FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(100);
+        BridgedWallet wallet = wallet(Economies.vault(), vault);
+
+        assertThat(wallet.balance(ada, "")).isEqualTo(wallet.balanceOf(ada.getUniqueId(), ""));
     }
 
     @Test
@@ -363,7 +418,7 @@ class BridgedWalletTest {
     }
 
     private static BridgedWallet wallet(EconomyBinding binding, @Nullable Object provider) {
-        return new BridgedWallet(binding, holding(provider), PlayerArguments.ofPlayer(), LOG);
+        return new BridgedWallet(binding, holding(provider), PlayerArguments.ofServer(), LOG);
     }
 
     /** The seam a wallet reads its object from, holding one object or nothing at all. */

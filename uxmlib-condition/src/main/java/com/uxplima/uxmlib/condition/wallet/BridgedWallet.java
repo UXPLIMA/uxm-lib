@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
@@ -69,7 +70,7 @@ public final class BridgedWallet implements Wallet {
 
     /** The wallet this server's economy answers for, asking the server for the object behind it. */
     public static BridgedWallet ofServer(EconomyBinding binding, System.Logger log) {
-        return new BridgedWallet(binding, new ServerEconomyProviders(log), PlayerArguments.ofPlayer(), log);
+        return new BridgedWallet(binding, new ServerEconomyProviders(log), PlayerArguments.ofServer(), log);
     }
 
     /** The description this wallet reads its economy through. */
@@ -83,6 +84,18 @@ public final class BridgedWallet implements Wallet {
         if (player == null) {
             return 0;
         }
+        return balanceOf(player.getUniqueId(), currency);
+    }
+
+    /**
+     * The same balance, for a player who need not be on the server.
+     *
+     * <p>This is the road the other three take, and the one a plugin paying an absent player asks for
+     * directly. An auction's seller is usually asleep when the listing sells.
+     */
+    public double balanceOf(UUID player, String currency) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(currency, "currency");
         Optional<Bound> found = bound(currency);
         if (found.isEmpty()) {
             return 0;
@@ -100,6 +113,16 @@ public final class BridgedWallet implements Wallet {
         if (player == null) {
             return false;
         }
+        return withdrawFrom(player.getUniqueId(), currency, amount);
+    }
+
+    /** The same take, for a player who need not be on the server. */
+    public boolean withdrawFrom(UUID player, String currency, double amount) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(currency, "currency");
+        if (amount <= 0) {
+            return true;
+        }
         Optional<Bound> found = bound(currency);
         if (found.isEmpty()) {
             return false;
@@ -113,7 +136,7 @@ public final class BridgedWallet implements Wallet {
             // paid more than its own numbers hold. Both refuse here, before anything moves.
             return false;
         }
-        if (binding.answer() == EconomyBinding.Answer.NOTHING && balance(player, currency) < amount) {
+        if (binding.answer() == EconomyBinding.Answer.NOTHING && balanceOf(player, currency) < amount) {
             // This economy cannot refuse an overdraft, so the refusal is made here. Reading the balance
             // first is the whole of the promise that a take is never a part of a cost.
             return false;
@@ -145,6 +168,16 @@ public final class BridgedWallet implements Wallet {
         }
         if (player == null) {
             return false;
+        }
+        return depositTo(player.getUniqueId(), currency, amount);
+    }
+
+    /** The same pay-out, for a player who need not be on the server. */
+    public boolean depositTo(UUID player, String currency, double amount) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(currency, "currency");
+        if (amount <= 0) {
+            return true;
         }
         Optional<Bound> found = bound(currency);
         if (found.isEmpty()) {
@@ -284,7 +317,7 @@ public final class BridgedWallet implements Wallet {
     }
 
     /** One call, or {@code null} when the call itself failed and nothing can be said about the money. */
-    private @Nullable Called invoke(Call call, Player player, @Nullable Object amount) {
+    private @Nullable Called invoke(Call call, UUID player, @Nullable Object amount) {
         Object[] parameters = new Object[call.method().getParameterCount()];
         parameters[call.playerAt()] = arguments.of(binding.argument(), player);
         if (call.amountAt() >= 0 && amount != null) {

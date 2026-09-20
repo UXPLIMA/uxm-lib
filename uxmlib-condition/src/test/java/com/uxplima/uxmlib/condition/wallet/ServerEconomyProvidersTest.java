@@ -3,7 +3,9 @@ package com.uxplima.uxmlib.condition.wallet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Optional;
+import java.util.UUID;
 
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
@@ -149,11 +151,30 @@ class ServerEconomyProvidersTest {
     @DisplayName("what an economy wants where the player goes is what it is given")
     void whatAneconomyWantsIsWhatItIsGiven() {
         Player ada = server.addPlayer("Ada");
-        PlayerArguments arguments = PlayerArguments.ofPlayer();
+        PlayerArguments arguments = PlayerArguments.ofServer();
 
-        assertThat(arguments.of(Argument.PLAYER_ID, ada)).isEqualTo(ada.getUniqueId());
-        assertThat(arguments.of(Argument.PLAYER_NAME, ada)).isEqualTo("Ada");
-        assertThat(arguments.of(Argument.OFFLINE_PLAYER, ada)).isSameAs(ada);
+        assertThat(arguments.of(Argument.PLAYER_ID, ada.getUniqueId())).isEqualTo(ada.getUniqueId());
+        assertThat(arguments.of(Argument.PLAYER_NAME, ada.getUniqueId())).isEqualTo("Ada");
+        assertThat(arguments.of(Argument.OFFLINE_PLAYER, ada.getUniqueId()))
+                .describedAs("a player who is here is handed over as the live one, as before")
+                .isSameAs(ada);
+    }
+
+    /**
+     * The half that did not exist. An economy is asked about an id the server has never had a player for,
+     * which is what uxmAuction does when it pays a seller who has not logged in since the listing sold.
+     */
+    @Test
+    @DisplayName("an id with nobody behind it is still answered in every shape")
+    void anAbsentIdIsStillAnswered() {
+        PlayerArguments arguments = PlayerArguments.ofServer();
+        UUID absent = UUID.randomUUID();
+
+        assertThat(arguments.of(Argument.PLAYER_ID, absent)).isEqualTo(absent);
+        assertThat(arguments.of(Argument.OFFLINE_PLAYER, absent)).isInstanceOf(OfflinePlayer.class);
+        assertThat(arguments.of(Argument.PLAYER_NAME, absent))
+                .describedAs("a null name would reach the economy as a missing argument")
+                .isNotNull();
     }
 
     /** One description of the economy this test registered, in the shape the reader reads. */
