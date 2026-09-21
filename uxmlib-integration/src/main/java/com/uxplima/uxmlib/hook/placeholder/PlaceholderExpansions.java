@@ -36,6 +36,31 @@ public final class PlaceholderExpansions {
     }
 
     /**
+     * As {@link #register(String, PlaceholderRegistry, String, String)}, and hands back how to take the
+     * expansion down again.
+     *
+     * <p>A plugin that is disabled while the server runs leaves its expansion behind otherwise, and
+     * PlaceholderAPI keeps asking an object whose plugin is gone. A consumer that reloads or disables
+     * cleanly holds the returned action and runs it then. Empty means nothing was registered, which is
+     * the answer on a server without PlaceholderAPI and on one where it refused.
+     */
+    public static java.util.Optional<Runnable> registered(
+            String identifier, PlaceholderRegistry registry, String author, String version) {
+        Objects.requireNonNull(identifier, "identifier");
+        Objects.requireNonNull(registry, "registry");
+        Objects.requireNonNull(author, "author");
+        Objects.requireNonNull(version, "version");
+        if (identifier.isBlank()) {
+            throw new IllegalArgumentException("identifier must not be blank");
+        }
+        if (!PlaceholderApi.isAvailable()) {
+            return java.util.Optional.empty();
+        }
+        UxmPlaceholderExpansion expansion = new UxmPlaceholderExpansion(identifier, author, version, registry);
+        return expansion.register() ? java.util.Optional.of(expansion::unregister) : java.util.Optional.empty();
+    }
+
+    /**
      * Register {@code registry}'s providers under {@code identifier}, yielding {@code %<identifier>_...%}
      * placeholders. Returns whether the expansion registered; a no-op returning {@code false} when
      * PlaceholderAPI is not installed.

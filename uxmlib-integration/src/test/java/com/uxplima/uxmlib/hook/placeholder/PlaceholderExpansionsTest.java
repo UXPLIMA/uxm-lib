@@ -27,6 +27,17 @@ class PlaceholderExpansionsTest {
     }
 
     @Test
+    void registeredHandsBackNothingToUndoWhenPlaceholderApiAbsent() {
+        PlaceholderRegistry registry = new PlaceholderRegistry();
+        registry.register("eco", (player, params) -> "x");
+
+        assertThat(PlaceholderExpansions.registered("uxmtest", registry, "uxmLib", "1.0.0"))
+                .describedAs("a consumer that takes its expansion down on disable is handed how to do it,"
+                        + " and a server without the plugin has nothing to take down")
+                .isEmpty();
+    }
+
+    @Test
     void registerIsANoOpReturningFalseWhenPlaceholderApiAbsent() {
         PlaceholderRegistry registry = new PlaceholderRegistry();
         registry.register("eco", (player, params) -> "x");
