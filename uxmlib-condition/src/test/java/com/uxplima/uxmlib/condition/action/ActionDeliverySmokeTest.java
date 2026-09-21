@@ -83,6 +83,26 @@ class ActionDeliverySmokeTest {
         assertThat(heard.get(0).getPitch()).isEqualTo(1.5f);
     }
 
+    /**
+     * The spelling a wiki prints, which is what an operator copies.
+     *
+     * <p>{@link net.kyori.adventure.key.Key#parseable} says no to an upper case letter, so this line was
+     * skipped in silence until 2026-09-22 and nothing anywhere said why. Thirty three shipped values across
+     * the estate were written this way, including every crate animation in uxmCrates.
+     */
+    @Test
+    void soundActionTakesTheConstantSpellingTooAndPlaysTheSameSound() {
+        PlayerMock player = server.addPlayer("Steve");
+        ActionContext context =
+                ActionContext.builder(OperandResolver.identity()).player(player).build();
+
+        ActionList.parse(List.of("[sound] ENTITY_PLAYER_LEVELUP 0.5 1.5")).run(context);
+
+        List<AudioExperience> heard = player.getHeardSounds();
+        assertThat(heard).hasSize(1);
+        assertThat(heard.get(0).getSound()).isEqualTo("minecraft:entity.player.levelup");
+    }
+
     @Test
     void malformedSoundKeyIsSkippedAndNeverThrowsOnTheRealAudience() {
         PlayerMock player = server.addPlayer("Steve");

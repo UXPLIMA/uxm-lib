@@ -15,6 +15,7 @@ import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 
+import com.uxplima.uxmlib.common.Sounds;
 import com.uxplima.uxmlib.condition.ItemStore;
 import com.uxplima.uxmlib.text.Text;
 import org.jspecify.annotations.Nullable;
@@ -153,12 +154,31 @@ public final class Actions {
         Objects.requireNonNull(spec, "spec");
         return asyncText(context -> {
             String resolved = context.resolve(spec.keyTemplate());
-            if (!Key.parseable(resolved)) {
+            String key = playable(resolved);
+            if (key == null) {
                 return;
             }
-            context.target()
-                    .playSound(Sound.sound(Key.key(resolved), Sound.Source.MASTER, spec.volume(), spec.pitch()));
+            context.target().playSound(Sound.sound(Key.key(key), Sound.Source.MASTER, spec.volume(), spec.pitch()));
         });
+    }
+
+    /**
+     * The spelling the client takes, from whichever spelling the operator wrote.
+     *
+     * <p>A key is lower case with dots, and that is what an operator who read one of our files writes. What
+     * a wiki prints is {@code ENTITY_PLAYER_LEVELUP}, and that is what an operator who read a wiki writes.
+     * The second was refused here, silently, until 2026-09-22: {@link Key#parseable} says no to an upper
+     * case letter, the line was skipped, and nothing anywhere said why. Thirty three shipped values across
+     * this estate were written that way.
+     *
+     * <p>The plain key is tried first and costs nothing, so the common case does not reach the registry.
+     * Only a key the client would refuse is looked up, and a name that is neither is still silence.
+     */
+    private static @Nullable String playable(String written) {
+        if (Key.parseable(written)) {
+            return written;
+        }
+        return Sounds.keyOf(written).orElse(null);
     }
 
     /** A title, the line under it, and the three times a title is shown for. */
