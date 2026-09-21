@@ -34,6 +34,14 @@ public enum CommandLine implements MessageKey {
     /** A player-only command was run from the console. */
     PLAYER_ONLY("command.player-only", "<red>Only a player can run this command."),
 
+    /**
+     * What a player is told when they run a verb they are meant to have and do not.
+     *
+     * <p>Said only for a node the descriptor declares {@code default: true}. Every other node hides its
+     * branch instead, so this line never tells anybody that an operator's verb exists.
+     */
+    NO_PERMISSION("command.no-permission", "<red>You do not have permission to do that."),
+
     /** An argument was rejected, with no reason to give. */
     INVALID_VALUE("command.invalid-value", "<red>Invalid value '<input>' for <argument>."),
 

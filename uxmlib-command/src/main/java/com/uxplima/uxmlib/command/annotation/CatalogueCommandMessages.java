@@ -39,6 +39,11 @@ final class CatalogueCommandMessages implements CommandMessages {
     }
 
     @Override
+    public Component noPermission(Locale locale) {
+        return line(CommandLine.NO_PERMISSION, locale);
+    }
+
+    @Override
     public Component invalidValue(Locale locale, String argument, String input, String reason) {
         if (reason.isEmpty()) {
             return line(

@@ -60,6 +60,17 @@ public interface CommandMessages {
         return new CatalogueCommandMessages(messages);
     }
 
+    /**
+     * A sender ran a verb they are meant to have and do not.
+     *
+     * <p>Reached only for a node whose registered default is {@code true}, which is how a descriptor says a
+     * verb belongs to every player. A node an operator holds hides its branch instead, and nothing is sent.
+     */
+    default Component noPermission(Locale locale) {
+        Objects.requireNonNull(locale, "locale");
+        return red("You do not have permission to do that.");
+    }
+
     /** A player-only command was run from the console or a command block. */
     default Component playerOnly(Locale locale) {
         Objects.requireNonNull(locale, "locale");

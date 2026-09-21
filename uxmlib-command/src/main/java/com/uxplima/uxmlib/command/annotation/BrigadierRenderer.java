@@ -38,7 +38,7 @@ final class BrigadierRenderer {
         LiteralArgumentBuilder<CommandSourceStack> root = Cmd.literal(command.name());
         Permission classPermission = model.classPermission();
         if (classPermission != null) {
-            root.requires(Cmd.permission(classPermission.value()));
+            root.requires(Cmd.visibility(classPermission.value()));
         }
         for (BranchModel branch : model.branches()) {
             attachBranch(root, model.handler(), branch, command.name());
@@ -178,7 +178,7 @@ final class BrigadierRenderer {
     private static void applyPermission(
             ArgumentBuilder<CommandSourceStack, ?> builder, @Nullable Permission permission) {
         if (permission != null) {
-            builder.requires(Cmd.permission(permission.value()));
+            builder.requires(Cmd.visibility(permission.value()));
         }
     }
 }

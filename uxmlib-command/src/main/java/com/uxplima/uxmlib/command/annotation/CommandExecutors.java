@@ -15,6 +15,7 @@ import net.kyori.adventure.text.Component;
 import com.mojang.brigadier.context.CommandContext;
 import com.uxplima.uxmlib.command.Cmd;
 import com.uxplima.uxmlib.command.Sender;
+import com.uxplima.uxmlib.command.annotation.annotations.Permission;
 import com.uxplima.uxmlib.command.annotation.annotations.PlayerOnly;
 import com.uxplima.uxmlib.scheduler.Scheduler;
 
@@ -177,6 +178,36 @@ final class CommandExecutors {
         Sender.of(ctx.getSource()).send(message);
     }
 
+    /** The node gating this branch: its own, or the one the class carries, or none. */
+    private static @org.jspecify.annotations.Nullable Permission permissionOf(BranchModel branch) {
+        Permission own = branch.permission();
+        return own != null ? own : branch.classView().get(Permission.class);
+    }
+
+    /**
+     * The refusal a sender reads when they run a verb they are meant to have and do not.
+     *
+     * <p>A node an operator holds never reaches this: its branch is not there for them, so Brigadier
+     * answers before the executor does. A node the descriptor declares {@code default: true} is visible to
+     * everybody on purpose, and this is the other half of that: the player who lost it is told, rather
+     * than reading the server's own "unknown command" and reporting the plugin as broken.
+     */
+    private static @org.jspecify.annotations.Nullable CommandCondition permissionCondition(
+            BranchModel branch, ParamResolvers resolvers) {
+        Permission permission = permissionOf(branch);
+        if (permission == null) {
+            return null;
+        }
+        String node = permission.value();
+        CommandMessages messages = resolvers.messages();
+        return context -> {
+            if (context.getSource().getSender().hasPermission(node)) {
+                return;
+            }
+            throw new CommandCondition.CommandConditionException(messages.noPermission(localeOf(resolvers, context)));
+        };
+    }
+
     /**
      * The conditions to run before {@code method}: the registry conditions, plus the implicit gates derived
      * from a method- or class-level {@code @}{@link PlayerOnly} and {@code @}{@link
@@ -193,6 +224,10 @@ final class CommandExecutors {
         CommandCondition cooldown = CooldownCondition.forBranch(branch, commandPath, resolvers);
         if (cooldown != null) {
             conditions.add(cooldown);
+        }
+        CommandCondition permission = permissionCondition(branch, resolvers);
+        if (permission != null) {
+            conditions.add(permission);
         }
         return conditions;
     }
