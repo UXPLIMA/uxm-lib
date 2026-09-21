@@ -1328,4 +1328,42 @@ class MenuSpecLoaderTest {
                 .as("a widget with an unknown type is skipped, the rest of the form parses")
                 .containsExactly(new BedrockWidget.Toggle("ok", "OK", false));
     }
+    /**
+     * A misspelled gesture is dropped, and the drop is said out loud.
+     *
+     * <p>It was dropped in silence before. The tile is still drawn, the player presses it, nothing happens, and
+     * there is no line anywhere that names the word that was wrong. A gesture is one word, and one word is the
+     * easiest thing in a file to misspell.
+     */
+    @Test
+    void anUnknownGestureIsDroppedAndSaidOutLoud() {
+        java.util.List<java.util.logging.LogRecord> said = new java.util.ArrayList<>();
+        java.util.logging.Logger log = java.util.logging.Logger.getLogger(MenuSpecLoader.class.getName());
+        java.util.logging.Handler listening = new java.util.logging.Handler() {
+            @Override
+            public void publish(java.util.logging.LogRecord record) {
+                said.add(record);
+            }
+
+            @Override
+            public void flush() {}
+
+            @Override
+            public void close() {}
+        };
+        log.addHandler(listening);
+        try {
+            MenuSpec spec = new MenuSpecLoader()
+                    .parse("rows = 1\nitems { a { slot = 0, material = STONE, click { shitf-left = [\"note\"] } } }");
+
+            assertThat(spec.items())
+                    .hasEntrySatisfying(
+                            "a", item -> assertThat(item.click().actions()).isEmpty());
+            assertThat(said)
+                    .extracting(java.util.logging.LogRecord::getMessage)
+                    .anySatisfy(message -> assertThat(message).contains("shitf-left"));
+        } finally {
+            log.removeHandler(listening);
+        }
+    }
 }

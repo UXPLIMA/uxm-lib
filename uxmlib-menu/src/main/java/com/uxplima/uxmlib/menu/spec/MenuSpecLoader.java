@@ -729,10 +729,17 @@ public final class MenuSpecLoader {
         if (!node.virtual() && !node.isNull()) {
             for (Map.Entry<Object, ? extends ConfigurationNode> entry :
                     node.childrenMap().entrySet()) {
-                ClickKind kind = CLICK_KEYS.get(String.valueOf(entry.getKey()).toLowerCase(java.util.Locale.ROOT));
-                if (kind != null) {
-                    parseClickEntry(entry.getValue(), kind, actions, requirements, orElse);
+                String written = String.valueOf(entry.getKey());
+                ClickKind kind = CLICK_KEYS.get(written.toLowerCase(java.util.Locale.ROOT));
+                if (kind == null) {
+                    // Dropping it silently is the worst answer there is: the button is drawn, it is pressed, and
+                    // nothing happens, with no line anywhere saying why. A gesture is one word and one word is
+                    // easy to misspell, so say which word and where it is.
+                    LOG.warning("menu item at " + node.path() + " names unknown gesture '" + written
+                            + "', so nothing is bound to it. The gestures are " + CLICK_KEYS.keySet() + ".");
+                    continue;
                 }
+                parseClickEntry(entry.getValue(), kind, actions, requirements, orElse);
             }
         }
         // v1 keeps per-gesture conditions empty; visibility is gated by the item-level `view` list instead.
