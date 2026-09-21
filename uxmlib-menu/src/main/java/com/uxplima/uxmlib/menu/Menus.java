@@ -1534,7 +1534,7 @@ public final class Menus {
             MenuSpec spec, MenuContext ctx, Player viewer, List<BedrockButton> buttons, List<Runnable> handlers) {
         for (MenuItemSpec item : renderer.visibleStaticItemsInSlotOrder(spec, ctx)) {
             buttons.add(formButton(item, ctx, viewer));
-            handlers.add(() -> scheduler.entity(viewer, () -> runFormActions(ctx, item)));
+            handlers.add(() -> scheduler.entity(viewer, () -> tapped(viewer, ctx, item)));
         }
     }
 
@@ -1576,7 +1576,7 @@ public final class Menus {
         for (Map.Entry<Integer, Object> placement : page.placements()) {
             MenuContext entryCtx = ctx.withEntry(placement.getValue());
             buttons.add(formButton(template, entryCtx, viewer));
-            handlers.add(() -> scheduler.entity(viewer, () -> runFormActions(entryCtx, template)));
+            handlers.add(() -> scheduler.entity(viewer, () -> tapped(viewer, entryCtx, template)));
         }
         return page.pageCount();
     }
@@ -1632,14 +1632,77 @@ public final class Menus {
     }
 
     /**
-     * Run the tapped item's left-click actions against {@code ctx}, on the viewer's entity thread the caller already
-     * hopped onto. A tap is a plain click, so it runs the item's {@code actionsFor(LEFT)} chain (which already merges
-     * the shared {@link ClickKind#ANY} block) through the shared {@link #runActions} runner, so a form tap reaches the
-     * identical handler a chest click would. Per-click requirements and deny routing are a later item; this runs the
-     * actions only.
+     * What a tap on a tile does: run its one gesture, or ask which of its several.
+     *
+     * <p>A chest gives a Java viewer six gestures on one square and a form gives a Bedrock viewer a tap. Running the
+     * left click and nothing else made every other gesture a feature a Bedrock player could not reach: a shop line
+     * they could not restock, a quest they could not reroll, a line they could not take off. A tile that binds one
+     * gesture runs it, whichever one it is, and a tile that binds several is asked about.
      */
-    private void runFormActions(MenuContext ctx, MenuItemSpec item) {
-        runActions(ctx, item.click().actionsFor(ClickKind.LEFT));
+    private void tapped(Player live, MenuContext ctx, MenuItemSpec item) {
+        List<ClickKind> gestures = boundGestures(item);
+        if (gestures.size() > 1) {
+            sendGestureForm(live, ctx, item, gestures);
+            return;
+        }
+        ClickKind only = gestures.isEmpty() ? ClickKind.LEFT : gestures.get(0);
+        runActions(ctx, item.click().actionsFor(only), only);
+    }
+
+    /**
+     * The gestures this tile binds, in the order a form lists them.
+     *
+     * <p>{@link ClickKind#ANY} is left out: it is not a gesture a viewer chooses but a list every gesture carries,
+     * and {@code ClickSpec#actionsFor} merges it into whichever one runs. A tile whose only binding is ANY therefore
+     * has no gesture of its own and runs on the tap, which is what it asks for.
+     */
+    private static List<ClickKind> boundGestures(MenuItemSpec item) {
+        List<ClickKind> bound = new ArrayList<>();
+        for (ClickKind kind : ClickKind.values()) {
+            List<Ref> own = item.click().actions().getOrDefault(kind, List.of());
+            if (kind != ClickKind.ANY && !own.isEmpty()) {
+                bound.add(kind);
+            }
+        }
+        return bound;
+    }
+
+    /**
+     * Ask a Bedrock viewer which gesture they meant, then run it.
+     *
+     * <p>One button per gesture, named by a word the host's catalogue answers, so the question is in the language
+     * the viewer reads. Cumulus answers off the server thread, so the chosen gesture hops back onto the viewer's
+     * entity thread before it runs, the same hop the first form's tap takes.
+     */
+    private void sendGestureForm(Player live, MenuContext ctx, MenuItemSpec item, List<ClickKind> gestures) {
+        Player viewer = ctx.viewer();
+        List<BedrockButton> buttons = new ArrayList<>();
+        for (ClickKind kind : gestures) {
+            buttons.add(new BedrockButton(renderer.plainMessage(viewer, gestureKey(kind)), null));
+        }
+        bedrockScreen.sendSimpleForm(
+                live, renderer.plainMessage(viewer, MenuKeys.GESTURE_TITLE), null, buttons, index -> {
+                    if (index < 0 || index >= gestures.size()) {
+                        return;
+                    }
+                    ClickKind chosen = gestures.get(index);
+                    scheduler.entity(viewer, () -> runActions(ctx, item.click().actionsFor(chosen), chosen));
+                });
+    }
+
+    /** The word that names one gesture on the form. */
+    private static String gestureKey(ClickKind kind) {
+        return switch (kind) {
+            case LEFT -> MenuKeys.GESTURE_LEFT;
+            case RIGHT -> MenuKeys.GESTURE_RIGHT;
+            case SHIFT_LEFT -> MenuKeys.GESTURE_SHIFT_LEFT;
+            case SHIFT_RIGHT -> MenuKeys.GESTURE_SHIFT_RIGHT;
+            case MIDDLE -> MenuKeys.GESTURE_MIDDLE;
+            case DROP -> MenuKeys.GESTURE_DROP;
+            case CONTROL_DROP -> MenuKeys.GESTURE_CONTROL_DROP;
+            case DOUBLE_CLICK -> MenuKeys.GESTURE_DOUBLE_CLICK;
+            case ANY -> MenuKeys.GESTURE_LEFT;
+        };
     }
 
     /**
@@ -1675,6 +1738,11 @@ public final class Menus {
      * registry (a list/spec-only test engine), matching {@link #runOpenActions}.
      */
     private void runActions(MenuContext ctx, List<Ref> refs) {
+        runActions(ctx, refs, ClickKind.LEFT);
+    }
+
+    /** The same run, told which gesture asked for it, so a handler that reads the gesture reads the right one. */
+    private void runActions(MenuContext ctx, List<Ref> refs, ClickKind kind) {
         ActionRegistry actions = openActionRegistry;
         if (actions == null) {
             return;
@@ -1687,8 +1755,7 @@ public final class Menus {
             Ref eff = ref.resolve(actions::has);
             Map<String, String> args = ActionArguments.resolveLocals(
                     ActionArguments.resolve(eff.args(), ctx.arguments()), ctx.localPlaceholders());
-            actions.get(eff.id())
-                    .ifPresent(handler -> handler.accept(new MenuActionContext(ctx, viewer, ClickKind.LEFT, args)));
+            actions.get(eff.id()).ifPresent(handler -> handler.accept(new MenuActionContext(ctx, viewer, kind, args)));
         }
     }
 

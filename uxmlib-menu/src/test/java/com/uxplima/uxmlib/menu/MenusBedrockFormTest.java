@@ -392,6 +392,110 @@ class MenusBedrockFormTest {
         assertThat(ran).isEmpty();
     }
 
+    // -- a tile with more than one gesture -----------------------------------------------------------------------
+
+    /**
+     * A chest gives a Java viewer six gestures on one square. A form gives a Bedrock viewer a tap, and the tap ran
+     * the left click, so every other gesture was a feature Bedrock could not reach: a shop line an owner could not
+     * restock, a quest a player could not reroll. A tile that binds more than one gesture now asks which one.
+     */
+    @Test
+    void aTileWithMoreThanOneGestureAsksWhichBeforeItRunsOne() {
+        open("shop", """
+                rows = 1
+                items {
+                  a { slot = 0, material = STONE, name = "A",
+                      click { left = ["note:buy"], "shift-right" = ["note:withdraw"] } }
+                }
+                """);
+
+        screen.tap(0);
+
+        assertThat(screen.sent).containsExactly("simple", "simple");
+        assertThat(screen.buttonTexts()).containsExactly("gui.gesture.left", "gui.gesture.shift-right");
+        assertThat(ran).isEmpty();
+    }
+
+    /** Choosing a gesture runs that gesture's actions, and the handler is told which gesture it was. */
+    @Test
+    void choosingAGestureRunsThatGesturesActions() {
+        open("shop", """
+                rows = 1
+                items {
+                  a { slot = 0, material = STONE, name = "A",
+                      click { left = ["note:buy"], "shift-right" = ["note:withdraw"] } }
+                }
+                """);
+
+        screen.tap(0);
+        screen.tap(1);
+
+        assertThat(ran).hasSize(1);
+        assertThat(ran.get(0).arg()).isEqualTo("withdraw");
+        assertThat(ran.get(0).clickKind()).isEqualTo(com.uxplima.uxmlib.menu.spec.ClickKind.SHIFT_RIGHT);
+    }
+
+    /**
+     * One gesture is one thing to do, so a tap does it and asks nothing. It holds for a gesture that is not the left
+     * click as well: a tile whose only binding is a right click used to do nothing at all on a tap.
+     */
+    @Test
+    void aTileWithOneGestureRunsItOnTheTapWhicheverGestureItIs() {
+        open("shop", """
+                rows = 1
+                items {
+                  a { slot = 0, material = STONE, name = "A", click { right = ["note:reroll"] } }
+                }
+                """);
+
+        screen.tap(0);
+
+        assertThat(screen.sent).containsExactly("simple");
+        assertThat(ran).hasSize(1);
+        assertThat(ran.get(0).arg()).isEqualTo("reroll");
+    }
+
+    /** A row of a list is a tile like any other, and its gestures are reached the same way. */
+    @Test
+    void aListRowWithMoreThanOneGestureAsksTheSameQuestion() {
+        lists.register("rows", ctx -> List.of("one"));
+        open("shop", """
+                rows = 1
+                items {
+                  a { slots = ["0-8"], list { source = "rows", template {
+                        material = STONE, name = "R",
+                        click { left = ["note:buy"], drop = ["note:remove"] } } } }
+                }
+                """);
+
+        screen.tap(0);
+        screen.tap(1);
+
+        assertThat(ran).hasSize(1);
+        assertThat(ran.get(0).arg()).isEqualTo("remove");
+    }
+
+    /** A dismissal of the gesture form is a dismissal, not a throw and not a gesture. */
+    @Test
+    void aTapOutsideTheGestureListRunsNothing() {
+        open("shop", """
+                rows = 1
+                items {
+                  a { slot = 0, material = STONE, name = "A",
+                      click { left = ["note:buy"], "shift-right" = ["note:withdraw"] } }
+                }
+                """);
+
+        screen.tap(0);
+
+        assertThatCode(() -> {
+                    screen.tap(-1);
+                    screen.tap(99);
+                })
+                .doesNotThrowAnyException();
+        assertThat(ran).isEmpty();
+    }
+
     // -- paging a list-backed menu as buttons --------------------------------------------------------------------
 
     /** A list's entries become buttons after the static ones, one page at a time, with a Next when more remain. */

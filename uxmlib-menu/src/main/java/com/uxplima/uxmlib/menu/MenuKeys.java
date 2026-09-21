@@ -26,6 +26,31 @@ public final class MenuKeys {
 
     public static final String PAGE_NEXT = "gui.page.next";
 
+    /**
+     * The gesture form: the question a Bedrock viewer is asked when one tile does more than one thing.
+     *
+     * <p>A chest gives a Java viewer six gestures on one square and a form gives a Bedrock viewer a tap, so a tile
+     * that binds more than one gesture is asked about rather than guessed at. These are the words of that question
+     * and of each answer.
+     */
+    public static final String GESTURE_TITLE = "gui.gesture.title";
+
+    public static final String GESTURE_LEFT = "gui.gesture.left";
+
+    public static final String GESTURE_RIGHT = "gui.gesture.right";
+
+    public static final String GESTURE_SHIFT_LEFT = "gui.gesture.shift-left";
+
+    public static final String GESTURE_SHIFT_RIGHT = "gui.gesture.shift-right";
+
+    public static final String GESTURE_MIDDLE = "gui.gesture.middle";
+
+    public static final String GESTURE_DROP = "gui.gesture.drop";
+
+    public static final String GESTURE_CONTROL_DROP = "gui.gesture.control-drop";
+
+    public static final String GESTURE_DOUBLE_CLICK = "gui.gesture.double-click";
+
     /** The colour picker's own chrome: its title and the four buttons that are not a swatch. */
     public static final String COLOUR_PICKER_TITLE = "gui.colour-picker.title";
 
