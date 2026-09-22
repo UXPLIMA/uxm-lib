@@ -1755,8 +1755,29 @@ public final class Menus {
             Ref eff = ref.resolve(actions::has);
             Map<String, String> args = ActionArguments.resolveLocals(
                     ActionArguments.resolve(eff.args(), ctx.arguments()), ctx.localPlaceholders());
-            actions.get(eff.id()).ifPresent(handler -> handler.accept(new MenuActionContext(ctx, viewer, kind, args)));
+            java.util.Optional<java.util.function.Consumer<MenuActionContext>> handler = actions.get(eff.id());
+            if (handler.isEmpty()) {
+                warnUnknownAction(eff);
+                continue;
+            }
+            handler.get().accept(new MenuActionContext(ctx, viewer, kind, args));
         }
+    }
+
+    /**
+     * Say that a click named an action nobody registered.
+     *
+     * <p>A menu is a file an operator edits and an action id is a word they type, so a typo was a
+     * button that did nothing: the id was looked up, nothing was found, and the next ref ran. The
+     * window opens, the tile draws, and the click is absent rather than broken, with nothing to read.
+     * The grammar half of the engine has always said so, because a line it cannot parse throws.
+     *
+     * <p>The rest of the list still runs. One wrong id costs the operator that action and not the
+     * three beside it, which is the same rule a moment runner follows for a line it cannot read.
+     */
+    static void warnUnknownAction(Ref ref) {
+        LOG.warning("menu click names " + ref.id() + " and no action is registered under that id:"
+                + " check the spelling against /uxmess actions or the plugin's own list");
     }
 
     /** Redraw an open menu in place on its viewer's thread, but only if that window is still this holder's. */
