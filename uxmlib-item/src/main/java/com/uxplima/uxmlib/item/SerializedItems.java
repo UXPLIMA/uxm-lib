@@ -62,20 +62,6 @@ public final class SerializedItems {
         if (!isSerialized(token)) {
             return Optional.empty();
         }
-        try {
-            return Optional.of(ItemSerialization.fromBase64(token.substring(PREFIX.length())));
-        } catch (IllegalArgumentException unreadable) {
-            // An Optional is a promise that nothing is a possible answer, and this did not keep it: a
-            // token that is not valid Base64, or valid Base64 that is not an item, threw out of the call.
-            // A caller who wrote decode(token).ifPresent(...), which is the shape the signature invites,
-            // met an exception instead of an empty.
-            //
-            // Where these tokens come from is why it matters: a stored click-action payload, written by an
-            // earlier version, edited by an operator, or truncated by a column that was too narrow. Every
-            // one of those is a reason to skip the item and none of them is a reason to throw out of a
-            // click. A caller who wants the reason calls ItemSerialization.fromBase64, which still throws
-            // and still says what was wrong.
-            return Optional.empty();
-        }
+        return Optional.of(ItemSerialization.fromBase64(token.substring(PREFIX.length())));
     }
 }
