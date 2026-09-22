@@ -156,8 +156,8 @@ public final class ActionContext {
         private Audience target = Audience.empty();
         private Audience broadcast = Audience.empty();
         private @Nullable Player player;
-        private CommandSink consoleSink = CommandSink.noop();
-        private CommandSink playerSink = CommandSink.noop();
+        private CommandSink consoleSink = CommandSink.unwired("[console]", "consoleSink");
+        private CommandSink playerSink = CommandSink.unwired("[player]", "playerSink");
         private Wallet wallet = Wallet.empty();
         private ItemStore itemStore = ItemStore.empty();
         private BiConsumer<Duration, Runnable> later = (delay, what) -> {
