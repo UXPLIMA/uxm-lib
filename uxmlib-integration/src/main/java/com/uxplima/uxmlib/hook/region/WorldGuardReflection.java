@@ -134,8 +134,11 @@ public final class WorldGuardReflection {
         throw new NoSuchMethodException("queryState");
     }
 
-    /** The resolved {@code StateFlag.State} is a DENY only when its enum constant is named {@code DENY}. */
-    static boolean isDeny(@Nullable Object state) {
+    /**
+     * Whether a resolved {@code StateFlag.State} is a DENY, read by the name of its enum constant so no
+     * WorldGuard type is named. Public because a caller that resolves a flag its own way reads it the same way.
+     */
+    public static boolean isDeny(@Nullable Object state) {
         return state instanceof Enum<?> value && "DENY".equals(value.name());
     }
 }
