@@ -14,6 +14,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.hook.region.WorldGuardReflection;
 import org.jspecify.annotations.NullMarked;
 
 /**
