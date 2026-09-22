@@ -23,6 +23,11 @@ import org.jspecify.annotations.Nullable;
  * level is belongs to the server rather than to a plugin, and several of the places that build a resolver
  * are static helpers no constructor reaches. Nothing is installed until something installs it, and until
  * then every operand resolves exactly as it did before this existed.
+ *
+ * <p><strong>Every plugin installs its own.</strong> A plugin shades this library under its own package, so
+ * the static is per plugin: a source another plugin installed is a different class's field and never
+ * reaches this one. A plugin that reads through {@link #standard()} installs the source at enable,
+ * forgets it at disable, and declares the skill plugin {@code load: BEFORE}.
  */
 public final class Operands {
 
@@ -42,8 +47,9 @@ public final class Operands {
     /**
      * Say where a skill level comes from.
      *
-     * <p>Called once at enable by whichever plugin of ours starts first, and safe for all of them to call.
-     * Calling it again replaces the seam, which is what a reload does.
+     * <p>Called once at enable by each plugin that reads through this class, for itself: the library is
+     * relocated into every plugin, so no other plugin's call reaches it. Calling it again replaces the
+     * seam, which is what a reload does.
      */
     public static void readingSkills(SkillLevels levels) {
         skills = Objects.requireNonNull(levels, "levels");
