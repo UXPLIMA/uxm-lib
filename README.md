@@ -155,9 +155,9 @@ each module under the group `com.github.UXPLIMA.uxm-lib` with the git tag as the
 > There is no `com.github.UXPLIMA:uxm-lib` artifact: the group carries the repository name after a
 > dot, and the coordinate always ends in a module.
 
-> **The repository used to be called `uxmLib`.** Builds that ask for the old group
-> `com.github.UXPLIMA.uxmLib` still resolve: GitHub redirects the old repository path, JitPack follows
-> it, and every version built before the rename stays served from its cache. New builds should use
+> **The repository used to be called `uxmLib`.** A build that still asks for the group ending in
+> that old name resolves: GitHub redirects the old repository path, JitPack follows it, and every
+> version built before the rename stays served from its cache. New builds should use
 > `com.github.UXPLIMA.uxm-lib`. The old group works, but it rests on that redirect, and the redirect
 > would be lost the moment anything else claimed the name `uxmLib` under this account, so nothing
 > should ever be published under that name again.
