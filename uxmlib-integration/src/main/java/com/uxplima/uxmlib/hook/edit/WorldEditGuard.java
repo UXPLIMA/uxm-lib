@@ -144,7 +144,7 @@ public final class WorldEditGuard implements EditGuard {
      * no leaves everything inside the boundary written and everything outside it untouched, which is what
      * a player asked for and the only outcome they can reason about.
      */
-    private static final class Bounded extends AbstractDelegateExtent {
+    static final class Bounded extends AbstractDelegateExtent {
 
         private final EditBoundary.Edit edit;
         private final EditBoundary rule;
@@ -152,7 +152,7 @@ public final class WorldEditGuard implements EditGuard {
         /** Whether this edit has already been cut short, so the consumer is told once and not per block. */
         private final AtomicBoolean told = new AtomicBoolean();
 
-        private Bounded(Extent extent, EditBoundary.Edit edit, EditBoundary rule) {
+        Bounded(Extent extent, EditBoundary.Edit edit, EditBoundary rule) {
             super(extent);
             this.edit = edit;
             this.rule = rule;
@@ -160,7 +160,8 @@ public final class WorldEditGuard implements EditGuard {
 
         @Override
         public <T extends BlockStateHolder<T>> boolean setBlock(BlockVector3 at, T block) throws WorldEditException {
-            if (refuses(at)) {
+            if (cutShort(rule.mayWrite(
+                    edit, at.x(), at.y(), at.z(), block.getBlockType().id()))) {
                 return false;
             }
             return super.setBlock(at, block);
@@ -170,26 +171,28 @@ public final class WorldEditGuard implements EditGuard {
         public boolean setBiome(BlockVector3 at, BiomeType biome) {
             // A biome is a change to the world at a position, so it is the same question. An edit that
             // could repaint the biome of the plot next door has left the boundary just as surely.
-            return !refuses(at) && super.setBiome(at, biome);
+            return !cutShort(rule.mayChange(edit, at.x(), at.y(), at.z())) && super.setBiome(at, biome);
         }
 
         @Override
         public @Nullable Entity createEntity(Location at, BaseEntity entity) {
-            if (refuses(BlockVector3.at(at.getX(), at.getY(), at.getZ()))) {
+            BlockVector3 block = BlockVector3.at(at.getX(), at.getY(), at.getZ());
+            if (cutShort(rule.mayCreate(
+                    edit, block.x(), block.y(), block.z(), entity.getType().id()))) {
                 return null;
             }
             return super.createEntity(at, entity);
         }
 
         /**
-         * Ask the rule, and tell the consumer the first time the answer is no.
+         * Take the rule's answer, and tell the consumer the first time it is no.
          *
-         * <p>The short accessors and not {@code getX}: those are deprecated for removal in the version
-         * this compiles against, and a call that the compiler says is going away is a call that goes away
-         * on somebody else's schedule.
+         * <p>The short accessors and not {@code getX} at every caller: those are deprecated for removal in
+         * the version this compiles against, and a call that the compiler says is going away is a call that
+         * goes away on somebody else's schedule.
          */
-        private boolean refuses(BlockVector3 at) {
-            if (rule.mayChange(edit, at.x(), at.y(), at.z())) {
+        private boolean cutShort(boolean allowed) {
+            if (allowed) {
                 return false;
             }
             if (told.compareAndSet(false, true)) {

@@ -63,6 +63,9 @@ dependencies {
     // (no plugin under MockBukkit -> empty) is asserted; production still treats both as compileOnly.
     testImplementation(libs.worldguard.bukkit) { withoutServerProvidedLibraries() }
     testImplementation(libs.towny)
+    // WorldEdit on the test runtime so the extent that guards an edit can be driven write by write with real
+    // block and entity types, which need no running editor to be built.
+    testImplementation(libs.worldedit.bukkit) { withoutServerProvidedLibraries() }
     // Lands and GriefPrevention on the test runtime so the ownership tests can stub a real Area and Claim and
     // prove that an owner is distinct from a merely trusted member. The other two stay compileOnly: their
     // absent-plugin path is what the provider tests assert, and an absent SDK is what that path needs.

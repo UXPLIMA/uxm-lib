@@ -41,6 +41,28 @@ public interface EditBoundary {
     boolean mayChange(Edit edit, int x, int y, int z);
 
     /**
+     * Whether this edit may write this block at these coordinates.
+     *
+     * <p>The block is the namespaced id the game writes, {@code minecraft:command_block}, so a rule compares it
+     * without holding an editor's type. A rule that knows only where can keep a player inside their own ground
+     * and cannot keep a command block out of it, and that is what this is for. Asked in place of
+     * {@link #mayChange} for every block, so a rule that keeps both answers both here.
+     */
+    default boolean mayWrite(Edit edit, int x, int y, int z, String block) {
+        return mayChange(edit, x, y, z);
+    }
+
+    /**
+     * Whether this edit may create this entity at these coordinates.
+     *
+     * <p>The entity is the namespaced id the game writes, {@code minecraft:command_block_minecart}. A paste
+     * carries entities as well as blocks, and a list of things a player may not place is a list of both.
+     */
+    default boolean mayCreate(Edit edit, int x, int y, int z, String entity) {
+        return mayChange(edit, x, y, z);
+    }
+
+    /**
      * Told once, the first time an edit is cut short.
      *
      * <p>Once per edit and not once per block, because an edit that crosses a boundary crosses it for
