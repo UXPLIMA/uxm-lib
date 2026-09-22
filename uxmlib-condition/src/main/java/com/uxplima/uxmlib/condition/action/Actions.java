@@ -92,8 +92,12 @@ public final class Actions {
         Objects.requireNonNull(spec, "spec");
         return asyncText(context -> context.player().ifPresent(player -> {
             BossBar bar = BossBar.bossBar(render(context, spec.textTemplate()), 1.0f, spec.colour(), spec.overlay());
-            player.showBossBar(bar);
+            // The hide is asked for before the bar is shown, and the order is the point. An unwired delay
+            // throws, and a throw after the bar is already on the player leaves it there until they log out.
+            // Asking first costs the same list and leaves the player's screen alone, which is the difference
+            // between a defect an operator can fix and one their players watch all evening.
             context.later(spec.duration(), () -> player.hideBossBar(bar));
+            player.showBossBar(bar);
         }));
     }
 
