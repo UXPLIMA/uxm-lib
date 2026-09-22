@@ -1,5 +1,6 @@
 package com.uxplima.uxmlib.menu;
 
+import java.util.Map;
 import java.util.Objects;
 
 import org.bukkit.entity.Player;
@@ -10,15 +11,22 @@ import net.kyori.adventure.sound.Sound;
 import com.uxplima.uxmlib.gui.style.SoundNames;
 import com.uxplima.uxmlib.menu.binding.MenuBindings;
 import com.uxplima.uxmlib.menu.runtime.MenuActionContext;
+import com.uxplima.uxmlib.menu.runtime.MenuContext;
 import com.uxplima.uxmlib.text.Text;
 import org.jspecify.annotations.NullMarked;
 
 /**
- * The five actions that mean the same thing in every menu of every plugin, registered on one call.
+ * The five actions and the one condition that mean the same thing in every menu of every plugin, registered on
+ * one call.
  *
  * <p>{@code close}, {@code open:<menu>}, {@code command:<line>}, {@code message:<line>} and
- * {@code sound:<name> <volume> <pitch>}. They are here so that a plugin which only wants a working menu file
- * does not write them again, and so that an operator who has written one menu can write any of them.
+ * {@code sound:<name> <volume> <pitch>}, and {@code perm:<node>}. They are here so that a plugin which only wants
+ * a working menu file does not write them again, and so that an operator who has written one menu can write any
+ * of them.
+ *
+ * <p>{@code perm} is here because the loader writes it. An item's {@code permission = "<node>"} becomes a
+ * {@code perm:<node>} view requirement, and until 0.111.0 no plugin but uxmEssentials answered it, so an item
+ * gated that way was hidden from every viewer: an unregistered condition fails closed.
  *
  * <p>These are mechanisms and not a look. Nothing here decides a colour, a word, or a layout: the file says
  * what to run and the plugin says what its own verbs mean. That is why the library may hold them.
@@ -40,7 +48,7 @@ public final class MenuBasics {
 
     /**
      * Register the four verbs that need nothing but the viewer: {@code close}, {@code command},
-     * {@code message} and {@code sound}.
+     * {@code message} and {@code sound}, and the {@code perm} condition.
      *
      * <p>{@code open} is not among them, because opening a menu needs the engine that holds the menus. A
      * plugin with more than one window uses {@link #register(MenuBindings, Menus)} instead.
@@ -51,6 +59,13 @@ public final class MenuBasics {
         bindings.action("command", ctx -> ctx.player().performCommand(ctx.arg()));
         bindings.action("message", ctx -> ctx.player().sendMessage(Text.mini(ctx.arg())));
         bindings.action("sound", MenuBasics::sound);
+        bindings.condition("perm", MenuBasics::holds);
+    }
+
+    /** Whether the viewer holds the node the line names. A blank node is held by nobody, operators included. */
+    private static boolean holds(MenuContext ctx, Map<String, String> args) {
+        String node = args.getOrDefault("value", "").strip();
+        return !node.isEmpty() && ctx.viewer().hasPermission(node);
     }
 
     /** The same four verbs, and {@code open:<menu>} on top of them. */

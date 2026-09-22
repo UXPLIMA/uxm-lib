@@ -10,6 +10,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.plugin.Plugin;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -19,6 +20,7 @@ import com.uxplima.uxmlib.gui.GuiText;
 import com.uxplima.uxmlib.menu.binding.MenuBindings;
 import com.uxplima.uxmlib.menu.render.ItemRenderer;
 import com.uxplima.uxmlib.menu.render.MenuRenderer;
+import com.uxplima.uxmlib.menu.runtime.MenuContext;
 import com.uxplima.uxmlib.menu.runtime.MenuHolder;
 import com.uxplima.uxmlib.menu.spec.MenuSpecLoader;
 import com.uxplima.uxmlib.menu.spec.Ref;
@@ -76,10 +78,12 @@ class MenuBasicsTest {
 
     private Echo echo;
 
+    private Plugin plugin;
+
     @BeforeEach
     void setUp() {
         MockBukkit.mock();
-        MockBukkit.createMockPlugin();
+        plugin = MockBukkit.createMockPlugin();
         viewer = MockBukkit.getMock().addPlayer();
         bindings = new MenuBindings();
         MenuRenderer renderer = new MenuRenderer(
@@ -224,5 +228,33 @@ class MenuBasicsTest {
         run("sound:NO_SUCH_SOUND_AT_ALL");
 
         assertThat(viewer.getHeardSounds()).isEmpty();
+    }
+
+    // -- perm ----------------------------------------------------------------------------------------------------
+
+    @Test
+    void thePermissionShorthandShowsAnItemOnlyToAViewerWhoHoldsTheNode() {
+        register("gated", "rows = 1\nitems { a { slot = 0, material = STONE, permission = \"uxmlib.test.see\" } }");
+
+        menus.open(viewer, "gated", null);
+        assertThat(viewer.getOpenInventory().getTopInventory().getItem(0))
+                .as("the file says this item is for the holders of one node, and this viewer holds nothing")
+                .isNull();
+
+        viewer.addAttachment(plugin, "uxmlib.test.see", true);
+        menus.open(viewer, "gated", null);
+        assertThat(viewer.getOpenInventory().getTopInventory().getItem(0))
+                .as("the loader turns permission into perm:<node>, and until 0.111.0 nothing answered perm, so the"
+                        + " item was hidden from every viewer in every plugin but uxmEssentials")
+                .isNotNull();
+    }
+
+    @Test
+    void aBlankNodeIsHeldByNobody() {
+        viewer.setOp(true);
+
+        assertThat(bindings.condition("perm").orElseThrow().test(MenuContext.of(viewer, null, 0), Map.of("value", " ")))
+                .as("an operator who wrote permission = \"\" gated the item on nothing, which is not everybody")
+                .isFalse();
     }
 }
