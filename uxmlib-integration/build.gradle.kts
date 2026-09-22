@@ -8,10 +8,16 @@ plugins {
 // and two strict pins that disagree make the classpath unresolvable rather than merely awkward. Nothing in
 // this module compiles against any of the three, and the server supplies all of them at runtime, so drop
 // them from WorldGuard's graph and let Paper pick the versions.
+//
+// Log4j is on the list for the same reason and it was added when the edit seam was written: WorldGuard
+// 7.0.13 and a current WorldEdit strictly pin different log4j boms, and a classpath holding both resolves
+// nothing at all. Paper ships log4j, nothing here compiles against it, and the two pins disagreeing is not
+// a question this module has any business answering.
 fun ExternalModuleDependency.withoutServerProvidedLibraries() {
     exclude(group = "com.google.guava")
     exclude(group = "com.google.code.gson")
     exclude(group = "it.unimi.dsi")
+    exclude(group = "org.apache.logging.log4j")
 }
 
 dependencies {
@@ -30,6 +36,10 @@ dependencies {
     compileOnly(libs.vaultunlocked.api)
     compileOnly(libs.placeholderapi)
     compileOnly(libs.worldguard.bukkit) { withoutServerProvidedLibraries() }
+    // The world editors. An edit does not go through a Bukkit event, so a consumer that wants to guard a
+    // boundary has to reach WorldEdit's own event bus, and this is the module that holds the type and the
+    // presence check together. FastAsyncWorldEdit answers the same API, so one coordinate covers both.
+    compileOnly(libs.worldedit.bukkit) { withoutServerProvidedLibraries() }
     compileOnly(libs.towny)
     // The four typed claim-plugin APIs the claim-lookup seam compiles against. Transitive-free on purpose:
     // each SDK only references org.bukkit.*, which paper-api already provides, and pulling each plugin's own
