@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
@@ -75,6 +76,7 @@ import com.uxplima.uxmlib.menu.spec.MenuItemSpec;
 import com.uxplima.uxmlib.menu.spec.MenuSpec;
 import com.uxplima.uxmlib.menu.spec.Ref;
 import com.uxplima.uxmlib.menu.spec.RefreshSpec;
+import com.uxplima.uxmlib.menu.spec.SpecRefs;
 import com.uxplima.uxmlib.scheduler.Scheduler;
 import org.jspecify.annotations.Nullable;
 
@@ -162,6 +164,14 @@ public final class Menus {
     private final ConfirmOpener confirmOpener = this::confirm;
 
     private final Map<String, MenuSpec> specs = new ConcurrentHashMap<>();
+
+    /**
+     * The specs whose ids have been read back against the registries, so it is said once and not once
+     * per open. Checked at the first open rather than at registration, because that is the only moment
+     * both halves exist: a plugin may register a spec before it registers the vocabulary the spec
+     * names, and a check at render would repeat several times a second.
+     */
+    private final Set<String> refsChecked = ConcurrentHashMap.newKeySet();
 
     public Menus(MenuRenderer renderer, Scheduler scheduler, ListSourceRegistry lists) {
         this(renderer, scheduler, lists, null);
@@ -402,6 +412,7 @@ public final class Menus {
         if (spec == null) {
             throw new IllegalArgumentException("no menu spec registered under id: " + specId);
         }
+        warnUnknownRefsOnce(specId, spec);
         int startPage = Math.max(0, page);
         Map<String, String> args = Map.copyOf(arguments);
         MenuContext ctx = MenuContext.of(viewer, subject, startPage, args)
@@ -1761,6 +1772,40 @@ public final class Menus {
                 continue;
             }
             handler.get().accept(new MenuActionContext(ctx, viewer, kind, args));
+        }
+    }
+
+    /**
+     * Read a menu's ids back against the registries, the first time it is opened, and say which of them
+     * nobody answers.
+     *
+     * <p>An action nobody registered is a button that does nothing and the click path says so; a
+     * condition nobody registered hides the tile it guards, which is the safe direction and the one no
+     * click can ever report. Both are a word an operator typed, so both are read here in one pass and
+     * named in one line per menu.
+     *
+     * <p>Once per spec, and at the first open rather than at registration: a plugin may register a spec
+     * before the vocabulary it names, and a check at render would repeat several times a second.
+     */
+    private void warnUnknownRefsOnce(String specId, MenuSpec spec) {
+        if (!refsChecked.add(specId)) {
+            return;
+        }
+        ActionRegistry actions = openActionRegistry;
+        ConditionRegistry conditions = openConditionRegistry;
+        if (actions != null) {
+            List<String> unknown = SpecRefs.unknownActions(spec, actions::has);
+            if (!unknown.isEmpty()) {
+                LOG.warning("menu " + specId + " names actions no plugin registered: " + unknown
+                        + ". A click on one of those tiles does nothing; check the spelling.");
+            }
+        }
+        if (conditions != null) {
+            List<String> unknown = SpecRefs.unknownConditions(spec, conditions::has);
+            if (!unknown.isEmpty()) {
+                LOG.warning("menu " + specId + " names conditions no plugin registered: " + unknown
+                        + ". A tile behind one of those is hidden from everybody; check the spelling.");
+            }
         }
     }
 
