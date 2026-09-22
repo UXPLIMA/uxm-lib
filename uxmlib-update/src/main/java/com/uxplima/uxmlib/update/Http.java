@@ -20,7 +20,7 @@ final class Http {
     private static final HttpClient CLIENT =
             HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
-    private static final String USER_AGENT = "uxmLib-UpdateChecker (+https://github.com/UXPLIMA/uxmLib)";
+    private static final String USER_AGENT = "uxmLib-UpdateChecker (+https://github.com/UXPLIMA/uxm-lib)";
 
     private Http() {}
 

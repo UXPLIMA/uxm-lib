@@ -32,6 +32,9 @@ class ActionModifiersTest {
         private final List<Duration> waits = new ArrayList<>();
         private boolean runsWaits = true;
 
+        /** What a placeholder resolves to, so a condition can be given something to read. */
+        private OperandResolver resolver = OperandResolver.identity();
+
         private ActionContext context() {
             Audience audience = new Audience() {
 
@@ -41,7 +44,7 @@ class ActionModifiersTest {
                             .serialize(message));
                 }
             };
-            return ActionContext.builder(OperandResolver.identity())
+            return ActionContext.builder(resolver)
                     .target(audience)
                     .broadcast(audience)
                     .later((delay, what) -> {
@@ -115,6 +118,34 @@ class ActionModifiersTest {
         Recording allowed = new Recording();
         ActionParser.parse("[message] {if=10 >= 1} yes").action().run(allowed.context());
         assertThat(allowed.said).containsExactly("yes");
+    }
+
+    /**
+     * The condition reads through the context's own resolver.
+     *
+     * <p>Every {@code if=} in the wild is written against a placeholder, {@code {if=%player_level% >= 10}},
+     * and the comparison was the only half under test: the literals {@code 1 >= 10} prove the operator and
+     * say nothing about whether the operand ever reaches a resolver. A context whose resolver did not
+     * reach the condition would compare the token against the number, find it is not a number, and refuse
+     * the action **in silence**. That is the worst failure this family has: the operator wrote the line,
+     * the log is clean, and the thing never happens.
+     *
+     * <p>No file this estate ships writes an {@code if=} at all, so nothing else would have found it.
+     */
+    @Test
+    @DisplayName("a condition reads its operands through the context's resolver")
+    void aconditionReadsThroughTheResolver() {
+        Recording allowed = new Recording();
+        allowed.resolver = (subject, template) -> template.replace("%level%", "20");
+        ActionParser.parse("[message] {if=%level% >= 10} yes").action().run(allowed.context());
+        assertThat(allowed.said)
+                .describedAs("the resolver turns the token into a number before the comparison reads it")
+                .containsExactly("yes");
+
+        Recording refused = new Recording();
+        refused.resolver = (subject, template) -> template.replace("%level%", "3");
+        ActionParser.parse("[message] {if=%level% >= 10} no").action().run(refused.context());
+        assertThat(refused.said).isEmpty();
     }
 
     @Test

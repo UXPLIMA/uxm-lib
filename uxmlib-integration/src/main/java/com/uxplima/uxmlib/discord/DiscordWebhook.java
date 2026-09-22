@@ -24,7 +24,7 @@ public final class DiscordWebhook {
             HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
 
     // Discord asks every client to identify itself; a generic JDK user-agent risks being throttled or blocked.
-    private static final String USER_AGENT = "uxmLib-DiscordWebhook (+https://github.com/UXPLIMA/uxmLib)";
+    private static final String USER_AGENT = "uxmLib-DiscordWebhook (+https://github.com/UXPLIMA/uxm-lib)";
 
     // Suppress every mention by default so a message body can never mass-ping @everyone/@here or a role.
     static final String ALLOWED_MENTIONS_NONE = "\"allowed_mentions\":{\"parse\":[]}";

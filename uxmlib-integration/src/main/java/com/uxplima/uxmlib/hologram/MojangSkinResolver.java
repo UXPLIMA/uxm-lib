@@ -165,7 +165,7 @@ public final class MojangSkinResolver {
     private static Function<URI, CompletableFuture<HttpStatusBody>> jdkTransport(HttpClient client) {
         return uri -> {
             HttpRequest request = HttpRequest.newBuilder(uri)
-                    .header("User-Agent", "uxmLib-MojangSkinResolver (+https://github.com/UXPLIMA/uxmLib)")
+                    .header("User-Agent", "uxmLib-MojangSkinResolver (+https://github.com/UXPLIMA/uxm-lib)")
                     .timeout(Duration.ofSeconds(15))
                     .GET()
                     .build();
