@@ -115,6 +115,18 @@ tasks.withType<Test>().configureEach {
         showCauses = true
         showStackTraces = true
     }
+    // A guard reads files the compiler never turns into this module's classes: other modules' sources,
+    // comments included, and the documents. Gradle reruns a test only when one of its inputs changes, so
+    // EveryLibraryKeyHasWordsTest in uxmlib-common, which reads uxmlib-gui and uxmlib-menu, stayed up to
+    // date through any change to either. Declared, it reruns. The same hole was found and closed in every
+    // plugin on 2026-09-22.
+    inputs.files(
+            rootProject.fileTree(rootProject.projectDir) {
+                include("**/src/main/java/**", "**/src/test/java/**", "docs/**", "gradle/libs.versions.toml")
+                exclude("**/build/**", ".gradle/**", "buildSrc/**")
+            })
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("guardedText")
 }
 
 // MockBukkit answers a method it has not implemented with UnimplementedOperationException, which extends
