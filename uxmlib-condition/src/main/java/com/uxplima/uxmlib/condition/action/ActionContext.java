@@ -154,7 +154,10 @@ public final class ActionContext {
 
         private final OperandResolver resolver;
         private Audience target = Audience.empty();
-        private Audience broadcast = Audience.empty();
+        // The third seam of the same shape, and the same answer. An audience with no members renders
+        // the line, takes it and drops it: uxmCrates announced its supply drop envoy to nobody for as
+        // long as that feature existed. Audience.empty() stays for a caller who means it.
+        private Audience broadcast = unwiredBroadcast();
         private @Nullable Player player;
         private CommandSink consoleSink = CommandSink.unwired("[console]", "consoleSink");
         private CommandSink playerSink = CommandSink.unwired("[player]", "playerSink");
@@ -165,6 +168,20 @@ public final class ActionContext {
                     + " and this ActionContext has no delay wired. Call ActionContext.Builder.later(...) with "
                     + "your Scheduler: [bossbar] needs it to take its bar down again.");
         };
+
+        /** The default: an audience that throws and names the seam, the way the other two do. */
+        private static Audience unwiredBroadcast() {
+            return new Audience() {
+
+                @Override
+                public void sendMessage(net.kyori.adventure.text.Component message) {
+                    throw new IllegalStateException("an action asked to broadcast and this ActionContext"
+                            + " has no broadcast audience wired. Call ActionContext.Builder.broadcast(...)"
+                            + " with the audience it should reach, or Audience.empty() if nobody is what"
+                            + " you meant.");
+                }
+            };
+        }
 
         private Builder(OperandResolver resolver) {
             this.resolver = Objects.requireNonNull(resolver, "resolver");
