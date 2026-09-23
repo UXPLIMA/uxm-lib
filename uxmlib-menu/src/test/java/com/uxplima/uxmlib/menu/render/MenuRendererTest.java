@@ -243,6 +243,25 @@ class MenuRendererTest {
         assertThat(materialAt(inv, 17)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
     }
 
+    /** A jump is drawn when the page it names exists, and not when it does not. */
+    @Test
+    void aJumpIsDrawnOnlyWhenItsPageExists() {
+        Inventory inv = inv(18);
+        MenuSpec spec = spec("""
+                rows = 2
+                items {
+                  grid { slots = [0, 1], list { source = warps, template { material = PAPER } } }
+                  two { slot = 12, type = jump, to-page = 2, material = MAP, name = "two" }
+                  five { slot = 13, type = jump, to-page = 5, material = MAP, name = "five" }
+                }
+                """);
+
+        populate(inv, spec, Map.of("warps", List.of("a", "b", "c")));
+
+        assertThat(materialAt(inv, 12)).isEqualTo(Material.MAP);
+        assertThat(materialAt(inv, 13)).isNull();
+    }
+
     /** A window with no list of its own may page something the engine does not count, so its arrows stay. */
     @Test
     void aWindowWithNoListKeepsItsArrows() {

@@ -650,7 +650,8 @@ items {
     }
   }
 
-  next { slot = 53, material = ARROW, type = next, priority = 10 }
+  next  { slot = 53, material = ARROW, type = next, priority = 10 }
+  first { slot = 45, material = MAP, type = jump, to-page = 1 }
 }
 
 bedrock {
@@ -668,7 +669,9 @@ What the engine adds over a plain layout reader:
   on the list item gates the whole list. A refused row is dropped rather than left as a hole, so the rows
   that remain close up and the page count follows them, and the Bedrock form reads the same two gates. An
   entry that implements `PageBreak` ends the page it meets rather than taking a slot on it, which is how a
-  list of runs that belong together is drawn one run to a page.
+  list of runs that belong together is drawn one run to a page. A `next` or `previous` arrow, and a `jump`
+  to the page its `to-page` names (counted from one), is drawn only when there is a page to go to, so the
+  one page of a short list shows no arrows and whatever the file layered under them shows instead.
 - **An expression language.** Any rendered line may carry a `{math: ...}` block, evaluated after the
   placeholders in it are substituted: `{math: %price% * %amount%}`, `{math: min(%stock%, 45)}`. Seven
   functions are callable and nothing else (`min`, `max`, `abs`, `floor`, `ceil`, `round`, `sqrt`), and a

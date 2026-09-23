@@ -1186,7 +1186,7 @@ public final class MenuListener implements Listener {
         ItemType type = rs.item().type();
         if (type == ItemType.NEXT || type == ItemType.PREVIOUS || type == ItemType.JUMP) {
             feedback.page(holder, rs.item().click().actionsFor(kindOf(click)));
-            navigate(holder, type);
+            navigate(holder, rs.item());
             return;
         }
         if (throttled(holder)) {
@@ -1742,13 +1742,17 @@ public final class MenuListener implements Listener {
         repaint(holder);
     }
 
-    /** Re-render the same holder one page over (next/previous), clamped at zero; jump is a v1 no-op target. */
-    private void navigate(MenuHolder holder, ItemType type) {
+    /**
+     * Re-render the same holder on the page an arrow or a jump points at: one over for an arrow, clamped at zero, and
+     * the page a jump names, which it counts from one as the page indicator does.
+     */
+    private void navigate(MenuHolder holder, MenuItemSpec item) {
         int page = holder.ctx().page();
         int newPage =
-                switch (type) {
+                switch (item.type()) {
                     case NEXT -> page + 1;
                     case PREVIOUS -> Math.max(0, page - 1);
+                    case JUMP -> Math.max(0, item.toPage() - 1);
                     default -> page;
                 };
         scheduler.entity(holder.ctx().viewer(), () -> repaginate(holder, newPage));

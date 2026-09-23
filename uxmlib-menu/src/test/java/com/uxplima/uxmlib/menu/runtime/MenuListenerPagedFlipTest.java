@@ -574,6 +574,48 @@ class MenuListenerPagedFlipTest {
         assertThat(asked).isEmpty();
     }
 
+    // -- the jump ---------------------------------------------------------------------------------------------
+
+    /** A jump asks the source for the page it names, one-based as the indicator counts, and lands it. */
+    @Test
+    void aJumpAsksTheSourceForThePageItNames() {
+        registerCorpusSource();
+        menus.registerSpec("menu", new MenuSpecLoader().parse("""
+                rows = 3
+                items {
+                  row { slots = [0, 1], list { source = warps, template { material = PAPER, name = "warp" } } }
+                  last { slot = 4, material = PAPER, name = "three", type = jump, to-page = 3 }
+                }
+                """));
+        menus.open(viewer, "menu", null);
+        scheduler.drain();
+        asked.clear();
+
+        click(4);
+        scheduler.drain();
+
+        assertThat(asked).extracting(PageRequest::page).containsExactly(2);
+        assertThat(holder().ctx().page()).isEqualTo(2);
+        assertThat(rowsOnScreen()).containsExactly("e");
+    }
+
+    /** A jump in a window with no list still moves the page the window renders with, the way an arrow does. */
+    @Test
+    void aJumpInAWindowWithNoListMovesItsPage() {
+        menus.registerSpec("menu", new MenuSpecLoader().parse("""
+                rows = 3
+                items {
+                  second { slot = 4, material = PAPER, name = "two", type = jump, to-page = 2 }
+                }
+                """));
+        menus.open(viewer, "menu", null);
+        scheduler.drain();
+
+        click(4);
+
+        assertThat(holder().ctx().page()).isEqualTo(1);
+    }
+
     /**
      * The page that lands is written into the list's view, not only into the context. The view is what the renderer
      * reads to size a page indicator, so a view left on the old page draws "Page 1" over the second page of rows.

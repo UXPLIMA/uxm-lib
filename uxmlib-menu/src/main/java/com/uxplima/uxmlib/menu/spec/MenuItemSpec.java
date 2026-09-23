@@ -20,6 +20,10 @@ import java.util.Optional;
  * viewer holds a matching item on their cursor runs its own actions instead of the ordinary click, and optionally
  * consumes the item. It is empty for an ordinary item, which is the common case, so the delegating constructors
  * default it to {@link Optional#empty()} and every existing call site keeps compiling unchanged.
+ *
+ * <p>The {@code toPage} component is the page a {@link ItemType#JUMP} goes to, one-based as the page indicator counts
+ * it, and zero for every other item. The loader refuses a jump without one and a page on anything else, so a jump is
+ * never drawn with nowhere to take the player.
  */
 public record MenuItemSpec(
         SlotSet slots,
@@ -34,7 +38,8 @@ public record MenuItemSpec(
         boolean update,
         Optional<ListSpec> list,
         ItemType type,
-        Optional<ItemDragSpec> itemDrag) {
+        Optional<ItemDragSpec> itemDrag,
+        int toPage) {
 
     public MenuItemSpec {
         Objects.requireNonNull(slots, "slots");
@@ -48,6 +53,30 @@ public record MenuItemSpec(
         Objects.requireNonNull(list, "list");
         Objects.requireNonNull(type, "type");
         Objects.requireNonNull(itemDrag, "itemDrag");
+        if (toPage < 0) {
+            throw new IllegalArgumentException("a page to jump to counts from one, got: " + toPage);
+        }
+    }
+
+    /**
+     * The thirteen-argument form, with no page to jump to, retained so every call site from before a jump named its
+     * page keeps compiling unchanged.
+     */
+    public MenuItemSpec(
+            SlotSet slots,
+            int priority,
+            String material,
+            String name,
+            List<String> lore,
+            ItemDecor decor,
+            LoreMode loreMode,
+            RequirementSpec view,
+            ClickSpec click,
+            boolean update,
+            Optional<ListSpec> list,
+            ItemType type,
+            Optional<ItemDragSpec> itemDrag) {
+        this(slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag, 0);
     }
 
     /**
@@ -147,60 +176,77 @@ public record MenuItemSpec(
     /** A copy occupying {@code slots}, every other field unchanged: the canonical way to relocate an item. */
     public MenuItemSpec withSlots(SlotSet slots) {
         return new MenuItemSpec(
-                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag);
+                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag,
+                toPage);
     }
 
     /** A copy with a new contention {@code priority}, every other field unchanged. */
     public MenuItemSpec withPriority(int priority) {
         return new MenuItemSpec(
-                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag);
+                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag,
+                toPage);
     }
 
     /** A copy with a new raw {@code material} token ({@code STONE}, {@code head:…}, {@code b64:…}), every other field kept. */
     public MenuItemSpec withMaterial(String material) {
         return new MenuItemSpec(
-                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag);
+                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag,
+                toPage);
     }
 
     /** A copy with a new display {@code name} (a MiniMessage/legacy line, or blank to reset), every other field kept. */
     public MenuItemSpec withName(String name) {
         return new MenuItemSpec(
-                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag);
+                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag,
+                toPage);
     }
 
     /** A copy carrying a new {@code lore} line list, every other field unchanged. */
     public MenuItemSpec withLore(List<String> lore) {
         return new MenuItemSpec(
-                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag);
+                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag,
+                toPage);
     }
 
     /** A copy carrying a new {@code decor} block (amount / model-data / glow / flags / rich meta), every other field kept. */
     public MenuItemSpec withDecor(ItemDecor decor) {
         return new MenuItemSpec(
-                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag);
+                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag,
+                toPage);
     }
 
     /** A copy with a new {@code loreMode} (replace / append / prepend), every other field unchanged. */
     public MenuItemSpec withLoreMode(LoreMode loreMode) {
         return new MenuItemSpec(
-                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag);
+                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag,
+                toPage);
+    }
+
+    /** A copy that jumps to {@code toPage}, one-based, every other field unchanged. */
+    public MenuItemSpec withToPage(int toPage) {
+        return new MenuItemSpec(
+                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag,
+                toPage);
     }
 
     /** A copy with a new pagination {@code type} (none / next / previous / jump), every other field unchanged. */
     public MenuItemSpec withType(ItemType type) {
         return new MenuItemSpec(
-                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag);
+                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag,
+                toPage);
     }
 
     /** A copy carrying a new {@code view} visibility gate (the requirement/action editor rebuilds it), every other field kept. */
     public MenuItemSpec withView(RequirementSpec view) {
         return new MenuItemSpec(
-                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag);
+                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag,
+                toPage);
     }
 
     /** A copy carrying a new {@code click} handling block (the per-gesture action editor rebuilds it), every other field kept. */
     public MenuItemSpec withClick(ClickSpec click) {
         return new MenuItemSpec(
-                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag);
+                slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag,
+                toPage);
     }
 }

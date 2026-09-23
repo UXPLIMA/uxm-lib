@@ -155,9 +155,11 @@ class MenuSpecWriterTest {
 
     @Test
     void roundTripsEveryItemType() {
-        for (String token : List.of("none", "next", "previous", "jump")) {
+        for (String token : List.of("none", "next", "previous")) {
             assertRoundTrips("rows = 1\nitems { a { slot = 0, material = STONE, type = " + token + " } }");
         }
+        // A jump carries the page it goes to, and the page comes back with it.
+        assertRoundTrips("rows = 1\nitems { a { slot = 0, material = STONE, type = jump, to-page = 4 } }");
     }
 
     @Test

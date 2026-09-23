@@ -453,6 +453,7 @@ public final class MenuSpecLoader {
             @Nullable List<Integer> slotOverride) {
         ConfigurationNode item = resolvePattern(node, patterns);
         SlotSet slots = slotOverride != null ? new SlotSet(slotOverride) : SlotSet.parse(slotTokens(item), slotCeiling);
+        ItemType type = itemType(item.node("type"));
         return new MenuItemSpec(
                 slots,
                 item.node("priority").getInt(0),
@@ -465,8 +466,29 @@ public final class MenuSpecLoader {
                 parseClick(item.node("click")),
                 item.node("update").getBoolean(false),
                 parseList(item.node("list"), slotCeiling, patterns),
-                itemType(item.node("type")),
-                parseItemDrag(item.node("item-drag")));
+                type,
+                parseItemDrag(item.node("item-drag")),
+                toPage(item.node("to-page"), type));
+    }
+
+    /**
+     * The page a jump goes to, one-based as the page indicator counts it. A jump must name a page it can reach, and
+     * any other item must name none: a jump with no page had nowhere to take the player, and a page on an arrow would
+     * be read by nothing.
+     */
+    private static int toPage(ConfigurationNode node, ItemType type) {
+        if (type != ItemType.JUMP) {
+            if (!node.virtual()) {
+                throw new IllegalArgumentException("to-page is read only on an item of type jump, and this one is "
+                        + type.name().toLowerCase(java.util.Locale.ROOT));
+            }
+            return 0;
+        }
+        int page = node.getInt(0);
+        if (page < 1) {
+            throw new IllegalArgumentException("a jump needs to-page, the page it goes to, counted from one");
+        }
+        return page;
     }
 
     /**

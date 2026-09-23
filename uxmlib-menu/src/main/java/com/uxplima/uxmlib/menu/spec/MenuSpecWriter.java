@@ -222,6 +222,9 @@ public final class MenuSpecWriter {
         if (item.type() != ItemType.NONE) {
             node.node("type").set(token(item.type().name()));
         }
+        if (item.type() == ItemType.JUMP) {
+            node.node("to-page").set(item.toPage());
+        }
         setIfTrue(node.node("update"), item.update());
         writeDecor(node.node("decor"), item.decor());
         writeView(node, item.view());

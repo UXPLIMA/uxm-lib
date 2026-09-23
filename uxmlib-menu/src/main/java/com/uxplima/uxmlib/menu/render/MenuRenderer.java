@@ -490,8 +490,8 @@ public final class MenuRenderer {
     }
 
     /**
-     * Whether a page arrow has a page to turn to, so an arrow that has none is not drawn and whatever the file layered
-     * under it shows. Only a window with a paged list is asked: its page count is the list's, and the arrows turn that
+     * Whether a page arrow has a page to turn to, and a jump a page to land on, so one that has none is not drawn and
+     * whatever the file layered under it shows. Only a window with a paged list is asked: its page count is the list's, and the arrows turn that
      * list. A window with no list may page something the engine does not count, so its arrows are always drawn. Every
      * item that is not an arrow passes.
      */
@@ -502,6 +502,7 @@ public final class MenuRenderer {
         return switch (item.type()) {
             case NEXT -> ctx.page() + 1 < ctx.pageCount();
             case PREVIOUS -> ctx.page() > 0;
+            case JUMP -> item.toPage() <= ctx.pageCount();
             default -> true;
         };
     }

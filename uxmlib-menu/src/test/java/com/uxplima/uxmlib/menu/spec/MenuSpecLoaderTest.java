@@ -1366,4 +1366,41 @@ class MenuSpecLoaderTest {
             log.removeHandler(listening);
         }
     }
+
+    /**
+     * A jump names the page it goes to, one-based, as the page indicator counts. It was read as a jump and then did
+     * nothing: the engine had nowhere to take it, and it swallowed the tile's own click on the way.
+     */
+    @Test
+    void aJumpNamesThePageItGoesTo() {
+        MenuItemSpec jump = java.util.Objects.requireNonNull(new MenuSpecLoader()
+                .parse("rows = 1\nitems { three { slot = 0, material = PAPER, type = jump, to-page = 3 } }")
+                .items()
+                .get("three"));
+
+        assertThat(jump.type()).isEqualTo(ItemType.JUMP);
+        assertThat(jump.toPage()).isEqualTo(3);
+    }
+
+    /** A jump that names no page, or no page a player could reach, is refused where it is written. */
+    @Test
+    void aJumpWithNoPageIsRefused() {
+        assertThatThrownBy(() -> new MenuSpecLoader()
+                        .parse("rows = 1\nitems { lost { slot = 0, material = PAPER, type = jump } }"))
+                .isInstanceOf(MenuSpecException.class)
+                .hasMessageContaining("to-page");
+        assertThatThrownBy(() -> new MenuSpecLoader()
+                        .parse("rows = 1\nitems { lost { slot = 0, material = PAPER, type = jump, to-page = 0 } }"))
+                .isInstanceOf(MenuSpecException.class)
+                .hasMessageContaining("to-page");
+    }
+
+    /** A page named on an item that is not a jump would be read by nothing, so it is refused too. */
+    @Test
+    void aPageOnAnItemThatIsNotAJumpIsRefused() {
+        assertThatThrownBy(() -> new MenuSpecLoader()
+                        .parse("rows = 1\nitems { next { slot = 0, material = ARROW, type = next, to-page = 2 } }"))
+                .isInstanceOf(MenuSpecException.class)
+                .hasMessageContaining("to-page");
+    }
 }
