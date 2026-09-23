@@ -88,7 +88,11 @@ public final class ConditionList {
                 .playerSink(request.playerSink())
                 .wallet(request.wallet())
                 .itemStore(request.itemStore());
-        request.player().ifPresent(builder::player);
+        // The player the conditions were about is who a [message], a [title] or a [sound] of the list speaks to.
+        request.player().ifPresent(player -> builder.player(player).target(player));
+        request.later().ifPresent(builder::later);
+        request.broadcast().ifPresent(builder::broadcast);
+        request.words().ifPresent(builder::words);
         return builder.build();
     }
 

@@ -1,12 +1,16 @@
 package com.uxplima.uxmlib.condition;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import org.bukkit.entity.Player;
 
+import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 
 import com.uxplima.uxmlib.condition.action.CommandSink;
@@ -43,6 +47,9 @@ public final class ConditionRequest {
     private final List<Component> errors;
     private final CommandSink consoleSink;
     private final CommandSink playerSink;
+    private final @Nullable BiConsumer<Duration, Runnable> later;
+    private final @Nullable Audience broadcast;
+    private final @Nullable Function<String, @Nullable String> words;
     private boolean cancelled;
 
     private ConditionRequest(Builder builder) {
@@ -54,6 +61,9 @@ public final class ConditionRequest {
         this.errors = builder.errors;
         this.consoleSink = builder.consoleSink;
         this.playerSink = builder.playerSink;
+        this.later = builder.later;
+        this.broadcast = builder.broadcast;
+        this.words = builder.words;
     }
 
     /** Start a request builder with the resolver seam every placeholder condition needs. */
@@ -102,6 +112,24 @@ public final class ConditionRequest {
         return playerSink;
     }
 
+    /**
+     * How a {@link FailurePolicy#RUN_COMMANDS} entry runs something later, a boss bar coming down; empty when the
+     * caller wired none, and then such a line says so.
+     */
+    public Optional<BiConsumer<Duration, Runnable>> later() {
+        return Optional.ofNullable(later);
+    }
+
+    /** Who a {@code [broadcast]} in a failure list reaches; empty when the caller wired nobody. */
+    public Optional<Audience> broadcast() {
+        return Optional.ofNullable(broadcast);
+    }
+
+    /** The words a text part written {@code @key} is read from; empty when the caller wired none. */
+    public Optional<Function<String, @Nullable String>> words() {
+        return Optional.ofNullable(words);
+    }
+
     /** The live, mutable error sink. A condition adds its failure message here. */
     public List<Component> errors() {
         return errors;
@@ -134,6 +162,9 @@ public final class ConditionRequest {
         private @Nullable Object actor;
         private CommandSink consoleSink = CommandSink.noop();
         private CommandSink playerSink = CommandSink.noop();
+        private @Nullable BiConsumer<Duration, Runnable> later;
+        private @Nullable Audience broadcast;
+        private @Nullable Function<String, @Nullable String> words;
 
         private Builder(OperandResolver resolver) {
             this.resolver = Objects.requireNonNull(resolver, "resolver");
@@ -172,6 +203,24 @@ public final class ConditionRequest {
         /** Set the player command sink a {@link FailurePolicy#RUN_COMMANDS} entry dispatches through. */
         public Builder playerSink(CommandSink playerSink) {
             this.playerSink = Objects.requireNonNull(playerSink, "playerSink");
+            return this;
+        }
+
+        /** Set how a failure list runs something later, which a {@code [bossbar]} needs to come down. */
+        public Builder later(BiConsumer<Duration, Runnable> later) {
+            this.later = Objects.requireNonNull(later, "later");
+            return this;
+        }
+
+        /** Set who a {@code [broadcast]} in a failure list reaches. */
+        public Builder broadcast(Audience broadcast) {
+            this.broadcast = Objects.requireNonNull(broadcast, "broadcast");
+            return this;
+        }
+
+        /** Set the words a text part of a failure list written {@code @key} is read from. */
+        public Builder words(Function<String, @Nullable String> words) {
+            this.words = Objects.requireNonNull(words, "words");
             return this;
         }
 
