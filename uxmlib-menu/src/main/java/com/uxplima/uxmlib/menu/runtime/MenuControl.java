@@ -68,4 +68,13 @@ public interface MenuControl {
      * menu does not carry, or an engine wired without a text prompt, is a logged no-op.
      */
     void searchList(String listId, String key);
+
+    /**
+     * The same search, with the words the prompt shows: a {@code @catalogue.key} resolved in the viewer's language,
+     * or written words. Without them a chat prompt read only its cancel hint and an anvil opened untitled. An
+     * implementation that shows no words falls back to the search without them.
+     */
+    default void searchList(String listId, String key, String prompt) {
+        searchList(listId, key);
+    }
 }

@@ -7,7 +7,7 @@ import java.util.Optional;
 /**
  * The grammar of the three list-control action refs a browse menu's bottom bar drives its paged list with:
  * {@code list-sort:<listId>[:direction]}, {@code list-filter:<listId>:<key>=<value>} and
- * {@code list-search:<listId>:<key>}. Each names the source id of the paged list it targets (a menu may hold more
+ * {@code list-search:<listId>:<key>[:@<prompt key>]}. Each names the source id of the paged list it targets (a menu may hold more
  * than one), so the id is always explicit rather than inferred.
  *
  * <p>Pure and Bukkit-free, so it lives beside the rest of the spec grammar ({@link Ref#parse}) and is shared by the
@@ -31,6 +31,9 @@ public final class ListControlSyntax {
 
     /** The action id a spec writes to prompt for a line of text and store it as a paged list's filter. */
     public static final String SEARCH_ACTION = "list-search";
+
+    /** What opens the optional last segment of a search, the catalogue key of the words its prompt shows. */
+    private static final String PROMPT_MARK = "@";
 
     private ListControlSyntax() {}
 
@@ -69,11 +72,20 @@ public final class ListControlSyntax {
         }
     }
 
-    /** A parsed {@code list-search} ref: the target list and the filter key the typed line is stored under. */
-    public record SearchRef(String listId, String key) {
+    /**
+     * A parsed {@code list-search} ref: the target list, the filter key the typed line is stored under, and the words
+     * the prompt shows, a {@code @catalogue.key} or written words, empty when the ref names none.
+     */
+    public record SearchRef(String listId, String key, String prompt) {
         public SearchRef {
             Objects.requireNonNull(listId, "listId");
             Objects.requireNonNull(key, "key");
+            Objects.requireNonNull(prompt, "prompt");
+        }
+
+        /** A search with no words for its prompt. */
+        public SearchRef(String listId, String key) {
+            this(listId, key, "");
         }
     }
 
@@ -132,6 +144,12 @@ public final class ListControlSyntax {
     public static Optional<SearchRef> parseSearch(String value) {
         Objects.requireNonNull(value, "value");
         String trimmed = value.strip();
+        String prompt = "";
+        int promptColon = trimmed.lastIndexOf(':');
+        if (promptColon >= 0 && trimmed.startsWith(PROMPT_MARK, promptColon + 1)) {
+            prompt = trimmed.substring(promptColon + 1);
+            trimmed = trimmed.substring(0, promptColon);
+        }
         int lastColon = trimmed.lastIndexOf(':');
         if (lastColon < 0) {
             return Optional.empty();
@@ -141,6 +159,6 @@ public final class ListControlSyntax {
         if (listId.isBlank() || key.isBlank()) {
             return Optional.empty();
         }
-        return Optional.of(new SearchRef(listId, key));
+        return Optional.of(new SearchRef(listId, key, prompt));
     }
 }

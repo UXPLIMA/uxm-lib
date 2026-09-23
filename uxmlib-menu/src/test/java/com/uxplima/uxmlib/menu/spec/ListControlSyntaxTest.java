@@ -90,4 +90,23 @@ class ListControlSyntaxTest {
         assertThat(ListControlSyntax.parseSearch("pw:browse:")).isEmpty();
         assertThat(ListControlSyntax.parseSearch(":category")).isEmpty();
     }
+
+    /**
+     * A search may name the words its prompt shows, as a catalogue key after the filter key. Without them the prompt
+     * carried nothing: a chat prompt read only its cancel hint and an anvil opened untitled.
+     */
+    @Test
+    void aSearchMayNameItsPromptAfterTheKey() {
+        assertThat(ListControlSyntax.parseSearch("pw:browse:category:@menu.gallery.search.prompt"))
+                .get()
+                .satisfies(ref -> {
+                    assertThat(ref.listId()).isEqualTo("pw:browse");
+                    assertThat(ref.key()).isEqualTo("category");
+                    assertThat(ref.prompt()).isEqualTo("@menu.gallery.search.prompt");
+                });
+        assertThat(ListControlSyntax.parseSearch("pw:browse:category"))
+                .get()
+                .satisfies(ref -> assertThat(ref.prompt()).isEmpty());
+        assertThat(ListControlSyntax.parseSearch("browse:@menu.prompt")).isEmpty();
+    }
 }

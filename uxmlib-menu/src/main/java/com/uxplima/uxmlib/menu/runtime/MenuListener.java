@@ -1638,7 +1638,15 @@ public final class MenuListener implements Listener {
         public void searchList(String listId, String key) {
             Objects.requireNonNull(listId, "listId");
             Objects.requireNonNull(key, "key");
-            scheduler.entity(holder.ctx().viewer(), () -> beginListSearch(holder, listId, key));
+            searchList(listId, key, "");
+        }
+
+        @Override
+        public void searchList(String listId, String key, String prompt) {
+            Objects.requireNonNull(listId, "listId");
+            Objects.requireNonNull(key, "key");
+            Objects.requireNonNull(prompt, "prompt");
+            scheduler.entity(holder.ctx().viewer(), () -> beginListSearch(holder, listId, key, prompt));
         }
     }
 
@@ -1695,10 +1703,11 @@ public final class MenuListener implements Listener {
      * drives, and on submit store the typed line as the list's {@code key} filter through the shared {@link
      * #applyListControl} re-query; a cancel changes nothing. Runs on the viewer's entity thread, where the seam
      * delivers both callbacks. An engine wired without a prompt, or a list this menu does not carry, is a logged no-op.
-     * The prompt carries no label of its own (the operator's per-key input mode supplies the surface) so no player-
+     * The prompt shows the words the ref names, resolved like any line of the menu, and nothing when it names none;
+     * the operator's per-key input mode supplies the surface. Beyond those words no player-
      * facing text is produced here.
      */
-    private void beginListSearch(MenuHolder holder, String listId, String key) {
+    private void beginListSearch(MenuHolder holder, String listId, String key, String words) {
         if (textPrompt == null) {
             LOG.warning("event=list_search_unavailable menu=" + holder.specId() + " id=" + listId);
             return;
@@ -1711,10 +1720,12 @@ public final class MenuListener implements Listener {
         if (!live.isOnline()) {
             return;
         }
+        Component shown =
+                words.isBlank() ? Component.empty() : renderer.itemRenderer().title(words, holder.ctx());
         textPrompt.prompt(
                 live,
                 key,
-                Component.empty(),
+                shown,
                 null,
                 text -> applyListControl(holder, listId, state -> state.filter(key, text)),
                 () -> {});

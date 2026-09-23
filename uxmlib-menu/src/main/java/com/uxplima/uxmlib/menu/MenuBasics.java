@@ -84,7 +84,7 @@ public final class MenuBasics {
         bindings.defaultAction(
                 ListControlSyntax.SEARCH_ACTION,
                 ctx -> ListControlSyntax.parseSearch(ctx.arg())
-                        .ifPresent(ref -> ctx.control().searchList(ref.listId(), ref.key())));
+                        .ifPresent(ref -> ctx.control().searchList(ref.listId(), ref.key(), ref.prompt())));
         bindings.defaultCondition("has-next", (ctx, args) -> ctx.page() + 1 < ctx.pageCount());
         bindings.defaultCondition("has-previous", (ctx, args) -> ctx.page() > 0);
         bindings.defaultCondition("has-prev", (ctx, args) -> ctx.page() > 0);

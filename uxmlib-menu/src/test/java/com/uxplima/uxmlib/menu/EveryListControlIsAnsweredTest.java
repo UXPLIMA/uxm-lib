@@ -57,10 +57,15 @@ class EveryListControlIsAnsweredTest {
         fire("list-filter", "shelf:kind=tool", control);
         fire("list-search", "shelf:name", control);
         fire("list-sort", "pw:browse", control);
+        fire("list-search", "shelf:name:@menu.find", control);
 
         assertThat(seen)
                 .containsExactly(
-                        "sort shelf PREVIOUS", "filter shelf kind=tool", "search shelf name", "sort pw:browse NEXT");
+                        "sort shelf PREVIOUS",
+                        "filter shelf kind=tool",
+                        "search shelf name ",
+                        "sort pw:browse NEXT",
+                        "search shelf name @menu.find");
     }
 
     @Test
@@ -124,6 +129,11 @@ class EveryListControlIsAnsweredTest {
             @Override
             public void searchList(String listId, String key) {
                 seen.add("search " + listId + " " + key);
+            }
+
+            @Override
+            public void searchList(String listId, String key, String prompt) {
+                seen.add("search " + listId + " " + key + " " + prompt);
             }
         };
     }

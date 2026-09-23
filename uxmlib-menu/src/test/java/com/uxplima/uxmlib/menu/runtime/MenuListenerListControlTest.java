@@ -90,6 +90,8 @@ class MenuListenerListControlTest {
 
         private @Nullable String key;
 
+        private Component shown = Component.empty();
+
         private @Nullable Consumer<String> onSubmit;
 
         private @Nullable Runnable onCancel;
@@ -104,6 +106,7 @@ class MenuListenerListControlTest {
                 Runnable onCancel) {
             opened++;
             this.key = key;
+            this.shown = prompt;
             this.onSubmit = onSubmit;
             this.onCancel = onCancel;
         }
@@ -168,6 +171,7 @@ class MenuListenerListControlTest {
         actions.register("reset", ctx -> ctx.control().resetPagination());
         actions.register("elsewhere", ctx -> ctx.control().sortList("kits", SortDirection.NEXT));
         actions.register("search-elsewhere", ctx -> ctx.control().searchList("kits", "owner"));
+        actions.register("search-worded", ctx -> ctx.control().searchList("warps", "owner", "Type an owner"));
         actions.register("capture", ctx -> captured = ctx.control());
         prompt = new RecordingPrompt();
         MenuRenderer renderer = new MenuRenderer(
@@ -392,6 +396,20 @@ class MenuListenerListControlTest {
 
         assertThat(lastRequest().filters()).containsEntry("owner", "sirac");
         assertThat(lastRequest().page()).isZero();
+    }
+
+    /** A search that names its words shows them, so the viewer knows what the prompt is asking for. */
+    @Test
+    void aSearchShowsTheWordsItNames() {
+        registerCorpusSource();
+        open(SPEC.replace("[\"search\"]", "[\"search-worded\"]"));
+
+        clickSearch();
+
+        assertThat(prompt.opened).isEqualTo(1);
+        assertThat(net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+                        .serialize(prompt.shown))
+                .isEqualTo("Type an owner");
     }
 
     /** A viewer who changes their mind changes nothing: a cancelled search leaves the list as it was. */
