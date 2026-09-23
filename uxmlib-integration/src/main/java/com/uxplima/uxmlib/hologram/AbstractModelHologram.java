@@ -34,7 +34,14 @@ abstract class AbstractModelHologram<D extends Display> implements ModelHologram
             throw new IllegalArgumentException("interpolationTicks must be >= 0");
         }
         display.setTeleportDuration(interpolationTicks);
-        display.teleport(to);
+        // teleportAsync and never teleport: Folia refuses the in-place move for every entity, a display on its
+        // own region's thread included. On Paper the two do the same thing.
+        java.util.concurrent.CompletableFuture<Boolean> unused = display.teleportAsync(to)
+                .exceptionally(failure -> {
+                    System.getLogger(getClass().getName())
+                            .log(System.Logger.Level.WARNING, "A hologram could not be moved to " + to, failure);
+                    return false;
+                });
     }
 
     @Override

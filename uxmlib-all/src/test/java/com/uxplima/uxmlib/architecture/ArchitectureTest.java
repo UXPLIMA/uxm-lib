@@ -23,6 +23,23 @@ class ArchitectureTest {
             .resideInAnyPackage("org.bukkit.scheduler..")
             .because("scheduling goes through the uxmlib scheduler abstraction, never BukkitScheduler");
 
+    /**
+     * Folia-safety: nothing moves an entity in place. Folia refuses {@code Entity.teleport} for every entity, a
+     * display included and on its own region's thread, with "Must use teleportAsync while in region threading":
+     * proved on a Folia 26.2 server on 2026-09-23, where an armour stand and a text display both threw. The
+     * holograms moved themselves that way, so a hologram that moved broke on every Folia server.
+     */
+    @ArchTest
+    static final ArchRule noEntityIsTeleportedInPlace = noClasses()
+            .should()
+            .callMethodWhere(com.tngtech.archunit.core.domain.JavaCall.Predicates.target(
+                            com.tngtech.archunit.core.domain.properties.HasName.Predicates.name("teleport"))
+                    .and(com.tngtech.archunit.core.domain.JavaCall.Predicates.target(
+                            com.tngtech.archunit.core.domain.properties.HasOwner.Predicates.With.owner(
+                                    com.tngtech.archunit.core.domain.properties.HasName.Predicates.nameStartingWith(
+                                            "org.bukkit.entity.")))))
+            .because("Folia refuses Entity.teleport; an entity is moved with teleportAsync");
+
     /** Commands are Brigadier-only; the legacy command interfaces are forbidden. */
     @ArchTest
     static final ArchRule noLegacyCommandApi = noClasses()
