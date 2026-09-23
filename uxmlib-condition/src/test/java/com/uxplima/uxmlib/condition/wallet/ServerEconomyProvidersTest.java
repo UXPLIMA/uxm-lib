@@ -128,6 +128,36 @@ class ServerEconomyProvidersTest {
                 .isEmpty();
     }
 
+    /**
+     * Two generations of one plugin under one name. VaultUnlocked registers as Vault, so on a server with the
+     * original Vault the VaultUnlocked binding finds its plugin and not its class. On 2026-09-23 that wrote a
+     * warning and a whole stack trace, "The Vault economy is here but could not be reached", every time the
+     * doctor of uxmJobs, uxmCrates or uxmSkills was run, on a server where nothing was wrong.
+     */
+    @Test
+    @DisplayName(
+            "a plugin that is here without the class it names says nothing, because that is a server's normal state")
+    void apluginWithoutItsClassSaysNothing() {
+        Recording log = new Recording();
+        EconomyProviders quiet = new ServerEconomyProviders(log);
+
+        assertThat(quiet.provider(binding(Access.SERVICE, null, "com.example.money.NoSuchApi")))
+                .isEmpty();
+        assertThat(quiet.service("Money", "com.example.money.NoSuchApi")).isEmpty();
+
+        assertThat(log.warnings).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a class that is here and cannot be reached still warns, because that is a fault")
+    void aclassThatCannotBeReachedWarns() {
+        Recording log = new Recording();
+
+        new ServerEconomyProviders(log).provider(binding(Access.STATIC, "noSuchAccessor", SHAPES + "$Hidden"));
+
+        assertThat(log.warnings).hasSize(1);
+    }
+
     @Test
     @DisplayName("a service asked for by name answers only when its plugin is here")
     void aserviceAskedForByNameNeedsItsPlugin() {
@@ -175,6 +205,44 @@ class ServerEconomyProvidersTest {
         assertThat(arguments.of(Argument.PLAYER_NAME, absent))
                 .describedAs("a null name would reach the economy as a missing argument")
                 .isNotNull();
+    }
+
+    /** A logger that keeps what was said at warning level and above. */
+    private static final class Recording implements System.Logger {
+
+        private final java.util.List<String> warnings = new java.util.ArrayList<>();
+
+        @Override
+        public String getName() {
+            return "recording";
+        }
+
+        @Override
+        public boolean isLoggable(Level level) {
+            return true;
+        }
+
+        @Override
+        public void log(
+                Level level,
+                java.util.@Nullable ResourceBundle bundle,
+                @Nullable String msg,
+                @Nullable Throwable thrown) {
+            if (level.getSeverity() >= Level.WARNING.getSeverity()) {
+                warnings.add(String.valueOf(msg));
+            }
+        }
+
+        @Override
+        public void log(
+                Level level,
+                java.util.@Nullable ResourceBundle bundle,
+                @Nullable String format,
+                @Nullable Object... params) {
+            if (level.getSeverity() >= Level.WARNING.getSeverity()) {
+                warnings.add(String.valueOf(format));
+            }
+        }
     }
 
     /** One description of the economy this test registered, in the shape the reader reads. */

@@ -33,8 +33,12 @@ public final class ServerEconomyProviders implements EconomyProviders {
         if (!isPresent(binding.pluginName())) {
             return Optional.empty();
         }
+        Optional<Class<?>> found = classIfThere(binding.pluginName(), binding.providerClass());
+        if (found.isEmpty()) {
+            return Optional.empty();
+        }
         try {
-            Class<?> provider = classOf(binding.pluginName(), binding.providerClass());
+            Class<?> provider = found.get();
             return switch (binding.access()) {
                 case SERVICE -> service(provider);
                 case STATIC -> chain(provider, Objects.requireNonNull(binding.accessorName()));
@@ -60,9 +64,13 @@ public final class ServerEconomyProviders implements EconomyProviders {
         if (!isPresent(pluginName)) {
             return Optional.empty();
         }
+        Optional<Class<?>> found = classIfThere(pluginName, className);
+        if (found.isEmpty()) {
+            return Optional.empty();
+        }
         try {
-            return service(classOf(pluginName, className));
-        } catch (ReflectiveOperationException | RuntimeException | LinkageError unreachable) {
+            return service(found.get());
+        } catch (RuntimeException | LinkageError unreachable) {
             log.log(
                     System.Logger.Level.WARNING,
                     "The " + pluginName + " plugin is here but " + className + " could not be reached",
@@ -76,6 +84,35 @@ public final class ServerEconomyProviders implements EconomyProviders {
         Objects.requireNonNull(pluginName, "pluginName");
         Plugin found = Bukkit.getPluginManager().getPlugin(pluginName);
         return found != null && found.isEnabled();
+    }
+
+    /**
+     * The class a binding names, or nothing when the plugin under that name does not carry it.
+     *
+     * <p>That is a server's ordinary state and not a fault, so it is said at debug level alone. Two generations
+     * of one plugin can share a name: VaultUnlocked registers as Vault, so on a server with the original Vault
+     * the VaultUnlocked binding finds its plugin and not its class. Said as a warning with a stack trace, it
+     * filled the console every time a doctor asked which currencies answer.
+     *
+     * <p>A loader that fails to answer by throwing is read the same way, since it has not found the class
+     * either. A class that is found and cannot be linked is different: the plugin carries the API and it is
+     * broken, which an operator has to hear about.
+     */
+    private Optional<Class<?>> classIfThere(String pluginName, String className) {
+        try {
+            return Optional.of(classOf(pluginName, className));
+        } catch (ClassNotFoundException | RuntimeException otherGeneration) {
+            log.log(
+                    System.Logger.Level.DEBUG,
+                    "The " + pluginName + " plugin is here and carries no " + className + ": " + otherGeneration);
+            return Optional.empty();
+        } catch (LinkageError broken) {
+            log.log(
+                    System.Logger.Level.WARNING,
+                    "The " + pluginName + " plugin carries " + className + " and it could not be linked",
+                    broken);
+            return Optional.empty();
+        }
     }
 
     /**
