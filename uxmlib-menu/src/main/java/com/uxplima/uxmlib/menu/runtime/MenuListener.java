@@ -1670,11 +1670,19 @@ public final class MenuListener implements Listener {
         String sourceId = listSpec.source().id();
         PagedListView view = holder.ctx().pagedViews().get(sourceId);
         if (view == null) {
+            // A plain list, or one not drawn as paged: nothing to sort or filter at a source.
+            LOG.warning("event=list_control_not_paged menu=" + holder.specId() + " id=" + listId);
             return;
         }
         BiFunction<MenuContext, PageRequest, PagedResult<?>> source =
                 pagedLists.get(sourceId).orElse(null);
-        if (source == null || holder.pagedFlipInFlight()) {
+        if (source == null) {
+            // The menus hold the source and this listener does not: it was built without the paged registry.
+            LOG.warning("event=list_control_no_source menu=" + holder.specId() + " id=" + listId
+                    + " (the listener was built without the paged list sources)");
+            return;
+        }
+        if (holder.pagedFlipInFlight()) {
             return;
         }
         ListQueryState state = holder.queryState(sourceId, listSpec.sorts());

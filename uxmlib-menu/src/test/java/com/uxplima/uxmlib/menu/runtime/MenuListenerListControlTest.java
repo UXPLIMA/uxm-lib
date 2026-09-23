@@ -441,6 +441,43 @@ class MenuListenerListControlTest {
                 .anySatisfy(message -> assertThat(message).contains("list_search_unavailable"));
     }
 
+    /**
+     * A listener built without the paged sources the menus hold cannot sort, and it says so. The short constructor
+     * hands the listener an empty registry, and uxm-plots found its shop's tabs and its hall's order doing nothing,
+     * with nothing in the log: the click found no source and returned.
+     */
+    @Test
+    void aListenerWithoutThePagedSourcesLogsRatherThanSortingNothing() {
+        registerCorpusSource();
+        MenuRenderer renderer = new MenuRenderer(
+                new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()), new ConditionRegistry());
+        listener = new MenuListener(renderer, actions, new ConditionRegistry(), scheduler, plugin);
+        open();
+        int before = asked.size();
+
+        List<java.util.logging.LogRecord> logged = logsOf(this::clickSort);
+
+        assertThat(asked).hasSize(before);
+        assertThat(logged)
+                .as("a sort that can never run has to say why somewhere")
+                .extracting(java.util.logging.LogRecord::getMessage)
+                .anySatisfy(message -> assertThat(message).contains("list_control_no_source"));
+    }
+
+    /** A sort on a plain in-memory list cannot sort at a source, and it says so rather than doing nothing quietly. */
+    @Test
+    void aControlOnAPlainListSaysWhyItDidNothing() {
+        registerCorpusSource();
+        plain.register("warps", ctx -> CORPUS);
+        open();
+
+        List<java.util.logging.LogRecord> logged = logsOf(this::clickSort);
+
+        assertThat(logged)
+                .extracting(java.util.logging.LogRecord::getMessage)
+                .anySatisfy(message -> assertThat(message).contains("list_control_not_paged"));
+    }
+
     // -- what a control refuses to do --------------------------------------------------------------------------
 
     /** A control naming a list the menu does not carry is a no-op: an operator typo cannot crash a click. */
