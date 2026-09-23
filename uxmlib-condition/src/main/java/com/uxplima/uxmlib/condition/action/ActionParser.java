@@ -124,10 +124,14 @@ public final class ActionParser {
         List<String> head = List.of(payload.substring(0, pipe).strip().split("\\s+"));
         String text = payload.substring(pipe + 1).strip();
         Duration duration = seconds(head.get(0), payload);
+        if (head.size() > 3) {
+            throw new IllegalArgumentException(
+                    "[bossbar] is written '<seconds> [colour] [overlay] | <text>', got: " + payload);
+        }
         BossBar.Color colour =
-                head.size() > 1 ? named(BossBar.Color.values(), head.get(1), BossBar.Color.WHITE) : BossBar.Color.WHITE;
+                head.size() > 1 ? named(BossBar.Color.values(), head.get(1), "colour", payload) : BossBar.Color.WHITE;
         BossBar.Overlay overlay = head.size() > 2
-                ? named(BossBar.Overlay.values(), head.get(2), BossBar.Overlay.PROGRESS)
+                ? named(BossBar.Overlay.values(), head.get(2), "overlay", payload)
                 : BossBar.Overlay.PROGRESS;
         return new Actions.BossBarSpec(text, colour, overlay, duration);
     }
@@ -138,19 +142,24 @@ public final class ActionParser {
      */
     private static Actions.ParticleSpec parseParticle(String payload) {
         List<String> parts = List.of(payload.strip().split("\\s+"));
+        if (parts.size() > 4) {
+            throw new IllegalArgumentException(
+                    "a particle is a name, a count, a spread and data, and this has more: " + payload);
+        }
         int count = parts.size() > 1 ? (int) parseFloat(parts.get(1), "count", payload) : 12;
         double spread = parts.size() > 2 ? parseFloat(parts.get(2), "spread", payload) : 0.4;
         String data = parts.size() > 3 ? parts.get(3) : "";
         return new Actions.ParticleSpec(parts.get(0), count, spread, data);
     }
 
-    private static <E extends Enum<E>> E named(E[] values, String written, E fallback) {
+    // A name nobody knows is refused rather than read as the default: a bar written PURPLE_ISH was drawn white.
+    private static <E extends Enum<E>> E named(E[] values, String written, String field, String payload) {
         for (E value : values) {
             if (value.name().equalsIgnoreCase(written.strip())) {
                 return value;
             }
         }
-        return fallback;
+        throw new IllegalArgumentException("no " + field + " is named " + written.strip() + " in: " + payload);
     }
 
     private static boolean isNumber(String written) {
@@ -290,11 +299,10 @@ public final class ActionParser {
         try {
             parsed = Float.parseFloat(value);
         } catch (NumberFormatException notANumber) {
-            throw new IllegalArgumentException("sound " + field + " is not a number in: " + payload, notANumber);
+            throw new IllegalArgumentException(field + " is not a number in: " + payload, notANumber);
         }
         if (!(parsed >= 0.0f) || Float.isInfinite(parsed)) {
-            throw new IllegalArgumentException(
-                    "sound " + field + " must be a finite number of zero or more in: " + payload);
+            throw new IllegalArgumentException(field + " must be a finite number of zero or more in: " + payload);
         }
         return parsed;
     }
