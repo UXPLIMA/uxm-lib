@@ -29,6 +29,7 @@ public final class DatabaseBuilder {
     private long connectionTimeoutMs = 5_000L;
     private int busyTimeoutMs = DEFAULT_BUSY_TIMEOUT_MS;
     private JournalMode journalMode = JournalMode.WAL;
+    private Synchronous synchronous = Synchronous.NORMAL;
     private String poolName = "uxmlib-pool";
 
     DatabaseBuilder() {}
@@ -57,6 +58,20 @@ public final class DatabaseBuilder {
         public String pragmaValue() {
             return pragmaValue;
         }
+    }
+
+    /**
+     * The SQLite {@code synchronous} level a file database commits with. {@link #NORMAL} (the default) is fast and
+     * never corrupts a WAL file, but a crash of the operating system or a power cut can lose the last commits.
+     * {@link #FULL} syncs every commit to the disk, so a commit that returned survives either. {@link #EXTRA} also
+     * syncs the directory after a rollback journal is removed. {@link #OFF} leaves syncing to the operating system.
+     * Each maps to the literal accepted by {@code PRAGMA synchronous}.
+     */
+    public enum Synchronous {
+        OFF,
+        NORMAL,
+        FULL,
+        EXTRA
     }
 
     /** Use a SQLite database stored at {@code file}, creating it on first use. */
@@ -133,6 +148,15 @@ public final class DatabaseBuilder {
         return this;
     }
 
+    /**
+     * The SQLite {@code synchronous} level for a file database. Ignored by network backends. Defaults to
+     * {@link Synchronous#NORMAL}; a plugin whose data must survive a power cut asks for {@link Synchronous#FULL}.
+     */
+    public DatabaseBuilder synchronous(Synchronous level) {
+        this.synchronous = Objects.requireNonNull(level, "level");
+        return this;
+    }
+
     /** The Hikari pool name (shown in thread names and metrics). */
     public DatabaseBuilder poolName(String name) {
         this.poolName = Objects.requireNonNull(name, "name");
@@ -164,10 +188,11 @@ public final class DatabaseBuilder {
         }
         if (dialect == Dialect.SQLITE) {
             config.setMaximumPoolSize(SQLITE_POOL_SIZE);
-            // WAL + NORMAL sync is the standard durable-but-fast setup for an embedded single-writer file; the
-            // journal mode is configurable for the cases that want MEMORY/OFF speed over crash durability.
+            // WAL + NORMAL sync is the standard fast setup for an embedded single-writer file. Both are configurable:
+            // MEMORY/OFF journals trade crash safety for speed, and FULL sync keeps the last commits through a power
+            // cut.
             config.addDataSourceProperty("journal_mode", journalMode.pragmaValue());
-            config.addDataSourceProperty("synchronous", "NORMAL");
+            config.addDataSourceProperty("synchronous", synchronous.name());
             // Wait for the lock instead of failing instantly, smoothing SQLITE_BUSY under bursty writes.
             config.addDataSourceProperty("busy_timeout", Integer.toString(busyTimeoutMs));
         } else {

@@ -90,6 +90,38 @@ class DatabaseBuilderTest {
         }
     }
 
+    /**
+     * A file database commits with {@code synchronous = NORMAL} unless told otherwise, and a plugin that must keep
+     * every commit through a power cut asks for {@code FULL}. uxmSkyblock's strict durability profile refuses to start
+     * on NORMAL, and until 2026-09-23 no SQLite server could pass it, because the builder wrote NORMAL with no way to
+     * change it.
+     */
+    @Test
+    void appliesTheDefaultAndAConfiguredSynchronousLevel(@TempDir Path directory) throws SQLException {
+        try (Database db =
+                Database.builder().sqlite(directory.resolve("normal.db")).build()) {
+            assertThat(readSynchronous(db)).isEqualTo(1);
+        }
+        try (Database db = Database.builder()
+                .sqlite(directory.resolve("full.db"))
+                .synchronous(DatabaseBuilder.Synchronous.FULL)
+                .build()) {
+            assertThat(readSynchronous(db)).isEqualTo(2);
+        }
+        try (Database db = Database.builder()
+                .sqlite(directory.resolve("extra.db"))
+                .synchronous(DatabaseBuilder.Synchronous.EXTRA)
+                .build()) {
+            assertThat(readSynchronous(db)).isEqualTo(3);
+        }
+    }
+
+    @Test
+    @SuppressWarnings("NullAway") // intentionally passes null to assert the requireNonNull guard fires
+    void rejectsANullSynchronousLevel() {
+        assertThatThrownBy(() -> Database.builder().synchronous(null)).isInstanceOf(NullPointerException.class);
+    }
+
     @Test
     @SuppressWarnings("NullAway") // intentionally passes null to assert the requireNonNull guard fires
     void rejectsANullJournalMode() {
@@ -151,6 +183,15 @@ class DatabaseBuilderTest {
                 ResultSet rows = statement.executeQuery("PRAGMA journal_mode")) {
             assertThat(rows.next()).isTrue();
             return rows.getString(1);
+        }
+    }
+
+    private static int readSynchronous(Database db) throws SQLException {
+        try (Connection conn = db.connection();
+                Statement statement = conn.createStatement();
+                ResultSet rows = statement.executeQuery("PRAGMA synchronous")) {
+            assertThat(rows.next()).isTrue();
+            return rows.getInt(1);
         }
     }
 
