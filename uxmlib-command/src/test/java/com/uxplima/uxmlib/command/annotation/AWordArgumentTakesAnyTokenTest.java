@@ -76,6 +76,17 @@ class AWordArgumentTakesAnyTokenTest {
     }
 
     @Test
+    @DisplayName("a token that opens with a quote is read as a quoted phrase, as string() read it")
+    void aQuotedTokenIsAPhrase() throws Exception {
+        TokenCommand handler = new TokenCommand();
+
+        dispatcher(AnnotatedCommands.buildNode(handler))
+                .execute("tok two \"https://i.imgur.com/a.png\" 'Madenci Ömer'", source());
+
+        assertThat(handler.seen).containsExactly("https://i.imgur.com/a.png", "Madenci Ömer");
+    }
+
+    @Test
     @DisplayName("the client is still told the argument is one word")
     void theClientStillSeesAWord() {
         CommandNode<CommandSourceStack> one =

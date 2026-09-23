@@ -23,7 +23,8 @@ public final class Args {
     /**
      * An argument of one token: everything up to the next space, a colon, a hash or a Turkish letter included. Read
      * it back with {@link #string}. Use it where Brigadier's {@code word()} would refuse what an operator or a player
-     * legitimately types, such as {@code minecraft:stone}.
+     * legitimately types, such as {@code minecraft:stone}. A token opening with a quote is a quoted phrase, as in
+     * {@code string()}.
      */
     public static ArgumentType<String> token() {
         return TokenArgumentType.INSTANCE;
