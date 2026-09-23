@@ -159,13 +159,34 @@ public final class StyleTokens {
 
     private static String expanded(
             String token, String label, @Nullable String gradient, Theme theme, boolean smallCaps) {
-        String text = smallCaps ? SmallCaps.of(label) : label;
+        String text = smallCaps ? capsOutsideTags(label) : label;
         return switch (token) {
             case "tag" -> prefix(text, theme.hex(theme.categoryRole(label)), theme);
             case "etag" -> prefix(text, theme.hex("bad"), theme);
             case "g" -> painted(label, stopsOf(theme, gradient), theme);
             default -> header(text, stopsOf(theme, gradient), theme);
         };
+    }
+
+    /**
+     * The label in small capitals, every {@code <…>} tag in it copied as written. A label may hold a placeholder,
+     * {@code <h:'<contest>'>}, or a colour a name carries. Put into small capitals whole, the tag became
+     * {@code <ᴄᴏɴᴛᴇꜱᴛ>}, which is no longer a tag, and the player read the word in angle brackets.
+     */
+    private static String capsOutsideTags(String label) {
+        StringBuilder out = new StringBuilder(label.length());
+        int from = 0;
+        while (from < label.length()) {
+            int open = label.indexOf('<', from);
+            int close = open < 0 ? -1 : label.indexOf('>', open);
+            if (close < 0) {
+                out.append(SmallCaps.of(label.substring(from)));
+                break;
+            }
+            out.append(SmallCaps.of(label.substring(from, open))).append(label, open, close + 1);
+            from = close + 1;
+        }
+        return out.toString();
     }
 
     /**
