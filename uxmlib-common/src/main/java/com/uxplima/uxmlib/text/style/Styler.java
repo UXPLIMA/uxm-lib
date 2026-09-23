@@ -80,6 +80,22 @@ public final class Styler {
     }
 
     /**
+     * The roles and the label of a line an operator wrote, painted for {@code locale}, with every other letter left
+     * as written.
+     *
+     * <p>{@link #apply} writes an English template in small capitals, which is right for a catalogue line and wrong
+     * for a line that carries a placeholder: {@code %player_name%} became {@code %ᴘʟᴀʏᴇʀ_ɴᴀᴍᴇ%} and was never filled
+     * in. An effect line an operator wrote is that kind of line. Its label still follows the language, as a
+     * catalogue's does.
+     */
+    public String tokens(String template, Locale locale) {
+        Objects.requireNonNull(template, "template");
+        Objects.requireNonNull(locale, "locale");
+        Theme snapshot = theme;
+        return StyleTokens.expand(Typography.apply(template, false), snapshot, snapshot.smallCaps(locale));
+    }
+
+    /**
      * {@code source} with every template styled, ready to hand to
      * {@link com.uxplima.uxmlib.text.message.Messages#reload(MessageCatalog)}.
      *

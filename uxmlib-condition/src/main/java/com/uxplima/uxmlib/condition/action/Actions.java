@@ -321,7 +321,7 @@ public final class Actions {
 
     /** One text part: its words, if it names them by key, then its placeholders, then its markup. */
     private static Component render(ActionContext context, String template) {
-        return Text.mini(context.resolve(context.words(template)));
+        return Text.mini(context.resolve(context.style(context.words(template))));
     }
 
     private static String stripSlash(String commandLine) {

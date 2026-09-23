@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.bukkit.entity.Player;
 
@@ -14,6 +15,8 @@ import com.uxplima.uxmlib.condition.ConditionRequest;
 import com.uxplima.uxmlib.condition.ItemStore;
 import com.uxplima.uxmlib.condition.OperandResolver;
 import com.uxplima.uxmlib.condition.Wallet;
+import com.uxplima.uxmlib.text.style.StyleTokens;
+import com.uxplima.uxmlib.text.style.Theme;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -76,6 +79,15 @@ public final class ActionContext {
      */
     private final Function<String, @Nullable String> words;
 
+    /**
+     * How the text of a text action is painted before it is drawn: the theme's roles and labels made colours.
+     *
+     * <p>An effect line went to the parser as written and was drawn with plain MiniMessage, so {@code <tag:'JOBS'>}
+     * and {@code <body>} reached the player as markup. Unwired, the default theme paints them; a plugin wires its
+     * own theme and its reader's language. Only the text is painted, never the verb in front of it.
+     */
+    private final UnaryOperator<String> style;
+
     private ActionContext(Builder builder) {
         this.target = builder.target;
         this.broadcast = builder.broadcast;
@@ -87,6 +99,7 @@ public final class ActionContext {
         this.itemStore = builder.itemStore;
         this.later = builder.later;
         this.words = builder.words;
+        this.style = builder.style;
     }
 
     /** Start a context builder with the resolver seam every placeholder action needs. */
@@ -113,6 +126,12 @@ public final class ActionContext {
         }
         String found = words.apply(path);
         return found == null ? path : found;
+    }
+
+    /** One text part painted with the theme's roles and labels. See the field. */
+    public String style(String part) {
+        Objects.requireNonNull(part, "part");
+        return style.apply(part);
     }
 
     /** Run {@code what} after {@code delay}. See the field: unwired, this throws and names what to wire. */
@@ -207,6 +226,7 @@ public final class ActionContext {
                     + " has no words wired. Call ActionContext.Builder.words(...) with your catalogue, so the"
                     + " key is drawn as its words rather than as itself.");
         };
+        private UnaryOperator<String> style = line -> StyleTokens.expand(line, Theme.defaults(), false);
         private BiConsumer<Duration, Runnable> later = (delay, what) -> {
             throw new IllegalStateException("an action asked for something to happen in " + delay
                     + " and this ActionContext has no delay wired. Call ActionContext.Builder.later(...) with "
@@ -250,6 +270,15 @@ public final class ActionContext {
          */
         public Builder words(Function<String, @Nullable String> words) {
             this.words = Objects.requireNonNull(words, "words");
+            return this;
+        }
+
+        /**
+         * Wire how the text of a text action is painted: this plugin's theme and the reader's language, as
+         * {@code line -> styler.tokens(line, locale)}. Unwired, the default theme paints the roles.
+         */
+        public Builder style(UnaryOperator<String> style) {
+            this.style = Objects.requireNonNull(style, "style");
             return this;
         }
 
