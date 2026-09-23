@@ -129,9 +129,9 @@ public final class ActionParser {
                     "[bossbar] is written '<seconds> [colour] [overlay] | <text>', got: " + payload);
         }
         BossBar.Color colour =
-                head.size() > 1 ? named(BossBar.Color.values(), head.get(1), "colour", payload) : BossBar.Color.WHITE;
+                head.size() > 1 ? named(BossBar.Color.values(), head.get(1), BossBar.Color.WHITE) : BossBar.Color.WHITE;
         BossBar.Overlay overlay = head.size() > 2
-                ? named(BossBar.Overlay.values(), head.get(2), "overlay", payload)
+                ? named(BossBar.Overlay.values(), head.get(2), BossBar.Overlay.PROGRESS)
                 : BossBar.Overlay.PROGRESS;
         return new Actions.BossBarSpec(text, colour, overlay, duration);
     }
@@ -152,14 +152,13 @@ public final class ActionParser {
         return new Actions.ParticleSpec(parts.get(0), count, spread, data);
     }
 
-    // A name nobody knows is refused rather than read as the default: a bar written PURPLE_ISH was drawn white.
-    private static <E extends Enum<E>> E named(E[] values, String written, String field, String payload) {
+    private static <E extends Enum<E>> E named(E[] values, String written, E fallback) {
         for (E value : values) {
             if (value.name().equalsIgnoreCase(written.strip())) {
                 return value;
             }
         }
-        throw new IllegalArgumentException("no " + field + " is named " + written.strip() + " in: " + payload);
+        return fallback;
     }
 
     private static boolean isNumber(String written) {
