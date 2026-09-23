@@ -2,11 +2,9 @@ package com.uxplima.uxmlib.condition.action;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.Optional;
 
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Particle;
 import org.bukkit.Registry;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -17,9 +15,9 @@ import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 
-import com.uxplima.uxmlib.common.ParticleData;
 import com.uxplima.uxmlib.common.Sounds;
 import com.uxplima.uxmlib.condition.ItemStore;
+import com.uxplima.uxmlib.particle.ParticleOptions;
 import com.uxplima.uxmlib.text.Text;
 import org.jspecify.annotations.Nullable;
 
@@ -110,36 +108,25 @@ public final class Actions {
      * <p>The one visual an interaction can carry that is not text. A name the server does not know is skipped
      * rather than thrown, the same way an unparseable sound key is: an operator's typo in a cosmetic line may
      * not stop the message and the sound beside it from happening. A particle that needs data takes it from the
-     * line's last word, or a default when there is none; {@link ParticleData} reads it, and data it cannot read is
+     * line's last word, or a default when there is none; {@link ParticleOptions#read} reads it, and data it cannot read is
      * skipped the same way.
      */
     public static Action particle(ParticleSpec spec) {
         Objects.requireNonNull(spec, "spec");
         return asyncText(context -> context.player().ifPresent(player -> {
-            Particle drawn = particleNamed(context.resolve(spec.nameTemplate()));
-            if (drawn == null) {
-                return;
-            }
             Location at = Objects.requireNonNull(player.getLocation(), "location");
-            Object data = null;
-            if (ParticleData.needs(drawn)) {
-                Optional<Object> read = ParticleData.of(drawn, context.resolve(spec.dataTemplate()), at);
-                if (read.isEmpty()) {
-                    return;
-                }
-                data = read.get();
-            }
-            player.getWorld().spawnParticle(drawn, at, spec.count(), spec.spread(), spec.spread(), spec.spread(), data);
+            ParticleOptions.named(context.resolve(spec.nameTemplate()))
+                    .flatMap(named -> ParticleOptions.read(named, context.resolve(spec.dataTemplate()), at))
+                    .ifPresent(drawn -> player.getWorld()
+                            .spawnParticle(
+                                    drawn.particle(),
+                                    at,
+                                    spec.count(),
+                                    spec.spread(),
+                                    spec.spread(),
+                                    spec.spread(),
+                                    drawn.data()));
         }));
-    }
-
-    private static @Nullable Particle particleNamed(String written) {
-        for (Particle particle : Particle.values()) {
-            if (particle.name().equalsIgnoreCase(written.strip())) {
-                return particle;
-            }
-        }
-        return null;
     }
 
     /** {@code [console] <command>}: dispatch the resolved command through the console sink. */

@@ -1,8 +1,10 @@
 package com.uxplima.uxmlib.particle;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import org.bukkit.Color;
+import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.inventory.ItemStack;
@@ -21,7 +23,8 @@ public sealed interface ParticleOptions
                 ParticleOptions.Dust,
                 ParticleOptions.DustTransition,
                 ParticleOptions.Block,
-                ParticleOptions.Item {
+                ParticleOptions.Item,
+                ParticleOptions.Written {
 
     /** The particle to spawn. */
     Particle particle();
@@ -52,6 +55,38 @@ public sealed interface ParticleOptions
     /** An item-textured particle ({@link Particle#ITEM}). */
     static Item item(ItemStack item) {
         return new Item(item);
+    }
+
+    /**
+     * The particle an operator named, the way they write it: any case, spaces around it, {@code happy_villager} for
+     * {@link Particle#HAPPY_VILLAGER}. Empty for a name the server does not know.
+     */
+    static Optional<Particle> named(String written) {
+        Objects.requireNonNull(written, "written");
+        String name = written.strip();
+        for (Particle particle : Particle.values()) {
+            if (particle.name().equalsIgnoreCase(name)) {
+                return Optional.of(particle);
+            }
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * {@code particle} with the data an operator wrote beside its name, placed at {@code at} where the data needs a
+     * place. A particle that needs no data is {@link Plain} and the word is ignored. For the rest the word is a colour
+     * {@code #ff0000}, two colours {@code #ff0000>#0000ff} for a transition, a block or an item by name, or a number,
+     * and a blank word reads as the particle's default. Empty when the word cannot be read, so a caller draws nothing
+     * rather than having the server refuse the particle.
+     */
+    static Optional<ParticleOptions> read(Particle particle, String written, Location at) {
+        Objects.requireNonNull(particle, "particle");
+        Objects.requireNonNull(written, "written");
+        Objects.requireNonNull(at, "at");
+        if (particle.getDataType() == Void.class) {
+            return Optional.of(of(particle));
+        }
+        return ParticleData.read(particle, written, at).map(data -> new Written(particle, data));
     }
 
     /** A particle that needs no extra data. */
@@ -115,6 +150,22 @@ public sealed interface ParticleOptions
         @Override
         public BlockData data() {
             return blockData;
+        }
+    }
+
+    /**
+     * Any particle with data of the class it declares, read from a word an operator wrote: what {@link #read} answers
+     * for a particle the typed records above do not cover, such as a spell, a trail, a vibration or a geyser.
+     */
+    record Written(Particle particle, Object data) implements ParticleOptions {
+        public Written {
+            Objects.requireNonNull(particle, "particle");
+            Objects.requireNonNull(data, "data");
+            if (!particle.getDataType().isInstance(data)) {
+                throw new IllegalArgumentException("particle " + particle + " expects data of type "
+                        + particle.getDataType().getSimpleName() + ", not "
+                        + data.getClass().getSimpleName());
+            }
         }
     }
 
