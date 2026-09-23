@@ -50,6 +50,11 @@ public final class ItemCondition implements Condition {
     public static ItemCondition parse(String expression) {
         Objects.requireNonNull(expression, "expression");
         Comparison.ParsedComparison parsed = Comparison.parse(expression);
+        if (parsed.left().isEmpty()) {
+            throw new IllegalArgumentException(
+                    "an item line names the item it counts, and this names none: " + expression);
+        }
+        Comparison.requireComparable(parsed.comparison().operator(), parsed.right(), expression);
         return new ItemCondition(parsed.left(), parsed.comparison(), parsed.right());
     }
 

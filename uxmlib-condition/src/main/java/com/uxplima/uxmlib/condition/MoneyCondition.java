@@ -52,6 +52,7 @@ public final class MoneyCondition implements Condition {
     public static MoneyCondition parse(String expression) {
         Objects.requireNonNull(expression, "expression");
         Comparison.ParsedComparison parsed = Comparison.parse(expression);
+        Comparison.requireComparable(parsed.comparison().operator(), parsed.right(), expression);
         return new MoneyCondition(parsed.left(), parsed.comparison(), parsed.right());
     }
 

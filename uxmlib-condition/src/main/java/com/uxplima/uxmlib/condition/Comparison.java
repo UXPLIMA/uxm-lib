@@ -35,6 +35,9 @@ public final class Comparison {
     // ("0x1p4"), and the NaN/Infinity tokens.
     private static final Pattern STRICT_NUMBER = Pattern.compile("[+-]?(\\d+\\.?\\d*|\\.\\d+)([eE][+-]?\\d+)?");
 
+    /** The characters an operator is made of: one standing next to an operator makes it a different one. */
+    private static final String RUN_TOGETHER = "=<>!";
+
     private final Operator operator;
 
     private Comparison(Operator operator) {
@@ -179,6 +182,7 @@ public final class Comparison {
             }
             Operator operator = operatorAt(expression, i);
             if (operator != null) {
+                requireStandsAlone(expression, i, operator);
                 String left = expression.substring(0, i).strip();
                 String right =
                         expression.substring(i + operator.symbol().length()).strip();
@@ -186,6 +190,38 @@ public final class Comparison {
             }
         }
         throw new IllegalArgumentException("no comparison operator in: " + expression);
+    }
+
+    /**
+     * An operator run into another operator character is a typo, and reading it would compare the wrong things:
+     * {@code %level% => 10} found the {@code >} and compared {@code "<level> ="} with ten, which is never a number,
+     * so the line refused everybody and said nothing.
+     */
+    private static void requireStandsAlone(String expression, int index, Operator operator) {
+        int after = index + operator.symbol().length();
+        boolean runBefore = index > 0 && RUN_TOGETHER.indexOf(expression.charAt(index - 1)) >= 0;
+        boolean runAfter = after < expression.length() && RUN_TOGETHER.indexOf(expression.charAt(after)) >= 0;
+        if (runBefore || runAfter) {
+            throw new IllegalArgumentException("no such comparison operator in: " + expression);
+        }
+    }
+
+    /**
+     * Refuse an ordering comparison whose written side can never be a number. An ordering operator compares
+     * numbers only, so a side with no placeholder in it that does not read as a number makes the line false for
+     * everybody: {@code %a% >= 1 extra}, {@code >= 10}, {@code item DIAMOND >= abc}.
+     */
+    static void requireComparable(Operator operator, String side, String expression) {
+        if (!operator.isOrdering() || holdsATemplate(side) || asNumber(side) != null) {
+            return;
+        }
+        throw new IllegalArgumentException(
+                "'" + side + "' is never a number, so " + operator.symbol() + " can never be true in: " + expression);
+    }
+
+    // A side that holds a placeholder is only known when the line runs: %papi%, a plugin's {value} or <value>.
+    private static boolean holdsATemplate(String side) {
+        return side.indexOf('%') >= 0 || side.indexOf('{') >= 0 || side.indexOf('<') >= 0;
     }
 
     /**

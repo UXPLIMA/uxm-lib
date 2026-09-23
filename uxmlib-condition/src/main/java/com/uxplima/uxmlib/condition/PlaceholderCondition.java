@@ -44,6 +44,8 @@ public final class PlaceholderCondition implements Condition {
     public static PlaceholderCondition parse(String expression) {
         Objects.requireNonNull(expression, "expression");
         Comparison.ParsedComparison parsed = Comparison.parse(expression);
+        Comparison.requireComparable(parsed.comparison().operator(), parsed.left(), expression);
+        Comparison.requireComparable(parsed.comparison().operator(), parsed.right(), expression);
         return new PlaceholderCondition(parsed.left(), parsed.comparison(), parsed.right());
     }
 
