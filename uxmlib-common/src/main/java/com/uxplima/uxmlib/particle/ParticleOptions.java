@@ -89,6 +89,21 @@ public sealed interface ParticleOptions
         return ParticleData.read(particle, written, at).map(data -> new Written(particle, data));
     }
 
+    /**
+     * A particle written as one value, its name then its data: {@code heart}, {@code dust #ff0000},
+     * {@code block oak_log}. What a plugin reads from a setting that names a particle. Empty when the name or the data
+     * cannot be read.
+     */
+    static Optional<ParticleOptions> parse(String written, Location at) {
+        Objects.requireNonNull(written, "written");
+        Objects.requireNonNull(at, "at");
+        String value = written.strip();
+        int space = value.indexOf(' ');
+        String name = space < 0 ? value : value.substring(0, space);
+        String data = space < 0 ? "" : value.substring(space + 1);
+        return named(name).flatMap(particle -> read(particle, data, at));
+    }
+
     /** A particle that needs no extra data. */
     record Plain(Particle particle) implements ParticleOptions {
         public Plain {

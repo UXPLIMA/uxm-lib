@@ -103,4 +103,23 @@ class AWrittenParticleCarriesItsDataTest {
         assertThat(ParticleOptions.named(" Dust ")).contains(Particle.DUST);
         assertThat(ParticleOptions.named("sparkles")).isEmpty();
     }
+
+    /**
+     * A setting that names a particle may carry its data after the name, so {@code hit-particle = "dust #ff0000"} is
+     * one value an operator writes in one place.
+     */
+    @Test
+    @DisplayName("a name and its data written as one value are read as one particle")
+    void aNameAndItsDataAreOneValue() {
+        ParticleOptions dust = ParticleOptions.parse("dust #ff0000", at).orElseThrow();
+        ParticleOptions heart = ParticleOptions.parse(" HEART ", at).orElseThrow();
+
+        assertThat(dust.particle()).isEqualTo(Particle.DUST);
+        assertThat(((Particle.DustOptions) java.util.Objects.requireNonNull(dust.data())).getColor())
+                .isEqualTo(Color.fromRGB(0xff0000));
+        assertThat(heart).isEqualTo(ParticleOptions.of(Particle.HEART));
+        assertThat(ParticleOptions.parse("sparkles", at)).isEmpty();
+        assertThat(ParticleOptions.parse("dust notacolour", at)).isEmpty();
+        assertThat(ParticleOptions.parse("", at)).isEmpty();
+    }
 }
