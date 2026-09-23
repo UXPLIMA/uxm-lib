@@ -311,8 +311,9 @@ public final class Actions {
         return new TakeItemAction(cost);
     }
 
+    /** One text part: its words, if it names them by key, then its placeholders, then its markup. */
     private static Component render(ActionContext context, String template) {
-        return Text.mini(context.resolve(template));
+        return Text.mini(context.resolve(context.words(template)));
     }
 
     private static String stripSlash(String commandLine) {

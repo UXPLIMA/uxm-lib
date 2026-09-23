@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 
 import org.bukkit.entity.Player;
 
@@ -35,6 +36,9 @@ import org.jspecify.annotations.Nullable;
  */
 public final class ActionContext {
 
+    /** What starts a text part that names its words by catalogue key. */
+    private static final char KEY_MARK = '@';
+
     private final Audience target;
     private final Audience broadcast;
     private final @Nullable Player player;
@@ -59,6 +63,19 @@ public final class ActionContext {
      */
     private final BiConsumer<Duration, Runnable> later;
 
+    /**
+     * The words a catalogue key stands for, for the viewer of this context, written as MiniMessage.
+     *
+     * <p>A text part of a line may name its words by key, {@code @state.all.title}, rather than spell them. Each
+     * part asks for its own: the title and the subtitle either side of a pipe, the text of a boss bar after its
+     * seconds. Every plugin used to look the key up itself and took the whole rest of the line as one key, so
+     * {@code [subtitle] @a | @b 0.1 1.2 0.3} drew a path over a key, live, in three plugins.
+     *
+     * <p>Unwired it throws and names the method, like the delay and the broadcast: a key drawn as its own path
+     * is a line that looks as though it worked.
+     */
+    private final Function<String, @Nullable String> words;
+
     private ActionContext(Builder builder) {
         this.target = builder.target;
         this.broadcast = builder.broadcast;
@@ -69,11 +86,33 @@ public final class ActionContext {
         this.wallet = builder.wallet;
         this.itemStore = builder.itemStore;
         this.later = builder.later;
+        this.words = builder.words;
     }
 
     /** Start a context builder with the resolver seam every placeholder action needs. */
     public static Builder builder(OperandResolver resolver) {
         return new Builder(resolver);
+    }
+
+    /**
+     * One text part with its catalogue key, if it names one, replaced by the words the key holds.
+     *
+     * <p>A part names a key when it is an at sign and a path and nothing else. Words that merely contain an at
+     * sign are words. A key the catalogue does not hold comes back as its path, which is what a catalogue draws
+     * for a key nobody translated.
+     */
+    public String words(String part) {
+        Objects.requireNonNull(part, "part");
+        String stripped = part.strip();
+        if (stripped.length() < 2 || stripped.charAt(0) != KEY_MARK) {
+            return part;
+        }
+        String path = stripped.substring(1);
+        if (path.chars().anyMatch(Character::isWhitespace)) {
+            return part;
+        }
+        String found = words.apply(path);
+        return found == null ? path : found;
     }
 
     /** Run {@code what} after {@code delay}. See the field: unwired, this throws and names what to wire. */
@@ -163,6 +202,11 @@ public final class ActionContext {
         private CommandSink playerSink = CommandSink.unwired("[player]", "playerSink");
         private Wallet wallet = Wallet.empty();
         private ItemStore itemStore = ItemStore.empty();
+        private Function<String, @Nullable String> words = path -> {
+            throw new IllegalStateException("a line names the catalogue key @" + path + " and this ActionContext"
+                    + " has no words wired. Call ActionContext.Builder.words(...) with your catalogue, so the"
+                    + " key is drawn as its words rather than as itself.");
+        };
         private BiConsumer<Duration, Runnable> later = (delay, what) -> {
             throw new IllegalStateException("an action asked for something to happen in " + delay
                     + " and this ActionContext has no delay wired. Call ActionContext.Builder.later(...) with "
@@ -196,6 +240,16 @@ public final class ActionContext {
          */
         public Builder later(BiConsumer<Duration, Runnable> later) {
             this.later = Objects.requireNonNull(later, "later");
+            return this;
+        }
+
+        /**
+         * Wire the catalogue a text part names by key, as {@code @state.all.title}: the path in, the words for this
+         * context's viewer out, as MiniMessage. An answer of {@code null} draws the path, as a catalogue does for a
+         * key nobody translated.
+         */
+        public Builder words(Function<String, @Nullable String> words) {
+            this.words = Objects.requireNonNull(words, "words");
             return this;
         }
 
