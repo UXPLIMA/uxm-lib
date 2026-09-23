@@ -331,14 +331,15 @@ class MenuListenerContinuationTest {
         assertThat(fired).containsExactly("no");
     }
 
-    // -- where the split is not supported -------------------------------------------------------------------
+    // -- a deny list may prompt and confirm too -------------------------------------------------------------
 
     /**
-     * Continuation awareness is only on the success path. A step inside a block's deny list cannot split a chain the
-     * engine has no way to suspend, so it is skipped rather than half-run, and the refs beside it still run.
+     * A deny list is a list of actions like any other, so an input step in one prompts, and the refs after it wait
+     * for the line. It used to be logged and skipped where it stood: the player saw the rest of the list run as
+     * though they had typed nothing, and the operator read a warning they had no way to act on.
      */
     @Test
-    void anInputStepInsideADenyListIsSkippedRatherThanSplittingIt() {
+    void anInputStepInsideADenyListPromptsAndTheRestWaitsForTheLine() {
         clickWithLeft("""
                 {
                   click = ["one"]
@@ -347,8 +348,30 @@ class MenuListenerContinuationTest {
                 }
                 """, listener(prompt, false));
 
-        assertThat(prompt.keys).as("the deny list opens no prompt").isEmpty();
-        assertThat(fired).contains("two");
-        assertThat(fired).doesNotContain("one");
+        assertThat(prompt.keys).as("the deny list opens the prompt").containsExactly("name");
+        assertThat(fired)
+                .as("nothing after the step runs before the line arrives")
+                .isEmpty();
+
+        java.util.Objects.requireNonNull(prompt.onSubmit).accept("Steve");
+
+        assertThat(fired).containsExactly("two");
+    }
+
+    /** A confirm step in a deny list opens its window and runs the branch the player chooses. */
+    @Test
+    void aConfirmStepInsideADenyListOpensItsWindow() {
+        clickWithLeft("""
+                {
+                  click = ["one"]
+                  requirements = ["nobody-registered-this"]
+                  deny = [ { do = "confirm:anyway", title = "sure", yes = ["yes"], no = ["no"] } ]
+                }
+                """, listener(null, true));
+
+        assertThat(confirm.titles).containsExactly("sure");
+        java.util.Objects.requireNonNull(confirm.onYes).run();
+
+        assertThat(fired).containsExactly("yes");
     }
 }

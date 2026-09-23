@@ -1223,10 +1223,8 @@ public final class MenuListener implements Listener {
      * decision. Every ordinary ref before the step still runs, so a chain like {@code [message, input:…, action]}
      * behaves as written. The {@code from} index lets the input-submit path resume mid-list without re-copying.
      *
-     * <p>This continuation awareness is deliberately only on the success path. A {@code input:}/{@code confirm:} step
-     * that appears inside an else-ladder, a deny list, or a per-requirement action list is unsupported: it falls
-     * through to {@link #runRef}, hits the registered marker action, and is logged and skipped rather than splitting a
-     * nested chain the engine cannot cleanly suspend.
+     * <p>The same walk runs a deny list, an else-branch and a per-requirement list, through {@link #runEach}, so a
+     * step in one of those suspends that list and nothing else: the outer chain has already stopped or run.
      */
     private void runChain(MenuHolder holder, MenuContext base, ClickKind kind, List<Ref> refs, int from) {
         hop(holder, () -> walk(holder, base, kind, refs, from));
@@ -1447,22 +1445,17 @@ public final class MenuListener implements Listener {
     /**
      * Run each ref in {@code refs} through {@link #runRef}, so a per-requirement or block deny list honours modifiers.
      *
-     * <p>The same one hop and the same stop as a gesture's own chain: a deny list, an else-branch and a
-     * per-requirement list are lists of actions like any other, and an action in one that refuses stops the rest of
-     * that list. A continuation ({@code input:}, {@code confirm:}) is not supported in one of these lists and never
-     * was; it falls through to the registered marker action and is logged there.
+     * <p>The same one hop, the same stop and the same walk as a gesture's own chain: a deny list, an else-branch and
+     * a per-requirement list are lists of actions like any other, and an action in one that refuses stops the rest of
+     * that list. An {@code input:} step in one prompts and the rest of that list waits for the line, and a
+     * {@code confirm:} step opens its window. They were logged and skipped until 2026-09-23, so the rest of a deny
+     * list ran as though the player had answered.
      */
     private void runEach(MenuHolder holder, MenuContext base, ClickKind kind, List<Ref> refs) {
         if (refs.isEmpty()) {
             return;
         }
-        hop(holder, () -> {
-            for (Ref ref : refs) {
-                if (!runRef(holder, base, kind, ref)) {
-                    return;
-                }
-            }
-        });
+        hop(holder, () -> walk(holder, base, kind, refs, 0));
     }
 
     /**

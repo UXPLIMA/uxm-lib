@@ -12,9 +12,9 @@ import java.util.Objects;
  * <ul>
  *   <li>{@link Input}: an {@code input:<key>} step: prompt the viewer for a line of text, then run the gesture's
  *       remaining refs as a continuation with the typed line exposed as {@code %input%}. On a cancel the
- *       {@code onCancel} refs run and the remaining refs are abandoned. It is only meaningful as a step in a flat
- *       action list (the case player-warps needs, {@code [input:…, action-reading-%input%]}); inside an else-ladder
- *       or a deny list it is unsupported.</li>
+ *       {@code onCancel} refs run and the remaining refs are abandoned. It is a step in any action list (the case
+ *       player-warps needs is {@code [input:…, action-reading-%input%]}), a deny list and an else-branch included,
+ *       and it suspends only the list it is written in.</li>
  *   <li>{@link Confirm}: a {@code confirm:<key>} step: open a yes/no confirmation, run {@code onYes} on accept and
  *       {@code onNo} on decline. It has no continuation of the remaining chain: its two branches carry everything
  *       that should follow either decision.</li>
