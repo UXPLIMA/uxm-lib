@@ -14,12 +14,17 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.MenuType;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.view.AnvilView;
 import org.bukkit.plugin.Plugin;
+
+import net.kyori.adventure.text.Component;
 
 import org.jspecify.annotations.Nullable;
 
@@ -62,7 +67,7 @@ public final class AnvilInput implements Listener {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(promptItem, "promptItem");
         Objects.requireNonNull(callback, "callback");
-        InventoryView view = openAnvil(player);
+        InventoryView view = openAnvil(player, titleOf(promptItem));
         if (view == null) {
             callback.accept(AnvilResult.Cancelled.INSTANCE);
             return;
@@ -107,10 +112,23 @@ public final class AnvilInput implements Listener {
         }
     }
 
-    @SuppressWarnings("deprecation") // openAnvil(Location, boolean) is the only native anvil-open API on 1.21
-    private static @Nullable InventoryView openAnvil(Player player) {
-        // A null location opens the anvil at the player; the call returns null if it cannot be opened.
-        return player.openAnvil(null, true);
+    /**
+     * Open an anvil titled with the question. The old {@code openAnvil(null, true)} could not take a title, so the
+     * window read "Repair & Name" over a field where the player was naming a home. Answers {@code null} when the
+     * server did not open it.
+     */
+    private static @Nullable InventoryView openAnvil(Player player, Component title) {
+        player.openInventory(MenuType.ANVIL.create(player, title));
+        // The view the player holds now, rather than the one handed in: a server may wrap it on the way.
+        InventoryView open = player.getOpenInventory();
+        return open.getType() == InventoryType.ANVIL ? open : null;
+    }
+
+    /** The prompt's own name, which is the question the player answers, or no title when it has none. */
+    private static Component titleOf(ItemStack prompt) {
+        ItemMeta meta = prompt.getItemMeta();
+        Component name = meta == null ? null : meta.displayName();
+        return name == null ? Component.empty() : name;
     }
 
     private void complete(HumanEntity viewer, Session session, AnvilResult result) {
