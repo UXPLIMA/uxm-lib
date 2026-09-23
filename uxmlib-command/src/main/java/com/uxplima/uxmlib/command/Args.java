@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 
+import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
@@ -18,6 +19,15 @@ import com.mojang.brigadier.context.CommandContext;
 public final class Args {
 
     private Args() {}
+
+    /**
+     * An argument of one token: everything up to the next space, a colon, a hash or a Turkish letter included. Read
+     * it back with {@link #string}. Use it where Brigadier's {@code word()} would refuse what an operator or a player
+     * legitimately types, such as {@code minecraft:stone}.
+     */
+    public static ArgumentType<String> token() {
+        return TokenArgumentType.INSTANCE;
+    }
 
     /** The string argument named {@code name}. */
     public static String string(CommandContext<CommandSourceStack> ctx, String name) {

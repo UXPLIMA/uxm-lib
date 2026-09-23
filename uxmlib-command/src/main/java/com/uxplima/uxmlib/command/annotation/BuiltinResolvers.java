@@ -20,6 +20,7 @@ import com.mojang.brigadier.arguments.LongArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import com.uxplima.uxmlib.command.Args;
 import com.uxplima.uxmlib.command.annotation.annotations.Arg;
 
 /**
@@ -146,12 +147,15 @@ final class BuiltinResolvers {
         return simple(BoolArgumentType::bool, (c, n) -> BoolArgumentType.getBool(c, n));
     }
 
-    /** A String resolver that consumes the whole rest of the input when {@code @Arg(greedy = true)}. */
+    /**
+     * A String resolver: one token up to the next space ({@link Args#token()}), or the whole rest of the input when
+     * {@code @Arg(greedy = true)}.
+     */
     private static ParamResolver<String> strings() {
         return new ParamResolver<>() {
             @Override
             public ArgumentType<?> argumentType(Arg arg) {
-                return arg.greedy() ? StringArgumentType.greedyString() : StringArgumentType.word();
+                return arg.greedy() ? StringArgumentType.greedyString() : Args.token();
             }
 
             @Override
