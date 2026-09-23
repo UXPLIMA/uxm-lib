@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiPredicate;
 
@@ -23,11 +24,31 @@ public final class ConditionRegistry {
     private final ConcurrentHashMap<String, BiPredicate<MenuContext, Map<String, String>>> handlers =
             new ConcurrentHashMap<>();
 
+    /** The names whose handler is an offer a plugin may replace. */
+    private final Set<String> defaults = ConcurrentHashMap.newKeySet();
+
     public void register(String id, BiPredicate<MenuContext, Map<String, String>> handler) {
         Objects.requireNonNull(id, "id");
         Objects.requireNonNull(handler, "handler");
-        if (handlers.putIfAbsent(id, handler) != null) {
+        if (handlers.putIfAbsent(id, handler) == null) {
+            return;
+        }
+        if (!defaults.remove(id)) {
             throw new IllegalStateException("condition already registered: " + id);
+        }
+        handlers.put(id, handler);
+    }
+
+    /**
+     * Offer {@code handler} under a name every plugin shares, such as the ones {@code MenuBasics} answers. It is kept
+     * only while nothing else claims the name: a plugin that registers its own afterwards replaces it, and one that
+     * registered first keeps its own. Only the offer yields, so two plugin registrations still fail.
+     */
+    public void registerDefault(String id, BiPredicate<MenuContext, Map<String, String>> handler) {
+        Objects.requireNonNull(id, "id");
+        Objects.requireNonNull(handler, "handler");
+        if (handlers.putIfAbsent(id, handler) == null) {
+            defaults.add(id);
         }
     }
 

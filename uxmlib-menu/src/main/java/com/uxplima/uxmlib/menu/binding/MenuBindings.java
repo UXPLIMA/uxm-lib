@@ -63,6 +63,16 @@ public final class MenuBindings {
         conditions.register(id, handler);
     }
 
+    /** An action every plugin's windows may write, kept until the plugin registers its own under that name. */
+    public void defaultAction(String id, Consumer<MenuActionContext> handler) {
+        actions.registerDefault(id, handler);
+    }
+
+    /** A condition every plugin's windows may write, kept until the plugin registers its own under that name. */
+    public void defaultCondition(String id, BiPredicate<MenuContext, Map<String, String>> handler) {
+        conditions.registerDefault(id, handler);
+    }
+
     public void placeholder(String id, Function<MenuContext, String> handler) {
         placeholders.register(id, handler);
     }

@@ -12,12 +12,12 @@ import com.uxplima.uxmlib.gui.style.SoundNames;
 import com.uxplima.uxmlib.menu.binding.MenuBindings;
 import com.uxplima.uxmlib.menu.runtime.MenuActionContext;
 import com.uxplima.uxmlib.menu.runtime.MenuContext;
+import com.uxplima.uxmlib.menu.spec.ListControlSyntax;
 import com.uxplima.uxmlib.text.Text;
 import org.jspecify.annotations.NullMarked;
 
 /**
- * The five actions and the one condition that mean the same thing in every menu of every plugin, registered on
- * one call.
+ * The actions and conditions that mean the same thing in every menu of every plugin, registered on one call.
  *
  * <p>{@code close}, {@code open:<menu>}, {@code command:<line>}, {@code message:<line>} and
  * {@code sound:<name> <volume> <pitch>}, and {@code perm:<node>}. They are here so that a plugin which only wants
@@ -31,9 +31,9 @@ import org.jspecify.annotations.NullMarked;
  * <p>These are mechanisms and not a look. Nothing here decides a colour, a word, or a layout: the file says
  * what to run and the plugin says what its own verbs mean. That is why the library may hold them.
  *
- * <p>Registration is a call and never automatic. A plugin that wants its own {@code sound} or its own
- * {@code command}, with a permission gate or a different vocabulary, simply does not make this call and
- * registers its own under the same names.
+ * <p>Registration is a call and never automatic. Each verb is an offer ({@link MenuBindings#defaultAction}): a plugin
+ * that wants its own {@code sound}, its own {@code command} or its own {@code has-next} registers it under the same
+ * name, before this call or after it, and its own is the one that runs.
  *
  * <p>Every verb runs on the thread of the click, which the engine has already put on the viewer's entity
  * thread. Nothing here reaches for a scheduler, so this is safe on Folia.
@@ -48,18 +48,46 @@ public final class MenuBasics {
 
     /**
      * Register the four verbs that need nothing but the viewer: {@code close}, {@code command},
-     * {@code message} and {@code sound}, and the {@code perm} condition.
+     * {@code message} and {@code sound}, the {@code perm} condition, and the list verbs and page conditions
+     * ({@code list-sort}, {@code list-filter}, {@code list-search}, {@code has-next}, {@code has-previous}).
      *
      * <p>{@code open} is not among them, because opening a menu needs the engine that holds the menus. A
      * plugin with more than one window uses {@link #register(MenuBindings, Menus)} instead.
      */
     public static void register(MenuBindings bindings) {
         Objects.requireNonNull(bindings, "bindings");
-        bindings.action("close", ctx -> ctx.player().closeInventory());
-        bindings.action("command", ctx -> ctx.player().performCommand(ctx.arg()));
-        bindings.action("message", ctx -> ctx.player().sendMessage(Text.mini(ctx.arg())));
-        bindings.action("sound", MenuBasics::sound);
-        bindings.condition("perm", MenuBasics::holds);
+        bindings.defaultAction("close", ctx -> ctx.player().closeInventory());
+        bindings.defaultAction("command", ctx -> ctx.player().performCommand(ctx.arg()));
+        bindings.defaultAction("message", ctx -> ctx.player().sendMessage(Text.mini(ctx.arg())));
+        bindings.defaultAction("sound", MenuBasics::sound);
+        bindings.defaultCondition("perm", MenuBasics::holds);
+        registerListControls(bindings);
+    }
+
+    /**
+     * The three list verbs and the page arrows' conditions. The window syntax has had {@code list-sort},
+     * {@code list-filter} and {@code list-search} ({@link ListControlSyntax}) and the engine carries them out through
+     * {@link com.uxplima.uxmlib.menu.runtime.MenuControl}, but until 0.130.0 nothing registered them, so every sort,
+     * filter, search and tab button was a dead click in a plugin that did not write its own. {@code has-next} and
+     * {@code has-previous} (and {@code has-prev}, which uxmEssentials' windows write) read the page the window is on.
+     * A line that does not parse does nothing, as an unknown list does.
+     */
+    private static void registerListControls(MenuBindings bindings) {
+        bindings.defaultAction(
+                ListControlSyntax.SORT_ACTION,
+                ctx -> ListControlSyntax.parseSort(ctx.arg())
+                        .ifPresent(ref -> ctx.control().sortList(ref.listId(), ref.direction())));
+        bindings.defaultAction(
+                ListControlSyntax.FILTER_ACTION,
+                ctx -> ListControlSyntax.parseFilter(ctx.arg())
+                        .ifPresent(ref -> ctx.control().filterList(ref.listId(), ref.key(), ref.value())));
+        bindings.defaultAction(
+                ListControlSyntax.SEARCH_ACTION,
+                ctx -> ListControlSyntax.parseSearch(ctx.arg())
+                        .ifPresent(ref -> ctx.control().searchList(ref.listId(), ref.key())));
+        bindings.defaultCondition("has-next", (ctx, args) -> ctx.page() + 1 < ctx.pageCount());
+        bindings.defaultCondition("has-previous", (ctx, args) -> ctx.page() > 0);
+        bindings.defaultCondition("has-prev", (ctx, args) -> ctx.page() > 0);
     }
 
     /** Whether the viewer holds the node the line names. A blank node is held by nobody, operators included. */
@@ -72,7 +100,7 @@ public final class MenuBasics {
     public static void register(MenuBindings bindings, Menus menus) {
         Objects.requireNonNull(menus, "menus");
         register(bindings);
-        bindings.action("open", ctx -> menus.open(ctx.player(), ctx.arg().strip(), null));
+        bindings.defaultAction("open", ctx -> menus.open(ctx.player(), ctx.arg().strip(), null));
     }
 
     /**
