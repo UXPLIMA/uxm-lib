@@ -184,6 +184,82 @@ class MenuRendererTest {
         assertThat(nameAt(inv, 0)).isEqualTo("1/1");
     }
 
+    // -- the page arrows ---------------------------------------------------------------------------------------
+
+    private static final String ARROWS = """
+            rows = 2
+            items {
+              grid { slots = [0, 1], list { source = warps, template { material = PAPER } } }
+              floor { slots = [16, 17], material = GRAY_STAINED_GLASS_PANE, name = "floor" }
+              previous { slot = 16, type = PREVIOUS, material = ARROW, name = "previous", priority = 10 }
+              next { slot = 17, type = NEXT, material = ARROW, name = "next", priority = 10 }
+            }
+            """;
+
+    /**
+     * An arrow with no page to turn to is not drawn, and what lies under it shows. On 2026-09-23 a live sweep opened
+     * the kits and the warps windows of a server with none of either and read a previous and a next arrow on the one
+     * empty page. Thirty seven shipped windows drew their arrows that way and one gated them itself.
+     */
+    @Test
+    void anArrowWithNoPageToTurnToIsNotDrawn() {
+        Inventory inv = inv(18);
+
+        populate(inv, spec(ARROWS), Map.of("warps", List.of("spawn")));
+
+        assertThat(materialAt(inv, 16)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+        assertThat(materialAt(inv, 17)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+    }
+
+    /** Between the first and the last page both arrows turn a page, so both are drawn. */
+    @Test
+    void bothArrowsAreDrawnBetweenTheFirstAndTheLastPage() {
+        Inventory inv = inv(18);
+
+        renderer.populate(
+                inv,
+                spec(ARROWS),
+                MenuContext.of(viewer, null, 1),
+                routed::put,
+                Map.of("warps", List.of("a", "b", "c", "d", "e")));
+
+        assertThat(materialAt(inv, 16)).isEqualTo(Material.ARROW);
+        assertThat(materialAt(inv, 17)).isEqualTo(Material.ARROW);
+    }
+
+    /** On the last page the previous arrow is drawn and the next is not. */
+    @Test
+    void theLastPageDrawsOnlyThePreviousArrow() {
+        Inventory inv = inv(18);
+
+        renderer.populate(
+                inv,
+                spec(ARROWS),
+                MenuContext.of(viewer, null, 1),
+                routed::put,
+                Map.of("warps", List.of("a", "b", "c")));
+
+        assertThat(materialAt(inv, 16)).isEqualTo(Material.ARROW);
+        assertThat(materialAt(inv, 17)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+    }
+
+    /** A window with no list of its own may page something the engine does not count, so its arrows stay. */
+    @Test
+    void aWindowWithNoListKeepsItsArrows() {
+        Inventory inv = inv(9);
+
+        populate(inv, spec("""
+                        rows = 1
+                        items {
+                          previous { slot = 0, type = PREVIOUS, material = ARROW, name = "previous" }
+                          next { slot = 8, type = NEXT, material = ARROW, name = "next" }
+                        }
+                        """), Map.of());
+
+        assertThat(materialAt(inv, 0)).isEqualTo(Material.ARROW);
+        assertThat(materialAt(inv, 8)).isEqualTo(Material.ARROW);
+    }
+
     /** The plain-text name of the stack at {@code slot}, so an expanded token is readable in an assertion. */
     private static String nameAt(Inventory inv, int slot) {
         ItemStack stack = Objects.requireNonNull(inv.getItem(slot), "no stack at slot " + slot);

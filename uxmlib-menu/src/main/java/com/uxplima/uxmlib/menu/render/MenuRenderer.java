@@ -223,7 +223,8 @@ public final class MenuRenderer {
         }
         Map<Integer, @Nullable ItemStack> held = initialPaint ? Map.of() : holdViewerFilledRegions(inv, spec);
         MenuContext staticCtx = pagedAwareStaticCtx(ctx, spec, resolvedLists);
-        Map<Integer, MenuItemSpec> placed = populateStatic(inv, staticItems, staticCtx, clickSink);
+        Map<Integer, MenuItemSpec> placed = populateStatic(
+                inv, staticItems, staticCtx, clickSink, spec.pagedListItem().isPresent());
         for (MenuItemSpec listItem : listItems) {
             populateList(inv, listItem, ctx, staticCtx, placed, clickSink, resolvedLists);
         }
@@ -322,7 +323,9 @@ public final class MenuRenderer {
             (item.list().isPresent() ? listItems : staticItems).add(item);
         }
         MenuContext staticCtx = pagedAwareStaticCtx(ctx, spec, resolvedLists);
-        Map<Integer, MenuItemSpec> placed = PriorityLayering.resolve(staticItems, it -> viewPasses(it, staticCtx));
+        boolean paged = spec.pagedListItem().isPresent();
+        Map<Integer, MenuItemSpec> placed = PriorityLayering.resolve(
+                staticItems, it -> viewPasses(it, staticCtx) && turnsAPage(it, staticCtx, paged));
         for (Map.Entry<Integer, MenuItemSpec> entry : placed.entrySet()) {
             int rawSlot = entry.getKey();
             if (rawSlot < topSize || rawSlot >= topSize + BottomSlots.PLAYER_SLOTS) {
@@ -414,8 +417,10 @@ public final class MenuRenderer {
             Inventory inv,
             List<MenuItemSpec> staticItems,
             MenuContext ctx,
-            BiConsumer<Integer, RenderedSlot> clickSink) {
-        Map<Integer, MenuItemSpec> placed = PriorityLayering.resolve(staticItems, it -> viewPasses(it, ctx));
+            BiConsumer<Integer, RenderedSlot> clickSink,
+            boolean paged) {
+        Map<Integer, MenuItemSpec> placed =
+                PriorityLayering.resolve(staticItems, it -> viewPasses(it, ctx) && turnsAPage(it, ctx, paged));
         for (Map.Entry<Integer, MenuItemSpec> entry : placed.entrySet()) {
             int slot = entry.getKey();
             if (!fits(inv, slot)) {
@@ -482,6 +487,23 @@ public final class MenuRenderer {
      */
     private static boolean fits(Inventory inv, int slot) {
         return slot >= 0 && slot < inv.getSize();
+    }
+
+    /**
+     * Whether a page arrow has a page to turn to, so an arrow that has none is not drawn and whatever the file layered
+     * under it shows. Only a window with a paged list is asked: its page count is the list's, and the arrows turn that
+     * list. A window with no list may page something the engine does not count, so its arrows are always drawn. Every
+     * item that is not an arrow passes.
+     */
+    private static boolean turnsAPage(MenuItemSpec item, MenuContext ctx, boolean paged) {
+        if (!paged) {
+            return true;
+        }
+        return switch (item.type()) {
+            case NEXT -> ctx.page() + 1 < ctx.pageCount();
+            case PREVIOUS -> ctx.page() > 0;
+            default -> true;
+        };
     }
 
     /**
