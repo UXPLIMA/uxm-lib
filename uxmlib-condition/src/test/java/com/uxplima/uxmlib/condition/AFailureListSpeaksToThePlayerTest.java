@@ -39,6 +39,29 @@ class AFailureListSpeaksToThePlayerTest {
         MockBukkit.unmock();
     }
 
+    /**
+     * A failure list's text is painted the way the request says. The request carried the words and not the
+     * style, so a plugin's own theme reached its effect lines and never its refusals.
+     */
+    @Test
+    @DisplayName("a failure list's text is painted with the request's style")
+    void aFailureListIsPaintedWithTheRequestsStyle() {
+        PlayerMock player = server.addPlayer();
+        ConditionRequest request = ConditionRequest.builder(OperandResolver.identity())
+                .player(player)
+                .style(line -> line.replace("<shout>", "<red>"))
+                .build();
+
+        ConditionList.builder()
+                .runCommands(FAIL, List.of("[message] <shout>no entry"))
+                .build()
+                .test(request);
+
+        net.kyori.adventure.text.Component shown = player.nextComponentMessage();
+        assertThat(com.uxplima.uxmlib.text.Text.plain(shown)).isEqualTo("no entry");
+        assertThat(shown.color()).isEqualTo(net.kyori.adventure.text.format.NamedTextColor.RED);
+    }
+
     @Test
     @DisplayName("a message in a failure list reaches the player, and a key is read from the request's words")
     void aMessageReachesThePlayer() {

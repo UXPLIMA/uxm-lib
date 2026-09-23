@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.bukkit.entity.Player;
 
@@ -50,6 +51,7 @@ public final class ConditionRequest {
     private final @Nullable BiConsumer<Duration, Runnable> later;
     private final @Nullable Audience broadcast;
     private final @Nullable Function<String, @Nullable String> words;
+    private final @Nullable UnaryOperator<String> style;
     private boolean cancelled;
 
     private ConditionRequest(Builder builder) {
@@ -64,6 +66,7 @@ public final class ConditionRequest {
         this.later = builder.later;
         this.broadcast = builder.broadcast;
         this.words = builder.words;
+        this.style = builder.style;
     }
 
     /** Start a request builder with the resolver seam every placeholder condition needs. */
@@ -130,6 +133,11 @@ public final class ConditionRequest {
         return Optional.ofNullable(words);
     }
 
+    /** How the text of a failure list is painted; empty when the caller wired none, and the default theme paints it. */
+    public Optional<UnaryOperator<String>> style() {
+        return Optional.ofNullable(style);
+    }
+
     /** The live, mutable error sink. A condition adds its failure message here. */
     public List<Component> errors() {
         return errors;
@@ -165,6 +173,7 @@ public final class ConditionRequest {
         private @Nullable BiConsumer<Duration, Runnable> later;
         private @Nullable Audience broadcast;
         private @Nullable Function<String, @Nullable String> words;
+        private @Nullable UnaryOperator<String> style;
 
         private Builder(OperandResolver resolver) {
             this.resolver = Objects.requireNonNull(resolver, "resolver");
@@ -221,6 +230,12 @@ public final class ConditionRequest {
         /** Set the words a text part of a failure list written {@code @key} is read from. */
         public Builder words(Function<String, @Nullable String> words) {
             this.words = Objects.requireNonNull(words, "words");
+            return this;
+        }
+
+        /** Set how the text of a failure list is painted: this plugin's theme and the reader's language. */
+        public Builder style(UnaryOperator<String> style) {
+            this.style = Objects.requireNonNull(style, "style");
             return this;
         }
 

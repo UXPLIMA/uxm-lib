@@ -93,6 +93,7 @@ public final class ConditionList {
         request.later().ifPresent(builder::later);
         request.broadcast().ifPresent(builder::broadcast);
         request.words().ifPresent(builder::words);
+        request.style().ifPresent(builder::style);
         return builder.build();
     }
 
