@@ -200,7 +200,11 @@ public final class ActionContext {
                 .wallet(wallet)
                 .itemStore(itemStore)
                 .consoleSink(consoleSink)
-                .playerSink(playerSink);
+                .playerSink(playerSink)
+                .later(later)
+                .broadcast(broadcast)
+                .words(words)
+                .style(style);
         if (player != null) {
             request.player(player);
         }
