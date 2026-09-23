@@ -246,10 +246,15 @@ public final class ActionParser {
     /**
      * Split a {@code [sound]} payload into its key template and optional volume/pitch. Volume defaults to
      * {@code 1.0} and pitch to {@code 1.0}; a non-numeric volume or pitch is a parse error so a typo is caught
-     * at load rather than swallowed at run time.
+     * at load rather than swallowed at run time. A word after the pitch, and a volume or pitch below nothing, are
+     * the same kind of typo: the first was dropped without a word and the second sent a sound the client never
+     * plays.
      */
     private static Actions.SoundSpec parseSound(String payload) {
         List<String> parts = tokenize(payload);
+        if (parts.size() > 3) {
+            throw new IllegalArgumentException("a sound is a key, a volume and a pitch, and this has more: " + payload);
+        }
         String key = parts.get(0);
         float volume = parts.size() > 1 ? parseFloat(parts.get(1), "volume", payload) : 1.0f;
         float pitch = parts.size() > 2 ? parseFloat(parts.get(2), "pitch", payload) : 1.0f;
@@ -281,10 +286,16 @@ public final class ActionParser {
     }
 
     private static float parseFloat(String value, String field, String payload) {
+        float parsed;
         try {
-            return Float.parseFloat(value);
+            parsed = Float.parseFloat(value);
         } catch (NumberFormatException notANumber) {
             throw new IllegalArgumentException("sound " + field + " is not a number in: " + payload, notANumber);
         }
+        if (!(parsed >= 0.0f) || Float.isInfinite(parsed)) {
+            throw new IllegalArgumentException(
+                    "sound " + field + " must be a finite number of zero or more in: " + payload);
+        }
+        return parsed;
     }
 }
