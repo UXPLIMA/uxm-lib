@@ -164,6 +164,11 @@ public final class HoconConfig {
      */
     public synchronized boolean mergeDefaults(ConfigurationNode defaults) {
         Objects.requireNonNull(defaults, "defaults");
+        // Named before the merge fills the gap, because afterwards the shipped key is there and the near miss
+        // beside it looks like a key of the operator's own.
+        for (String suspect : ConfigTypos.suspects(currentRoot(), defaults)) {
+            LOG.log(System.Logger.Level.WARNING, "config " + file.getFileName() + ": " + suspect);
+        }
         return ConfigUpgrade.mergeDefaults(currentRoot(), defaults, this::keepAsItWas, this::save);
     }
 
