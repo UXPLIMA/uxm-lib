@@ -452,6 +452,7 @@ public final class MenuSpecLoader {
             Map<String, Pattern> patterns,
             @Nullable List<Integer> slotOverride) {
         ConfigurationNode item = resolvePattern(node, patterns);
+        nameUnreadFields(item);
         SlotSet slots = slotOverride != null ? new SlotSet(slotOverride) : SlotSet.parse(slotTokens(item), slotCeiling);
         ItemType type = itemType(item.node("type"));
         return new MenuItemSpec(
@@ -469,6 +470,44 @@ public final class MenuSpecLoader {
                 type,
                 parseItemDrag(item.node("item-drag")),
                 toPage(item.node("to-page"), type));
+    }
+
+    /** Every field an item may carry. Anything else on an item is read by nothing. */
+    private static final java.util.Set<String> ITEM_FIELDS = java.util.Set.of(
+            "slot",
+            "slots",
+            "type",
+            "priority",
+            "material",
+            "name",
+            "lore",
+            "decor",
+            "lore-mode",
+            "view",
+            "click",
+            "update",
+            "list",
+            "item-drag",
+            "to-page",
+            "pattern",
+            "vars",
+            "pages",
+            "permission",
+            "layout-char");
+
+    /**
+     * Name a field nobody reads. {@code materail = DIAMOND} loaded without a word and drew stone, because the field
+     * was never read. A gesture nobody knows is already named; a field is one word too and as easy to misspell. The
+     * item still loads, as the rest of the grammar does.
+     */
+    private static void nameUnreadFields(ConfigurationNode item) {
+        for (Object key : item.childrenMap().keySet()) {
+            String written = String.valueOf(key);
+            if (!ITEM_FIELDS.contains(written)) {
+                LOG.warning("menu item at " + item.path() + " has no field '" + written
+                        + "', so nothing reads it. The fields are " + new java.util.TreeSet<>(ITEM_FIELDS) + ".");
+            }
+        }
     }
 
     /**
