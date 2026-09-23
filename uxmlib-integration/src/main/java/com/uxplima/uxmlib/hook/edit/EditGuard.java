@@ -2,6 +2,8 @@ package com.uxplima.uxmlib.hook.edit;
 
 import java.util.Objects;
 
+import com.uxplima.uxmlib.hook.Hooks;
+
 /**
  * Holding a boundary over whatever world editor the server has, or over none at all.
  *
@@ -36,8 +38,18 @@ public interface EditGuard {
         return Nothing.INSTANCE;
     }
 
-    /** The guard for whatever is installed, which is {@link #none()} when nothing is. */
+    /**
+     * The guard for whatever is installed, which is {@link #none()} when nothing is.
+     *
+     * <p>The presence check is made here, before anything names {@link WorldEditGuard}. Running that class's own
+     * {@code find()} links the class, and linking it loads WorldEdit's extent types, so on a server without WorldEdit
+     * the check inside it never ran: the call threw {@code NoClassDefFoundError} and the plugin asking failed to
+     * enable. This interface names no WorldEdit type, so it links anywhere.
+     */
     static EditGuard forServer() {
+        if (!Hooks.isPresent(WorldEditNames.FAST_ASYNC) && !Hooks.isPresent(WorldEditNames.WORLD_EDIT)) {
+            return none();
+        }
         return WorldEditGuard.find().orElseGet(EditGuard::none);
     }
 

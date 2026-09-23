@@ -43,9 +43,9 @@ import org.jspecify.annotations.Nullable;
  */
 public final class WorldEditGuard implements EditGuard {
 
-    private static final String WORLD_EDIT = "WorldEdit";
+    private static final String WORLD_EDIT = WorldEditNames.WORLD_EDIT;
 
-    private static final String FAST_ASYNC = "FastAsyncWorldEdit";
+    private static final String FAST_ASYNC = WorldEditNames.FAST_ASYNC;
 
     /** The rule in force, or nothing when none has been installed. Read on the editor's own thread. */
     private final AtomicReference<@Nullable EditBoundary> boundary = new AtomicReference<>();
@@ -63,6 +63,9 @@ public final class WorldEditGuard implements EditGuard {
 
     /**
      * The guard for whichever editor is installed, or nothing when none is.
+     *
+     * <p>Call {@link EditGuard#forServer()} rather than this. Running this method links this class, which loads
+     * WorldEdit's types, so on a server without WorldEdit it throws before its own check can run.
      *
      * <p>FastAsyncWorldEdit is asked about first, and it gets a guard of its own. It answers to the name WorldEdit
      * as well, and it throws away the extent this class hands it, so a WorldEdit guard on a FAWE server guards
