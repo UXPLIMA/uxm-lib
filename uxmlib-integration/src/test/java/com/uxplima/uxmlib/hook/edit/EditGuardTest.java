@@ -40,6 +40,19 @@ class EditGuardTest {
     }
 
     @Test
+    @DisplayName("a FAWE server never gets the WorldEdit guard, whose extent FAWE throws away")
+    void aFaweServerNeverGetsTheWorldEditGuard() {
+        // FAWE's half is not on this classpath, which is the state a FAWE whose API moved leaves behind.
+        MockBukkit.createMockPlugin("FastAsyncWorldEdit");
+        MockBukkit.createMockPlugin("WorldEdit");
+
+        assertThat(WorldEditGuard.find())
+                .describedAs("FAWE drops the extent the WorldEdit guard hands it, so that guard would say it"
+                        + " guards while guarding nothing")
+                .isEmpty();
+    }
+
+    @Test
     @DisplayName("a consumer asking the server gets a guard rather than an empty answer")
     void theconsumerAlwaysGetsAGuard() {
         EditGuard guard = EditGuard.forServer();

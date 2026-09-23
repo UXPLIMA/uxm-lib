@@ -61,12 +61,40 @@ public final class WorldEditGuard implements EditGuard {
         this.pluginName = Objects.requireNonNull(pluginName, "pluginName");
     }
 
-    /** The guard for whichever editor is installed, or nothing when none is. */
+    /**
+     * The guard for whichever editor is installed, or nothing when none is.
+     *
+     * <p>FastAsyncWorldEdit is asked about first, and it gets a guard of its own. It answers to the name WorldEdit
+     * as well, and it throws away the extent this class hands it, so a WorldEdit guard on a FAWE server guards
+     * nothing while every doctor line says it does.
+     */
     public static Optional<EditGuard> find() {
-        if (Hooks.isPresent(WORLD_EDIT)) {
-            return Optional.of(new WorldEditGuard(WORLD_EDIT));
+        if (Hooks.isPresent(FAST_ASYNC)) {
+            return faweGuard();
         }
-        return Hooks.isPresent(FAST_ASYNC) ? Optional.of(new WorldEditGuard(FAST_ASYNC)) : Optional.empty();
+        return Hooks.isPresent(WORLD_EDIT) ? Optional.of(new WorldEditGuard(WORLD_EDIT)) : Optional.empty();
+    }
+
+    /**
+     * The FAWE guard, built by name from the half of this module that compiles against FAWE.
+     *
+     * <p>By name, because this half cannot name a FAWE type and still link on a server without FAWE. The name is
+     * read off this class's own package, so it survives a consumer relocating the library. A FAWE whose API this
+     * build no longer links against gets no guard rather than one that guards nothing, and the console says so.
+     */
+    static Optional<EditGuard> faweGuard() {
+        String name = WorldEditGuard.class.getPackageName() + ".FaweEditGuard";
+        try {
+            Class<?> type = Class.forName(name, true, WorldEditGuard.class.getClassLoader());
+            return Optional.of((EditGuard) type.getDeclaredConstructor().newInstance());
+        } catch (ReflectiveOperationException | LinkageError | ClassCastException e) {
+            System.getLogger(WorldEditGuard.class.getName())
+                    .log(
+                            System.Logger.Level.WARNING,
+                            "FastAsyncWorldEdit is installed but its edit guard could not be built, so edits are"
+                                    + " not bounded: " + e);
+            return Optional.empty();
+        }
     }
 
     @Override
@@ -123,7 +151,7 @@ public final class WorldEditGuard implements EditGuard {
      * <p>The permission question goes to the actor and not to the server. The editor holds the answer
      * already and can give it from its own thread, which is the thread this is asked on.
      */
-    private record Editing(Actor actor, String world) implements EditBoundary.Edit {
+    record Editing(Actor actor, String world) implements EditBoundary.Edit {
 
         @Override
         public UUID player() {

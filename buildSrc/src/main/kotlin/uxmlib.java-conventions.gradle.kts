@@ -122,7 +122,7 @@ tasks.withType<Test>().configureEach {
     // plugin on 2026-09-22.
     inputs.files(
             rootProject.fileTree(rootProject.projectDir) {
-                include("**/src/main/java/**", "**/src/test/java/**", "docs/**", "gradle/libs.versions.toml")
+                include("**/src/*/java/**", "docs/**", "gradle/libs.versions.toml")
                 exclude("**/build/**", ".gradle/**", "buildSrc/**")
             })
         .withPathSensitivity(PathSensitivity.RELATIVE)

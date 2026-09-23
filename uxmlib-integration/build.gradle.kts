@@ -72,3 +72,44 @@ dependencies {
     testImplementation(libs.claim.lands) { isTransitive = false }
     testImplementation(libs.claim.griefprevention) { isTransitive = false }
 }
+
+// FastAsyncWorldEdit answers WorldEdit's API with its own copy of every com.sk89q class, and it does not honour
+// the extent WorldEdit's seam hands a listener: it throws the extent away unless its own config names the class,
+// and its fast paths write a chunk at a time past it. What it honours is a processor, which is FAWE's own type.
+// The two editors cannot share a classpath, because whichever came first would decide what the other half
+// compiled against, so the FAWE half has a source set of its own. It compiles against FAWE and this module's
+// main output, and it ships in the same jar.
+val fawe: SourceSet =
+    sourceSets.create("fawe") {
+        compileClasspath += sourceSets.main.get().output
+    }
+val faweTest: SourceSet =
+    sourceSets.create("faweTest") {
+        compileClasspath += fawe.output + sourceSets.main.get().output
+        runtimeClasspath += fawe.output + sourceSets.main.get().output
+    }
+
+dependencies {
+    "faweCompileOnly"(libs.jspecify)
+    "faweCompileOnly"(libs.fawe.core) { withoutServerProvidedLibraries() }
+    "faweTestCompileOnly"(libs.jspecify)
+    "faweTestCompileOnly"(libs.guava)
+    "faweTestImplementation"(libs.fawe.core)
+    "faweTestImplementation"(platform(libs.junit.bom))
+    "faweTestImplementation"(libs.bundles.testing)
+    "faweTestRuntimeOnly"("org.junit.platform:junit-platform-launcher")
+}
+
+val faweTests =
+    tasks.register<Test>("faweTest") {
+        description = "Runs the tests of the FastAsyncWorldEdit half, on FAWE's classpath."
+        group = "verification"
+        testClassesDirs = faweTest.output.classesDirs
+        classpath = faweTest.runtimeClasspath
+    }
+
+tasks.check { dependsOn(faweTests) }
+
+tasks.jar { from(fawe.output) }
+
+tasks.named<Jar>("sourcesJar") { from(fawe.allSource) }
