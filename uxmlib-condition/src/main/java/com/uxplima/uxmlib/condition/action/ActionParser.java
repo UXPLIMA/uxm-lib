@@ -132,12 +132,16 @@ public final class ActionParser {
         return new Actions.BossBarSpec(text, colour, overlay, duration);
     }
 
-    /** {@code <name> [count] [spread]}: which particle, how many, and how far they scatter, in blocks. */
+    /**
+     * {@code <name> [count] [spread] [data]}: which particle, how many, how far they scatter in blocks, and the data a
+     * dust, a block, an item or a coloured particle needs.
+     */
     private static Actions.ParticleSpec parseParticle(String payload) {
         List<String> parts = List.of(payload.strip().split("\\s+"));
         int count = parts.size() > 1 ? (int) parseFloat(parts.get(1), "count", payload) : 12;
         double spread = parts.size() > 2 ? parseFloat(parts.get(2), "spread", payload) : 0.4;
-        return new Actions.ParticleSpec(parts.get(0), count, spread);
+        String data = parts.size() > 3 ? parts.get(3) : "";
+        return new Actions.ParticleSpec(parts.get(0), count, spread, data);
     }
 
     private static <E extends Enum<E>> E named(E[] values, String written, E fallback) {

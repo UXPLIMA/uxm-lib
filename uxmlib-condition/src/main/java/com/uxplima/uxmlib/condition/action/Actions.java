@@ -2,7 +2,9 @@ package com.uxplima.uxmlib.condition.action;
 
 import java.time.Duration;
 import java.util.Objects;
+import java.util.Optional;
 
+import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Registry;
@@ -15,6 +17,7 @@ import net.kyori.adventure.sound.Sound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 
+import com.uxplima.uxmlib.common.ParticleData;
 import com.uxplima.uxmlib.common.Sounds;
 import com.uxplima.uxmlib.condition.ItemStore;
 import com.uxplima.uxmlib.text.Text;
@@ -102,11 +105,13 @@ public final class Actions {
     }
 
     /**
-     * {@code [particle] <name> [count] [spread]}: a puff of particles where the player is standing.
+     * {@code [particle] <name> [count] [spread] [data]}: a puff of particles where the player is standing.
      *
      * <p>The one visual an interaction can carry that is not text. A name the server does not know is skipped
      * rather than thrown, the same way an unparseable sound key is: an operator's typo in a cosmetic line may
-     * not stop the message and the sound beside it from happening.
+     * not stop the message and the sound beside it from happening. A particle that needs data takes it from the
+     * line's last word, or a default when there is none; {@link ParticleData} reads it, and data it cannot read is
+     * skipped the same way.
      */
     public static Action particle(ParticleSpec spec) {
         Objects.requireNonNull(spec, "spec");
@@ -115,9 +120,16 @@ public final class Actions {
             if (drawn == null) {
                 return;
             }
-            player.getWorld()
-                    .spawnParticle(
-                            drawn, player.getLocation(), spec.count(), spec.spread(), spec.spread(), spec.spread());
+            Location at = Objects.requireNonNull(player.getLocation(), "location");
+            Object data = null;
+            if (ParticleData.needs(drawn)) {
+                Optional<Object> read = ParticleData.of(drawn, context.resolve(spec.dataTemplate()), at);
+                if (read.isEmpty()) {
+                    return;
+                }
+                data = read.get();
+            }
+            player.getWorld().spawnParticle(drawn, at, spec.count(), spec.spread(), spec.spread(), spec.spread(), data);
         }));
     }
 
@@ -263,11 +275,20 @@ public final class Actions {
         }
     }
 
-    /** A puff of particles: which, how many, and how far they scatter. */
-    public record ParticleSpec(String nameTemplate, int count, double spread) {
+    /**
+     * A puff of particles: which, how many, how far they scatter, and the data the particle needs, written as the
+     * line's last word. Blank data draws with the particle's default.
+     */
+    public record ParticleSpec(String nameTemplate, int count, double spread, String dataTemplate) {
+
+        /** A puff with no data written, which draws a particle that needs data with its default. */
+        public ParticleSpec(String nameTemplate, int count, double spread) {
+            this(nameTemplate, count, spread, "");
+        }
 
         public ParticleSpec {
             Objects.requireNonNull(nameTemplate, "nameTemplate");
+            Objects.requireNonNull(dataTemplate, "dataTemplate");
             if (count < 1) {
                 throw new IllegalArgumentException("a particle count is one or more, got: " + count);
             }
