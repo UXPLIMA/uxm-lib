@@ -540,9 +540,12 @@ public final class NmsNpcPackets implements NpcPackets {
     public Object equipment(int entityId, Map<EquipmentSlot, ItemStack> items) {
         Objects.requireNonNull(items, "items");
         List<Pair<net.minecraft.world.entity.EquipmentSlot, net.minecraft.world.item.ItemStack>> slots =
-                new ArrayList<>(items.size());
-        for (Map.Entry<EquipmentSlot, ItemStack> entry : items.entrySet()) {
-            slots.add(Pair.of(toNmsSlot(entry.getKey()), CraftItemStack.asNMSCopy(entry.getValue())));
+                new ArrayList<>(EquipmentSlot.values().length);
+        for (EquipmentSlot slot : EquipmentSlots.sent(items)) {
+            ItemStack item = items.get(slot);
+            slots.add(Pair.of(
+                    toNmsSlot(slot),
+                    item == null ? net.minecraft.world.item.ItemStack.EMPTY : CraftItemStack.asNMSCopy(item)));
         }
         return new ClientboundSetEquipmentPacket(entityId, slots);
     }
