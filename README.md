@@ -1,7 +1,7 @@
 # uxmLib
 
 [![build](https://github.com/UXPLIMA/uxm-lib/actions/workflows/build.yml/badge.svg?branch=main)](https://github.com/UXPLIMA/uxm-lib/actions/workflows/build.yml)
-[![JitPack](https://jitpack.io/v/UXPLIMA/uxm-lib.svg)](https://jitpack.io/#UXPLIMA/uxm-lib)
+[![Maven](https://img.shields.io/maven-metadata/v?label=repo.uxplima.com&metadataUrl=https%3A%2F%2Frepo.uxplima.com%2Frepository%2Fmaven-public%2Fcom%2Fuxplima%2Fuxmlib%2Fuxmlib-all%2Fmaven-metadata.xml)](https://repo.uxplima.com/repository/maven-public/com/uxplima/uxmlib/uxmlib-all/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Java 21](https://img.shields.io/badge/Java-21-orange.svg)](https://adoptium.net/)
 [![Paper 26.2+](https://img.shields.io/badge/Paper-26.2%2B-brightgreen.svg)](https://papermc.io/)
@@ -33,6 +33,8 @@ and depend on it as a normal plugin. Both work.
   - [Gradle (Groovy DSL)](#gradle-groovy-dsl)
   - [Maven](#maven)
   - [Align versions with the BOM](#align-versions-with-the-bom)
+  - [Building against a version that is not released yet](#building-against-a-version-that-is-not-released-yet)
+  - [Publishing a release](#publishing-a-release)
   - [Standalone plugin jar](#standalone-plugin-jar)
   - [Shading and relocation](#shading-and-relocation)
 - [Feature tour](#feature-tour)
@@ -96,7 +98,7 @@ compile time only and never ships them.
 
 ## Modules
 
-Every module is published separately under the JitPack group `com.github.UXPLIMA.uxm-lib`; pull only
+Every module is published separately under the group `com.uxplima.uxmlib`; pull only
 what you use. Modules marked **experimental** are previews with unstable APIs (see
 [Versioning & stability](#versioning--stability)).
 
@@ -147,20 +149,20 @@ graph TD
 
 ## Installation
 
-uxmLib is published through [JitPack](https://jitpack.io/#UXPLIMA/uxm-lib). Add the JitPack repository
-(plus Paper's, since the modules compile against the Paper API), then the modules you need. JitPack serves
-each module under the group `com.github.UXPLIMA.uxm-lib` with the git tag as the version.
+uxmLib is published to the organisation's own Maven repository at `repo.uxplima.com`, under the group
+`com.uxplima.uxmlib`, with the git tag as the version. Reading it needs no credentials: the `maven-public`
+group serves every release, and every snapshot, anonymously. Add it (plus Paper's, since the modules compile
+against the Paper API), then the modules you need.
 
-> Replace `VERSION` with the latest released tag, the version shown on the JitPack badge above.
-> There is no `com.github.UXPLIMA:uxm-lib` artifact: the group carries the repository name after a
-> dot, and the coordinate always ends in a module.
+> Replace `VERSION` with the latest released tag, the version on the badge above. The coordinate always ends
+> in a module: there is no `com.uxplima:uxmlib` artifact.
 
-> **The repository used to be called `uxmLib`.** A build that still asks for the group ending in
-> that old name resolves: GitHub redirects the old repository path, JitPack follows it, and every
-> version built before the rename stays served from its cache. New builds should use
-> `com.github.UXPLIMA.uxm-lib`. The old group works, but it rests on that redirect, and the redirect
-> would be lost the moment anything else claimed the name `uxmLib` under this account, so nothing
-> should ever be published under that name again.
+> **It used to come from JitPack, as `com.github.UXPLIMA.uxm-lib`.** That is over, and not because a Maven
+> repository is tidier. JitPack builds from a git tag, so every consumer's build depended on being able to
+> read this git repository, and a CI job cannot: a job's automatic token is scoped to its own repository, so
+> `uxmEssentials` stopped at a 403 while resolving a dependency. A published artifact answers to anyone who
+> can read `maven-public`, which is everyone. A build that still asks for the old group keeps resolving for
+> as long as JitPack's cache holds it, and nothing new is published there.
 
 ### Gradle (Kotlin DSL)
 
@@ -168,13 +170,13 @@ each module under the group `com.github.UXPLIMA.uxm-lib` with the git tag as the
 repositories {
     mavenCentral()
     maven("https://repo.papermc.io/repository/maven-public/")
-    maven("https://jitpack.io")
+    maven("https://repo.uxplima.com/repository/maven-public/")
 }
 
 dependencies {
-    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-gui:VERSION")
-    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-item:VERSION")
-    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-command:VERSION")
+    implementation("com.uxplima.uxmlib:uxmlib-gui:VERSION")
+    implementation("com.uxplima.uxmlib:uxmlib-item:VERSION")
+    implementation("com.uxplima.uxmlib:uxmlib-command:VERSION")
     // ...and uxmlib-common / uxmlib-menu / uxmlib-bedrock / uxmlib-storage /
     // uxmlib-integration / uxmlib-hud / uxmlib-update / uxmlib-condition as needed
 }
@@ -186,7 +188,7 @@ dependencies {
 
 ```kotlin
 dependencies {
-    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-all:VERSION")
+    implementation("com.uxplima.uxmlib:uxmlib-all:VERSION")
 }
 ```
 
@@ -196,12 +198,12 @@ dependencies {
 repositories {
     mavenCentral()
     maven { url 'https://repo.papermc.io/repository/maven-public/' }
-    maven { url 'https://jitpack.io' }
+    maven { url 'https://repo.uxplima.com/repository/maven-public/' }
 }
 
 dependencies {
-    implementation 'com.github.UXPLIMA.uxm-lib:uxmlib-gui:VERSION'
-    implementation 'com.github.UXPLIMA.uxm-lib:uxmlib-item:VERSION'
+    implementation 'com.uxplima.uxmlib:uxmlib-gui:VERSION'
+    implementation 'com.uxplima.uxmlib:uxmlib-item:VERSION'
 }
 ```
 
@@ -214,13 +216,13 @@ dependencies {
     <url>https://repo.papermc.io/repository/maven-public/</url>
   </repository>
   <repository>
-    <id>jitpack.io</id>
-    <url>https://jitpack.io</url>
+    <id>uxplima</id>
+    <url>https://repo.uxplima.com/repository/maven-public/</url>
   </repository>
 </repositories>
 
 <dependency>
-  <groupId>com.github.UXPLIMA.uxm-lib</groupId>
+  <groupId>com.uxplima.uxmlib</groupId>
   <artifactId>uxmlib-gui</artifactId>
   <version>VERSION</version>
 </dependency>
@@ -232,13 +234,43 @@ Importing the BOM lets you list modules without repeating the version on each on
 
 ```kotlin
 dependencies {
-    implementation(platform("com.github.UXPLIMA.uxm-lib:uxmlib-bom:VERSION"))
+    implementation(platform("com.uxplima.uxmlib:uxmlib-bom:VERSION"))
 
-    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-gui")
-    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-item")
-    implementation("com.github.UXPLIMA.uxm-lib:uxmlib-storage")
+    implementation("com.uxplima.uxmlib:uxmlib-gui")
+    implementation("com.uxplima.uxmlib:uxmlib-item")
+    implementation("com.uxplima.uxmlib:uxmlib-storage")
 }
 ```
+
+### Building against a version that is not released yet
+
+A tag is published by the release workflow, so a change on `main` reaches no consumer until it is tagged.
+To build a plugin against local work, publish this library to your own machine and let the plugin resolve it
+from there:
+
+```bash
+./gradlew -Dorg.gradle.java.installations.fromEnv=JAVA_HOME_25_X64 publishToMavenLocal
+```
+
+That installs the current `projectVersion` from `gradle.properties` (a `-SNAPSHOT`), which a consumer picks
+up by adding `mavenLocal()` and asking for that version. Publishing a snapshot to the shared repository
+works too and is what a second machine needs, but it requires the deploy credentials below.
+
+### Publishing a release
+
+The release workflow does this, and it is documented because a manual publish is the recovery path when the
+workflow cannot run. The version comes from the tag, and the repository is chosen by its suffix:
+`-SNAPSHOT` goes to `maven-snapshots`, anything else to `maven-releases`, which refuses to overwrite a
+version that already exists.
+
+```bash
+./gradlew -Dorg.gradle.java.installations.fromEnv=JAVA_HOME_25_X64 \
+  -PprojectVersion=0.144.0 publish
+```
+
+Credentials are read from `uxplimaNexusUser` / `uxplimaNexusPass` in `~/.gradle/gradle.properties`, or from
+`UXPLIMA_NEXUS_USER` / `UXPLIMA_NEXUS_PASS` in the environment. The Gradle property wins, so a machine whose
+environment already carries a different account can override it.
 
 ### Standalone plugin jar
 
@@ -262,7 +294,7 @@ from the release assets, from Maven, or build it yourself:
 ```kotlin
 // only if you need the file itself, e.g. to copy it into a server image
 dependencies {
-    runtimeOnly("com.github.UXPLIMA.uxm-lib:uxmlib-all:VERSION:standalone")
+    runtimeOnly("com.uxplima.uxmlib:uxmlib-all:VERSION:standalone")
 }
 ```
 

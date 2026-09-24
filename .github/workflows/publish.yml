@@ -1,0 +1,111 @@
+name: publish
+
+# The library had 144 tags and no publish target before this file existed: every consumer reached it
+# through JitPack, through mavenLocal(), or by cloning this repository into their own build. A published
+# artifact is what replaces all three, so a release has to end in a deploy and not only in a tag.
+on:
+  release:
+    types: [ published ]
+  # Manual publish of a version that already has a tag. This is the recovery path when a release run
+  # fails after the tag exists: rerunning the release event is not possible, and cutting a second tag to
+  # get a second attempt would burn a version number for an infrastructure problem.
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, without a leading v (e.g. 0.144.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+# Two publishes of the same coordinate race each other, and maven-releases refuses the second one
+# halfway through rather than at the start, which leaves a partial deploy behind.
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: build, test & publish
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Validate the Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v6
+
+      # Two JDKs, for the reason build.yml gives: the compiler has to be 25 because paper-api ships Java
+      # 25 class files, while Gradle itself runs on 21 because Palantir's formatter reaches into javac
+      # internals that changed in 25. Listing 21 last is what points JAVA_HOME at it.
+      - name: Set up the JDKs
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: |
+            25
+            21
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Cache the decompiled server sources
+        uses: actions/cache@v6
+        with:
+          path: ~/.gradle/caches/paperweight-userdev
+          key: paperweight-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+
+      # The tag is the version. `projectVersion` and not `version`, because build.gradle.kts reads
+      # `findProperty("projectVersion")` and falls back to the -SNAPSHOT in gradle.properties; setting
+      # the wrong property name publishes a snapshot coordinate from a release tag and nothing complains.
+      - name: Resolve the version
+        id: ver
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            version="${{ inputs.version }}"
+          else
+            tag="${{ github.event.release.tag_name }}"
+            version="${tag#v}"
+          fi
+          case "$version" in
+            ""|*-SNAPSHOT)
+              echo "::error::refusing to publish '$version': a release must carry a fixed version" >&2
+              exit 1 ;;
+          esac
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      # One Gradle invocation, not a test run followed by a publish run. The NMS modules decompile the
+      # server jar, so a second configuration-and-build pass costs another twenty minutes on a runner
+      # that serves every repository in the organisation.
+      - name: Build, test and publish
+        env:
+          UXPLIMA_NEXUS_USER: ${{ secrets.UXPLIMA_NEXUS_USER }}
+          UXPLIMA_NEXUS_PASS: ${{ secrets.UXPLIMA_NEXUS_PASS }}
+          ORG_GRADLE_PROJECT_projectVersion: ${{ steps.ver.outputs.version }}
+        run: ./gradlew -Dorg.gradle.java.installations.fromEnv=JAVA_HOME_25_X64 clean build publish
+
+      # A publish that reports success while the repository holds nothing is the failure this catches: a
+      # wrong credential answers 401 loudly, but a wrong `url`, or a publication that ended up with no
+      # artifacts, can leave the run green. Reading the files back is the only proof the deploy landed.
+      #
+      # Both jars, not one. uxmlib-all wears two hats and they reach Maven through different paths: the
+      # plain jar comes from the java component, the standalone one only because Shadow's variant carries a
+      # classifier. Losing the classifier -- the regression the build job guards against on disk -- would
+      # stop the plugin jar from being published at all while the release still looked complete.
+      - name: Check the artifacts reached the repository
+        env:
+          VERSION: ${{ steps.ver.outputs.version }}
+        run: |
+          base="https://repo.uxplima.com/repository/maven-releases/com/uxplima/uxmlib/uxmlib-all/$VERSION"
+          status=0
+          for file in "uxmlib-all-$VERSION.jar" "uxmlib-all-$VERSION-standalone.jar" "uxmlib-all-$VERSION.pom"; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --head "$base/$file")
+            if [ "$code" = "200" ]; then
+              echo "ok: $file is served"
+            else
+              echo "::error::$base/$file answered $code, so the publish did not land"
+              status=1
+            fi
+          done
+          exit $status

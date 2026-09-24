@@ -3,9 +3,11 @@
 // with `apply false` makes Gradle 9.x fail with "plugin already on classpath with an unknown version".
 
 allprojects {
-    // JitPack publishes under com.github.UXPLIMA.uxm-lib, which is how every plugin names this
-    // library. Pass -PprojectGroup to publish locally under the same coordinates, so a plugin can
-    // build against a version JitPack has not served yet without editing its own build file.
+    // The published coordinates, and the group every plugin names this library by. It is a plain
+    // default rather than a constant because -PprojectGroup is what lets a developer install the
+    // library locally under some other group, to test a consumer against an unreleased change
+    // without editing that consumer's build file. -PprojectVersion is how the release workflow
+    // passes the tag; the fallback is only ever the local snapshot.
     group = project.findProperty("projectGroup")?.toString() ?: "com.uxplima.uxmlib"
     version = project.findProperty("projectVersion")?.toString() ?: "0.46.0-SNAPSHOT"
 

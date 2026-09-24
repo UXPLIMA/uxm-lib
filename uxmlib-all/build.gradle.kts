@@ -60,4 +60,4 @@ tasks.assemble {
 
 // Giving it a classifier is also what publishes it: Shadow adds its variant to the java component only when
 // the classifier is non-empty (otherwise it would collide with the plain jar), so the plugin now ships from
-// Maven beside the aggregate as com.github.UXPLIMA.uxm-lib:uxmlib-all:VERSION:standalone.
+// Maven beside the aggregate as com.uxplima.uxmlib:uxmlib-all:VERSION:standalone.
