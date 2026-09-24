@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+import org.bukkit.command.CommandSender;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Zombie;
@@ -54,6 +55,11 @@ class ACommandRunAsAPlayerActsForThePlayerTest {
             senders.add(sender.player().map(Player::getName).orElse("nobody"));
             sender.send(Component.text("peeked"));
         }
+
+        @Subcommand("whoami")
+        void whoami(Sender sender, CommandSender injected) {
+            senders.add(sender.bukkit().getName() + "/" + injected.getName());
+        }
     }
 
     private ShopCommand shop;
@@ -88,6 +94,16 @@ class ACommandRunAsAPlayerActsForThePlayerTest {
 
         assertThat(shop.senders).containsExactly("Alex");
         verify(player).sendMessage(Component.text("peeked"));
+    }
+
+    @Test
+    @DisplayName("a handler that reads the Bukkit sender, or takes one, is handed the player it runs as")
+    void theBukkitSenderIsThePlayerItRunsAs() throws Exception {
+        when(console.getName()).thenReturn("CONSOLE");
+        dispatcher.execute("shop whoami", source(console, player));
+        dispatcher.execute("shop whoami", source(console, null));
+
+        assertThat(shop.senders).containsExactly("Alex/Alex", "CONSOLE/CONSOLE");
     }
 
     @Test

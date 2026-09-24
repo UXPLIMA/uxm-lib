@@ -33,9 +33,14 @@ public final class Sender {
         return new Sender(source);
     }
 
-    /** The underlying Bukkit sender (a player, the console, or a command block). */
+    /**
+     * Who the command speaks for: the player it acts for, else the sender (the console or a command block).
+     *
+     * <p>A handler asks this for a reply, a permission or a name, and each of those belongs to the player a command
+     * runs as. The raw sender, which a permission gate reads, stays on {@link #source()}.
+     */
     public CommandSender bukkit() {
-        return source.getSender();
+        return audience(source);
     }
 
     /**

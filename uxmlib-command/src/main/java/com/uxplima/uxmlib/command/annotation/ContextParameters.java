@@ -25,7 +25,7 @@ final class ContextParameters {
     static void installInto(ParamResolvers r) {
         r.context(Sender.class, ctx -> Sender.of(ctx.getSource()));
         r.context(CommandSourceStack.class, com.mojang.brigadier.context.CommandContext::getSource);
-        r.context(CommandSender.class, ctx -> ctx.getSource().getSender());
+        r.context(CommandSender.class, ctx -> Sender.audience(ctx.getSource()));
         r.context(Player.class, ctx -> requirePlayer(ctx, r));
     }
 
