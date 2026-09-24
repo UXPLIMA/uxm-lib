@@ -1,14 +1,15 @@
 package com.uxplima.uxmlib.command.annotation;
 
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.function.Consumer;
 
-import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 
+import com.uxplima.uxmlib.command.Sender;
 import com.uxplima.uxmlib.scheduler.Scheduler;
 import org.jspecify.annotations.Nullable;
 
@@ -60,11 +61,11 @@ final class AsyncCompletion {
         });
     }
 
-    /** Run {@code task} on the region thread owning the sender (entity for a player, global otherwise). */
+    /** Run {@code task} on the region thread owning the reply's player (entity for a player, global otherwise). */
     private static void onSenderThread(Scheduler scheduler, CommandSourceStack source, Runnable task) {
-        CommandSender sender = source.getSender();
-        if (sender instanceof Player player) {
-            scheduler.entity(player, task);
+        Optional<Player> player = Sender.actingPlayer(source);
+        if (player.isPresent()) {
+            scheduler.entity(player.get(), task);
         } else {
             scheduler.global(task);
         }

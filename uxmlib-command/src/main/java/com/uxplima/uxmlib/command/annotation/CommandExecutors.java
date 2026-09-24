@@ -80,7 +80,7 @@ final class CommandExecutors {
 
     /** The locale the sender of this dispatch is answered in. */
     private static Locale localeOf(ParamResolvers resolvers, CommandContext<CommandSourceStack> ctx) {
-        return resolvers.locales().localeOf(ctx.getSource().getSender());
+        return resolvers.locales().localeOf(Sender.audience(ctx.getSource()));
     }
 
     /**
@@ -234,7 +234,7 @@ final class CommandExecutors {
 
     private static CommandCondition playerOnlyCondition(ParamResolvers resolvers) {
         return ctx -> {
-            if (!(ctx.getSource().getSender() instanceof org.bukkit.entity.Player)) {
+            if (Sender.actingPlayer(ctx.getSource()).isEmpty()) {
                 throw new CommandCondition.CommandConditionException(
                         resolvers.messages().playerOnly(localeOf(resolvers, ctx)));
             }

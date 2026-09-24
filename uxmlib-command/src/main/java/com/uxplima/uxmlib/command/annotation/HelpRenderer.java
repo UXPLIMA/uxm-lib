@@ -91,7 +91,7 @@ final class HelpRenderer {
             ParamResolvers resolvers) {
         CommandSourceStack source = ctx.getSource();
         List<Entry> visible = visibleTo(source, entries);
-        Locale locale = resolvers.locales().localeOf(source.getSender());
+        Locale locale = resolvers.locales().localeOf(Sender.audience(source));
         Sender.of(source).send(render(root, visible, page, PER_PAGE, resolvers.messages(), locale));
         return Cmd.OK;
     }

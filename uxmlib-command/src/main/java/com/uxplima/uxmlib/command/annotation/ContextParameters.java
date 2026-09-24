@@ -1,6 +1,7 @@
 package com.uxplima.uxmlib.command.annotation;
 
 import java.util.Locale;
+import java.util.Optional;
 
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -29,13 +30,14 @@ final class ContextParameters {
     }
 
     /**
-     * The sender as a Player, or a refusal shown to the sender, from console. It refuses the way a condition
+     * The player the command acts for, or a refusal shown to the sender, from console. It refuses the way a condition
      * does rather than as a rejected argument, because no argument was wrong: the sender was.
      */
     private static Player requirePlayer(
             com.mojang.brigadier.context.CommandContext<CommandSourceStack> ctx, ParamResolvers resolvers) {
-        if (ctx.getSource().getSender() instanceof Player player) {
-            return player;
+        Optional<Player> acting = Sender.actingPlayer(ctx.getSource());
+        if (acting.isPresent()) {
+            return acting.get();
         }
         Locale locale = resolvers.locales().localeOf(ctx.getSource().getSender());
         throw new CommandCondition.CommandConditionException(

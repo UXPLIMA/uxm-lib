@@ -8,6 +8,7 @@ import org.bukkit.entity.Player;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import com.mojang.brigadier.context.CommandContext;
+import com.uxplima.uxmlib.command.Sender;
 import com.uxplima.uxmlib.command.annotation.annotations.Cooldown;
 import com.uxplima.uxmlib.common.Durations;
 import org.jspecify.annotations.Nullable;
@@ -56,7 +57,8 @@ final class CooldownCondition {
 
     private static void test(
             CommandContext<CommandSourceStack> ctx, String keyPrefix, long durationMillis, ParamResolvers resolvers) {
-        if (!(ctx.getSource().getSender() instanceof Player player)) {
+        Player player = Sender.actingPlayer(ctx.getSource()).orElse(null);
+        if (player == null) {
             return; // the console and command blocks have no per-player identity to rate-limit
         }
         long remaining = resolvers.cooldowns().check(keyPrefix + player.getUniqueId(), durationMillis);
