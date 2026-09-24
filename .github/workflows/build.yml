@@ -87,20 +87,30 @@ jobs:
         run: |
           plain=$(ls uxmlib-all/build/libs/*.jar | grep -v -e '-sources\.jar$' -e '-javadoc\.jar$' -e '-standalone\.jar$')
           shaded=$(ls uxmlib-all/build/libs/*-standalone.jar)
-          if unzip -Z1 "$plain" | grep -q '^com/uxplima/uxmlib/libs/'; then
+          # The listings go to files instead of into `unzip ... | grep -q`, and that is the whole point of
+          # this rewrite. Actions runs every script with `-o pipefail`. `grep -q` exits at its first match,
+          # unzip then takes SIGPIPE, and the pipeline reports 141: finding the entry makes the pipeline
+          # FAIL, so `if ! ...` fires on a jar that is correct. Whether it fires depends on how much output
+          # unzip has already pushed into the 64 KiB pipe buffer, so it is a race, and this listing is about
+          # 127 KiB. That is why the same commit passed on one runner and failed on another, and why the
+          # failure read as "missing its bundled libraries" while the jar carried 1009 of them, 215 of them
+          # configurate. grep over a file cannot lose that race.
+          unzip -Z1 "$plain" > "$RUNNER_TEMP/plain.txt"
+          unzip -Z1 "$shaded" > "$RUNNER_TEMP/shaded.txt"
+          if grep -q '^com/uxplima/uxmlib/libs/' "$RUNNER_TEMP/plain.txt"; then
             echo "::error file=$plain::the aggregate jar contains relocated third-party classes"
             exit 1
           fi
-          if ! unzip -Z1 "$shaded" | grep -q '^com/uxplima/uxmlib/libs/configurate/'; then
+          if ! grep -q '^com/uxplima/uxmlib/libs/configurate/' "$RUNNER_TEMP/shaded.txt"; then
             echo "::error file=$shaded::the standalone jar is missing its bundled libraries"
-            # A guard that only says "missing" costs a whole rebuild to diagnose, and this one already
-            # did: it failed here on 2026-09-24 while the same commit, built locally with the same
-            # command, produced a jar carrying 1009 entries under that prefix. So the next failure has
-            # to arrive with its own evidence rather than sending someone back to reproduce it.
-            echo "entries: $(unzip -Z1 "$shaded" | wc -l)"
-            echo "under com/uxplima/uxmlib/libs/: $(unzip -Z1 "$shaded" | grep -c '^com/uxplima/uxmlib/libs/' || true)"
+            # A guard that only says "missing" costs a whole rebuild to diagnose, and this one did:
+            # it took one run with these three lines to show the jar held 1009 entries under that
+            # prefix and that the guard, not the jar, was wrong. So a failure now arrives with its
+            # own evidence instead of sending someone back to reproduce it.
+            echo "entries: $(wc -l < "$RUNNER_TEMP/shaded.txt")"
+            echo "under com/uxplima/uxmlib/libs/: $(grep -c '^com/uxplima/uxmlib/libs/' "$RUNNER_TEMP/shaded.txt" || true)"
             echo "top of the tree:"
-            unzip -Z1 "$shaded" | awk -F/ 'NF>2 {print $1"/"$2"/"$3}' | sort -u | head -30
+            awk -F/ 'NF>2 {print $1"/"$2"/"$3}' "$RUNNER_TEMP/shaded.txt" | sort -u | head -30
             exit 1
           fi
           echo "ok: $plain is the API aggregate, $shaded is the plugin"
