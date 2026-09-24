@@ -93,6 +93,14 @@ jobs:
           fi
           if ! unzip -Z1 "$shaded" | grep -q '^com/uxplima/uxmlib/libs/configurate/'; then
             echo "::error file=$shaded::the standalone jar is missing its bundled libraries"
+            # A guard that only says "missing" costs a whole rebuild to diagnose, and this one already
+            # did: it failed here on 2026-09-24 while the same commit, built locally with the same
+            # command, produced a jar carrying 1009 entries under that prefix. So the next failure has
+            # to arrive with its own evidence rather than sending someone back to reproduce it.
+            echo "entries: $(unzip -Z1 "$shaded" | wc -l)"
+            echo "under com/uxplima/uxmlib/libs/: $(unzip -Z1 "$shaded" | grep -c '^com/uxplima/uxmlib/libs/' || true)"
+            echo "top of the tree:"
+            unzip -Z1 "$shaded" | awk -F/ 'NF>2 {print $1"/"$2"/"$3}' | sort -u | head -30
             exit 1
           fi
           echo "ok: $plain is the API aggregate, $shaded is the plugin"
@@ -110,7 +118,12 @@ jobs:
 
       - name: Upload the test reports
         if: failure()
-        uses: actions/upload-artifact@v7
+        # forgejo/upload-artifact, not actions/upload-artifact: from v4 on the upstream action
+        # uses @actions/artifact v2, which inspects the API it is talking to and refuses a
+        # Forgejo instance ("not currently supported on GHES"). That is what failed this job's
+        # report upload on 2026-09-24, after the build itself had already failed. The fork
+        # takes the same inputs.
+        uses: forgejo/upload-artifact@v5
         with:
           name: test-reports
           path: '**/build/reports/tests/test'
