@@ -66,6 +66,42 @@ final class IntegrationsTest {
         assertThat(greeting.greet("world")).isEqualTo("hello world");
     }
 
+    /**
+     * The bind line names what was bound, not only whose plugin it is. A plugin that takes an economy and a
+     * permission service from Vault logged "Bound to Vault" twice, which read as the same line written twice.
+     */
+    @Test
+    @DisplayName("the bind line names the capability as well as the plugin")
+    void theBindLineNamesTheCapability() {
+        MockBukkit.createMockPlugin(FAKE_PLUGIN);
+        List<String> lines = new java.util.ArrayList<>();
+        System.Logger recording = new System.Logger() {
+            @Override
+            public String getName() {
+                return "recording";
+            }
+
+            @Override
+            public boolean isLoggable(Level level) {
+                return true;
+            }
+
+            @Override
+            public void log(Level level, java.util.ResourceBundle bundle, String msg, Throwable thrown) {
+                lines.add(msg);
+            }
+
+            @Override
+            public void log(Level level, java.util.ResourceBundle bundle, String format, Object... params) {
+                lines.add(java.text.MessageFormat.format(format, params));
+            }
+        };
+
+        Integrations.resolve(server, recording, List.of(new Greetings()));
+
+        assertThat(lines).containsExactly("Bound to " + FAKE_PLUGIN + " for Greeting");
+    }
+
     @Test
     @DisplayName("a capability is looked up by type, and an unknown type is an error rather than a null")
     void aCapabilityIsLookedUpByType() {

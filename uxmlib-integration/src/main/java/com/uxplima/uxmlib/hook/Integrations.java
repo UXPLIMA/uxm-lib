@@ -187,7 +187,13 @@ public final class Integrations {
         }
         try {
             T present = Objects.requireNonNull(integration.whenPresent(server), "whenPresent");
-            log.log(System.Logger.Level.INFO, "Bound to {0}", integration.pluginName());
+            // The capability as well as the plugin: one plugin can serve two, and Vault serving an economy and a
+            // permission service read as "Bound to Vault" twice, the same line written twice.
+            log.log(
+                    System.Logger.Level.INFO,
+                    "Bound to {0} for {1}",
+                    integration.pluginName(),
+                    integration.capability().getSimpleName());
             return present;
         } catch (RuntimeException | LinkageError failure) {
             // An incompatible release of the other plugin surfaces here as a linkage error or a constructor
