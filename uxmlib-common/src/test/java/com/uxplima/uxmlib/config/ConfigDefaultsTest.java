@@ -11,6 +11,13 @@ import org.junit.jupiter.api.io.TempDir;
 /** Covers default-resource extraction, defaults auto-merge, and comment round-trip. */
 class ConfigDefaultsTest {
 
+    private static org.spongepowered.configurate.ConfigurationNode hocon(String text) throws Exception {
+        return org.spongepowered.configurate.hocon.HoconConfigurationLoader.builder()
+                .source(() -> new java.io.BufferedReader(new java.io.StringReader(text)))
+                .build()
+                .load();
+    }
+
     private static ClassLoader loader() {
         return ConfigDefaultsTest.class.getClassLoader();
     }
@@ -50,6 +57,26 @@ class ConfigDefaultsTest {
         assertThat(wrote).isTrue();
         assertThat(config.getInt("limit", 0)).isEqualTo(99); // user value untouched
         assertThat(config.getBoolean("feature.enabled", false)).isTrue(); // missing key injected from default
+    }
+
+    /**
+     * A value the operator emptied is a value, not a missing key. Configurate's own merge fills an empty string
+     * and an empty list as though the key were absent, so an operator who cleared a message to silence it, or a
+     * list to turn it off, found the shipped default back on the next start.
+     */
+    @Test
+    void mergeDefaultsKeepsAValueTheOperatorEmptied(@TempDir Path dir) throws Exception {
+        Path target = dir.resolve("config.conf");
+        Files.writeString(target, "greeting = \"\"\nworlds = []\nfeature {}\n");
+        HoconConfig config = HoconConfig.load(target);
+
+        config.mergeDefaults(hocon("greeting = \"hello\"\nworlds = [world]\nfeature { enabled = true }\nlimit = 5\n"));
+
+        assertThat(config.getString("greeting", "absent")).isEmpty();
+        assertThat(config.root().node("worlds").childrenList()).isEmpty();
+        assertThat(config.getBoolean("feature.enabled", false)).isTrue(); // a map still gains its missing keys
+        assertThat(config.getInt("limit", 0)).isEqualTo(5);
+        assertThat(HoconConfig.load(target).getString("greeting", "absent")).isEmpty(); // and the file says so
     }
 
     /**

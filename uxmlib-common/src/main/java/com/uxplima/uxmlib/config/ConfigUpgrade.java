@@ -33,7 +33,7 @@ final class ConfigUpgrade {
     static boolean mergeDefaults(
             CommentedConfigurationNode live, ConfigurationNode defaults, Runnable keep, Runnable save) {
         int before = ConfigDefaults.nodeCount(live);
-        live.mergeFrom(defaults);
+        fillAbsent(live, defaults);
         if (ConfigDefaults.nodeCount(live) != before) {
             keep.run();
             save.run();
@@ -49,7 +49,25 @@ final class ConfigUpgrade {
      */
     static boolean include(CommentedConfigurationNode live, ConfigurationNode included) {
         int before = ConfigDefaults.nodeCount(live);
-        live.mergeFrom(included);
+        fillAbsent(live, included);
         return ConfigDefaults.nodeCount(live) != before;
+    }
+
+    /**
+     * Add every key of {@code source} that {@code target} does not have, descending where both hold a map. A key
+     * {@code target} has keeps its value whatever it is: an empty string, an empty list and an empty map are values
+     * an operator wrote. Configurate's own {@code mergeFrom} fills an empty value as though the key were absent, so a
+     * message cleared to silence it and a list emptied to turn it off came back on the next start.
+     */
+    private static void fillAbsent(ConfigurationNode target, ConfigurationNode source) {
+        for (var child : source.childrenMap().entrySet()) {
+            ConfigurationNode existing = target.node(child.getKey());
+            ConfigurationNode shipped = child.getValue();
+            if (existing.virtual()) {
+                existing.from(shipped);
+            } else if (existing.isMap() && shipped.isMap()) {
+                fillAbsent(existing, shipped);
+            }
+        }
     }
 }
