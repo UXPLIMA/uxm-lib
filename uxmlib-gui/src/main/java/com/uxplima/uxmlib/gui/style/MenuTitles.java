@@ -43,7 +43,9 @@ public final class MenuTitles {
     public static Component centre(Component title) {
         Objects.requireNonNull(title, "title");
         String plain = PlainTextComponentSerializer.plainText().serialize(title);
-        if (plain.isBlank() || !measurable(title)) {
+        // A title that already starts with a space was laid out by whoever wrote it, this class included: centring
+        // it again would measure the padding as part of the title and push it right of the middle.
+        if (plain.isBlank() || plain.startsWith(SPACE) || !measurable(title)) {
             return title;
         }
         int free = WINDOW_WIDTH - 2 * TITLE_ORIGIN - GlyphWidthTable.widthOf(plain, false);

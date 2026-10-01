@@ -63,6 +63,17 @@ class MenuTitlesTest {
         assertThat(MenuTitles.centre(keybind)).isSameAs(keybind);
     }
 
+    /**
+     * Centring twice is centring once. A plugin that centred an editor's title handed it to the engine, which centred
+     * it again, measuring the padding as part of the title: every such editor sat to the right of the middle.
+     */
+    @Test
+    void aTitleAlreadyLaidOutIsLeftAlone() {
+        Component once = MenuTitles.centre(Component.text("ᴛᴀɢꜱ"));
+
+        assertThat(MenuTitles.centre(once)).isSameAs(once);
+    }
+
     /** A server that lines its titles up from the left gets them exactly as written. */
     @Test
     void aLeftAlignedTitleIsHandedBackAsWritten() {
