@@ -45,6 +45,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
+import org.spongepowered.configurate.CommentedConfigurationNode;
+import org.spongepowered.configurate.ConfigurationNode;
 
 /**
  * The windows the facade opens for code rather than from a file: the property editor, the entity list, the selector,
@@ -280,6 +282,31 @@ class MenusChildWindowsTest {
         deferring.runQueued();
 
         assertThat(holderOfOpenWindow()).isNull();
+    }
+
+    /**
+     * A theme that says left opens every window with its title as written: the editor and the list alike, so a server
+     * drawing its windows with a resource pack is not undone by one window type that still centres.
+     */
+    @Test
+    void aLeftThemeOpensEveryWindowWithItsTitleAsWritten() throws Exception {
+        ConfigurationNode left = CommentedConfigurationNode.root();
+        left.node("menu-titles").set("left");
+        Theme theme = Theme.from(left);
+        Menus engine = new Menus(
+                new MenuRenderer(
+                        new ItemRenderer(new PlainText(), () -> theme, new PlaceholderRegistry()),
+                        new ConditionRegistry()),
+                scheduler,
+                new ListSourceRegistry(),
+                new EditorRenderer(new PlainText(), () -> theme));
+
+        engine.openList(viewer, listSpec(3));
+        assertThat(plain(viewer.getOpenInventory().title()))
+                .isEqualTo(plain(listSpec(3).title()));
+
+        engine.openEditor(viewer, editorSpec(), "home");
+        assertThat(plain(viewer.getOpenInventory().title())).isEqualTo("editing home");
     }
 
     // -- the entity list ---------------------------------------------------------------------------------------

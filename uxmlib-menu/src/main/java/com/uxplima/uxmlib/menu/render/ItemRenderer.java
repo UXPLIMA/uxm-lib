@@ -67,6 +67,7 @@ import com.uxplima.uxmlib.menu.spec.LoreMode;
 import com.uxplima.uxmlib.menu.spec.MenuItemSpec;
 import com.uxplima.uxmlib.menu.spec.RichMeta;
 import com.uxplima.uxmlib.text.style.Theme;
+import com.uxplima.uxmlib.text.style.TitleAlignment;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -155,6 +156,11 @@ public final class ItemRenderer {
         this.theme = Objects.requireNonNull(theme, "theme");
         this.placeholders = Objects.requireNonNull(placeholders, "placeholders");
         this.iconProviders = Objects.requireNonNull(iconProviders, "iconProviders");
+    }
+
+    /** Where the theme puts a window title, read on every open: the theme is a file an operator edits live. */
+    public TitleAlignment titleAlignment() {
+        return theme.get().titleAlignment();
     }
 
     /**

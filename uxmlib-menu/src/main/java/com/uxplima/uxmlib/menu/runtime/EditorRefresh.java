@@ -69,7 +69,7 @@ public final class EditorRefresh {
         Inventory inv = Bukkit.createInventory(
                 holder,
                 spec.layout().rows() * 9,
-                MenuTitles.centre(spec.title(holder.ctx().viewer(), state.subject())));
+                MenuTitles.lay(spec.title(holder.ctx().viewer(), state.subject()), renderer.titleAlignment()));
         holder.attach(inv);
         renderer.populate(inv, spec, state, holder.ctx().viewer());
         live.openInventory(inv);

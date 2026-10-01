@@ -31,9 +31,9 @@ import org.spongepowered.configurate.ConfigurationNode;
  * for twelve arcs and gets twelve pairs of neighbours, so nothing has to be named for a screen to read as
  * twelve headings rather than one heading twelve times.
  *
- * <p>The same file holds the glyphs the structure is drawn with and which languages are written in small
- * capitals. Both are values rather than mechanism, which is why they are read from a file instead of compiled
- * in.
+ * <p>The same file holds the glyphs the structure is drawn with, which languages are written in small
+ * capitals, and where a window title sits. They are values rather than mechanism, which is why they are read
+ * from a file instead of compiled in.
  *
  * <p>A key the file leaves out keeps the shipped default, so an operator may write three lines instead of
  * forty, a language nobody has answered for keeps its own letters, and a role added in a later version cannot
@@ -107,6 +107,7 @@ public final class Theme {
     private final Map<String, String> glyphs;
     private final Map<String, String> categories;
     private final Set<String> smallCapsLanguages;
+    private final TitleAlignment titleAlignment;
 
     private Theme(
             Map<String, TextColor> roles,
@@ -114,13 +115,15 @@ public final class Theme {
             Map<String, List<TextColor>> gradients,
             Map<String, String> glyphs,
             Map<String, String> categories,
-            Set<String> smallCapsLanguages) {
+            Set<String> smallCapsLanguages,
+            TitleAlignment titleAlignment) {
         this.roles = Map.copyOf(roles);
         this.wheel = List.copyOf(wheel);
         this.gradients = Map.copyOf(gradients);
         this.glyphs = Map.copyOf(glyphs);
         this.categories = Map.copyOf(categories);
         this.smallCapsLanguages = Set.copyOf(smallCapsLanguages);
+        this.titleAlignment = titleAlignment;
     }
 
     /**
@@ -128,7 +131,14 @@ public final class Theme {
      * colour, and nothing else is decided. It is a theme a plugin can ship with and read, not a look.
      */
     public static Theme defaults() {
-        return new Theme(DEFAULT_ROLES, List.of(), Map.of(), DEFAULT_GLYPHS, DEFAULT_CATEGORIES, DEFAULT_SMALL_CAPS);
+        return new Theme(
+                DEFAULT_ROLES,
+                List.of(),
+                Map.of(),
+                DEFAULT_GLYPHS,
+                DEFAULT_CATEGORIES,
+                DEFAULT_SMALL_CAPS,
+                TitleAlignment.CENTRE);
     }
 
     /**
@@ -146,7 +156,8 @@ public final class Theme {
                 gradients(node, palette),
                 glyphs(node),
                 categories(node),
-                smallCaps(node.node("small-caps").childrenMap()));
+                smallCaps(node.node("small-caps").childrenMap()),
+                titleAlignment(node.node("menu-titles")));
     }
 
     /** The colour of {@code role}, or the body colour when this theme does not know the role. */
@@ -225,6 +236,11 @@ public final class Theme {
     public String categoryRole(String label) {
         Objects.requireNonNull(label, "label");
         return categories.getOrDefault(label.toLowerCase(Locale.ROOT), ACCENT);
+    }
+
+    /** Where a window title sits. */
+    public TitleAlignment titleAlignment() {
+        return titleAlignment;
     }
 
     /** Whether {@code locale} is written in small capitals. */
@@ -341,6 +357,12 @@ public final class Theme {
             }
         }
         return categories;
+    }
+
+    /** The alignment the file names, or centred when it names none. */
+    private static TitleAlignment titleAlignment(ConfigurationNode node) {
+        String value = node.getString();
+        return value == null ? TitleAlignment.CENTRE : TitleAlignment.parse(value);
     }
 
     /**

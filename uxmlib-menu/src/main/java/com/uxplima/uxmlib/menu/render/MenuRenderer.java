@@ -31,6 +31,7 @@ import com.uxplima.uxmlib.menu.spec.ListSpec;
 import com.uxplima.uxmlib.menu.spec.MenuItemSpec;
 import com.uxplima.uxmlib.menu.spec.MenuSpec;
 import com.uxplima.uxmlib.menu.spec.Ref;
+import com.uxplima.uxmlib.text.style.TitleAlignment;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -81,6 +82,11 @@ public final class MenuRenderer {
      */
     public ItemRenderer itemRenderer() {
         return itemRenderer;
+    }
+
+    /** Where the theme puts a window title. */
+    public TitleAlignment titleAlignment() {
+        return itemRenderer.titleAlignment();
     }
 
     /**

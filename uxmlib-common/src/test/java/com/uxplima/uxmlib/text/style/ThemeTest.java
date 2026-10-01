@@ -217,6 +217,26 @@ class ThemeTest {
         }
     }
 
+    /**
+     * Where a window title sits is the server's look, so it is in the theme. A server drawing its windows with a
+     * resource pack lines its own glyphs up from the left edge, and centring pushed every one of them off.
+     */
+    @Test
+    void theThemeSaysWhereAWindowTitleSits() throws ConfigurateException {
+        ConfigurationNode left = CommentedConfigurationNode.root();
+        left.node("menu-titles").set("left");
+        ConfigurationNode unknown = CommentedConfigurationNode.root();
+        unknown.node("menu-titles").set("sideways");
+
+        assertThat(Theme.defaults().titleAlignment()).isEqualTo(TitleAlignment.CENTRE);
+        assertThat(Theme.from(left).titleAlignment()).isEqualTo(TitleAlignment.LEFT);
+        assertThat(Theme.from(CommentedConfigurationNode.root()).titleAlignment())
+                .isEqualTo(TitleAlignment.CENTRE);
+        assertThatThrownBy(() -> Theme.from(unknown))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("menu-titles");
+    }
+
     @Test
     void aGradientIsFoundWhateverCaseTheLineWritesItIn() throws ConfigurateException {
         ConfigurationNode node = CommentedConfigurationNode.root();

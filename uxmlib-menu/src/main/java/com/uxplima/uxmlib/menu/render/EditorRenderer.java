@@ -22,6 +22,7 @@ import com.uxplima.uxmlib.menu.property.ConfirmOpener;
 import com.uxplima.uxmlib.menu.property.EditableProperty;
 import com.uxplima.uxmlib.menu.runtime.EditorState;
 import com.uxplima.uxmlib.text.style.Theme;
+import com.uxplima.uxmlib.text.style.TitleAlignment;
 import org.jspecify.annotations.NullMarked;
 
 /**
@@ -46,6 +47,11 @@ public final class EditorRenderer {
     public EditorRenderer(GuiText guiText, Supplier<Theme> theme) {
         this.guiText = Objects.requireNonNull(guiText, "guiText");
         this.theme = Objects.requireNonNull(theme, "theme");
+    }
+
+    /** Where the theme puts a window title, read on every open as the rest of the theme is. */
+    public TitleAlignment titleAlignment() {
+        return theme.get().titleAlignment();
     }
 
     /**

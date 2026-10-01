@@ -624,7 +624,10 @@ public final class Menus {
                 spec, subject, new EditorState.Clicks(requireEditorRenderer(), selectorOpener, confirmOpener));
         holder.attachEditor(state);
         Inventory inv = Bukkit.createInventory(
-                holder, spec.layout().rows() * 9, MenuTitles.centre(spec.title(viewer, subject)));
+                holder,
+                spec.layout().rows() * 9,
+                MenuTitles.lay(
+                        spec.title(viewer, subject), requireEditorRenderer().titleAlignment()));
         holder.attach(inv);
         requireEditorRenderer().populate(inv, spec, state, viewer);
         viewer.openInventory(inv);
@@ -673,7 +676,8 @@ public final class Menus {
         MenuHolder holder = new MenuHolder("list:" + spec.getClass().getSimpleName(), listMenuSpec(spec), ctx);
         ListViewState state = new ListViewState(spec);
         holder.attachListView(state);
-        Inventory inv = Bukkit.createInventory(holder, spec.rows() * 9, MenuTitles.centre(spec.title()));
+        Inventory inv = Bukkit.createInventory(
+                holder, spec.rows() * 9, MenuTitles.lay(spec.title(), renderer.titleAlignment()));
         holder.attach(inv);
         int clamped = listViewRenderer.populate(inv, spec, state, viewer, 0);
         holder.setCtx(ctx.withPage(clamped));
@@ -716,7 +720,8 @@ public final class Menus {
         MenuContext ctx = MenuContext.of(viewer, null, 0);
         MenuHolder holder = new MenuHolder("confirm", confirmMenuSpec(), ctx);
         holder.attachConfirm(new ConfirmState(ConfirmRenderer.YES_SLOT, ConfirmRenderer.NO_SLOT, onYes, onNo));
-        Inventory inv = Bukkit.createInventory(holder, ConfirmRenderer.ROWS * 9, MenuTitles.centre(title));
+        Inventory inv = Bukkit.createInventory(
+                holder, ConfirmRenderer.ROWS * 9, MenuTitles.lay(title, renderer.titleAlignment()));
         holder.attach(inv);
         confirmRenderer.populate(inv);
         viewer.openInventory(inv);
@@ -964,7 +969,7 @@ public final class Menus {
             choices.put(button.slot(), button.onClick());
         }
         holder.attachSelector(new SelectorState(choices));
-        Inventory inv = Bukkit.createInventory(holder, rows * 9, MenuTitles.centre(title));
+        Inventory inv = Bukkit.createInventory(holder, rows * 9, MenuTitles.lay(title, renderer.titleAlignment()));
         holder.attach(inv);
         selectorRenderer.populate(inv, filler, buttons);
         viewer.openInventory(inv);
@@ -1038,7 +1043,8 @@ public final class Menus {
         MenuHolder holder = new MenuHolder("grid:" + spec.menuRows(), gridMenuSpec(windowRows), ctx);
         GridViewState state = new GridViewState(spec, handlers);
         holder.attachGridView(state);
-        Inventory inv = Bukkit.createInventory(holder, windowRows * 9, MenuTitles.centre(spec.title()));
+        Inventory inv =
+                Bukkit.createInventory(holder, windowRows * 9, MenuTitles.lay(spec.title(), renderer.titleAlignment()));
         holder.attach(inv);
         // The grid renderer is built at the use site rather than in the constructor, so an engine wired with a stub or
         // mocked MenuRenderer (many spec-only test fixtures) never dereferences its item renderer unless a grid opens.
@@ -1333,7 +1339,7 @@ public final class Menus {
      * bad {@code inventory-type} never leaves the viewer with a blank or missing window.
      */
     private Inventory createWindow(MenuHolder holder, MenuSpec spec, Component raw) {
-        Component title = MenuTitles.centre(raw);
+        Component title = MenuTitles.lay(raw, renderer.titleAlignment());
         Optional<InventoryType> type = spec.inventoryType().flatMap(Menus::resolveInventoryType);
         if (type.isEmpty()) {
             return Bukkit.createInventory(holder, spec.rows() * 9, title);
