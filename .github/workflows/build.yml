@@ -128,12 +128,7 @@ jobs:
 
       - name: Upload the test reports
         if: failure()
-        # forgejo/upload-artifact, not actions/upload-artifact: from v4 on the upstream action
-        # uses @actions/artifact v2, which inspects the API it is talking to and refuses a
-        # Forgejo instance ("not currently supported on GHES"). That is what failed this job's
-        # report upload on 2026-09-24, after the build itself had already failed. The fork
-        # takes the same inputs.
-        uses: forgejo/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: test-reports
           path: '**/build/reports/tests/test'
