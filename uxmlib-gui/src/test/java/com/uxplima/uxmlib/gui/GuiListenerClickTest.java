@@ -20,8 +20,14 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
 /**
  * Drives {@link GuiListener} directly to cover the per-viewer debounce. Without a Scheduler installed the
  * listener runs the slot action inline, so the second rapid click being dropped is observable.
+ *
+ * <p>Every listener here reads a clock the test owns. On the wall clock, "immediately again" meant "within
+ * 150ms of real time", and a CI JVM paused for longer than that between the two clicks accepted both:
+ * uxm-lib build.yml run 7 failed {@code rapidSecondClickFromSameViewerIsDebounced} with 2 instead of 1.
  */
 class GuiListenerClickTest {
+
+    private final long[] now = {1_000L};
 
     @BeforeEach
     void setUp() {
@@ -41,7 +47,7 @@ class GuiListenerClickTest {
 
     @Test
     void rapidSecondClickFromSameViewerIsDebounced() {
-        GuiListener listener = new GuiListener();
+        GuiListener listener = new GuiListener(() -> now[0]);
         SimpleGui gui = Guis.gui().rows(1).build();
         int[] runs = {0};
         gui.set(0, GuiItem.button(new ItemStack(Material.STONE), e -> runs[0]++));
@@ -55,7 +61,7 @@ class GuiListenerClickTest {
 
     @Test
     void debouncedClickIsStillCancelled() {
-        GuiListener listener = new GuiListener();
+        GuiListener listener = new GuiListener(() -> now[0]);
         SimpleGui gui = Guis.gui().rows(1).build();
         PlayerMock player = MockBukkit.getMock().addPlayer();
 
@@ -69,7 +75,7 @@ class GuiListenerClickTest {
 
     @Test
     void quitForgetsTheViewerSoTheirDebounceEntryDoesNotLeak() {
-        GuiListener listener = new GuiListener();
+        GuiListener listener = new GuiListener(() -> now[0]);
         SimpleGui gui = Guis.gui().rows(1).build();
         int[] runs = {0};
         gui.set(0, GuiItem.button(new ItemStack(Material.STONE), e -> runs[0]++));
@@ -87,7 +93,7 @@ class GuiListenerClickTest {
 
     @Test
     void separateViewersAreNotDebouncedAgainstEachOther() {
-        GuiListener listener = new GuiListener();
+        GuiListener listener = new GuiListener(() -> now[0]);
         SimpleGui gui = Guis.gui().rows(1).build();
         int[] runs = {0};
         gui.set(0, GuiItem.button(new ItemStack(Material.STONE), e -> runs[0]++));
@@ -96,6 +102,21 @@ class GuiListenerClickTest {
 
         listener.onClick(clickFor(a, gui));
         listener.onClick(clickFor(b, gui)); // a different viewer, not debounced by a's click
+
+        assertThat(runs[0]).isEqualTo(2);
+    }
+
+    @Test
+    void aClickOnceTheWindowHasPassedRunsAgain() {
+        GuiListener listener = new GuiListener(() -> now[0]);
+        SimpleGui gui = Guis.gui().rows(1).build();
+        int[] runs = {0};
+        gui.set(0, GuiItem.button(new ItemStack(Material.STONE), e -> runs[0]++));
+        PlayerMock player = MockBukkit.getMock().addPlayer();
+
+        listener.onClick(clickFor(player, gui));
+        now[0] += ClickGuard.DEFAULT_WINDOW.toMillis(); // the window is half-open: exactly its length is outside
+        listener.onClick(clickFor(player, gui));
 
         assertThat(runs[0]).isEqualTo(2);
     }

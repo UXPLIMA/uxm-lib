@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.LongSupplier;
 
 import org.bukkit.entity.Player;
 
@@ -24,6 +25,7 @@ final class ClickGuard {
     static final Duration DEFAULT_WINDOW = Duration.ofMillis(150L);
 
     private final long windowMillis;
+    private final LongSupplier clock;
     private final Map<UUID, Long> lastAccepted = new ConcurrentHashMap<>();
 
     ClickGuard() {
@@ -31,7 +33,14 @@ final class ClickGuard {
     }
 
     ClickGuard(Duration window) {
+        this(window, System::currentTimeMillis);
+    }
+
+    // The clock is a parameter so a listener test can hold time still; on the wall clock a paused JVM
+    // turns "two clicks in a row" into "two clicks 150ms apart".
+    ClickGuard(Duration window, LongSupplier clock) {
         this.windowMillis = Objects.requireNonNull(window, "window").toMillis();
+        this.clock = Objects.requireNonNull(clock, "clock");
     }
 
     /**
@@ -40,7 +49,7 @@ final class ClickGuard {
      */
     boolean accept(Player player) {
         Objects.requireNonNull(player, "player");
-        return acceptAt(player.getUniqueId(), System.currentTimeMillis());
+        return acceptAt(player.getUniqueId(), clock.getAsLong());
     }
 
     // Split out so a test can drive the clock without sleeping.

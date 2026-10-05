@@ -1,5 +1,7 @@
 package com.uxplima.uxmlib.gui;
 
+import java.util.function.LongSupplier;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -23,8 +25,17 @@ import com.uxplima.uxmlib.scheduler.Scheduler;
  */
 public final class GuiListener implements Listener {
 
-    private final ClickGuard clickGuard = new ClickGuard();
+    private final ClickGuard clickGuard;
     private final GuiClickLog clickLog = new GuiClickLog();
+
+    public GuiListener() {
+        this(System::currentTimeMillis);
+    }
+
+    // Package-private: the debounce clock is a test seam, not an API.
+    GuiListener(LongSupplier clock) {
+        this.clickGuard = new ClickGuard(ClickGuard.DEFAULT_WINDOW, clock);
+    }
 
     /** The audit log of recent accepted clicks across every menu, for debugging a misbehaving menu. */
     public GuiClickLog clickLog() {
