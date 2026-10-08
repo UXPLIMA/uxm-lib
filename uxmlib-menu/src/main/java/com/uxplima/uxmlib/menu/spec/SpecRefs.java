@@ -18,8 +18,11 @@ import java.util.function.Predicate;
  *
  * <p>The ids are collected rather than checked here: whether one is registered is the caller's
  * question, and the caller holds the registries. What this knows is where a spec keeps them, which is
- * more places than it looks: a menu's own open and close lists, every item's click actions per gesture,
- * every item's view requirements and their success and deny lists, and the menu's open requirement.
+ * more places than it looks: a menu's own open and close lists and its Bedrock submit list, the open
+ * requirement, and for every item its click actions per gesture, each gesture's requirement block and
+ * else chain, its view requirements with their success and deny lists, what it runs on a dropped
+ * item, and all of that again for a list's row template. Until 2026-10-08 the blocks, the chains, the
+ * drop actions, the template and the submit list were not read, so a typo there stayed silent.
  *
  * <p>Resolution is the engine's own, through {@link Ref#resolve}, so a namespaced id that carries a
  * value is not reported: {@code auction:sort:newest} finds {@code auction:sort} and is answered.
@@ -42,31 +45,72 @@ public final class SpecRefs {
         return unknown(conditionRefs(spec), registered);
     }
 
-    /** Every action a spec can run: its own two lists, and each item's clicks and requirement outcomes. */
+    /** Every action a spec can run: its own two lists, its Bedrock submit list, and each item's. */
     private static List<Ref> actionRefs(MenuSpec spec) {
         List<Ref> refs = new ArrayList<>(spec.openActions());
         refs.addAll(spec.closeActions());
+        spec.bedrock().ifPresent(form -> refs.addAll(form.onSubmit()));
         for (MenuItemSpec item : spec.items().values()) {
-            item.click().actions().values().forEach(refs::addAll);
-            refs.addAll(item.view().deny());
-            for (Requirement requirement : item.view().requirements()) {
-                refs.addAll(requirement.success());
-                refs.addAll(requirement.deny());
-            }
+            itemActions(item, refs);
         }
         return refs;
     }
 
-    /** Every condition a spec can test: the open requirement, each item's view block and its click gates. */
+    /**
+     * An item's actions: each gesture's list, requirement blocks and else chain, its view block's outcomes, what it runs
+     * on a dropped item, and the
+     * same again for a list's row template, which the engine runs exactly as it runs a fixed item.
+     */
+    private static void itemActions(MenuItemSpec item, List<Ref> refs) {
+        ClickSpec click = item.click();
+        click.actions().values().forEach(refs::addAll);
+        click.requirements().values().forEach(block -> blockActions(block, refs));
+        for (ClickBranch branch : click.orElse().values()) {
+            for (ClickBranch link = branch; link != null; link = link.orElse().orElse(null)) {
+                refs.addAll(link.actions());
+                blockActions(link.requirement(), refs);
+            }
+        }
+        blockActions(item.view(), refs);
+        item.itemDrag().ifPresent(drag -> refs.addAll(drag.actions()));
+        item.list().ifPresent(list -> itemActions(list.template(), refs));
+    }
+
+    private static void blockActions(RequirementSpec block, List<Ref> refs) {
+        refs.addAll(block.deny());
+        for (Requirement requirement : block.requirements()) {
+            refs.addAll(requirement.success());
+            refs.addAll(requirement.deny());
+        }
+    }
+
+    /** Every condition a spec can test: the open requirement and each item's. */
     private static List<Ref> conditionRefs(MenuSpec spec) {
         List<Ref> refs = new ArrayList<>(spec.openRequirement());
         for (MenuItemSpec item : spec.items().values()) {
-            for (Requirement requirement : item.view().requirements()) {
-                refs.add(requirement.condition());
-            }
-            item.click().conditions().values().forEach(refs::addAll);
+            itemConditions(item, refs);
         }
         return refs;
+    }
+
+    /** An item's conditions: its view block, each gesture's gates, requirement blocks and else chain, and its row template. */
+    private static void itemConditions(MenuItemSpec item, List<Ref> refs) {
+        ClickSpec click = item.click();
+        blockConditions(item.view(), refs);
+        click.conditions().values().forEach(refs::addAll);
+        click.requirements().values().forEach(block -> blockConditions(block, refs));
+        for (ClickBranch branch : click.orElse().values()) {
+            for (ClickBranch link = branch; link != null; link = link.orElse().orElse(null)) {
+                blockConditions(link.requirement(), refs);
+            }
+        }
+        item.list().ifPresent(list -> itemConditions(list.template(), refs));
+    }
+
+    private static void blockConditions(RequirementSpec block, List<Ref> refs) {
+        for (Requirement requirement : block.requirements()) {
+            refs.add(requirement.condition());
+        }
     }
 
     private static List<String> unknown(List<Ref> refs, Predicate<String> registered) {

@@ -72,6 +72,137 @@ class SpecRefsTest {
         assertThat(SpecRefs.unknownActions(spec, id -> false)).containsExactly("x");
     }
 
+    @Test
+    @DisplayName("a gesture's requirement block is read: its condition, its outcomes and its deny list")
+    void aClickRequirementBlockIsRead() {
+        Requirement gate = new Requirement(
+                ref("shop:can-aford"), false, false, List.of(ref("shop:thank")), List.of(ref("shop:sorry")));
+        RequirementSpec block = new RequirementSpec(List.of(gate), 1, List.of(ref("shop:deny")));
+        ClickSpec click = new ClickSpec(Map.of(), Map.of(), Map.of(ClickKind.LEFT, block));
+        MenuSpec spec = only(itemWithClick(click));
+
+        assertThat(SpecRefs.unknownConditions(spec, id -> false)).containsExactly("shop:can-aford");
+        assertThat(SpecRefs.unknownActions(spec, id -> false))
+                .containsExactlyInAnyOrder("shop:thank", "shop:sorry", "shop:deny");
+    }
+
+    @Test
+    @DisplayName("every link of a gesture's else chain is read, however deep")
+    void anElseChainIsReadToItsEnd() {
+        ClickBranch last = new ClickBranch(
+                new RequirementSpec(List.of(new Requirement(ref("deep:cond"), false)), 1, List.of()),
+                List.of(ref("deep:act")),
+                Optional.empty());
+        ClickBranch first = new ClickBranch(RequirementSpec.NONE, List.of(ref("near:act")), Optional.of(last));
+        ClickSpec click = new ClickSpec(Map.of(), Map.of(), Map.of(), Map.of(ClickKind.LEFT, first));
+        MenuSpec spec = only(itemWithClick(click));
+
+        assertThat(SpecRefs.unknownConditions(spec, id -> false)).containsExactly("deep:cond");
+        assertThat(SpecRefs.unknownActions(spec, id -> false)).containsExactlyInAnyOrder("near:act", "deep:act");
+    }
+
+    @Test
+    @DisplayName("a list's row template is read like any other item")
+    void aListTemplateIsRead() {
+        MenuItemSpec template = item(List.of(ref("row:act")), List.of(ref("row:cond")));
+        MenuItemSpec host = withList(item(List.of(), List.of()), new ListSpec(ref("rows"), template, 9, List.of()));
+        MenuSpec spec = only(host);
+
+        assertThat(SpecRefs.unknownActions(spec, id -> false)).containsExactly("row:act");
+        assertThat(SpecRefs.unknownConditions(spec, id -> false)).containsExactly("row:cond");
+    }
+
+    @Test
+    @DisplayName("a Bedrock form's submit list is read")
+    void aBedrockSubmitListIsRead() {
+        MenuSpec plain = only(item(List.of(), List.of()));
+        MenuSpec spec = new MenuSpec(
+                plain.title(),
+                plain.rows(),
+                plain.refresh(),
+                List.of(),
+                List.of(),
+                List.of(),
+                plain.items(),
+                Optional.empty(),
+                Map.of(),
+                0L,
+                false,
+                false,
+                Optional.of(new BedrockFormSpec("t", null, List.of(), List.of(ref("form:sumbit")))),
+                Map.of());
+
+        assertThat(SpecRefs.unknownActions(spec, id -> false)).containsExactly("form:sumbit");
+    }
+
+    @Test
+    @DisplayName("the actions an item runs on a dropped item are read")
+    void itemDragActionsAreRead() {
+        MenuItemSpec base = item(List.of(), List.of());
+        MenuItemSpec drop = new MenuItemSpec(
+                base.slots(),
+                base.priority(),
+                base.material(),
+                base.name(),
+                base.lore(),
+                base.decor(),
+                base.loreMode(),
+                base.view(),
+                base.click(),
+                base.update(),
+                base.list(),
+                base.type(),
+                Optional.of(new ItemDragSpec(new ItemRuleSpec(List.of(), 1, ""), false, List.of(ref("drop:tkae")))),
+                base.toPage());
+
+        assertThat(SpecRefs.unknownActions(only(drop), id -> false)).containsExactly("drop:tkae");
+    }
+
+    private static Ref ref(String id) {
+        return new Ref(id, Map.of());
+    }
+
+    private static MenuSpec only(MenuItemSpec item) {
+        return new MenuSpec("t", 1, new RefreshSpec(false, 0), List.of(), List.of(), List.of(), Map.of("only", item));
+    }
+
+    private static MenuItemSpec itemWithClick(ClickSpec click) {
+        MenuItemSpec base = item(List.of(), List.of());
+        return new MenuItemSpec(
+                base.slots(),
+                base.priority(),
+                base.material(),
+                base.name(),
+                base.lore(),
+                base.decor(),
+                base.loreMode(),
+                base.view(),
+                click,
+                base.update(),
+                base.list(),
+                base.type(),
+                base.itemDrag(),
+                base.toPage());
+    }
+
+    private static MenuItemSpec withList(MenuItemSpec base, ListSpec list) {
+        return new MenuItemSpec(
+                base.slots(),
+                base.priority(),
+                base.material(),
+                base.name(),
+                base.lore(),
+                base.decor(),
+                base.loreMode(),
+                base.view(),
+                base.click(),
+                base.update(),
+                Optional.of(list),
+                base.type(),
+                base.itemDrag(),
+                base.toPage());
+    }
+
     private static MenuSpec specWith(List<Ref> actions, List<Ref> conditions) {
         return new MenuSpec(
                 "t",
