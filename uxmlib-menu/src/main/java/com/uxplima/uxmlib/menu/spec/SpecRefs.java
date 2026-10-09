@@ -116,6 +116,10 @@ public final class SpecRefs {
     private static List<String> unknown(List<Ref> refs, Predicate<String> registered) {
         Set<String> found = new LinkedHashSet<>();
         for (Ref ref : refs) {
+            if (ref.continuation().isPresent()) {
+                // An input: or confirm: step is the engine's own, and no plugin registers it.
+                continue;
+            }
             Ref effective = ref.resolve(registered);
             if (!registered.test(effective.id())) {
                 found.add(ref.id());

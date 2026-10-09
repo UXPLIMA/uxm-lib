@@ -36,6 +36,28 @@ class SpecRefsTest {
         assertThat(SpecRefs.unknownActions(spec, Set.of("glow:set")::contains)).containsExactly("glow:st");
     }
 
+    /**
+     * An {@code input:} or {@code confirm:} step is the engine's own: it asks, then runs what follows. It is not a
+     * word any plugin registers, so naming it as unregistered told an operator that a working prompt did nothing.
+     * The word after it is still read.
+     */
+    @Test
+    @DisplayName("an input or confirm step is the engine's own and is not named, and a misspelt action beside it is")
+    void continuationStepsAreNotNamed() {
+        MenuSpec spec = new MenuSpecLoader().parse("""
+                rows = 1
+                items {
+                  ask { slot = 0, material = STONE, click { any = [
+                    { do = "input:member.name", prompt = "Name?" }, "shop:buyy" ] } }
+                  sure { slot = 1, material = STONE, click { left = {
+                    do = "confirm:reset", title = "Sure?", yes = ["shop:reset"], no = [] } } }
+                }
+                """);
+
+        assertThat(SpecRefs.unknownActions(spec, Set.of("shop:buy", "shop:reset")::contains))
+                .containsExactly("shop:buyy");
+    }
+
     @Test
     @DisplayName("a namespaced id that carries a value counts as registered")
     void anamespacedIdResolves() {
