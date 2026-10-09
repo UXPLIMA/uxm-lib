@@ -539,7 +539,27 @@ public final class Menus {
                     .map(Inventory::getHolder)
                     .filter(MenuHolder.class::isInstance)
                     .map(MenuHolder.class::cast)
-                    .ifPresent(this::reRender);
+                    .ifPresent(this::redrawWithFreshLists);
+        });
+    }
+
+    /**
+     * Reads the window's list sources again off the tick thread and draws it with the rows they return. A list is how a
+     * window shows state that changes, so a redraw that painted the rows it opened with showed the change everywhere but
+     * there.
+     */
+    private void redrawWithFreshLists(MenuHolder holder) {
+        MenuSpec spec = holder.spec();
+        MenuContext ctx = holder.ctx();
+        Player viewer = ctx.viewer();
+        scheduler.async(() -> {
+            ResolvedLists resolved = resolveLists(spec, ctx);
+            scheduler.entity(viewer, () -> {
+                // The draw itself skips a window the viewer has left since; these rows are only its rows.
+                holder.setResolvedLists(resolved.rows());
+                attachPagedViews(holder, holder.ctx(), resolved.paged());
+                reRender(holder);
+            });
         });
     }
 

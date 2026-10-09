@@ -258,6 +258,37 @@ class MenusFacadeTest {
     }
 
     @Test
+    void aRedrawReadsTheListsAgain() {
+        List<String> rows = new ArrayList<>(List.of("first"));
+        ListSourceRegistry lists = new ListSourceRegistry();
+        lists.register("shop:rows", ctx -> List.copyOf(rows));
+        PlaceholderRegistry placeholders = new PlaceholderRegistry();
+        placeholders.register("row", ctx -> ctx.entry().map(String::valueOf).orElse(""));
+        menus = new Menus(
+                new MenuRenderer(
+                        new ItemRenderer(new PlainText(), Theme::defaults, placeholders), new ConditionRegistry()),
+                scheduler,
+                lists,
+                null,
+                actions,
+                new ConditionRegistry());
+        open(
+                "shop",
+                "rows = 3\nitems { rows { slots = [\"0-8\"], list { source = \"shop:rows\","
+                        + " template { material = STONE, name = \"%row%\" } } } }");
+        Inventory before = viewer.getOpenInventory().getTopInventory();
+        assertThat(before.getItem(1)).isNull();
+
+        rows.add("second");
+        menus.redraw(viewer, "shop");
+
+        assertThat(viewer.getOpenInventory().getTopInventory()).isSameAs(before);
+        assertThat(before.getItem(1))
+                .as("a row the source gained since the open is drawn by the redraw")
+                .isNotNull();
+    }
+
+    @Test
     void aRedrawNamingAMenuTheViewerIsNotLookingAtDoesNothing() {
         open("shop", "rows = 3");
         Inventory before = viewer.getOpenInventory().getTopInventory();
