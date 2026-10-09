@@ -293,6 +293,52 @@ class MenusBedrockFormTest {
         assertThat(holderOfOpenWindow()).isInstanceOf(MenuHolder.class);
     }
 
+    /**
+     * A window that holds real items stays a chest without being told: a trade turned into a form kept its confirm
+     * button and lost the items it was opened to trade.
+     */
+    @Test
+    void aMenuThatHoldsItemsKeepsABedrockViewerOnTheChest() {
+        open("trade", """
+                rows = 1
+                content { "trade:offer" { slots = ["0-3"], editable = true } }
+                items { confirm { slot = 8, material = LIME_WOOL, name = "Confirm", click { left = ["note"] } } }
+                """);
+
+        assertThat(screen.sent).isEmpty();
+        assertThat(holderOfOpenWindow()).isInstanceOf(MenuHolder.class);
+    }
+
+    /** A canvas over the viewer's own inventory is the same: a form has no slots of theirs to paint. */
+    @Test
+    void aBottomInventoryMenuKeepsABedrockViewerOnTheChest() {
+        open("canvas", """
+                bottom-inventory = true
+                items { a { slot = 0, material = STONE, name = "A", click { left = ["note"] } } }
+                """);
+
+        assertThat(screen.sent).isEmpty();
+        assertThat(holderOfOpenWindow()).isInstanceOf(MenuHolder.class);
+    }
+
+    /** Even a menu that writes its own form keeps the chest when it holds items: the form could not hold them. */
+    @Test
+    void aDeclaredFormDoesNotTakeAWindowThatHoldsItems() {
+        open("trade", """
+                rows = 1
+                content { "trade:offer" { slots = ["0-3"], editable = true } }
+                items { confirm { slot = 8, material = LIME_WOOL, name = "Confirm", click { left = ["note"] } } }
+                bedrock {
+                  title = "Trade"
+                  widgets = [ { type = toggle, name = ready, label = "Ready?", default = false } ]
+                  on-submit = [ "note" ]
+                }
+                """);
+
+        assertThat(screen.sent).isEmpty();
+        assertThat(holderOfOpenWindow()).isInstanceOf(MenuHolder.class);
+    }
+
     /** A menu that declares its own form gets that one, not the button list the engine would have degraded to. */
     @Test
     void aMenuThatDeclaresItsOwnFormSendsThatRatherThanTheDegradedButtonList() {

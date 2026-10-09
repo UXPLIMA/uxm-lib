@@ -92,6 +92,16 @@ public record MenuSpec(
     }
 
     /**
+     * Whether a Bedrock viewer must get the chest rather than a form. The operator says so with {@code chestOnly}, and
+     * two shapes say so without being asked: a {@code content {}} region holds real item stacks and a bottom-inventory
+     * menu paints into the viewer's own slots, and a form can show neither. A trade window turned into a form kept
+     * its buttons and lost the items it was opened to trade.
+     */
+    public boolean keepsTheChest() {
+        return chestOnly || bottomInventory || !contents.isEmpty();
+    }
+
+    /**
      * The list-backed item the page controls drive: the arrows, the Bedrock form's page buttons, and the {@code
      * %page%}/{@code %max_page%} indicator all read this one. It is the list drawn nearest the start of the window,
      * which is the one a viewer would name if asked which list "the list" is. Empty for a menu that carries no list.

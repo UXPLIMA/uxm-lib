@@ -1254,24 +1254,25 @@ public final class Menus {
         if (!gateOpen(spec, ctx)) {
             return;
         }
-        // A Bedrock viewer gets a native Cumulus form instead of the chest, unless the menu opts out (chest-only, for
-        // an item-display menu a form cannot represent). An explicit per-menu bedrock {} block wins first: it defines a
-        // native CustomForm (the dropdown/slider/toggle/multi-input widgets the automatic SimpleForm degradation cannot
-        // express) so a menu that declares one sends that form rather than the degraded button list. Absent a block,
-        // the automatic degradation is unchanged. A form is an alternative render at the open choke-point, not a second
-        // window, so it builds no holder and arms no refresh; but it is still an open, so it records into the back
-        // history and fires the menu's open-actions the same way the chest path does: otherwise a back from a form
-        // would have no history to step to and a menu's open-actions would never fire for a Bedrock viewer. A Java
-        // viewer (isBedrock false) falls straight through to the chest path unchanged.
+        // A Bedrock viewer gets a native Cumulus form instead of the chest, unless the menu keeps the chest
+        // (chest-only, a content region or a bottom-inventory canvas: items a form cannot show). An explicit per-menu
+        // bedrock {} block wins first: it defines a native CustomForm (the dropdown/slider/toggle/multi-input widgets
+        // the automatic SimpleForm degradation cannot express) so a menu that declares one sends that form rather than
+        // the degraded button list. Absent a block, the automatic degradation is unchanged. A form is an alternative
+        // render at the open choke-point, not a second window, so it builds no holder and arms no refresh; but it is
+        // still an open, so it records into the back history and fires the menu's open-actions the same way the chest
+        // path does: otherwise a back from a form would have no history to step to and a menu's open-actions would
+        // never fire for a Bedrock viewer. A Java viewer (isBedrock false) falls straight through to the chest path
+        // unchanged.
         if (bedrock.isBedrock(viewer.getUniqueId())
-                && !spec.chestOnly()
+                && !spec.keepsTheChest()
                 && spec.bedrock().isPresent()) {
             sendBedrockCustomForm(viewer, spec, ctx);
             afterBedrockOpen(spec, viewer, ctx, viewer, specId, subject, page, arguments, record);
             return;
         }
         // The resolved list cache is threaded through so a list-backed menu's entries page as form buttons.
-        if (bedrock.isBedrock(viewer.getUniqueId()) && !spec.chestOnly()) {
+        if (bedrock.isBedrock(viewer.getUniqueId()) && !spec.keepsTheChest()) {
             sendBedrockForm(viewer, spec, ctx, resolved.rows());
             afterBedrockOpen(spec, viewer, ctx, viewer, specId, subject, page, arguments, record);
             return;
