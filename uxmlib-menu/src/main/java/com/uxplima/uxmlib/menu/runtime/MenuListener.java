@@ -62,6 +62,7 @@ import com.uxplima.uxmlib.menu.property.PropertyClick;
 import com.uxplima.uxmlib.menu.property.SelectorOpener;
 import com.uxplima.uxmlib.menu.providers.ContentClick;
 import com.uxplima.uxmlib.menu.providers.ContentProvider;
+import com.uxplima.uxmlib.menu.providers.OwnRowsClick;
 import com.uxplima.uxmlib.menu.render.EditorRenderer;
 import com.uxplima.uxmlib.menu.render.GridRenderer;
 import com.uxplima.uxmlib.menu.render.ListViewRenderer;
@@ -524,17 +525,66 @@ public final class MenuListener implements Listener {
             handleContentClick(holder, region, event, raw);
             return true;
         }
+        if (raw >= topSize && handOwnRowsClick(holder, event)) {
+            return true;
+        }
         if (raw >= topSize && event.isShiftClick()) {
             handleContentShiftInsert(holder, event, topSize);
+            return true;
+        }
+        if (raw >= topSize && letsOwnRowsMove(holder, event)) {
+            event.setCancelled(false);
             return true;
         }
         return false;
     }
 
-    /** Ask the region's provider about this one movement and lift the blanket cancel when it allows it. */
+    /**
+     * Put a click on a stack in the viewer's own rows to each region's provider, and report whether one took it as its
+     * own move. A gesture that reaches beyond the one slot is put to none of them.
+     */
+    private boolean handOwnRowsClick(MenuHolder holder, InventoryClickEvent event) {
+        ItemStack stack = emptyToNull(event.getCurrentItem());
+        if (stack == null || refusedGesture(event)) {
+            return false;
+        }
+        OwnRowsClick click = new OwnRowsClick(event.getSlot(), stack.clone(), kindOf(event.getClick()));
+        for (ContentRegionSpec region : holder.spec().contents().values()) {
+            ContentProvider provider = contentProvider(region);
+            if (provider != null && provider.ownRowsClicked(holder.ctx(), region, click)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Whether a plain click in the viewer's own rows may go through. In a window that holds items it must: a stack is
+     * picked up there and put down in the region, and a window that refused the pick up left a player only the shift
+     * click, so a vault page could not take half a stack. The click moves nothing in the window itself, and the put
+     * down that follows is a click on the region, asked of its provider like any other. A canvas over the viewer's
+     * own rows keeps the blanket cancel, because those rows are its tiles, and so does a gesture that reaches beyond
+     * the one slot.
+     */
+    private boolean letsOwnRowsMove(MenuHolder holder, InventoryClickEvent event) {
+        if (holder.spec().bottomInventory() || refusedGesture(event)) {
+            return false;
+        }
+        for (ContentRegionSpec region : holder.spec().contents().values()) {
+            if (region.editable() && contentProvider(region) != null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Ask the region's provider about this one movement and lift the blanket cancel when it allows it, or hand the
+     * click of a read-only region to its provider, which carries it out on its own record.
+     */
     private void handleContentClick(MenuHolder holder, ContentRegionSpec region, InventoryClickEvent event, int slot) {
         ContentProvider provider = contentProvider(region);
-        if (!region.editable() || provider == null || refusedGesture(event)) {
+        if (provider == null || refusedGesture(event)) {
             return;
         }
         ItemStack cursor = emptyToNull(event.getCursor());
@@ -548,6 +598,11 @@ public final class MenuListener implements Listener {
             kind = ContentClick.Kind.SWAP;
         }
         ContentClick click = new ContentClick(slot, region.indexOf(slot), kind, cursor, current);
+        if (!region.editable()) {
+            // A read-only region paints the feature's own record, so the click is a request it carries out there.
+            provider.clicked(holder.ctx(), region, click);
+            return;
+        }
         if (provider.allows(holder.ctx(), region, click)) {
             event.setCancelled(false);
         }

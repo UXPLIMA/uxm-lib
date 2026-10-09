@@ -63,4 +63,22 @@ public interface ContentProvider {
      * whose stacks are copies of something the feature already owns.
      */
     default void readBack(MenuContext ctx, ContentRegionSpec region, List<@Nullable ItemStack> contents) {}
+
+    /**
+     * A click on a region that is not {@code editable}. Such a region paints what the feature keeps on its own record,
+     * so a click on it is a request the feature carries out there: a trade takes an offered stack back, a cargo hold
+     * hands a stack over through its own transfer. The click stays cancelled whatever happens here, so no item moves
+     * in the window. The default does nothing, which is a read-only mirror.
+     */
+    default void clicked(MenuContext ctx, ContentRegionSpec region, ContentClick click) {}
+
+    /**
+     * A click on a stack in the viewer's own inventory while this window is open. Answer {@code true} when the feature
+     * took it as a move of its own, an offer or a deposit carried out on its record; the click then stays cancelled
+     * and no other region is asked. The default answers {@code false}, and the click goes on as it would have: a
+     * shift click into an editable region, or a plain click the viewer's own rows may make.
+     */
+    default boolean ownRowsClicked(MenuContext ctx, ContentRegionSpec region, OwnRowsClick click) {
+        return false;
+    }
 }

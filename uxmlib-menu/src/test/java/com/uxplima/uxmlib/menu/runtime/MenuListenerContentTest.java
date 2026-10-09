@@ -29,8 +29,10 @@ import com.uxplima.uxmlib.menu.binding.PagedListSourceRegistry;
 import com.uxplima.uxmlib.menu.binding.PlaceholderRegistry;
 import com.uxplima.uxmlib.menu.providers.ContentClick;
 import com.uxplima.uxmlib.menu.providers.ContentProvider;
+import com.uxplima.uxmlib.menu.providers.OwnRowsClick;
 import com.uxplima.uxmlib.menu.render.ItemRenderer;
 import com.uxplima.uxmlib.menu.render.MenuRenderer;
+import com.uxplima.uxmlib.menu.spec.ClickKind;
 import com.uxplima.uxmlib.menu.spec.ContentRegionSpec;
 import com.uxplima.uxmlib.menu.spec.MenuSpecLoader;
 import com.uxplima.uxmlib.menu.support.SameThreadScheduler;
@@ -85,6 +87,44 @@ class MenuListenerContentTest {
         public boolean allows(MenuContext ctx, ContentRegionSpec region, ContentClick click) {
             asked.add(click);
             return verdict;
+        }
+    }
+
+    /**
+     * A feature that keeps its items on its own record: it records the clicks handed to it on a read-only region and
+     * in the viewer's own rows, takes the own-rows ones or not as told, and allows every movement it is asked about.
+     */
+    private static final class Keeping implements ContentProvider {
+
+        private final boolean takes;
+
+        private final List<ContentClick> clicked = new ArrayList<>();
+
+        private final List<OwnRowsClick> ownRows = new ArrayList<>();
+
+        Keeping(boolean takes) {
+            this.takes = takes;
+        }
+
+        @Override
+        public List<@Nullable ItemStack> render(MenuContext ctx, ContentRegionSpec region) {
+            return List.of();
+        }
+
+        @Override
+        public boolean allows(MenuContext ctx, ContentRegionSpec region, ContentClick click) {
+            return true;
+        }
+
+        @Override
+        public void clicked(MenuContext ctx, ContentRegionSpec region, ContentClick click) {
+            clicked.add(click);
+        }
+
+        @Override
+        public boolean ownRowsClicked(MenuContext ctx, ContentRegionSpec region, OwnRowsClick click) {
+            ownRows.add(click);
+            return takes;
         }
     }
 
@@ -418,5 +458,148 @@ class MenuListenerContentTest {
 
         assertThat(top().getItem(1)).isNull();
         assertThat(provider.asked).isEmpty();
+    }
+
+    /**
+     * A stack is picked up in the viewer's own rows and put down in the region, so the pick up goes through. A
+     * window that refused it left the shift click alone, and a vault page could not take half a stack.
+     */
+    @Test
+    void aPlainClickInTheViewersOwnRowsGoesThroughInAWindowThatHoldsItems() {
+        contents.register("deposit", new Recording(true));
+        open(SPEC);
+
+        InventoryClickEvent event = leftClick(holdInOwnRows(new ItemStack(Material.EMERALD)));
+
+        assertThat(event.isCancelled()).isFalse();
+    }
+
+    /** A double click gathers from the whole window, chrome included, so it stays refused from the viewer's rows too. */
+    @Test
+    void aDoubleClickInTheViewersOwnRowsStaysRefused() {
+        contents.register("deposit", new Recording(true));
+        open(SPEC);
+
+        InventoryClickEvent event = click(
+                holdInOwnRows(new ItemStack(Material.EMERALD)),
+                ClickType.DOUBLE_CLICK,
+                InventoryAction.COLLECT_TO_CURSOR);
+
+        assertThat(event.isCancelled()).isTrue();
+    }
+
+    /** A window whose regions take nothing keeps the viewer's rows shut, as every menu did before regions existed. */
+    @Test
+    void aWindowThatTakesNothingKeepsTheViewersRowsShut() {
+        open("rows = 3\ncontent { mirror { slots = [1, 2], editable = false } }");
+
+        InventoryClickEvent event = leftClick(holdInOwnRows(new ItemStack(Material.EMERALD)));
+
+        assertThat(event.isCancelled()).isTrue();
+    }
+
+    /** An editable region with no provider behind it takes nothing either, so the rows stay shut. */
+    @Test
+    void aRegionWithNoProviderKeepsTheViewersRowsShut() {
+        open(SPEC);
+
+        InventoryClickEvent event = leftClick(holdInOwnRows(new ItemStack(Material.EMERALD)));
+
+        assertThat(event.isCancelled()).isTrue();
+    }
+
+    // -- a feature that keeps its items itself -------------------------------------------------------------------
+
+    /** A trade's own offer is painted from its record: a click on it is handed over, and nothing moves in the window. */
+    @Test
+    void aClickOnAReadOnlyRegionIsHandedToItsProviderAndMovesNothing() {
+        Keeping provider = new Keeping(false);
+        contents.register("deposit", provider);
+        open("rows = 3\ncontent { deposit { slots = [1, 2] } }");
+        top().setItem(2, new ItemStack(Material.EMERALD));
+
+        assertThat(leftClick(2).isCancelled()).isTrue();
+        assertThat(provider.clicked).singleElement().satisfies(click -> {
+            assertThat(click.index()).isEqualTo(1);
+            assertThat(click.taken()).contains(new ItemStack(Material.EMERALD));
+        });
+        assertThat(top().getItem(2)).isEqualTo(new ItemStack(Material.EMERALD));
+    }
+
+    /** A gesture that reaches beyond the one slot is not handed over on a read-only region either. */
+    @Test
+    void aDoubleClickOnAReadOnlyRegionIsNotHandedOver() {
+        Keeping provider = new Keeping(false);
+        contents.register("deposit", provider);
+        open("rows = 3\ncontent { deposit { slots = [1, 2] } }");
+        top().setItem(2, new ItemStack(Material.EMERALD));
+
+        click(2, ClickType.DOUBLE_CLICK, InventoryAction.COLLECT_TO_CURSOR);
+
+        assertThat(provider.clicked).isEmpty();
+    }
+
+    /** A stack clicked in the viewer's own rows is handed over with where it sits, a copy of it and the gesture. */
+    @Test
+    void aClickOnAStackInTheViewersOwnRowsIsHandedToTheProvider() {
+        Keeping provider = new Keeping(true);
+        contents.register("deposit", provider);
+        open("rows = 3\ncontent { deposit { slots = [1, 2] } }");
+
+        int raw = holdInOwnRows(new ItemStack(Material.EMERALD));
+        InventoryClickEvent event = click(raw, ClickType.RIGHT, InventoryAction.PICKUP_HALF);
+
+        assertThat(event.isCancelled()).isTrue();
+        assertThat(provider.ownRows).singleElement().satisfies(click -> {
+            // The slot the view itself names for the raw slot: MockBukkit numbers it unlike a server, so not a literal.
+            assertThat(click.inventorySlot())
+                    .isEqualTo(viewer.getOpenInventory().convertSlot(raw));
+            assertThat(click.stack()).isEqualTo(new ItemStack(Material.EMERALD));
+            assertThat(click.gesture()).isEqualTo(ClickKind.RIGHT);
+        });
+    }
+
+    /** A provider that takes the click as its own move stops the engine's shift insert: the stack moves once. */
+    @Test
+    void aProviderThatTakesTheOwnRowsClickStopsTheShiftInsert() {
+        contents.register("deposit", new Keeping(true));
+        open(SPEC);
+
+        InventoryClickEvent event = click(
+                holdInOwnRows(new ItemStack(Material.EMERALD)),
+                ClickType.SHIFT_LEFT,
+                InventoryAction.MOVE_TO_OTHER_INVENTORY);
+
+        assertThat(event.isCancelled()).isTrue();
+        assertThat(top().getItem(1)).isNull();
+    }
+
+    /** A provider that leaves the click alone lets it go on, here as the engine's shift insert. */
+    @Test
+    void aProviderThatLeavesTheOwnRowsClickLetsItGoOn() {
+        contents.register("deposit", new Keeping(false));
+        open(SPEC);
+
+        click(
+                holdInOwnRows(new ItemStack(Material.EMERALD)),
+                ClickType.SHIFT_LEFT,
+                InventoryAction.MOVE_TO_OTHER_INVENTORY);
+
+        assertThat(top().getItem(1)).isEqualTo(new ItemStack(Material.EMERALD));
+    }
+
+    /** A double click in the viewer's own rows gathers from the whole window, so it is not handed over. */
+    @Test
+    void aDoubleClickInTheViewersOwnRowsIsNotHandedOver() {
+        Keeping provider = new Keeping(true);
+        contents.register("deposit", provider);
+        open(SPEC);
+
+        click(
+                holdInOwnRows(new ItemStack(Material.EMERALD)),
+                ClickType.DOUBLE_CLICK,
+                InventoryAction.COLLECT_TO_CURSOR);
+
+        assertThat(provider.ownRows).isEmpty();
     }
 }
