@@ -289,6 +289,39 @@ class MenusFacadeTest {
     }
 
     @Test
+    void aRedrawOfAWindowWithNoListWaitsForNothing() {
+        List<Runnable> held = new ArrayList<>();
+        boolean[] holding = {false};
+        menus = new Menus(
+                renderer(),
+                new SameThreadScheduler() {
+                    @Override
+                    public com.uxplima.uxmlib.scheduler.TaskHandle async(Runnable task) {
+                        if (!holding[0]) {
+                            return super.async(task);
+                        }
+                        held.add(task);
+                        return FINISHED;
+                    }
+                },
+                new ListSourceRegistry(),
+                null,
+                actions,
+                new ConditionRegistry());
+        open("shop", "rows = 3\nitems { one { slot = 0, material = STONE, name = \"n\" } }");
+        Inventory window = viewer.getOpenInventory().getTopInventory();
+        window.setItem(0, null);
+        holding[0] = true;
+
+        menus.redraw(viewer, "shop");
+
+        assertThat(held)
+                .as("a window with no list has nothing to read off the tick thread")
+                .isEmpty();
+        assertThat(window.getItem(0)).isNotNull();
+    }
+
+    @Test
     void aRedrawNamingAMenuTheViewerIsNotLookingAtDoesNothing() {
         open("shop", "rows = 3");
         Inventory before = viewer.getOpenInventory().getTopInventory();

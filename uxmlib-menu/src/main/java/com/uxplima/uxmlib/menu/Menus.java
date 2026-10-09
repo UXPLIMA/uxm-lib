@@ -546,10 +546,15 @@ public final class Menus {
     /**
      * Reads the window's list sources again off the tick thread and draws it with the rows they return. A list is how a
      * window shows state that changes, so a redraw that painted the rows it opened with showed the change everywhere but
-     * there.
+     * there. A window with no list is drawn at once.
      */
     private void redrawWithFreshLists(MenuHolder holder) {
         MenuSpec spec = holder.spec();
+        if (spec.items().values().stream().noneMatch(item -> item.list().isPresent())) {
+            // Nothing to read again, so nothing to wait for: the far side of a trade sees a stake at once.
+            reRender(holder);
+            return;
+        }
         MenuContext ctx = holder.ctx();
         Player viewer = ctx.viewer();
         scheduler.async(() -> {
