@@ -178,6 +178,49 @@ class ItemRendererTileTest {
         assertThat(lore("Ready")).isEqualTo("Ready");
     }
 
+    /**
+     * A Bedrock form button holds a line or two, and a tile's name is a blank with the whole tooltip in its lore.
+     * The name-and-lore label gave a form button the description wrapped to a chest tooltip's width, both headers
+     * and the click sentence: twelve lines for one button.
+     */
+    @Test
+    @DisplayName("a tile is a form button of its title and its first fact")
+    void aTileIsATwoLineButton() throws Exception {
+        Theme drawn = Theme.from(
+                parse("glyphs { title = \"◆\", row = \"•\", status = \"•\", description = \"✎\", details = \"≡\","
+                        + " action = \"→\" }"));
+        Messages messages = new Messages(
+                MessageCatalogLoader.fromNodes(Map.of(Locale.ENGLISH, parse(CATALOGUE)), Locale.ENGLISH),
+                LocaleSource.ofDefault(Locale.ENGLISH));
+        ItemRenderer themed =
+                new ItemRenderer(new CatalogueWords(messages, new Styler(drawn)), () -> drawn, placeholders);
+
+        String button = themed.buttonText(
+                item("material = STONE, name = \" \", lore = [\"tile:5 @menu.offer stock\"]"),
+                MenuContext.of(viewer, null, 0));
+
+        assertThat(button).isEqualTo("12 coins\nStock 7");
+    }
+
+    @Test
+    @DisplayName("a tile that lists no fact is a form button of its title and its category")
+    void aTileWithoutFactsShowsItsCategory() {
+        String button = renderer.buttonText(
+                item("material = STONE, name = \" \", lore = [\"tile:5 @menu.offer -stock\"]"),
+                MenuContext.of(viewer, null, 0));
+
+        assertThat(button).isEqualTo("12 coins\nPlayer shop");
+    }
+
+    @Test
+    @DisplayName("an item with a name of its own keeps its name and lore on the button")
+    void aNamedItemKeepsItsLabel() {
+        String button = renderer.buttonText(
+                item("material = STONE, name = \"Shop\", lore = [\"Buy things\"]"), MenuContext.of(viewer, null, 0));
+
+        assertThat(button).isEqualTo("Shop\nBuy things");
+    }
+
     /** The rendered lore of an item whose single lore entry is {@code raw}, flattened to one string. */
     private String lore(String raw) {
         List<Component> lines = renderer.lore(

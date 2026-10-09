@@ -18,6 +18,7 @@ import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.bukkit.Color;
 import org.bukkit.DyeColor;
@@ -189,11 +190,72 @@ public final class ItemRenderer {
     public String buttonText(MenuItemSpec item, MenuContext ctx) {
         Objects.requireNonNull(item, "item");
         Objects.requireNonNull(ctx, "ctx");
-        StringBuilder label = new StringBuilder(plainLine(item.name(), ctx));
+        String name = plainLine(item.name(), ctx);
+        if (name.isBlank()) {
+            for (String line : item.lore()) {
+                if (MenuTiles.marks(line.startsWith("@") ? line.substring(1) : line)) {
+                    String tile = tileButton(plainLine(line, ctx), theme.get());
+                    if (!tile.isEmpty()) {
+                        return tile;
+                    }
+                }
+            }
+        }
+        StringBuilder label = new StringBuilder(name);
         for (String line : item.lore()) {
             label.append('\n').append(plainLine(line, ctx));
         }
         return label.toString();
+    }
+
+    /**
+     * A tile as the two lines a form button holds: its title, and under it the first fact it lists, or its category
+     * when it lists none.
+     *
+     * <p>A tile's name is a blank and its whole tooltip is in the lore, so the name-and-lore label above gave a
+     * Bedrock player a button of twelve lines: the description wrapped to the width of a chest tooltip, the headers
+     * and the closing click sentence a tap does not need. The title says what the button is and the first fact says
+     * where it stands, which is what a button in a list has room for. Answers an empty string when the drawn tile has
+     * no title line, so the caller keeps the long label rather than a blank button.
+     */
+    static String tileButton(String drawn, Theme theme) {
+        String titleMark = theme.glyph("title");
+        // A theme may draw a block with no glyph at all, and an empty glyph begins every line.
+        List<String> bullets = Stream.of(theme.glyph("row"), theme.glyph("status"))
+                .filter(glyph -> !glyph.isEmpty())
+                .toList();
+        List<String> marks = Stream.of("row", "status", "description", "details", "action")
+                .map(theme::glyph)
+                .filter(glyph -> !glyph.isEmpty())
+                .toList();
+        String title = "";
+        String crumb = "";
+        String fact = "";
+        boolean underTitle = false;
+        for (String raw : drawn.split("\n", -1)) {
+            String line = raw.strip();
+            if (title.isEmpty()) {
+                if (!line.isEmpty() && line.startsWith(titleMark)) {
+                    title = line.substring(titleMark.length()).strip();
+                    underTitle = true;
+                }
+                continue;
+            }
+            if (underTitle && !line.isEmpty() && marks.stream().noneMatch(line::startsWith)) {
+                crumb = line;
+            }
+            underTitle = false;
+            for (String bullet : bullets) {
+                if (fact.isEmpty() && line.startsWith(bullet)) {
+                    fact = line.substring(bullet.length()).strip();
+                }
+            }
+        }
+        if (title.isEmpty()) {
+            return "";
+        }
+        String second = fact.isEmpty() ? crumb : fact;
+        return second.isEmpty() ? title : title + "\n" + second;
     }
 
     /**
