@@ -2,8 +2,11 @@ package com.uxplima.uxmlib.item;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -13,6 +16,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 import io.papermc.paper.datacomponent.DataComponentBuilder;
+import io.papermc.paper.datacomponent.DataComponentType;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.TooltipDisplay;
 
@@ -21,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 
 /**
  * What the client is allowed to add under a menu icon's lore.
@@ -96,6 +101,67 @@ class TooltipsTest {
                         .vanillaTooltip(true)
                         .build())
                 .doesNotThrowAnyException();
+    }
+
+    /**
+     * Every component the client's own tooltip code writes a line for, read off the 26.2 server: a firework
+     * star's colours, a spawner's block entity, a head's owner, a pot's sherds. The menu's own words are
+     * not among them.
+     */
+    @Test
+    void theVanillaSetCoversEveryLineTheClientWritesByItself() {
+        assertThat(Tooltips.VANILLA_COMPONENTS)
+                .contains(
+                        DataComponentTypes.ATTRIBUTE_MODIFIERS,
+                        DataComponentTypes.FIREWORKS,
+                        DataComponentTypes.FIREWORK_EXPLOSION,
+                        DataComponentTypes.BLOCK_DATA,
+                        DataComponentTypes.CONTAINER_LOOT,
+                        DataComponentTypes.DAMAGE,
+                        DataComponentTypes.INTANGIBLE_PROJECTILE,
+                        DataComponentTypes.OMINOUS_BOTTLE_AMPLIFIER,
+                        DataComponentTypes.POT_DECORATIONS,
+                        DataComponentTypes.PROFILE,
+                        DataComponentTypes.TROPICAL_FISH_PATTERN,
+                        DataComponentTypes.PAINTING_VARIANT,
+                        DataComponentTypes.SULFUR_CUBE_CONTENT)
+                .doesNotContain(DataComponentTypes.LORE, DataComponentTypes.CUSTOM_NAME, DataComponentTypes.ITEM_NAME);
+    }
+
+    /**
+     * The three the API names no constant for are found by their key, so a spawner's "Interact with Spawn
+     * Egg" goes with the rest. Pinned on its own: a registry that could not answer would leave them out
+     * without failing anything else.
+     */
+    @Test
+    void theComponentsWithNoConstantAreFoundByTheirKey() {
+        assertThat(Tooltips.vanillaComponents())
+                .containsAll(Tooltips.VANILLA_COMPONENTS)
+                .hasSize(Tooltips.VANILLA_COMPONENTS.size() + Tooltips.VANILLA_COMPONENTS_BY_KEY.size());
+    }
+
+    /** What no component silences: the template's "Applies to" and the fragment's disc come from the item. */
+    @Test
+    void templatesAndTheDiscFragmentWriteTheirOwnLines() {
+        assertThat(Tooltips.writesItsOwnLines(Material.NETHERITE_UPGRADE_SMITHING_TEMPLATE))
+                .isTrue();
+        assertThat(Tooltips.writesItsOwnLines(Material.SENTRY_ARMOR_TRIM_SMITHING_TEMPLATE))
+                .isTrue();
+        assertThat(Tooltips.writesItsOwnLines(Material.DISC_FRAGMENT_5)).isTrue();
+        assertThat(Tooltips.writesItsOwnLines(Material.DIAMOND_SWORD)).isFalse();
+        assertThat(Tooltips.writesItsOwnLines(Material.SPAWNER)).isFalse();
+        assertThat(Tooltips.writesItsOwnLines(Tooltips.CARRIER)).isFalse();
+    }
+
+    /** A code-built icon is silenced the same as a file's: the builder hides the whole set, keyed ones too. */
+    @Test
+    void theBuilderHidesTheWholeSet() {
+        Set<DataComponentType> every = Tooltips.vanillaComponents();
+        try (MockedStatic<Tooltips> tooltips = mockStatic(Tooltips.class, CALLS_REAL_METHODS)) {
+            ItemBuilder.of(Material.DIAMOND_SWORD).vanillaTooltip(false);
+
+            tooltips.verify(() -> Tooltips.hide(any(ItemStack.class), eq(every)));
+        }
     }
 
     /** The tooltip display this call put on {@code item}. */

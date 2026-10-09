@@ -298,7 +298,7 @@ public final class ItemBuilder {
 
     /**
      * Whether the client may write its own lines under this item's lore. Off, it hides
-     * {@link Tooltips#VANILLA_COMPONENTS}, which is what a menu icon wants: a leather chestplate used as a
+     * {@link Tooltips#vanillaComponents()}, which is what a menu icon wants: a leather chestplate used as a
      * button otherwise says "Dyed" and "Armor" underneath whatever the menu wrote, and the client has no
      * way of knowing it is looking at a button.
      *
@@ -311,7 +311,7 @@ public final class ItemBuilder {
      * compose: the whole-tooltip flag survives a call to either of these.
      */
     public ItemBuilder vanillaTooltip(boolean shown) {
-        return hiddenComponents(shown ? Set.of() : Tooltips.VANILLA_COMPONENTS);
+        return hiddenComponents(shown ? Set.of() : Tooltips.vanillaComponents());
     }
 
     /**

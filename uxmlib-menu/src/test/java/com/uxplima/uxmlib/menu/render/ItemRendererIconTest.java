@@ -110,6 +110,28 @@ class ItemRendererIconTest {
         assertThat(render("material = DIAMOND_SWORD, name = \"n\"").getType()).isEqualTo(Material.DIAMOND_SWORD);
     }
 
+    /**
+     * A smithing template writes what it applies to and what it needs from the item itself, and no hidden
+     * component silences that. So it is drawn on an item that writes nothing, in the template's model.
+     */
+    @Test
+    void aSmithingTemplateIsDrawnOnTheCarrierInItsOwnModel() {
+        ItemStack drawn = render("material = NETHERITE_UPGRADE_SMITHING_TEMPLATE, name = \"n\"");
+
+        assertThat(drawn.getType()).isEqualTo(Tooltips.CARRIER);
+        assertThat(Objects.requireNonNull(drawn.getItemMeta()).getItemModel())
+                .isEqualTo(Material.NETHERITE_UPGRADE_SMITHING_TEMPLATE.getKey());
+    }
+
+    /** An operator who named a model of their own gets that one, carrier or not. */
+    @Test
+    void aSpecsOwnModelStillWinsOnATemplate() {
+        ItemStack drawn = render(
+                "material = NETHERITE_UPGRADE_SMITHING_TEMPLATE, name = \"n\", decor { item-model = \"minecraft:diamond\" }");
+
+        assertThat(Objects.requireNonNull(drawn.getItemMeta()).getItemModel()).isEqualTo(Material.DIAMOND.getKey());
+    }
+
     /** A typo costs one stone icon in one slot. Aborting the render would cost the whole menu. */
     @Test
     void anUnknownMaterialFallsBackToStoneRatherThanAbortingTheRender() {
@@ -269,7 +291,7 @@ class ItemRendererIconTest {
         MenuItemSpec spec = item("material = DIAMOND_SWORD, name = \"n\"");
 
         assertThat(ItemRenderer.hiddenFor(spec.decor().meta()))
-                .containsExactlyInAnyOrderElementsOf(Tooltips.VANILLA_COMPONENTS);
+                .containsExactlyInAnyOrderElementsOf(Tooltips.vanillaComponents());
     }
 
     /**
@@ -287,7 +309,7 @@ class ItemRendererIconTest {
         assertThat(hidden)
                 .as("only the declared one is spared; the rest of the vanilla noise still goes")
                 .containsExactlyInAnyOrderElementsOf(
-                        minus(Tooltips.VANILLA_COMPONENTS, DataComponentTypes.ENCHANTMENTS));
+                        minus(Tooltips.vanillaComponents(), DataComponentTypes.ENCHANTMENTS));
     }
 
     @Test

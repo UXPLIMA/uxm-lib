@@ -431,7 +431,19 @@ public final class ItemRenderer {
      * an append/prepend mode reads) stays visible to {@link #render}.
      */
     private ItemBuilder builderFor(Optional<ItemStack> base, String spec) {
-        return base.map(ItemBuilder::from).orElseGet(() -> ItemBuilder.of(materialOrStone(spec)));
+        return base.map(ItemBuilder::from).orElseGet(() -> plainIcon(materialOrStone(spec)));
+    }
+
+    /**
+     * The icon for a plain material. A smithing template or a disc fragment writes lines of its own that no
+     * hidden component silences, so a menu draws it on an item that writes nothing, in its model: the player
+     * sees the template and reads only what the menu wrote. A spec's own {@code item-model} still wins.
+     */
+    static ItemBuilder plainIcon(Material material) {
+        if (!Tooltips.writesItsOwnLines(material)) {
+            return ItemBuilder.of(material);
+        }
+        return ItemBuilder.of(Tooltips.CARRIER).itemModel(material.getKey());
     }
 
     /**
@@ -840,7 +852,7 @@ public final class ItemRenderer {
      *
      * <p>A menu icon is a button and the client does not know that: left alone it writes the mining speed under an
      * IRON_PICKAXE, "Dyed" under a tinted chestplate and the flight duration under a firework, beneath a lore that
-     * already said what the button does. So the default silences {@link Tooltips#VANILLA_COMPONENTS}, minus
+     * already said what the button does. So the default silences {@link Tooltips#vanillaComponents()}, minus
      * whatever the {@code decor} block asked for: an operator who wrote {@code enchantments} or {@code trim} meant
      * that line to be read, and the line the client added by itself is the one nobody chose. {@code
      * hide-vanilla-tooltip=false} gives every line back, and {@code hidden-components} names an exact set and wins
@@ -871,14 +883,14 @@ public final class ItemRenderer {
         if (!components.hideVanillaTooltip().orElse(true)) {
             return Set.of();
         }
-        Set<DataComponentType> hidden = new HashSet<>(Tooltips.VANILLA_COMPONENTS);
+        Set<DataComponentType> hidden = new HashSet<>(Tooltips.vanillaComponents());
         hidden.removeAll(declaredByTheOperator(meta));
         return Set.copyOf(hidden);
     }
 
     /**
      * The components the {@code decor} block filled in itself, whose tooltip lines are therefore content rather
-     * than noise. Everything else in {@link Tooltips#VANILLA_COMPONENTS} comes from the material alone.
+     * than noise. Everything else in {@link Tooltips#vanillaComponents()} comes from the material alone.
      */
     private static Set<DataComponentType> declaredByTheOperator(RichMeta meta) {
         Set<DataComponentType> declared = new HashSet<>();
