@@ -28,5 +28,6 @@ include(
     ":uxmlib-packet",
     ":uxmlib-menu",
     ":uxmlib-nametags",
+    ":uxmlib-schematic",
     ":uxmlib-all",
 )
