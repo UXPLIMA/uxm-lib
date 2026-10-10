@@ -40,6 +40,24 @@ class ArchitectureTest {
                                             "org.bukkit.entity.")))))
             .because("Folia refuses Entity.teleport; an entity is moved with teleportAsync");
 
+    /**
+     * Relocation-safety: text crosses to Adventure as a string, never as a Gson tree. A plugin that bundles Gson
+     * relocates it, so the tree its copy of this library builds is of its own classes, and the server's Adventure
+     * takes and gives trees of the server's Gson: the call links to a method that does not exist. Skyblock
+     * bundles Gson, and the schematic module's text was read through a tree until 0.159.0.
+     */
+    @ArchTest
+    static final ArchRule noGsonTreeCrossesToAdventure = noClasses()
+            .should()
+            .callMethodWhere(com.tngtech.archunit.core.domain.JavaCall.Predicates.target(
+                            com.tngtech.archunit.core.domain.properties.HasName.Predicates.nameMatching(
+                                    "serializeToTree|deserializeFromTree"))
+                    .and(com.tngtech.archunit.core.domain.JavaCall.Predicates.target(
+                            com.tngtech.archunit.core.domain.properties.HasOwner.Predicates.With.owner(
+                                    com.tngtech.archunit.core.domain.properties.HasName.Predicates.nameStartingWith(
+                                            "net.kyori.")))))
+            .because("a plugin that relocates Gson cannot hand Adventure a tree of its own Gson's classes");
+
     /** Commands are Brigadier-only; the legacy command interfaces are forbidden. */
     @ArchTest
     static final ArchRule noLegacyCommandApi = noClasses()

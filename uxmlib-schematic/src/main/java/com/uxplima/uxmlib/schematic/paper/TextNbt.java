@@ -11,6 +11,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import com.google.gson.JsonPrimitive;
 import com.uxplima.uxmlib.schematic.nbt.NbtCompound;
 import com.uxplima.uxmlib.schematic.nbt.NbtList;
@@ -22,6 +23,9 @@ import com.uxplima.uxmlib.schematic.nbt.NbtTag;
  * <p>Until 1.21.5 the game kept text as a JSON string. Since then it keeps it as tags: a plain string for
  * plain text, a compound or a list for anything styled, laid out as the JSON was. Both are read; the
  * current form is written.
+ *
+ * <p>Text crosses to Adventure as a string and never as a JSON tree. A plugin that bundles Gson relocates it,
+ * and a tree of its relocated classes is not the tree of the server's Gson that Adventure takes and gives.
  */
 final class TextNbt {
 
@@ -37,14 +41,14 @@ final class TextNbt {
                         ? GsonComponentSerializer.gson().deserialize(text.value())
                         : Component.text(text.value());
             }
-            return GsonComponentSerializer.gson().deserializeFromTree(json(tag));
+            return GsonComponentSerializer.gson().deserialize(json(tag).toString());
         } catch (JsonParseException | IllegalArgumentException | IllegalStateException notText) {
             return tag instanceof NbtTag.StringTag text ? Component.text(text.value()) : Component.empty();
         }
     }
 
     static NbtTag write(Component component) {
-        return tag(GsonComponentSerializer.gson().serializeToTree(component));
+        return tag(JsonParser.parseString(GsonComponentSerializer.gson().serialize(component)));
     }
 
     private static JsonElement json(NbtTag tag) {
