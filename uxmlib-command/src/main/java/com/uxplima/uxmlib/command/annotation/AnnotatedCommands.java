@@ -1,6 +1,9 @@
 package com.uxplima.uxmlib.command.annotation;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import org.bukkit.plugin.java.JavaPlugin;
@@ -68,6 +71,34 @@ public final class AnnotatedCommands {
                 new BrigadierRenderer(resolvers, scheduler).render(model),
                 model.command().description(),
                 List.of(model.command().aliases()));
+        watchLocalizedWords(plugin, model, resolvers);
+    }
+
+    /**
+     * Listen for the command lists a client is sent, when this command has a word for some languages.
+     *
+     * <p>One listener per such command, holding its own words, so nothing is shared between registrations
+     * and a command with no such word costs nothing.
+     */
+    private static void watchLocalizedWords(JavaPlugin plugin, CommandModel model, ParamResolvers resolvers) {
+        Map<String, List<String>> rootWords = new LinkedHashMap<>();
+        for (String raw : model.command().localizedAliases()) {
+            LocaleTags.entry(raw).ifPresent(entry -> {
+                List<String> tags = rootWords.computeIfAbsent(entry.word(), ignored -> new ArrayList<>());
+                if (!tags.contains(entry.tag())) {
+                    tags.add(entry.tag());
+                }
+            });
+        }
+        boolean branchWords = model.branches().stream()
+                .anyMatch(branch -> !branch.localizedAliases().isEmpty());
+        if (rootWords.isEmpty() && !branchWords) {
+            return;
+        }
+        plugin.getServer()
+                .getPluginManager()
+                .registerEvents(
+                        new LocalizedAliasVisibility(rootWords, plugin.getName(), resolvers.locales(), plugin), plugin);
     }
 
     /** Build a handler's Brigadier tree with the default resolvers, without registering it. */

@@ -849,6 +849,30 @@ Which one an operator wants depends on whether they would rather the word be unk
 server builds its command tree once, at enable, and offers no supported way to take one branch out of a
 live one, so answering is the only honest alternative to removing.
 
+A command and each of its branches can also carry words for the readers of one language. Each block is a
+list of words per language tag, a bare language such as `tr` or a language and country such as `pt-BR`:
+
+```hocon
+commands {
+  plot {
+    name              = "plot"
+    aliases           = ["plots"]
+    localized-aliases { tr = ["arsa"] }
+    subcommands {
+      claim { localized-aliases { tr = ["al"] } }
+    }
+  }
+}
+```
+
+A root word is registered as an ordinary alias, so `/arsa` works for anyone who types it, the console and a
+Bedrock player included. Only the command list a client is sent leaves it out for a player who reads another
+language. A branch word is shown to, and answered for, the readers of its language and the console only,
+because Brigadier sends a client exactly the branches it may use. "Reads" is the `LocaleSource` handed to
+`ParamResolvers.locales(...)`, so a language a player chose inside the plugin counts, and
+`LanguageChoices` sends that player their command list again when they choose. `AnnotatedCommands` registers
+the listener itself, and a command with no such word gets none.
+
 Everything the command layer says on its own behalf: the refusals, the argument rejections, the whole
 generated help page down to the separator between a command and its description, goes through
 `CommandMessages`, so a translated plugin answers each player in that player's own language and paints the

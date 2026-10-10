@@ -2,7 +2,10 @@ package com.uxplima.uxmlib.command.annotation;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.OptionalInt;
 
@@ -119,6 +122,35 @@ final class BranchModel {
             }
         }
         return List.copyOf(spellings);
+    }
+
+    /**
+     * The spellings of the last literal for the readers of one language, each word with the tags it is for,
+     * in the order they were written. A word that is already the literal or one of its {@link #aliases()} is
+     * dropped: it answers everyone already, and filing it under a language would hide it from the rest.
+     */
+    Map<String, List<String>> localizedAliases() {
+        Subcommand sub = methodView.get(Subcommand.class);
+        if (sub == null || path.isEmpty()) {
+            return Map.of();
+        }
+        String[] literals = literals();
+        String own = literals[literals.length - 1];
+        List<String> plain = aliases();
+        Map<String, List<String>> byWord = new LinkedHashMap<>();
+        for (String raw : sub.localizedAliases()) {
+            LocaleTags.entry(raw)
+                    .filter(entry -> !entry.word().equals(own) && !plain.contains(entry.word()))
+                    .ifPresent(entry -> {
+                        List<String> tags = byWord.computeIfAbsent(entry.word(), ignored -> new ArrayList<>());
+                        if (!tags.contains(entry.tag())) {
+                            tags.add(entry.tag());
+                        }
+                    });
+        }
+        Map<String, List<String>> frozen = new LinkedHashMap<>();
+        byWord.forEach((word, tags) -> frozen.put(word, List.copyOf(tags)));
+        return Collections.unmodifiableMap(frozen);
     }
 
     /** The literal tokens of {@link #path()}, or an empty array for the root executor. */

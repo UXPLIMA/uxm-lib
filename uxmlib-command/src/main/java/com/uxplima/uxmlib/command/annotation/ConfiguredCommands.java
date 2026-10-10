@@ -4,6 +4,9 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.AnnotatedElement;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,19 +38,47 @@ import org.spongepowered.configurate.ConfigurationNode;
  * {@link #isBranchEnabled(String, String)} is what a handler reads to answer that the word it was given is
  * turned off. Both are honest; which one an operator wants depends on whether they would rather the word be
  * unknown or be refused.
+ *
+ * <p>A command and a branch may also carry {@code localized-aliases}, a list of words per language tag, as
+ * {@code localized-aliases { tr = ["arsa"] }}. A root word becomes an ordinary alias that
+ * {@link LocalizedAliasVisibility} keeps out of other readers' command lists. A branch word is answered for its
+ * readers and the console only.
  */
 public final class ConfiguredCommands {
 
-    /** One command's entry in the file. */
-    public record Entry(String name, List<String> aliases, boolean enabled) {
+    /**
+     * One command's entry in the file.
+     *
+     * <p>{@code localizedAliases} holds the words for the readers of one language, keyed by a normal
+     * language tag such as {@code tr} or {@code pt-BR}, in the order the file wrote them.
+     */
+    public record Entry(
+            String name, List<String> aliases, boolean enabled, Map<String, List<String>> localizedAliases) {
 
         public Entry {
             Objects.requireNonNull(name, "name");
             Objects.requireNonNull(aliases, "aliases");
+            Objects.requireNonNull(localizedAliases, "localizedAliases");
             aliases = List.copyOf(aliases);
+            Map<String, List<String>> copy = new LinkedHashMap<>();
+            localizedAliases.forEach((tag, words) -> copy.put(tag, List.copyOf(words)));
+            localizedAliases = Collections.unmodifiableMap(copy);
             if (name.isBlank()) {
                 throw new IllegalArgumentException("a command name must not be blank");
             }
+        }
+
+        /** An entry with no word for one language only. */
+        public Entry(String name, List<String> aliases, boolean enabled) {
+            this(name, aliases, enabled, Map.of());
+        }
+
+        /** Every localized word in its annotation form, {@code tag=word}, the file's order kept. */
+        List<String> writtenLocalizedAliases() {
+            List<String> written = new ArrayList<>();
+            localizedAliases.forEach(
+                    (tag, words) -> words.forEach(word -> written.add(new LocaleTags.Entry(tag, word).written())));
+            return List.copyOf(written);
         }
     }
 
@@ -71,7 +102,41 @@ public final class ConfiguredCommands {
         return new Entry(
                 config.getString(base + "name", fallbackName),
                 config.getList(base + "aliases", String.class),
-                config.getBoolean(base + "enabled", true));
+                config.getBoolean(base + "enabled", true),
+                localizedOf(config.nodeAt(path(key, "localized-aliases"))));
+    }
+
+    /** The path of {@code leaf} under the dotted {@code key}, one segment per word. */
+    private static Object[] path(String key, String leaf) {
+        List<Object> segments = new ArrayList<>(List.of("commands"));
+        segments.addAll(List.of(key.split("\\.")));
+        segments.add(leaf);
+        return segments.toArray();
+    }
+
+    /**
+     * The {@code localized-aliases} block: a list of words per language tag. A tag that names no language
+     * is dropped with its words, and so is a word that is blank or holds a space, because neither can be
+     * typed as one literal.
+     */
+    private static Map<String, List<String>> localizedOf(ConfigurationNode node) {
+        if (!node.isMap()) {
+            return Map.of();
+        }
+        Map<String, List<String>> byTag = new LinkedHashMap<>();
+        node.childrenMap()
+                .forEach((rawTag, words) -> LocaleTags.normalize(String.valueOf(rawTag))
+                        .ifPresent(tag -> {
+                            List<String> kept = byTag.computeIfAbsent(tag, ignored -> new ArrayList<>());
+                            for (ConfigurationNode word : words.childrenList()) {
+                                String text = word.getString("").strip();
+                                if (!text.isEmpty() && !text.contains(" ") && !kept.contains(text)) {
+                                    kept.add(text);
+                                }
+                            }
+                        }));
+        byTag.values().removeIf(List::isEmpty);
+        return byTag;
     }
 
     /**
@@ -141,11 +206,20 @@ public final class ConfiguredCommands {
 
     private List<Annotation> rootOf(FromConfig fromConfig) {
         Entry entry = entryOf(fromConfig.value(), fallbackOf(fromConfig));
+        // Every localized word is an ordinary alias as well, so it answers whoever types it. Which client is
+        // shown it is decided when the command list is sent, by LocalizedAliasVisibility.
+        List<String> aliases = new ArrayList<>(entry.aliases());
+        entry.localizedAliases()
+                .values()
+                .forEach(words -> words.stream()
+                        .filter(word -> !word.equals(entry.name()) && !aliases.contains(word))
+                        .forEach(aliases::add));
         return List.of(Replacements.of(
                 Command.class,
                 Map.of(
                         "name", entry.name(),
-                        "aliases", entry.aliases().toArray(new String[0]),
+                        "aliases", aliases.toArray(new String[0]),
+                        "localizedAliases", entry.writtenLocalizedAliases().toArray(new String[0]),
                         "description", fromConfig.description())));
     }
 
@@ -159,6 +233,7 @@ public final class ConfiguredCommands {
                 Map.of(
                         "value", entry.name(),
                         "aliases", entry.aliases().toArray(new String[0]),
+                        "localizedAliases", entry.writtenLocalizedAliases().toArray(new String[0]),
                         "description", fromConfig.description())));
     }
 

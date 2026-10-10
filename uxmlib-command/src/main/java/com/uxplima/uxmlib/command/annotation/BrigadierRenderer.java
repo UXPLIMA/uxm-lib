@@ -1,6 +1,10 @@
 package com.uxplima.uxmlib.command.annotation;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.function.Predicate;
+
+import org.bukkit.entity.Player;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 
@@ -12,6 +16,7 @@ import com.uxplima.uxmlib.command.Cmd;
 import com.uxplima.uxmlib.command.annotation.annotations.Command;
 import com.uxplima.uxmlib.command.annotation.annotations.Permission;
 import com.uxplima.uxmlib.scheduler.Scheduler;
+import com.uxplima.uxmlib.text.message.LocaleSource;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -62,14 +67,35 @@ final class BrigadierRenderer {
             attachRoot(root, branch, chain, executor);
             return;
         }
-        attachSpine(root, branch, literals, chain, executor);
+        attachSpine(root, branch, literals, chain, executor, null);
         for (String alias : branch.aliases()) {
             String[] spelling = literals.clone();
             spelling[spelling.length - 1] = alias;
             // A builder is spent once it is built, so every spelling gets its own chain of nodes. They all
             // carry the one executor, so an alias runs the method the declared path runs.
-            attachSpine(root, branch, spelling, buildArgChain(branch, executor), executor);
+            attachSpine(root, branch, spelling, buildArgChain(branch, executor), executor, null);
         }
+        branch.localizedAliases().forEach((word, tags) -> {
+            String[] spelling = literals.clone();
+            spelling[spelling.length - 1] = word;
+            attachSpine(root, branch, spelling, buildArgChain(branch, executor), executor, readersOf(tags));
+        });
+    }
+
+    /**
+     * Who a word for some languages is meant for: a player who reads one of them, by the language the plugin
+     * says they read, and anything that is not a player. Brigadier sends a client only the nodes it may use,
+     * so this is what keeps the word out of every other reader's completions.
+     */
+    private Predicate<CommandSourceStack> readersOf(List<String> tags) {
+        LocaleSource locales = resolvers.locales();
+        return source -> {
+            if (!(source.getSender() instanceof Player player)) {
+                return true;
+            }
+            Locale reads = locales.localeOf(player);
+            return tags.stream().anyMatch(tag -> LocaleTags.matches(tag, reads));
+        };
     }
 
     private void attachSpine(
@@ -77,15 +103,25 @@ final class BrigadierRenderer {
             BranchModel branch,
             String[] literals,
             ArgChain chain,
-            com.mojang.brigadier.Command<CommandSourceStack> executor) {
+            com.mojang.brigadier.Command<CommandSourceStack> executor,
+            @Nullable Predicate<CommandSourceStack> readers) {
         ArgumentBuilder<CommandSourceStack, ?> tail = Cmd.literal(literals[literals.length - 1]);
         applyChain(tail, chain, executor);
+        // A word for some languages sits on the last literal. On a one-word path that literal is also where the
+        // permission goes, so the two are joined there rather than one replacing the other.
+        boolean oneWord = literals.length == 1;
+        if (readers != null && !oneWord) {
+            tail.requires(readers);
+        }
         for (int i = literals.length - 2; i >= 0; i--) {
             LiteralArgumentBuilder<CommandSourceStack> parent = Cmd.literal(literals[i]);
             parent.then(tail);
             tail = parent;
         }
         applyPermission(tail, branch.permission());
+        if (readers != null && oneWord) {
+            tail.requires(tail.getRequirement().and(readers));
+        }
         root.then(tail);
     }
 

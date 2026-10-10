@@ -20,6 +20,13 @@ public @interface Command {
     /** Alternate labels for the root command. */
     String[] aliases() default {};
 
+    /**
+     * Labels for the readers of one language, each {@code tag=word}, as {@code tr=arsa}. A word here
+     * answers to everyone who types it, the console and Bedrock included, and is kept out of the command
+     * list of a player who reads another language. A malformed entry is ignored.
+     */
+    String[] localizedAliases() default {};
+
     /** Help text shown by the server. */
     String description() default "";
 
