@@ -92,6 +92,28 @@ class LanguageChoicesTest {
         assertThat(choices.available()).containsExactly(Locale.ENGLISH, TR);
     }
 
+    @Test
+    void aChoiceSendsThePlayerTheirCommandsAgain(@TempDir Path folder) throws Exception {
+        // A command word may be for the readers of one language. A player who has just chosen another has to
+        // be sent their command list again, or their completions keep the words of the language they left.
+        java.util.List<UUID> resent = new java.util.ArrayList<>();
+        LanguageChoices choices = choicesIn(folder, "en", "tr").resendingThrough(resent::add);
+
+        choices.choose(WHO, TR);
+        choices.reset(WHO);
+
+        assertThat(resent).containsExactly(WHO, WHO);
+    }
+
+    @Test
+    void aChoiceWithNoServerRunningSendsNothingAndDoesNotFail(@TempDir Path folder) throws Exception {
+        LanguageChoices choices = choicesIn(folder, "en", "tr");
+
+        choices.choose(WHO, TR);
+
+        assertThat(choices.available()).contains(TR);
+    }
+
     private static LanguageChoices choicesIn(Path folder, String... tags) throws Exception {
         return choicesIn(folder, PlayerLanguages.inMemory(), tags);
     }

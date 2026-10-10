@@ -7,7 +7,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Server;
+import org.bukkit.entity.Player;
 
 /**
  * What a player may choose, and what happens when they choose it. This is the body of a language command
@@ -24,6 +29,8 @@ public final class LanguageChoices {
     private final Locale fallback;
 
     private final LanguageResolver resolver;
+
+    private final Consumer<UUID> resend;
 
     /**
      * @param languages the files this plugin found, which is the set of languages that exist
@@ -45,6 +52,22 @@ public final class LanguageChoices {
         this.languages = Objects.requireNonNull(languages, "languages");
         this.fallback = settings.defaultLocale();
         this.resolver = Objects.requireNonNull(resolver, "resolver");
+        this.resend = LanguageChoices::resendCommands;
+    }
+
+    private LanguageChoices(LanguageChoices from, Consumer<UUID> resend) {
+        this.languages = from.languages;
+        this.fallback = from.fallback;
+        this.resolver = from.resolver;
+        this.resend = resend;
+    }
+
+    /**
+     * The same choices, with {@code resend} called for a player whose language has just changed in place of
+     * sending them their command list again. For a test, or a plugin that sends it some other way.
+     */
+    public LanguageChoices resendingThrough(Consumer<UUID> resend) {
+        return new LanguageChoices(this, Objects.requireNonNull(resend, "resend"));
     }
 
     /** The languages a player may pick, sorted by tag, never empty. */
@@ -100,11 +123,31 @@ public final class LanguageChoices {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(locale, "locale");
         resolver.choose(player, locale);
+        resend.accept(player);
     }
 
     /** Drop a choice, so the client language or the server default answers again. */
     public void reset(UUID player) {
         Objects.requireNonNull(player, "player");
         resolver.forget(player);
+        resend.accept(player);
+    }
+
+    /**
+     * Send a player their command list again, so a command word for the readers of one language appears for
+     * the language they have just chosen and goes for the one they left.
+     *
+     * <p>Only on the thread that owns the player, which is where a language command or a window click runs.
+     * Anywhere else it is left for the next list the server sends. With no server, in a test, it does nothing.
+     */
+    private static void resendCommands(UUID id) {
+        Server server = Bukkit.getServer();
+        if (server == null) {
+            return;
+        }
+        Player player = server.getPlayer(id);
+        if (player != null && server.isOwnedByCurrentRegion(player)) {
+            player.updateCommands();
+        }
     }
 }
