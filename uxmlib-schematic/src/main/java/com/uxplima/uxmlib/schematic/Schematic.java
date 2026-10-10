@@ -28,7 +28,7 @@ public final class Schematic {
     private final Vec3i offset;
     private final int dataVersion;
     private final List<String> palette;
-    private final int[] blocks;
+    private final PaletteIndices blocks;
     private final List<SchematicBlockEntity> blockEntities;
     private final List<SchematicEntity> entities;
     private final @Nullable SchematicBiomes biomes;
@@ -41,7 +41,7 @@ public final class Schematic {
             Vec3i offset,
             int dataVersion,
             List<String> palette,
-            int[] blocks,
+            PaletteIndices blocks,
             List<SchematicBlockEntity> blockEntities,
             List<SchematicEntity> entities,
             @Nullable SchematicBiomes biomes,
@@ -59,16 +59,14 @@ public final class Schematic {
         if (this.palette.isEmpty()) {
             throw new IllegalArgumentException("a palette names at least one block");
         }
-        if (blocks.length != (long) width * height * length) {
+        if (blocks.size() != (long) width * height * length) {
             throw new IllegalArgumentException("a " + width + "x" + height + "x" + length + " schematic holds "
-                    + (long) width * height * length + " blocks, not " + blocks.length);
+                    + (long) width * height * length + " blocks, not " + blocks.size());
         }
-        for (int index : blocks) {
-            if (index < 0 || index >= this.palette.size()) {
-                throw new IllegalArgumentException("block index " + index + " is outside the palette");
-            }
+        if (blocks.highest() >= this.palette.size()) {
+            throw new IllegalArgumentException("block index " + blocks.highest() + " is outside the palette");
         }
-        this.blocks = blocks;
+        this.blocks = blocks.handOver();
         for (SchematicBlockEntity entity : blockEntities) {
             if (!contains(entity.pos())) {
                 throw new IllegalArgumentException("a block entity at " + entity.pos() + " is outside the schematic");
@@ -76,8 +74,9 @@ public final class Schematic {
         }
         this.blockEntities = List.copyOf(blockEntities);
         this.entities = List.copyOf(entities);
-        if (biomes != null && biomes.size() != blocks.length) {
-            throw new IllegalArgumentException("a biome per block, " + blocks.length + ", not " + biomes.size());
+        if (biomes != null && !biomes.fits(width, height, length)) {
+            throw new IllegalArgumentException(
+                    "the biomes are not of a " + width + "x" + height + "x" + length + " box");
         }
         this.biomes = biomes;
         this.metadata = Objects.requireNonNull(metadata, "metadata must not be null");
@@ -130,7 +129,7 @@ public final class Schematic {
 
     /** The palette index of the block at the block index {@code index}. */
     public int paletteIndexAt(int index) {
-        return blocks[index];
+        return blocks.get(index);
     }
 
     /** The block state at {@code x, y, z}. */
@@ -138,7 +137,7 @@ public final class Schematic {
         if (!contains(new Vec3i(x, y, z))) {
             throw new IndexOutOfBoundsException("(" + x + ", " + y + ", " + z + ") is outside the schematic");
         }
-        return palette.get(blocks[indexOf(x, y, z)]);
+        return palette.get(blocks.get(indexOf(x, y, z)));
     }
 
     public List<SchematicBlockEntity> blockEntities() {
@@ -164,7 +163,7 @@ public final class Schematic {
         private final int width;
         private final int height;
         private final int length;
-        private final int[] blocks;
+        private final PaletteIndices blocks;
         private final List<String> palette = new ArrayList<>(List.of(AIR));
         private final Map<String, Integer> indices = new HashMap<>(Map.of(AIR, 0));
         private final List<SchematicBlockEntity> blockEntities = new ArrayList<>();
@@ -181,7 +180,7 @@ public final class Schematic {
             this.width = width;
             this.height = height;
             this.length = length;
-            this.blocks = new int[width * height * length];
+            this.blocks = PaletteIndices.of(width * height * length);
         }
 
         public Builder block(int x, int y, int z, String state) {
@@ -193,7 +192,7 @@ public final class Schematic {
                 palette.add(added);
                 return palette.size() - 1;
             });
-            blocks[x + z * width + y * width * length] = index;
+            blocks.set(x + z * width + y * width * length, index);
             return this;
         }
 
@@ -227,6 +226,7 @@ public final class Schematic {
             return this;
         }
 
+        /** The schematic. A builder builds one, and is spent after. */
         public Schematic build() {
             return new Schematic(
                     width,
@@ -235,7 +235,7 @@ public final class Schematic {
                     offset,
                     dataVersion,
                     palette,
-                    blocks.clone(),
+                    blocks,
                     blockEntities,
                     entities,
                     biomes,
@@ -243,7 +243,10 @@ public final class Schematic {
         }
     }
 
-    /** For a reader that already holds the palette and the indices in the format's order. */
+    /**
+     * For a reader that already holds the palette and the indices in the format's order. The indices are
+     * handed over, not copied: a large file is held once.
+     */
     public static Schematic of(
             int width,
             int height,
@@ -251,22 +254,12 @@ public final class Schematic {
             Vec3i offset,
             int dataVersion,
             List<String> palette,
-            int[] blocks,
+            PaletteIndices blocks,
             List<SchematicBlockEntity> blockEntities,
             List<SchematicEntity> entities,
             @Nullable SchematicBiomes biomes,
             NbtCompound metadata) {
         return new Schematic(
-                width,
-                height,
-                length,
-                offset,
-                dataVersion,
-                palette,
-                blocks.clone(),
-                blockEntities,
-                entities,
-                biomes,
-                metadata);
+                width, height, length, offset, dataVersion, palette, blocks, blockEntities, entities, biomes, metadata);
     }
 }

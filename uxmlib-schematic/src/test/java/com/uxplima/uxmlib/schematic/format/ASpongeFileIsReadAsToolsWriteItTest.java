@@ -104,7 +104,8 @@ class ASpongeFileIsReadAsToolsWriteItTest {
                                 .putString("CustomName", "\"Loot\"")
                                 .build()));
         SchematicBiomes biomes = read.biomes().orElseThrow();
-        assertThat(biomes.palette().get(biomes.indexAt(read.indexOf(1, 0, 0)))).isEqualTo("minecraft:desert");
+        assertThat(biomes.palette().get(biomes.indexAt(read.indexOf(1, 0, 0), W, L)))
+                .isEqualTo("minecraft:desert");
         assertThat(read.entities()).singleElement().satisfies(entity -> {
             assertThat(entity.id()).isEqualTo("minecraft:armor_stand");
             assertThat(entity.z()).isEqualTo(1.5);
@@ -172,10 +173,10 @@ class ASpongeFileIsReadAsToolsWriteItTest {
                                 .build());
         SchematicBiomes biomes = read.biomes().orElseThrow();
         for (int y = 0; y < H; y++) {
-            assertThat(biomes.palette().get(biomes.indexAt(read.indexOf(1, y, 1))))
+            assertThat(biomes.palette().get(biomes.indexAt(read.indexOf(1, y, 1), W, L)))
                     .describedAs("a column's biome at every height")
                     .isEqualTo("minecraft:swamp");
-            assertThat(biomes.palette().get(biomes.indexAt(read.indexOf(0, y, 1))))
+            assertThat(biomes.palette().get(biomes.indexAt(read.indexOf(0, y, 1), W, L)))
                     .isEqualTo("minecraft:plains");
         }
         assertThat(read.entities())
@@ -213,9 +214,10 @@ class ASpongeFileIsReadAsToolsWriteItTest {
                         0.5,
                         "minecraft:armor_stand",
                         NbtCompound.builder().putByte("Small", 1).build()));
-        int[] biomeIndices = new int[3 * 2 * 4];
-        biomeIndices[5] = 1;
-        builder.biomes(new SchematicBiomes(List.of("minecraft:plains", "minecraft:forest"), biomeIndices));
+        // Given per column, as a version 2 file gives them: the column at (1, 1) is forest at every height.
+        com.uxplima.uxmlib.schematic.PaletteIndices columns = com.uxplima.uxmlib.schematic.PaletteIndices.of(3 * 4);
+        columns.set(1 + 3, 1);
+        builder.biomes(SchematicBiomes.perColumn(List.of("minecraft:plains", "minecraft:forest"), columns));
         Schematic written = builder.build();
 
         ByteArrayOutputStream file = new ByteArrayOutputStream();
@@ -236,7 +238,16 @@ class ASpongeFileIsReadAsToolsWriteItTest {
         assertThat(read.blockAt(1, 1, 1)).isEqualTo("minecraft:chest[facing=north,type=single,waterlogged=false]");
         assertThat(read.blockEntities()).isEqualTo(written.blockEntities());
         assertThat(read.entities()).isEqualTo(written.entities());
-        assertThat(read.biomes().orElseThrow().indexAt(5)).isEqualTo(1);
+        SchematicBiomes biomes = read.biomes().orElseThrow();
+        assertThat(biomes.perColumn())
+                .describedAs("version 3 keeps a biome per block")
+                .isFalse();
+        for (int y = 0; y < 2; y++) {
+            assertThat(biomes.palette().get(biomes.indexAt(read.indexOf(1, y, 1), 3, 4)))
+                    .isEqualTo("minecraft:forest");
+            assertThat(biomes.palette().get(biomes.indexAt(read.indexOf(2, y, 1), 3, 4)))
+                    .isEqualTo("minecraft:plains");
+        }
     }
 
     @Test
@@ -244,7 +255,8 @@ class ASpongeFileIsReadAsToolsWriteItTest {
     void brokenFilesAreRefused() {
         assertRefused("version 9", tag -> tag.putInt("Version", 9));
         assertRefused("before Minecraft 1.13", tag -> tag.put("Materials", new NbtTag.StringTag("Alpha")));
-        assertRefused("ends after", tag -> tag.put("Data", new NbtTag.ByteArrayTag(new byte[] {1, 1})));
+        assertRefused("too few", tag -> tag.put("Data", new NbtTag.ByteArrayTag(new byte[W * H * L - 1])));
+        assertRefused("ends after", tag -> tag.put("Data", new NbtTag.ByteArrayTag(endsMidValue())));
         assertRefused("bytes past", tag -> tag.put("Data", new NbtTag.ByteArrayTag(packedExtra())));
         assertRefused("palette has", tag -> tag.put("Data", new NbtTag.ByteArrayTag(packed(i -> 7))));
         assertRefused(
@@ -341,6 +353,13 @@ class ASpongeFileIsReadAsToolsWriteItTest {
             out.write(valueAt.applyAsInt(i));
         }
         return out.toByteArray();
+    }
+
+    /** As many bytes as values, but the last one says another byte follows. */
+    private static byte[] endsMidValue() {
+        byte[] bytes = packed(i -> 0);
+        bytes[bytes.length - 1] = (byte) 0x81;
+        return bytes;
     }
 
     private static byte[] packedExtra() {

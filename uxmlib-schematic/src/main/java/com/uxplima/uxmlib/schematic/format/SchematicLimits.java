@@ -12,8 +12,12 @@ import com.uxplima.uxmlib.schematic.nbt.NbtLimits;
  */
 public record SchematicLimits(NbtLimits nbt, long maxVolume) {
 
-    /** Sixty four million positions, a quarter of a gigabyte held: far past any island or spawn. */
-    public static final SchematicLimits DEFAULT = new SchematicLimits(NbtLimits.DEFAULT, 64L * 1024 * 1024);
+    /**
+     * Thirty two million positions, 128 megabytes held for the blocks and as much again for biomes given per
+     * block: past any island and past a whole spawn, which is the largest a plugin pastes. A caller that
+     * pastes more raises it knowingly.
+     */
+    public static final SchematicLimits DEFAULT = new SchematicLimits(NbtLimits.DEFAULT, 32L * 1024 * 1024);
 
     public SchematicLimits {
         Objects.requireNonNull(nbt, "nbt must not be null");

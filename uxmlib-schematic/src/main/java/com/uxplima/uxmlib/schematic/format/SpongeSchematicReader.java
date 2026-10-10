@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import com.uxplima.uxmlib.schematic.PaletteIndices;
 import com.uxplima.uxmlib.schematic.Schematic;
 import com.uxplima.uxmlib.schematic.SchematicBiomes;
 import com.uxplima.uxmlib.schematic.SchematicBlockEntity;
@@ -76,7 +77,7 @@ public final class SpongeSchematicReader {
         NbtCompound metadata = tag.compound("Metadata").orElse(NbtCompound.empty());
         Vec3i offset = weOffset(metadata).orElseGet(() -> vec(tag.intArray("Offset")));
         List<String> palette = palette(tag.compound("Palette").orElse(null), "block palette");
-        int[] blocks = indices(tag, "BlockData", size, palette.size(), "block data");
+        PaletteIndices blocks = indices(tag, "BlockData", size.volume(), palette.size(), "block data");
         List<SchematicBlockEntity> blockEntities = blockEntities(
                 tag.list(version == 1 ? "TileEntities" : "BlockEntities").orElse(null), size, false);
         List<SchematicEntity> entities = entities(tag.list("Entities").orElse(null), false);
@@ -84,14 +85,8 @@ public final class SpongeSchematicReader {
         Optional<NbtCompound> biomePalette = tag.compound("BiomePalette");
         if (biomePalette.isPresent() && tag.byteArray("BiomeData").isPresent()) {
             List<String> names = palette(biomePalette.get(), "biome palette");
-            int[] columns =
-                    VarInts.decode(tag.byteArray("BiomeData").orElseThrow(), size.width * size.length, "biome data");
-            checkIndices(columns, names.size(), "biome data");
-            int[] perBlock = new int[size.volume()];
-            for (int y = 0; y < size.height; y++) {
-                System.arraycopy(columns, 0, perBlock, y * size.width * size.length, columns.length);
-            }
-            biomes = new SchematicBiomes(names, perBlock);
+            biomes = SchematicBiomes.perColumn(
+                    names, indices(tag, "BiomeData", size.width * size.length, names.size(), "biome data"));
         }
         return build(size, offset, dataVersion, palette, blocks, blockEntities, entities, biomes, metadata);
     }
@@ -102,19 +97,23 @@ public final class SpongeSchematicReader {
         NbtCompound metadata = tag.compound("Metadata").orElse(NbtCompound.empty());
         Vec3i offset = vec(tag.intArray("Offset"));
         List<String> palette = List.of(Schematic.AIR);
-        int[] blocks = new int[size.volume()];
+        PaletteIndices blocks;
         List<SchematicBlockEntity> blockEntities = List.of();
         Optional<NbtCompound> blockGroup = tag.compound("Blocks");
         if (blockGroup.isPresent()) {
             palette = palette(blockGroup.get().compound("Palette").orElse(null), "block palette");
-            blocks = indices(blockGroup.get(), "Data", size, palette.size(), "block data");
+            blocks = indices(blockGroup.get(), "Data", size.volume(), palette.size(), "block data");
             blockEntities = blockEntities(blockGroup.get().list("BlockEntities").orElse(null), size, true);
+        } else {
+            // The format lets a file leave its blocks out, and then the box is air.
+            blocks = PaletteIndices.of(size.volume());
         }
         SchematicBiomes biomes = null;
         Optional<NbtCompound> biomeGroup = tag.compound("Biomes");
         if (biomeGroup.isPresent()) {
             List<String> names = palette(biomeGroup.get().compound("Palette").orElse(null), "biome palette");
-            biomes = new SchematicBiomes(names, indices(biomeGroup.get(), "Data", size, names.size(), "biome data"));
+            biomes = SchematicBiomes.perBlock(
+                    names, indices(biomeGroup.get(), "Data", size.volume(), names.size(), "biome data"));
         }
         List<SchematicEntity> entities = entities(tag.list("Entities").orElse(null), true);
         return build(size, offset, dataVersion, palette, blocks, blockEntities, entities, biomes, metadata);
@@ -125,7 +124,7 @@ public final class SpongeSchematicReader {
             Vec3i offset,
             int dataVersion,
             List<String> palette,
-            int[] blocks,
+            PaletteIndices blocks,
             List<SchematicBlockEntity> blockEntities,
             List<SchematicEntity> entities,
             @Nullable SchematicBiomes biomes,
@@ -217,22 +216,18 @@ public final class SpongeSchematicReader {
         return palette;
     }
 
-    private static int[] indices(NbtCompound tag, String key, Size size, int paletteSize, String what)
+    private static PaletteIndices indices(NbtCompound tag, String key, int count, int paletteSize, String what)
             throws SchematicFormatException {
         byte[] packed =
                 tag.byteArray(key).orElseThrow(() -> new SchematicFormatException("The " + what + " is missing"));
-        int[] values = VarInts.decode(packed, size.volume(), what);
-        checkIndices(values, paletteSize, what);
-        return values;
-    }
-
-    private static void checkIndices(int[] values, int paletteSize, String what) throws SchematicFormatException {
-        for (int value : values) {
-            if (value >= paletteSize) {
+        PaletteIndices values = VarInts.decode(packed, count, what);
+        for (int i = 0; i < values.size(); i++) {
+            if (values.get(i) >= paletteSize) {
                 throw new SchematicFormatException(
-                        "The " + what + " names index " + value + " and the palette has " + paletteSize);
+                        "The " + what + " names index " + values.get(i) + " and the palette has " + paletteSize);
             }
         }
+        return values;
     }
 
     private static List<SchematicBlockEntity> blockEntities(@Nullable NbtList list, Size size, boolean grouped)

@@ -74,7 +74,7 @@ public final class SpongeSchematicWriter {
         }
         tag.put("Blocks", blocks.build());
 
-        schematic.biomes().ifPresent(biomes -> tag.put("Biomes", biomes(biomes)));
+        schematic.biomes().ifPresent(biomes -> tag.put("Biomes", biomes(biomes, schematic)));
 
         if (!schematic.entities().isEmpty()) {
             List<NbtCompound> entities = new ArrayList<>();
@@ -98,14 +98,15 @@ public final class SpongeSchematicWriter {
                 "", NbtCompound.builder().put("Schematic", tag.build()).build());
     }
 
-    private static NbtCompound biomes(SchematicBiomes biomes) {
+    /** Version 3 keeps a biome per block, so a biome given per column is written at every height. */
+    private static NbtCompound biomes(SchematicBiomes biomes, Schematic schematic) {
         NbtCompound.Builder palette = NbtCompound.builder();
         for (int i = 0; i < biomes.palette().size(); i++) {
             palette.putInt(biomes.palette().get(i), i);
         }
         ByteArrayOutputStream data = new ByteArrayOutputStream();
-        for (int i = 0; i < biomes.size(); i++) {
-            VarInts.encode(biomes.indexAt(i), data);
+        for (int i = 0; i < schematic.volume(); i++) {
+            VarInts.encode(biomes.indexAt(i, schematic.width(), schematic.length()), data);
         }
         return NbtCompound.builder()
                 .put("Palette", palette.build())
