@@ -30,6 +30,7 @@ public final class DatabaseBuilder {
     private int busyTimeoutMs = DEFAULT_BUSY_TIMEOUT_MS;
     private JournalMode journalMode = JournalMode.WAL;
     private Synchronous synchronous = Synchronous.NORMAL;
+    private boolean foreignKeys;
     private String poolName = "uxmlib-pool";
 
     DatabaseBuilder() {}
@@ -157,6 +158,17 @@ public final class DatabaseBuilder {
         return this;
     }
 
+    /**
+     * Whether a SQLite connection enforces the foreign keys its schema declares. SQLite leaves them off on every
+     * connection unless asked, so an {@code ON DELETE CASCADE} the schema states does nothing there while the same
+     * schema cascades on MySQL, MariaDB and PostgreSQL. A plugin whose deletes lean on a cascade asks for it.
+     * Ignored by network backends, which enforce them already. Defaults to off.
+     */
+    public DatabaseBuilder foreignKeys(boolean enforced) {
+        this.foreignKeys = enforced;
+        return this;
+    }
+
     /** The Hikari pool name (shown in thread names and metrics). */
     public DatabaseBuilder poolName(String name) {
         this.poolName = Objects.requireNonNull(name, "name");
@@ -195,6 +207,9 @@ public final class DatabaseBuilder {
             config.addDataSourceProperty("synchronous", synchronous.name());
             // Wait for the lock instead of failing instantly, smoothing SQLITE_BUSY under bursty writes.
             config.addDataSourceProperty("busy_timeout", Integer.toString(busyTimeoutMs));
+            if (foreignKeys) {
+                config.addDataSourceProperty("foreign_keys", "true");
+            }
         } else {
             config.setMaximumPoolSize(maxPoolSize);
             applyPreparedStatementCache(config);

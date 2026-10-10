@@ -116,6 +116,41 @@ class DatabaseBuilderTest {
         }
     }
 
+    /**
+     * SQLite leaves foreign keys off on every connection, so a cascade the schema declares does nothing there. A
+     * plugin that leans on one asks for them, and its deletes then take the child rows with them.
+     */
+    @Test
+    void enforcesForeignKeysWhenAsked(@TempDir Path directory) throws SQLException {
+        try (Database db =
+                Database.builder().sqlite(directory.resolve("off.db")).build()) {
+            assertThat(cascades(db)).isFalse();
+        }
+        try (Database db = Database.builder()
+                .sqlite(directory.resolve("on.db"))
+                .foreignKeys(true)
+                .build()) {
+            assertThat(cascades(db)).isTrue();
+        }
+    }
+
+    /** Whether deleting a parent row takes its child row with it. */
+    private static boolean cascades(Database db) throws SQLException {
+        try (Connection conn = db.connection();
+                Statement stmt = conn.createStatement()) {
+            stmt.execute("CREATE TABLE parent (id INTEGER PRIMARY KEY)");
+            stmt.execute("CREATE TABLE child (id INTEGER PRIMARY KEY, parent_id INTEGER"
+                    + " REFERENCES parent (id) ON DELETE CASCADE)");
+            stmt.execute("INSERT INTO parent (id) VALUES (1)");
+            stmt.execute("INSERT INTO child (id, parent_id) VALUES (1, 1)");
+            stmt.execute("DELETE FROM parent WHERE id = 1");
+            try (ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM child")) {
+                rs.next();
+                return rs.getInt(1) == 0;
+            }
+        }
+    }
+
     @Test
     @SuppressWarnings("NullAway") // intentionally passes null to assert the requireNonNull guard fires
     void rejectsANullSynchronousLevel() {
