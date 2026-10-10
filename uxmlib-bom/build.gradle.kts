@@ -21,6 +21,7 @@ dependencies {
         api(project(":uxmlib-packet"))
         api(project(":uxmlib-menu"))
         api(project(":uxmlib-nametags"))
+        api(project(":uxmlib-schematic"))
     }
 }
 

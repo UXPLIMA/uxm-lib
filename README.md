@@ -55,6 +55,7 @@ and depend on it as a normal plugin. Both work.
   - [Cross-server messaging](#cross-server-messaging)
   - [Update checker](#update-checker)
   - [Backup participation](#backup-participation)
+  - [Schematics](#schematics)
   - [Experimental: packet layer](#experimental-packet-layer)
 - [Architecture & quality](#architecture--quality)
 - [Building from source](#building-from-source)
@@ -119,6 +120,7 @@ what you use. Modules marked **experimental** are previews with unstable APIs (s
 | `uxmlib-pipeline` | **Experimental.** A from-scratch, MIT-clean Netty pipeline: channel resolve, idempotent inject/eject, a self-healing reorder watchdog, and a fail-open listener seam. It builds no packet and knows no entity. Alone in the packet family it needs no Mojang-mapped server, so a plugin that wants a pipeline and no server internals can take it on its own. |
 | `uxmlib-packet` | **Experimental.** The shared Mojang-mapped packet helpers (Adventure→vanilla component conversion, bundling, the stream-codec buffer trick, guarded reflection, entity-id allocation) plus per-viewer tab-list, NPC, text-display, and inventory-item packet ports built on them. |
 | `uxmlib-nametags` | **Experimental.** A from-scratch per-viewer nametag renderer (different prefixes/colours/visibility per viewer) over scoreboard-team and metadata packets, without touching the server-side scoreboard. |
+| `uxmlib-schematic` | Structure files with no WorldEdit and no FAWE on the server: a bounded tag reader and writer, Sponge schematics of versions 1, 2 and 3 read and version 3 written, a paste that loads each chunk without waiting and works it a slice a tick on the thread that owns it (turned in quarter turns, block entities, entities and biomes carried, a report of what could not be placed as saved), and a capture that saves a box of a world as a schematic. Names an older version wrote are read as that version meant them. |
 | `uxmlib-bom` | A bill of materials so a consumer can align every `uxmlib-*` artifact to one version with a single platform import. |
 | `uxmlib-all` | The aggregate of every module on the API surface. The same module also builds the standalone server-side plugin jar, published beside it under the `standalone` classifier. |
 
@@ -145,6 +147,7 @@ graph TD
     nametags[uxmlib-nametags] --> common
     nametags --> pipeline
     nametags --> packet
+    schematic[uxmlib-schematic] --> common
 ```
 
 ## Installation
@@ -1203,6 +1206,36 @@ List<String> late = BackupParticipants.prepareAll(Duration.ofSeconds(20), mainTh
 The contract is a plain `Runnable` on purpose. Every plugin relocates its shaded copy of uxmLib, so an
 interface of ours would be a different class in each jar. `Runnable` comes from the boot class loader, so it
 is the same type everywhere. Registrations are marked, and an unmarked `Runnable` service is never run.
+
+### Schematics
+
+A structure is a file the operator can make with whatever tool they like, and a plugin reads it with nothing
+else installed. `SpongeSchematicReader` reads the Sponge format of WorldEdit and FAWE, versions 1 to 3, with
+limits on its size checked before anything is held for it. `SpongeSchematicWriter` writes version 3.
+
+```java
+Schematic island = SpongeSchematicReader.withDefaults().read(Files.newInputStream(file));
+
+SchematicPaster paster = new SchematicPaster(scheduler);
+paster.paste(island, centre, PasteOptions.DEFAULT.withRotation(Rotation.CLOCKWISE_90))
+        .thenAccept(report -> {
+            if (!report.faithful()) {
+                logger.warning("pasted with changes: " + report);
+            }
+        });
+
+// Saving is the same in reverse: a box, the point to save it around, and a file.
+new SchematicCapture(scheduler)
+        .capture(world, cornerOne, cornerTwo, origin, CaptureOptions.DEFAULT)
+        .thenAccept(saved -> write(saved, file));
+```
+
+A paste is safe on Folia. Each chunk is loaded without holding a thread, then set on the region that owns it,
+a share of blocks a tick, so a large paste spreads over ticks and over regions. Blocks are set without physics.
+A chest, a sign, a head, a banner, a spawner, a command block, a jukebox, a lectern, a beacon, a campfire, a
+brushable block and a decorated pot keep what they held; another kind of block entity keeps its defaults and
+is named in the report. Entities come through Paper's own serialisation and the server's data upgrade, so a
+file from an older version reads as that version meant it.
 
 ### Experimental: packet layer
 

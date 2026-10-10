@@ -24,6 +24,7 @@ dependencies {
     api(project(":uxmlib-packet"))
     api(project(":uxmlib-menu"))
     api(project(":uxmlib-nametags"))
+    api(project(":uxmlib-schematic"))
     compileOnly(libs.paper.api)
 
     // Architecture guards analyse every module's bytecode (all are api deps, so they're on the test
