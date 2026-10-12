@@ -11,6 +11,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -125,6 +126,44 @@ public final class LanguageChoices {
         Objects.requireNonNull(locale, "locale");
         resolver.choose(player, locale);
         resend.accept(player);
+    }
+
+    /**
+     * Who a name an operator typed means, for a command that sets another player's language.
+     *
+     * <p>Someone online is found whatever case the name is typed in. Someone away is found only when the server
+     * has seen them, from its own cache and never from a lookup that blocks. A choice for someone away waits
+     * until they join, which {@link LanguageResolver#choose} takes care of.
+     */
+    public Named named(String typed) {
+        Objects.requireNonNull(typed, "typed");
+        Server server = Bukkit.getServer();
+        if (server == null) {
+            return new Named.Unknown(typed);
+        }
+        Player online = server.getPlayerExact(typed);
+        if (online != null) {
+            return new Named.Online(online);
+        }
+        OfflinePlayer seen = server.getOfflinePlayerIfCached(typed);
+        if (seen == null || !seen.hasPlayedBefore()) {
+            return new Named.Unknown(typed);
+        }
+        String name = seen.getName();
+        return new Named.Away(seen.getUniqueId(), name == null ? typed : name);
+    }
+
+    /** What {@link #named} found. */
+    public sealed interface Named {
+
+        /** A player who is on the server now. */
+        record Online(Player player) implements Named {}
+
+        /** A player the server has seen, who is not on it now. */
+        record Away(UUID id, String name) implements Named {}
+
+        /** A name nobody on this server has played under. */
+        record Unknown(String typed) implements Named {}
     }
 
     /** Drop a choice, so the client language or the server default answers again. */

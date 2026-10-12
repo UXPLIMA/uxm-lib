@@ -34,6 +34,9 @@ import org.jspecify.annotations.Nullable;
  * that reads off that thread before any read on it falls back to its own store, which is the answer it gave
  * before this existed.
  *
+ * <p>{@link LanguageResolver} does all of this for a plugin. A plugin that resolves a language its own way
+ * reads and writes the choice through {@link #read} and {@link #write}, so it agrees with every other.
+ *
  * <p>The data belongs to one server. A network carries the choice between servers through a provider such as
  * uxmLang, which writes it here when the player arrives.
  */
@@ -51,7 +54,7 @@ public final class SharedLanguage {
     private final Map<UUID, Mark> seen = new ConcurrentHashMap<>();
 
     /** What the player's data holds: a language, or {@code null} for a choice that was cleared. */
-    record Mark(@Nullable Locale locale) {}
+    public record Mark(@Nullable Locale locale) {}
 
     private SharedLanguage(Predicate<Player> owned, BiConsumer<Player, Runnable> onOwner) {
         this.owned = owned;
@@ -74,12 +77,12 @@ public final class SharedLanguage {
     }
 
     /** Whether the calling thread may touch this player's data. */
-    boolean owns(Player player) {
+    public boolean owns(Player player) {
         return owned.test(player);
     }
 
     /** What the player's data says, or empty when nothing was ever written there. */
-    Optional<Mark> read(Player player) {
+    public Optional<Mark> read(Player player) {
         UUID id = player.getUniqueId();
         if (!owned.test(player)) {
             return Optional.ofNullable(seen.get(id));
@@ -90,7 +93,7 @@ public final class SharedLanguage {
     }
 
     /** Write a choice, or clear it with {@code null}. */
-    void write(Player player, @Nullable Locale locale) {
+    public void write(Player player, @Nullable Locale locale) {
         seen.put(player.getUniqueId(), new Mark(locale));
         String tag = locale == null ? CLEARED : locale.toLanguageTag();
         Runnable work = () -> {
