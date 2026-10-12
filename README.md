@@ -39,6 +39,7 @@ and depend on it as a normal plugin. Both work.
   - [Shading and relocation](#shading-and-relocation)
 - [Feature tour](#feature-tour)
   - [Text](#text)
+  - [Languages](#languages)
   - [Style layer](#style-layer)
   - [Scheduling (Folia-ready)](#scheduling-folia-ready)
   - [Items](#items)
@@ -308,7 +309,8 @@ dependencies {
 ### Shading and relocation
 
 When you shade individual modules into your own jar, relocate `com.uxplima.uxmlib` to avoid clashing with
-another plugin that also bundles uxmLib:
+another plugin that also bundles uxmLib. Two relocated copies share no class, so anything two plugins hand
+each other goes through a JDK or Bukkit type, or through a plain key on a player's data:
 
 ```kotlin
 tasks.shadowJar {
@@ -356,6 +358,27 @@ stays literal, so a chat message reading `<click:run_command:/op me>free rank</c
 ```java
 Component line = Text.paint(message, config.getString("chat.format-style")); // e.g. "<gray>"
 ```
+
+### Languages
+
+`LanguageResolver` answers which language a player reads, in one order: the language the server forces, the
+player's own choice, their client's language when the server follows it, and the configured default. A plugin
+reads the three settings from its own `config.conf` into `LanguageSettings`:
+
+```hocon
+language {
+  default = "en"
+  follow-client = true
+  force = ""
+}
+```
+
+A choice is shared. `LanguageResolver.choose` writes it on the player's own data under `uxmlib:language`, as a
+plain language tag, so every plugin on the server built on uxmLib reads the language a player chose in any one
+of them. A plain key is what makes this work: each plugin relocates its own copy of the library, so no class of
+uxmLib is the same class in two plugins. A choice made for a player who is away waits in the plugin's own store
+and is applied by `LanguageResolver.settle`, which a plugin calls when the player joins. A choice a plugin kept
+before this was shared is shared the first time it answers.
 
 ### Style layer
 

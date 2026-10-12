@@ -26,6 +26,7 @@ import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
  * <pre>
  * players {
  *   "0b1e...-uuid" { chosen = "tr", client = "en" }
+ *   "7c4a...-uuid" { held = "de" }
  * }
  * </pre>
  *
@@ -46,6 +47,8 @@ public final class FilePlayerLanguages implements PlayerLanguages {
     private final Map<UUID, Locale> choices = new ConcurrentHashMap<>();
 
     private final Map<UUID, Locale> clients = new ConcurrentHashMap<>();
+
+    private final Map<UUID, HeldChoice> holds = new ConcurrentHashMap<>();
 
     private final AtomicBoolean dirty = new AtomicBoolean();
 
@@ -89,6 +92,23 @@ public final class FilePlayerLanguages implements PlayerLanguages {
         }
         put(choices, player, entry.node("chosen").getString());
         put(clients, player, entry.node("client").getString());
+        readHold(player, entry.node("held"));
+    }
+
+    /** An empty {@code held} is a reset that waits; a tag is a language that waits. */
+    private void readHold(UUID player, CommentedConfigurationNode node) {
+        String tag = node.getString();
+        if (tag == null) {
+            return;
+        }
+        if (tag.isBlank()) {
+            holds.put(player, new HeldChoice(null));
+            return;
+        }
+        Locale locale = Locale.forLanguageTag(tag);
+        if (!locale.getLanguage().isEmpty()) {
+            holds.put(player, new HeldChoice(locale));
+        }
     }
 
     private static void put(Map<UUID, Locale> into, UUID player, @Nullable String tag) {
@@ -135,6 +155,11 @@ public final class FilePlayerLanguages implements PlayerLanguages {
             CommentedConfigurationNode entry = root.node(PLAYERS, player.toString());
             write(entry.node("chosen"), choices.get(player));
             write(entry.node("client"), clients.get(player));
+            HeldChoice hold = holds.get(player);
+            if (hold != null) {
+                entry.node("held")
+                        .set(hold.language().map(Locale::toLanguageTag).orElse(""));
+            }
         }
         return root;
     }
@@ -142,6 +167,7 @@ public final class FilePlayerLanguages implements PlayerLanguages {
     private Set<UUID> union() {
         Set<UUID> players = new LinkedHashSet<>(choices.keySet());
         players.addAll(clients.keySet());
+        players.addAll(holds.keySet());
         return players;
     }
 
@@ -185,6 +211,28 @@ public final class FilePlayerLanguages implements PlayerLanguages {
         Objects.requireNonNull(locale, "locale");
         Locale previous = clients.put(player, locale);
         if (!locale.equals(previous)) {
+            dirty.set(true);
+        }
+    }
+
+    @Override
+    public Optional<HeldChoice> held(UUID player) {
+        Objects.requireNonNull(player, "player");
+        return Optional.ofNullable(holds.get(player));
+    }
+
+    @Override
+    public void hold(UUID player, HeldChoice choice) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(choice, "choice");
+        holds.put(player, choice);
+        dirty.set(true);
+    }
+
+    @Override
+    public void release(UUID player) {
+        Objects.requireNonNull(player, "player");
+        if (holds.remove(player) != null) {
             dirty.set(true);
         }
     }

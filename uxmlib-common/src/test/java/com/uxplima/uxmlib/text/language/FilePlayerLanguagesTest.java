@@ -47,6 +47,34 @@ class FilePlayerLanguagesTest {
     }
 
     @Test
+    void aChoiceHeldForAnAbsentPlayerSurvivesARestart(@TempDir Path dir) {
+        Path file = dir.resolve("languages.conf");
+        UUID reset = UUID.randomUUID();
+        FilePlayerLanguages first = FilePlayerLanguages.loadedFrom(file);
+        first.hold(WHO, new HeldChoice(TR));
+        first.hold(reset, new HeldChoice(null));
+        first.save();
+
+        FilePlayerLanguages second = FilePlayerLanguages.loadedFrom(file);
+
+        assertThat(second.held(WHO)).contains(new HeldChoice(TR));
+        assertThat(second.held(reset)).contains(new HeldChoice(null));
+    }
+
+    @Test
+    void aReleasedHoldIsGoneAfterARestart(@TempDir Path dir) {
+        Path file = dir.resolve("languages.conf");
+        FilePlayerLanguages store = FilePlayerLanguages.loadedFrom(file);
+        store.hold(WHO, new HeldChoice(TR));
+        store.save();
+
+        store.release(WHO);
+        store.save();
+
+        assertThat(FilePlayerLanguages.loadedFrom(file).held(WHO)).isEmpty();
+    }
+
+    @Test
     void aFileThatIsNotThereIsAnEmptyStore(@TempDir Path dir) {
         FilePlayerLanguages store = FilePlayerLanguages.loadedFrom(dir.resolve("absent.conf"));
 

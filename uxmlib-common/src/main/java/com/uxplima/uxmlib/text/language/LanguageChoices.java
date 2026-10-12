@@ -13,6 +13,7 @@ import java.util.function.Supplier;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * What a player may choose, and what happens when they choose it. This is the body of a language command
@@ -137,8 +138,9 @@ public final class LanguageChoices {
      * Send a player their command list again, so a command word for the readers of one language appears for
      * the language they have just chosen and goes for the one they left.
      *
-     * <p>Only on the thread that owns the player, which is where a language command or a window click runs.
-     * Anywhere else it is left for the next list the server sends. With no server, in a test, it does nothing.
+     * <p>On the thread that owns the player it is sent now, which is where a language command or a window click
+     * runs. An operator who sets another player's language may be on another region, so there it is sent on
+     * the player's own scheduler. With no server, in a test, it does nothing.
      */
     private static void resendCommands(UUID id) {
         Server server = Bukkit.getServer();
@@ -146,8 +148,14 @@ public final class LanguageChoices {
             return;
         }
         Player player = server.getPlayer(id);
-        if (player != null && server.isOwnedByCurrentRegion(player)) {
+        if (player == null) {
+            return;
+        }
+        if (server.isOwnedByCurrentRegion(player)) {
             player.updateCommands();
+        } else {
+            player.getScheduler()
+                    .run(JavaPlugin.getProvidingPlugin(LanguageChoices.class), task -> player.updateCommands(), null);
         }
     }
 }

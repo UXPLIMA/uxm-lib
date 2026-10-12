@@ -36,6 +36,15 @@ public interface PlayerLanguages {
     /** Record what this player's client reports, so the next join starts in the right language. */
     void rememberClient(UUID player, Locale locale);
 
+    /** A choice made for this player while they were away, or empty when none waits. */
+    Optional<HeldChoice> held(UUID player);
+
+    /** Keep a choice for a player who is away, until they join. A newer hold replaces an older one. */
+    void hold(UUID player, HeldChoice choice);
+
+    /** Drop the choice that waited for this player, once it was applied or overtaken. */
+    void release(UUID player);
+
     /** A store that lives for as long as the server runs. It is the seam's test double and its floor. */
     static PlayerLanguages inMemory() {
         return new InMemory();
@@ -47,6 +56,8 @@ public interface PlayerLanguages {
         private final Map<UUID, Locale> choices = new ConcurrentHashMap<>();
 
         private final Map<UUID, Locale> clients = new ConcurrentHashMap<>();
+
+        private final Map<UUID, HeldChoice> holds = new ConcurrentHashMap<>();
 
         @Override
         public Optional<Locale> chosen(UUID player) {
@@ -78,6 +89,25 @@ public interface PlayerLanguages {
             Objects.requireNonNull(player, "player");
             Objects.requireNonNull(locale, "locale");
             clients.put(player, locale);
+        }
+
+        @Override
+        public Optional<HeldChoice> held(UUID player) {
+            Objects.requireNonNull(player, "player");
+            return Optional.ofNullable(holds.get(player));
+        }
+
+        @Override
+        public void hold(UUID player, HeldChoice choice) {
+            Objects.requireNonNull(player, "player");
+            Objects.requireNonNull(choice, "choice");
+            holds.put(player, choice);
+        }
+
+        @Override
+        public void release(UUID player) {
+            Objects.requireNonNull(player, "player");
+            holds.remove(player);
         }
     }
 }
