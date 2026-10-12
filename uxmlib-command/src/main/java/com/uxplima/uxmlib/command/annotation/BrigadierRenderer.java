@@ -1,7 +1,11 @@
 package com.uxplima.uxmlib.command.annotation;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.function.Predicate;
 
 import org.bukkit.entity.Player;
@@ -45,8 +49,9 @@ final class BrigadierRenderer {
         if (classPermission != null) {
             root.requires(Cmd.visibility(classPermission.value()));
         }
+        Map<String, Predicate<CommandSourceStack>> words = sharedWords(model.branches());
         for (BranchModel branch : model.branches()) {
-            attachBranch(root, model.handler(), branch, command.name());
+            attachBranch(root, model.handler(), branch, command.name(), words);
         }
         if (command.help()) {
             root.then(HelpRenderer.helpLiteral(command.name(), model.branches(), resolvers));
@@ -54,8 +59,62 @@ final class BrigadierRenderer {
         return root.build();
     }
 
+    /**
+     * Who may see each word of each path, keyed by the path up to and including it.
+     *
+     * <p>Brigadier keeps one node per word, and when two branches bring the same word it keeps the requirement
+     * of the one that came first. {@code lang}, {@code lang set} and an operator's {@code lang set-player} all
+     * bring {@code lang}, so whichever was read first used to decide who saw the word at all. A word is open
+     * here to anyone who may use any branch that passes through it. The executor refuses a sender who lacks a
+     * branch's own node, so a shared word opened wider lets nobody run what they may not.
+     */
+    private Map<String, Predicate<CommandSourceStack>> sharedWords(List<BranchModel> branches) {
+        Map<String, Predicate<CommandSourceStack>> words = new HashMap<>();
+        for (BranchModel branch : branches) {
+            String[] literals = branch.literals();
+            if (literals.length == 0) {
+                continue;
+            }
+            Predicate<CommandSourceStack> may = visibilityOf(branch.permission());
+            for (String[] spelling : spellingsOf(branch, literals)) {
+                for (int depth = 1; depth <= spelling.length; depth++) {
+                    words.merge(key(spelling, depth), may, Predicate::or);
+                }
+            }
+            branch.localizedAliases().forEach((word, tags) -> {
+                String[] spelling = literals.clone();
+                spelling[spelling.length - 1] = word;
+                words.merge(key(spelling, spelling.length), may.and(readersOf(tags)), Predicate::or);
+            });
+        }
+        return words;
+    }
+
+    private static List<String[]> spellingsOf(BranchModel branch, String[] literals) {
+        List<String[]> spellings = new ArrayList<>();
+        spellings.add(literals);
+        for (String alias : branch.aliases()) {
+            String[] spelling = literals.clone();
+            spelling[spelling.length - 1] = alias;
+            spellings.add(spelling);
+        }
+        return spellings;
+    }
+
+    private static String key(String[] spelling, int depth) {
+        return String.join(" ", Arrays.copyOf(spelling, depth));
+    }
+
+    private static Predicate<CommandSourceStack> visibilityOf(@Nullable Permission permission) {
+        return permission == null ? source -> true : Cmd.visibility(permission.value());
+    }
+
     private void attachBranch(
-            LiteralArgumentBuilder<CommandSourceStack> root, Object handler, BranchModel branch, String rootName) {
+            LiteralArgumentBuilder<CommandSourceStack> root,
+            Object handler,
+            BranchModel branch,
+            String rootName,
+            Map<String, Predicate<CommandSourceStack>> words) {
         String path = branch.path();
         String commandPath = path.isEmpty() ? rootName : rootName + ' ' + path;
         com.mojang.brigadier.Command<CommandSourceStack> executor = CommandExecutors.executorFor(
@@ -67,18 +126,18 @@ final class BrigadierRenderer {
             attachRoot(root, branch, chain, executor);
             return;
         }
-        attachSpine(root, branch, literals, chain, executor, null);
+        attachSpine(root, literals, chain, executor, words);
         for (String alias : branch.aliases()) {
             String[] spelling = literals.clone();
             spelling[spelling.length - 1] = alias;
             // A builder is spent once it is built, so every spelling gets its own chain of nodes. They all
             // carry the one executor, so an alias runs the method the declared path runs.
-            attachSpine(root, branch, spelling, buildArgChain(branch, executor), executor, null);
+            attachSpine(root, spelling, buildArgChain(branch, executor), executor, words);
         }
         branch.localizedAliases().forEach((word, tags) -> {
             String[] spelling = literals.clone();
             spelling[spelling.length - 1] = word;
-            attachSpine(root, branch, spelling, buildArgChain(branch, executor), executor, readersOf(tags));
+            attachSpine(root, spelling, buildArgChain(branch, executor), executor, words);
         });
     }
 
@@ -98,31 +157,32 @@ final class BrigadierRenderer {
         };
     }
 
+    /**
+     * Attach one spelling of a branch. Every word on its path takes the requirement {@link #sharedWords} worked
+     * out for it, so a word two branches share opens to the readers of both, and the branch's own last word
+     * keeps its own node and, for a word in one language, its readers.
+     */
     private void attachSpine(
             LiteralArgumentBuilder<CommandSourceStack> root,
-            BranchModel branch,
             String[] literals,
             ArgChain chain,
             com.mojang.brigadier.Command<CommandSourceStack> executor,
-            @Nullable Predicate<CommandSourceStack> readers) {
+            Map<String, Predicate<CommandSourceStack>> words) {
         ArgumentBuilder<CommandSourceStack, ?> tail = Cmd.literal(literals[literals.length - 1]);
         applyChain(tail, chain, executor);
-        // A word for some languages sits on the last literal. On a one-word path that literal is also where the
-        // permission goes, so the two are joined there rather than one replacing the other.
-        boolean oneWord = literals.length == 1;
-        if (readers != null && !oneWord) {
-            tail.requires(readers);
-        }
-        for (int i = literals.length - 2; i >= 0; i--) {
-            LiteralArgumentBuilder<CommandSourceStack> parent = Cmd.literal(literals[i]);
+        tail.requires(requirementAt(words, literals, literals.length));
+        for (int depth = literals.length - 1; depth >= 1; depth--) {
+            LiteralArgumentBuilder<CommandSourceStack> parent = Cmd.literal(literals[depth - 1]);
             parent.then(tail);
+            parent.requires(requirementAt(words, literals, depth));
             tail = parent;
         }
-        applyPermission(tail, branch.permission());
-        if (readers != null && oneWord) {
-            tail.requires(tail.getRequirement().and(readers));
-        }
         root.then(tail);
+    }
+
+    private static Predicate<CommandSourceStack> requirementAt(
+            Map<String, Predicate<CommandSourceStack>> words, String[] spelling, int depth) {
+        return words.getOrDefault(key(spelling, depth), source -> true);
     }
 
     private static void attachRoot(
