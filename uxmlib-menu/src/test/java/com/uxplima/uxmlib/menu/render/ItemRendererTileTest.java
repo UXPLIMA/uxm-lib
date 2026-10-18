@@ -56,6 +56,7 @@ class ItemRendererTileTest {
                 description = "What this seller asks for it."
                 action = "Click to buy one."
                 stock { label = "Stock", value = "7" }
+                giver { label = "From", value = "<giver>" }
               }
             }
             """;
@@ -72,6 +73,7 @@ class ItemRendererTileTest {
         viewer = MockBukkit.getMock().addPlayer();
         placeholders.register("coins", ctx -> "12");
         placeholders.register("deal", ctx -> "buy");
+        placeholders.register("giver", ctx -> "");
         Messages messages = new Messages(
                 MessageCatalogLoader.fromNodes(Map.of(Locale.ENGLISH, parse(CATALOGUE)), Locale.ENGLISH),
                 LocaleSource.ofDefault(Locale.ENGLISH));
@@ -219,6 +221,21 @@ class ItemRendererTileTest {
                 item("material = STONE, name = \"Shop\", lore = [\"Buy things\"]"), MenuContext.of(viewer, null, 0));
 
         assertThat(button).isEqualTo("Shop\nBuy things");
+    }
+
+    /**
+     * A fact whose value comes out blank says nothing, and is not drawn. A chest row nobody gave drew "From"
+     * with nothing after it on every row the player bought themselves.
+     */
+    @Test
+    @DisplayName("a fact with nothing to say is left out, and the word over the facts with it when none is left")
+    void aBlankFactIsNotDrawn() {
+        assertThat(tooltip("tile:5 @menu.offer stock giver"))
+                .anyMatch(line -> line.contains("Stock"))
+                .noneMatch(line -> line.contains("From"));
+        assertThat(tooltip("tile:5 @menu.offer giver"))
+                .noneMatch(line -> line.contains("From"))
+                .noneMatch(line -> line.contains("Facts"));
     }
 
     /** The rendered lore of an item whose single lore entry is {@code raw}, flattened to one string. */

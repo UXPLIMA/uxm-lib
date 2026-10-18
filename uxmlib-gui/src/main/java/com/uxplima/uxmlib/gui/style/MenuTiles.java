@@ -10,6 +10,7 @@ import java.util.regex.Pattern;
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 import com.uxplima.uxmlib.text.message.MessageKey;
 import com.uxplima.uxmlib.text.message.Messages;
@@ -24,7 +25,9 @@ import com.uxplima.uxmlib.text.style.Styler;
  * is written in the file rather than in the catalogue because which tiles on a screen should look alike is a
  * question about the screen and not about the words. The key names a block of the catalogue, and the facts
  * name the rows of that block, in the order the file writes them: an operator who wants one fact fewer takes
- * a word off the line, and a translator never sees the layout at all.
+ * a word off the line, and a translator never sees the layout at all. A fact whose value comes out blank is
+ * left out, and the word over the facts with it when none is left: one line serves a row that has a sender and
+ * a row that has none.
  *
  * <p>A word written with a minus in front of it leaves a block out: {@code -action} draws a tile that answers
  * no click without a second block of words for it. That is what a tab of a window needs, which says the same
@@ -109,6 +112,8 @@ public final class MenuTiles {
 
     private static final String VALUE = ".value";
 
+    private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
+
     private final Messages messages;
     private final Styler styler;
 
@@ -143,15 +148,25 @@ public final class MenuTiles {
         if (spec.draws(TEXT) && has(viewer, spec.key + TEXT)) {
             lore.description(words(viewer, DESCRIPTION, resolvers), words(viewer, spec.key + TEXT, resolvers));
         }
-        if (!spec.facts.isEmpty()) {
+        List<Fact> said = new ArrayList<>();
+        List<Component> values = new ArrayList<>();
+        for (Fact fact : spec.facts) {
+            Component value = words(viewer, spec.key + "." + fact.name() + VALUE, resolvers);
+            // A fact whose value comes out blank says nothing: a row that reads "From" and stops is noise.
+            if (!PLAIN.serialize(value).isBlank()) {
+                said.add(fact);
+                values.add(value);
+            }
+        }
+        if (!said.isEmpty()) {
             lore.details(words(viewer, DETAILS, resolvers));
-            for (Fact fact : spec.facts) {
+            for (int i = 0; i < said.size(); i++) {
+                Fact fact = said.get(i);
                 Component label = words(viewer, spec.key + "." + fact.name() + LABEL, resolvers);
-                Component value = words(viewer, spec.key + "." + fact.name() + VALUE, resolvers);
                 if (fact.state()) {
-                    lore.status(label, painted(value, fact.role()));
+                    lore.status(label, painted(values.get(i), fact.role()));
                 } else {
-                    lore.row(label, value);
+                    lore.row(label, values.get(i));
                 }
             }
         }
