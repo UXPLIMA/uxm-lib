@@ -1590,9 +1590,12 @@ public final class Menus {
     /**
      * Append one button per list entry on the current page, labelling each with the list template stamped for that
      * entry and routing a tap through the template's click actions bound to that entry: the form stand-in for a chest
-     * list cell's {@code RenderedSlot(template, entry)}. Only one list-backed item is paged, the one drawn nearest the
-     * start of the window (a spec pairs one scrollable list with its controls, mirroring the chest renderer's page-
-     * count rule); a static-only menu has none and stays a single page. Returns the page count so the caller knows whether to add page-nav buttons.
+     * list cell's {@code RenderedSlot(template, entry)}. Every list the window draws adds its rows, in the order of
+     * the slot each starts at, each cut to the page the chest would show; a window may lay out more than one, as a
+     * shop shows the shelves under the current one above its products, and a form that read only the paged list left
+     * the other out. The page count is the paged list's, the one drawn nearest the start of the window, mirroring the
+     * chest renderer's rule; a static-only menu has none and stays a single page. Returns the page count so the caller
+     * knows whether to add page-nav buttons.
      *
      * <p>The entries come through {@link MenuRenderer#visibleListEntries}, so the {@code view} block on the list item
      * and the one on its template are read here exactly as they are on a chest.
@@ -1604,24 +1607,54 @@ public final class Menus {
             Map<String, List<?>> resolved,
             List<BedrockButton> buttons,
             List<Runnable> handlers) {
-        Optional<MenuItemSpec> listItem = firstListItem(spec);
-        if (listItem.isEmpty()) {
+        Optional<MenuItemSpec> paged = firstListItem(spec);
+        if (paged.isEmpty()) {
             return 1;
         }
-        var listSpec = listItem.get().list().orElseThrow();
+        int pageCount = 1;
+        for (MenuItemSpec listItem : listItemsInDrawOrder(spec)) {
+            int count = appendRowsOfOneList(listItem, ctx, viewer, resolved, buttons, handlers);
+            if (listItem.equals(paged.get())) {
+                pageCount = count;
+            }
+        }
+        return pageCount;
+    }
+
+    /** One list's rows on the current page as buttons; returns that list's page count. */
+    private int appendRowsOfOneList(
+            MenuItemSpec listItem,
+            MenuContext ctx,
+            Player viewer,
+            Map<String, List<?>> resolved,
+            List<BedrockButton> buttons,
+            List<Runnable> handlers) {
         // Through the renderer, so a form reads the same two view gates a chest does: the list item's own,
         // and the template's, asked once per row. A row a Java viewer cannot see is not a form button.
-        List<?> entries = renderer.visibleListEntries(listItem.get(), ctx, resolved);
-        MenuItemSpec template = listSpec.template();
+        List<?> entries = renderer.visibleListEntries(listItem, ctx, resolved);
+        MenuItemSpec template = listItem.list().orElseThrow().template();
         @SuppressWarnings("unchecked") // a list source's element type is opaque to the engine; entries flow as Object
-        Pagination.Page<Object> page = Pagination.paginate(
-                (List<Object>) entries, listItem.get().slots().slots(), ctx.page());
+        Pagination.Page<Object> page =
+                Pagination.paginate((List<Object>) entries, listItem.slots().slots(), ctx.page());
         for (Map.Entry<Integer, Object> placement : page.placements()) {
             MenuContext entryCtx = ctx.withEntry(placement.getValue());
             buttons.add(formButton(template, entryCtx, viewer));
             handlers.add(() -> scheduler.entity(viewer, () -> tapped(viewer, entryCtx, template)));
         }
         return page.pageCount();
+    }
+
+    /** Every list-backed item of {@code spec}, by the lowest slot each draws into: the order a chest shows them. */
+    private static List<MenuItemSpec> listItemsInDrawOrder(MenuSpec spec) {
+        List<MenuItemSpec> listItems = new ArrayList<>();
+        for (MenuItemSpec item : spec.items().values()) {
+            if (item.list().isPresent()) {
+                listItems.add(item);
+            }
+        }
+        listItems.sort(java.util.Comparator.comparingInt(item ->
+                item.slots().slots().stream().mapToInt(Integer::intValue).min().orElse(Integer.MAX_VALUE)));
+        return listItems;
     }
 
     /**

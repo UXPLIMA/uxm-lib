@@ -559,6 +559,35 @@ class MenusBedrockFormTest {
         assertThat(screen.buttonTexts()).containsExactly("go", "warp", "warp", MenuKeys.PAGE_NEXT);
     }
 
+    /**
+     * A window may lay out more than one list, as a shop shows the shelves under the one a player stands on above the
+     * products on it. Every list's rows are buttons, in the order the window draws them: a form that kept only the
+     * paged list left a Bedrock player a shelf with nothing on it.
+     */
+    @Test
+    void everyListAWindowDrawsBecomesButtonsAndNotOnlyThePagedOne() {
+        lists.register("shelves", ctx -> List.of("tools"));
+        lists.register("products", ctx -> List.of("axe", "pick"));
+        open("shop", """
+                rows = 2
+                items {
+                  down {
+                    slots = [9, 10, 11]
+                    list { source = products, template { material = PAPER, name = "product", click { left = ["note"] } } }
+                  }
+                  up { slots = [0, 1], list { source = shelves, template { material = CHEST, name = "shelf" } } }
+                }
+                """);
+
+        assertThat(screen.buttonTexts()).containsExactly("shelf", "product", "product");
+
+        screen.tap(2);
+
+        assertThat(ran)
+                .singleElement()
+                .satisfies(tap -> assertThat(tap.context().entry()).contains("pick"));
+    }
+
     /** Tapping Next re-sends the form one page over, so the last entry is reachable without a chest. */
     @Test
     void tappingNextResendsTheFormOnePageOver() {
