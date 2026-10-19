@@ -12,6 +12,7 @@ import java.util.function.UnaryOperator;
 import org.bukkit.entity.Player;
 
 import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 
 import com.uxplima.uxmlib.condition.action.CommandSink;
@@ -52,6 +53,7 @@ public final class ConditionRequest {
     private final @Nullable Audience broadcast;
     private final @Nullable Function<String, @Nullable String> words;
     private final @Nullable UnaryOperator<String> style;
+    private final @Nullable BiConsumer<Player, BossBar> barShown;
     private boolean cancelled;
 
     private ConditionRequest(Builder builder) {
@@ -67,6 +69,7 @@ public final class ConditionRequest {
         this.broadcast = builder.broadcast;
         this.words = builder.words;
         this.style = builder.style;
+        this.barShown = builder.barShown;
     }
 
     /** Start a request builder with the resolver seam every placeholder condition needs. */
@@ -123,6 +126,11 @@ public final class ConditionRequest {
         return Optional.ofNullable(later);
     }
 
+    /** Who a bar a failure list shows is handed to, so it can come down early; empty when nobody asked. */
+    public Optional<BiConsumer<Player, BossBar>> barShown() {
+        return Optional.ofNullable(barShown);
+    }
+
     /** Who a {@code [broadcast]} in a failure list reaches; empty when the caller wired nobody. */
     public Optional<Audience> broadcast() {
         return Optional.ofNullable(broadcast);
@@ -174,6 +182,7 @@ public final class ConditionRequest {
         private @Nullable Audience broadcast;
         private @Nullable Function<String, @Nullable String> words;
         private @Nullable UnaryOperator<String> style;
+        private @Nullable BiConsumer<Player, BossBar> barShown;
 
         private Builder(OperandResolver resolver) {
             this.resolver = Objects.requireNonNull(resolver, "resolver");
@@ -218,6 +227,12 @@ public final class ConditionRequest {
         /** Set how a failure list runs something later, which a {@code [bossbar]} needs to come down. */
         public Builder later(BiConsumer<Duration, Runnable> later) {
             this.later = Objects.requireNonNull(later, "later");
+            return this;
+        }
+
+        /** Set who a bar a failure list shows is handed to. */
+        public Builder barShown(BiConsumer<Player, BossBar> barShown) {
+            this.barShown = Objects.requireNonNull(barShown, "barShown");
             return this;
         }
 

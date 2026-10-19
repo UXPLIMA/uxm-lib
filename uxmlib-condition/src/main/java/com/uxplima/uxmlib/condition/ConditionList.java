@@ -91,6 +91,7 @@ public final class ConditionList {
         // The player the conditions were about is who a [message], a [title] or a [sound] of the list speaks to.
         request.player().ifPresent(player -> builder.player(player).target(player));
         request.later().ifPresent(builder::later);
+        request.barShown().ifPresent(builder::barShown);
         request.broadcast().ifPresent(builder::broadcast);
         request.words().ifPresent(builder::words);
         request.style().ifPresent(builder::style);

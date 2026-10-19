@@ -10,6 +10,7 @@ import java.util.function.UnaryOperator;
 import org.bukkit.entity.Player;
 
 import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.bossbar.BossBar;
 
 import com.uxplima.uxmlib.condition.ConditionRequest;
 import com.uxplima.uxmlib.condition.ItemStore;
@@ -88,6 +89,14 @@ public final class ActionContext {
      */
     private final UnaryOperator<String> style;
 
+    /**
+     * Who a bar is handed to as it goes up. A bar stays its seconds, and a wait that ends early (a login before
+     * its timeout, a crate opened before its countdown) left it telling the player to hurry. The plugin that
+     * knows the wait is over keeps the bar it is handed and hides it. Unwired, nobody keeps it, which is what
+     * every plugin had before.
+     */
+    private final BiConsumer<Player, BossBar> barShown;
+
     private ActionContext(Builder builder) {
         this.target = builder.target;
         this.broadcast = builder.broadcast;
@@ -100,6 +109,7 @@ public final class ActionContext {
         this.later = builder.later;
         this.words = builder.words;
         this.style = builder.style;
+        this.barShown = builder.barShown;
     }
 
     /** Start a context builder with the resolver seam every placeholder action needs. */
@@ -132,6 +142,11 @@ public final class ActionContext {
     public String style(String part) {
         Objects.requireNonNull(part, "part");
         return style.apply(part);
+    }
+
+    /** Hand a bar that just went up to whoever asked for it. See the field. */
+    public void barShown(Player to, BossBar bar) {
+        barShown.accept(Objects.requireNonNull(to, "to"), Objects.requireNonNull(bar, "bar"));
     }
 
     /** Run {@code what} after {@code delay}. See the field: unwired, this throws and names what to wire. */
@@ -202,6 +217,7 @@ public final class ActionContext {
                 .consoleSink(consoleSink)
                 .playerSink(playerSink)
                 .later(later)
+                .barShown(barShown)
                 .broadcast(broadcast)
                 .words(words)
                 .style(style);
@@ -231,6 +247,7 @@ public final class ActionContext {
                     + " key is drawn as its words rather than as itself.");
         };
         private UnaryOperator<String> style = line -> StyleTokens.expand(line, Theme.defaults(), false);
+        private BiConsumer<Player, BossBar> barShown = (to, bar) -> {};
         private BiConsumer<Duration, Runnable> later = (delay, what) -> {
             throw new IllegalStateException("an action asked for something to happen in " + delay
                     + " and this ActionContext has no delay wired. Call ActionContext.Builder.later(...) with "
@@ -264,6 +281,12 @@ public final class ActionContext {
          */
         public Builder later(BiConsumer<Duration, Runnable> later) {
             this.later = Objects.requireNonNull(later, "later");
+            return this;
+        }
+
+        /** Wire who a bar is handed to as it goes up, to take it down before its time. See the field. */
+        public Builder barShown(BiConsumer<Player, BossBar> barShown) {
+            this.barShown = Objects.requireNonNull(barShown, "barShown");
             return this;
         }
 

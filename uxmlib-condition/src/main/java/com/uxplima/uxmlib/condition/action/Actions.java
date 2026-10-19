@@ -103,6 +103,7 @@ public final class Actions {
                 drain(context, bar, spec.duration());
             }
             player.showBossBar(bar);
+            context.barShown(player, bar);
         }));
     }
 

@@ -100,4 +100,23 @@ class AFailureListSpeaksToThePlayerTest {
         assertThat(scheduled).hasSize(1);
         assertThat(other.nextMessage()).contains("somebody was stopped");
     }
+
+    @Test
+    @DisplayName("a bar a failure list shows is handed to whoever the request names")
+    void aBarOfAFailureListIsHandedOver() {
+        PlayerMock player = server.addPlayer();
+        List<net.kyori.adventure.bossbar.BossBar> handed = new ArrayList<>();
+        ConditionRequest request = ConditionRequest.builder(OperandResolver.identity())
+                .player(player)
+                .later((delay, task) -> {})
+                .barShown((to, bar) -> handed.add(bar))
+                .build();
+
+        ConditionList.builder()
+                .runCommands(FAIL, List.of("[bossbar] 3 RED PROGRESS | closed"))
+                .build()
+                .test(request);
+
+        assertThat(handed).hasSize(1);
+    }
 }
