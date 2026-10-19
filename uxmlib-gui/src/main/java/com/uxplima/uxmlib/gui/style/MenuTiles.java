@@ -146,7 +146,11 @@ public final class MenuTiles {
             lore.crumb(words(viewer, spec.key + CRUMB, resolvers));
         }
         if (spec.draws(TEXT) && has(viewer, spec.key + TEXT)) {
-            lore.description(words(viewer, DESCRIPTION, resolvers), words(viewer, spec.key + TEXT, resolvers));
+            Component text = words(viewer, spec.key + TEXT, resolvers);
+            // The same rule as a fact: a description that comes out blank is a word over nothing.
+            if (!PLAIN.serialize(text).isBlank()) {
+                lore.description(words(viewer, DESCRIPTION, resolvers), text);
+            }
         }
         List<Fact> said = new ArrayList<>();
         List<Component> values = new ArrayList<>();

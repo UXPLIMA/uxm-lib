@@ -58,6 +58,11 @@ class ItemRendererTileTest {
                 stock { label = "Stock", value = "7" }
                 giver { label = "From", value = "<giver>" }
               }
+              unsaid {
+                title = "Unsaid"
+                description = "<giver>"
+                stock { label = "Stock", value = "7" }
+              }
             }
             """;
 
@@ -236,6 +241,22 @@ class ItemRendererTileTest {
         assertThat(tooltip("tile:5 @menu.offer giver"))
                 .noneMatch(line -> line.contains("From"))
                 .noneMatch(line -> line.contains("Facts"));
+    }
+
+    /**
+     * A description is a placeholder as often as a fact is: a product's own words, which a shop may leave empty.
+     * Found live on a shop tile that read "Description" over a blank line. Empty, it says nothing, and the word
+     * over it goes with it, as a fact's row does.
+     */
+    @Test
+    @DisplayName("a description with nothing to say is left out, and the word over it with it")
+    void aBlankDescriptionIsNotDrawn() {
+        assertThat(tooltip("tile:5 @menu.unsaid stock"))
+                .noneMatch(line -> line.contains("About"))
+                .anyMatch(line -> line.contains("Stock"));
+        assertThat(tooltip("tile:5 @menu.offer stock"))
+                .anyMatch(line -> line.contains("About"))
+                .anyMatch(line -> line.contains("What this seller asks for it."));
     }
 
     /** The rendered lore of an item whose single lore entry is {@code raw}, flattened to one string. */
