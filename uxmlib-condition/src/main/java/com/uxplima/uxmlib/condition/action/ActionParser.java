@@ -112,28 +112,34 @@ public final class ActionParser {
     }
 
     /**
-     * {@code <seconds> <colour> <overlay> | <text>}: how long the bar stays, what colour it is, how it is
-     * divided, and what it says. The colour and the overlay are optional and default to white and a solid bar.
+     * {@code <seconds> <colour> <overlay> [drain] | <text>}: how long the bar stays, what colour it is, how it is
+     * divided, whether it empties over its time, and what it says. The colour and the overlay are optional and
+     * default to white and a solid bar; {@code drain} is the last word before the pipe when it is there.
      */
     private static Actions.BossBarSpec parseBossBar(String payload) {
         int pipe = payload.indexOf('|');
         if (pipe < 0) {
             throw new IllegalArgumentException(
-                    "[bossbar] is written '<seconds> [colour] [overlay] | <text>', got: " + payload);
+                    "[bossbar] is written '<seconds> [colour] [overlay] [drain] | <text>', got: " + payload);
         }
-        List<String> head = List.of(payload.substring(0, pipe).strip().split("\\s+"));
+        List<String> head =
+                new ArrayList<>(List.of(payload.substring(0, pipe).strip().split("\\s+")));
+        boolean drain = head.size() > 1 && head.get(head.size() - 1).equalsIgnoreCase("drain");
+        if (drain) {
+            head.remove(head.size() - 1);
+        }
         String text = payload.substring(pipe + 1).strip();
         Duration duration = seconds(head.get(0), payload);
         if (head.size() > 3) {
             throw new IllegalArgumentException(
-                    "[bossbar] is written '<seconds> [colour] [overlay] | <text>', got: " + payload);
+                    "[bossbar] is written '<seconds> [colour] [overlay] [drain] | <text>', got: " + payload);
         }
         BossBar.Color colour =
                 head.size() > 1 ? named(BossBar.Color.values(), head.get(1), BossBar.Color.WHITE) : BossBar.Color.WHITE;
         BossBar.Overlay overlay = head.size() > 2
                 ? named(BossBar.Overlay.values(), head.get(2), BossBar.Overlay.PROGRESS)
                 : BossBar.Overlay.PROGRESS;
-        return new Actions.BossBarSpec(text, colour, overlay, duration);
+        return new Actions.BossBarSpec(text, colour, overlay, duration, drain);
     }
 
     /**

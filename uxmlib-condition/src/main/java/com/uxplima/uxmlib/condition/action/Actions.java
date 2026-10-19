@@ -82,7 +82,8 @@ public final class Actions {
     }
 
     /**
-     * {@code [bossbar] <seconds> <colour> <overlay> | <text>}: a bar across the top of the screen for a while.
+     * {@code [bossbar] <seconds> <colour> <overlay> [drain] | <text>}: a bar across the top of the screen for a
+     * while. With {@code drain} it empties over that while, so a wait with a limit reads how much is left.
      *
      * <p>It is shown to whoever the action targets and taken down again when the time is up, so nothing has to
      * be tracked by the caller and a reload cannot leave a bar on a player forever. A bar is the one surface
@@ -98,8 +99,24 @@ public final class Actions {
             // Asking first costs the same list and leaves the player's screen alone, which is the difference
             // between a defect an operator can fix and one their players watch all evening.
             context.later(spec.duration(), () -> player.hideBossBar(bar));
+            if (spec.drain()) {
+                drain(context, bar, spec.duration());
+            }
             player.showBossBar(bar);
         }));
+    }
+
+    /** The most steps a draining bar takes, so a bar of ten minutes asks the scheduler a hundred times. */
+    private static final int DRAIN_STEPS = 100;
+
+    /** Empty the bar over its time: a step a second, or a hundredth of the time when that is longer. */
+    private static void drain(ActionContext context, BossBar bar, Duration duration) {
+        long total = duration.toMillis();
+        long step = Math.max(1000L, (total + DRAIN_STEPS - 1) / DRAIN_STEPS);
+        for (long at = step; at < total; at += step) {
+            float left = 1.0f - (float) at / total;
+            context.later(Duration.ofMillis(at), () -> bar.progress(Math.max(0.0f, left)));
+        }
     }
 
     /**
@@ -197,14 +214,23 @@ public final class Actions {
         }
     }
 
-    /** A boss bar: what it says, what colour it is, how it is divided, and how long it stays. */
-    public record BossBarSpec(String textTemplate, BossBar.Color colour, BossBar.Overlay overlay, Duration duration) {
+    /**
+     * A boss bar: what it says, what colour it is, how it is divided, how long it stays, and whether it empties
+     * over that time.
+     */
+    public record BossBarSpec(
+            String textTemplate, BossBar.Color colour, BossBar.Overlay overlay, Duration duration, boolean drain) {
 
         public BossBarSpec {
             Objects.requireNonNull(textTemplate, "textTemplate");
             Objects.requireNonNull(colour, "colour");
             Objects.requireNonNull(overlay, "overlay");
             Objects.requireNonNull(duration, "duration");
+        }
+
+        /** A bar that stays full. */
+        public BossBarSpec(String textTemplate, BossBar.Color colour, BossBar.Overlay overlay, Duration duration) {
+            this(textTemplate, colour, overlay, duration, false);
         }
     }
 
