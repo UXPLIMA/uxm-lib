@@ -83,6 +83,35 @@ class SharedWordPermissionTest {
         void take(Sender sender) {}
     }
 
+    /** The bare command is the operator's, and a player's branch lives under it. */
+    @Command(name = "t")
+    static class OperatorsRoot {
+
+        @Permission(ADMIN_NODE)
+        @Subcommand("")
+        void root(Sender sender) {}
+
+        @Permission(PLAYER_NODE)
+        @Subcommand("lang set")
+        void set(Sender sender) {}
+
+        @Permission(ADMIN_NODE)
+        @Subcommand("reload")
+        void reload(Sender sender) {}
+    }
+
+    @Command(name = "t")
+    static class OperatorsOnlyRoot {
+
+        @Permission(ADMIN_NODE)
+        @Subcommand("")
+        void root(Sender sender) {}
+
+        @Permission(ADMIN_NODE)
+        @Subcommand("reload")
+        void reload(Sender sender) {}
+    }
+
     @BeforeEach
     void start() {
         MockBukkit.mock();
@@ -131,6 +160,23 @@ class SharedWordPermissionTest {
 
         assertThat(key.canUse(holding())).isFalse();
         assertThat(key.canUse(holding(ADMIN_NODE))).isTrue();
+    }
+
+    /**
+     * Found live on uxmConnect: {@code /blysis} alone is the operator's, and the root word took the operator's
+     * node, so no player could reach {@code /blysis lang set} although every player holds its node.
+     */
+    @Test
+    @DisplayName("the command's own word is the root branch's and every branch's below it")
+    void thePlayerKeepsTheRootWord() {
+        LiteralCommandNode<CommandSourceStack> root = build(new OperatorsRoot());
+
+        assertThat(root.canUse(holding(PLAYER_NODE))).isTrue();
+        assertThat(child(child(root, "lang"), "set").canUse(holding(PLAYER_NODE)))
+                .isTrue();
+        assertThat(child(root, "reload").canUse(holding(PLAYER_NODE))).isFalse();
+        assertThat(build(new OperatorsOnlyRoot()).canUse(holding(PLAYER_NODE))).isFalse();
+        assertThat(build(new OperatorsOnlyRoot()).canUse(holding(ADMIN_NODE))).isTrue();
     }
 
     private static LiteralCommandNode<CommandSourceStack> build(Object handler) {

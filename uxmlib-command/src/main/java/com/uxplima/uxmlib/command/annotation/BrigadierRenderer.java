@@ -50,6 +50,7 @@ final class BrigadierRenderer {
             root.requires(Cmd.visibility(classPermission.value()));
         }
         Map<String, Predicate<CommandSourceStack>> words = sharedWords(model.branches());
+        root.requires(rootWord(model.branches()).and(root.getRequirement()));
         for (BranchModel branch : model.branches()) {
             attachBranch(root, model.handler(), branch, command.name(), words);
         }
@@ -90,6 +91,19 @@ final class BrigadierRenderer {
         return words;
     }
 
+    /**
+     * Who may see the command's own word: anyone who may use any branch of it. The bare command's node used
+     * to sit on this word, so a root kept for operators hid every player's branch below it. The executor of the
+     * bare command still refuses a sender who lacks its node.
+     */
+    private static Predicate<CommandSourceStack> rootWord(List<BranchModel> branches) {
+        Predicate<CommandSourceStack> may = source -> false;
+        for (BranchModel branch : branches) {
+            may = may.or(visibilityOf(branch.permission()));
+        }
+        return branches.isEmpty() ? source -> true : may;
+    }
+
     private static List<String[]> spellingsOf(BranchModel branch, String[] literals) {
         List<String[]> spellings = new ArrayList<>();
         spellings.add(literals);
@@ -123,7 +137,7 @@ final class BrigadierRenderer {
 
         String[] literals = branch.literals();
         if (literals.length == 0) {
-            attachRoot(root, branch, chain, executor);
+            attachRoot(root, chain, executor);
             return;
         }
         attachSpine(root, literals, chain, executor, words);
@@ -187,10 +201,8 @@ final class BrigadierRenderer {
 
     private static void attachRoot(
             LiteralArgumentBuilder<CommandSourceStack> root,
-            BranchModel branch,
             ArgChain chain,
             com.mojang.brigadier.Command<CommandSourceStack> executor) {
-        applyPermission(root, branch.permission());
         applyChain(root, chain, executor);
     }
 
@@ -269,12 +281,5 @@ final class BrigadierRenderer {
         node.suggests(new FlagArgumentType(branch.flags())::listSuggestions);
         node.executes(executor); // flags are optional, so a flags node always ends the command
         return node;
-    }
-
-    private static void applyPermission(
-            ArgumentBuilder<CommandSourceStack, ?> builder, @Nullable Permission permission) {
-        if (permission != null) {
-            builder.requires(Cmd.visibility(permission.value()));
-        }
     }
 }
