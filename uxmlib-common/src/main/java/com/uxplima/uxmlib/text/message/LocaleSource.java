@@ -43,7 +43,10 @@ public interface LocaleSource {
         public Locale localeOf(Audience viewer) {
             Objects.requireNonNull(viewer, "viewer");
             if (viewer instanceof Player player) {
-                return player.locale();
+                // Paper says never null, and a player still joining, or one a test mocks, answers it anyway:
+                // the catalogue then looked up a null locale and the line was lost.
+                Locale own = player.locale();
+                return own != null ? own : defaultLocale;
             }
             return defaultLocale;
         }
