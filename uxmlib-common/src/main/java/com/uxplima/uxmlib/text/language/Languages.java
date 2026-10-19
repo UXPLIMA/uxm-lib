@@ -1,6 +1,7 @@
 package com.uxplima.uxmlib.text.language;
 
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -10,8 +11,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
+import com.uxplima.uxmlib.config.ClasspathFiles;
+import com.uxplima.uxmlib.config.ConfigException;
 import com.uxplima.uxmlib.text.message.MessageCatalog;
 import com.uxplima.uxmlib.text.message.MessageCatalogLoader;
 import org.jspecify.annotations.Nullable;
@@ -62,6 +66,51 @@ public final class Languages {
      *     against
      */
     public static Languages load(Path folder, Locale defaultLocale) {
+        return load(folder, defaultLocale, Map.of());
+    }
+
+    /**
+     * Read every {@code messages_<tag>.conf} in {@code folder}, over the files the plugin's jar carries in
+     * {@code directory}.
+     *
+     * <p>The files in the folder were written by whichever version of the plugin ran first, and an update adds
+     * lines. Read alone, a line the operator's file never had reaches a player as its key. With the jar's own files
+     * underneath, it reads the words the update shipped, while every line the operator wrote still wins.
+     *
+     * @param loader the plugin's own class loader, which is what carries its resources
+     * @param directory where the files sit in the jar, usually {@code messages}
+     */
+    public static Languages load(Path folder, Locale defaultLocale, ClassLoader loader, String directory) {
+        Objects.requireNonNull(loader, "loader");
+        Objects.requireNonNull(directory, "directory");
+        return load(folder, defaultLocale, shippedIn(loader, directory));
+    }
+
+    private static Map<Locale, Map<String, String>> shippedIn(ClassLoader loader, String directory) {
+        Map<Locale, Map<String, String>> shipped = new LinkedHashMap<>();
+        for (String name : ClasspathFiles.list(loader, directory)) {
+            Optional<Locale> locale = LanguageFiles.localeOf(Path.of(name));
+            URL resource = loader.getResource(directory + "/" + name);
+            if (locale.isEmpty() || resource == null) {
+                continue;
+            }
+            try {
+                shipped.put(
+                        locale.get(),
+                        flatten(HoconConfigurationLoader.builder()
+                                .url(resource)
+                                .build()
+                                .load()));
+            } catch (ConfigurateException unreadable) {
+                // The jar's own file is the plugin's build, not an operator's edit: one that does not parse is a
+                // defect to see at the first start, not a layer to drop quietly.
+                throw new ConfigException("the shipped language file " + name + " cannot be read", unreadable);
+            }
+        }
+        return shipped;
+    }
+
+    private static Languages load(Path folder, Locale defaultLocale, Map<Locale, Map<String, String>> shipped) {
         Objects.requireNonNull(folder, "folder");
         Objects.requireNonNull(defaultLocale, "defaultLocale");
         Map<Locale, Map<String, String>> entries = new LinkedHashMap<>();
@@ -72,7 +121,7 @@ public final class Languages {
         } catch (IOException unreadable) {
             // A folder that cannot be listed leaves every key on its own default, which is a finished
             // message. The operator has to see why, and the server has to keep running.
-            Map<Locale, Map<String, String>> floor = beneath(Map.of(), defaultLocale);
+            Map<Locale, Map<String, String>> floor = beneath(Map.of(), shipped, defaultLocale);
             return new Languages(
                     new MessageCatalog(floor, defaultLocale),
                     floor,
@@ -83,7 +132,7 @@ public final class Languages {
             read(file.getKey(), file.getValue(), entries, problems);
         }
         problems.addAll(missingKeyReport(files, entries, defaultLocale));
-        Map<Locale, Map<String, String>> merged = beneath(entries, defaultLocale);
+        Map<Locale, Map<String, String>> merged = beneath(entries, shipped, defaultLocale);
         return new Languages(
                 new MessageCatalog(merged, defaultLocale), merged, Set.copyOf(entries.keySet()), List.copyOf(problems));
     }
@@ -149,13 +198,15 @@ public final class Languages {
      * than one honest fallback: the catalog already answers such a player in the default language.
      */
     private static Map<Locale, Map<String, String>> beneath(
-            Map<Locale, Map<String, String>> own, Locale defaultLocale) {
-        Map<Locale, Map<String, String>> shipped = LibraryWords.shipped();
+            Map<Locale, Map<String, String>> own, Map<Locale, Map<String, String>> plugin, Locale defaultLocale) {
+        Map<Locale, Map<String, String>> library = LibraryWords.shipped();
         Set<Locale> locales = new LinkedHashSet<>(own.keySet());
         locales.add(defaultLocale);
         Map<Locale, Map<String, String>> merged = new LinkedHashMap<>();
         for (Locale locale : locales) {
-            Map<String, String> lines = new LinkedHashMap<>(shipped.getOrDefault(locale, Map.of()));
+            Map<String, String> lines = new LinkedHashMap<>(library.getOrDefault(locale, Map.of()));
+            // The plugin's jar between the library and the operator: what an update added, under what was edited.
+            lines.putAll(plugin.getOrDefault(locale, Map.of()));
             lines.putAll(own.getOrDefault(locale, Map.of()));
             merged.put(locale, Map.copyOf(lines));
         }

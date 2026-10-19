@@ -17,6 +17,30 @@ class LanguagesTest {
     private static final MessageKey BYE = MessageKey.of("quit.bye", "<gray>fallback");
     private static final Locale TR = Locale.forLanguageTag("tr");
 
+    /**
+     * A plugin update adds lines, and the file an operator already has was written by the version before it. The
+     * jar's own files sit underneath, so a line the operator never had reads the shipped words and not its key, while
+     * every line the operator did write still wins. Found live: a new menu line showed a Bedrock player
+     * "menu.store.chest.gestures.left".
+     */
+    @Test
+    void aLineAnOlderFileLacksReadsTheShippedWords(@TempDir Path folder, @TempDir Path jar) throws Exception {
+        write(folder, "en", "join { welcome = \"Hello from the operator\" }");
+        Path shipped = jar.resolve("messages");
+        Files.createDirectories(shipped);
+        Files.writeString(
+                shipped.resolve("messages_en.conf"), "join { welcome = \"Welcome\" }\nquit { bye = \"Shipped bye\" }");
+
+        try (java.net.URLClassLoader loader =
+                new java.net.URLClassLoader(new java.net.URL[] {jar.toUri().toURL()}, null)) {
+            Languages languages = Languages.load(folder, Locale.ENGLISH, loader, "messages");
+
+            assertThat(languages.catalog().template(WELCOME, Locale.ENGLISH)).isEqualTo("Hello from the operator");
+            assertThat(languages.catalog().template(BYE, Locale.ENGLISH)).isEqualTo("Shipped bye");
+            assertThat(languages.entries().get(Locale.ENGLISH)).containsEntry("quit.bye", "Shipped bye");
+        }
+    }
+
     @Test
     void everyFileInTheFolderBecomesALanguage(@TempDir Path folder) throws Exception {
         write(folder, "en", "join { welcome = \"Welcome\" }\nquit { bye = \"Bye\" }");
