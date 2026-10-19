@@ -48,6 +48,21 @@ class LoreTest {
         assertThat(lines(lore)).hasSize(3); // the header, its line, and the blank that closes the box
     }
 
+    /**
+     * A description is often what somebody typed on a site, and some of it carries a legacy colour code out
+     * of habit. The lines were found by writing the text back into MiniMessage and reading it again, and a
+     * section sign made that throw, so the window holding the tile never opened.
+     */
+    @Test
+    void aDescriptionWithASectionSignIsDrawnAsItsLetters() {
+        Component lore = Lore.of(theme)
+                .description(Component.text("About"), Component.text("Shiny \u00a74red <b>gems</b>\nSecond line"))
+                .build();
+
+        String drawn = PlainTextComponentSerializer.plainText().serialize(lore);
+        assertThat(drawn).contains("\u00a74red").contains("<b>gems</b>").contains("Second line");
+    }
+
     @Test
     void aBlankLineSeparatesTwoBlocks() {
         Component lore = Lore.of(theme)

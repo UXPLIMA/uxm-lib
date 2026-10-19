@@ -92,6 +92,26 @@ public final class Text {
         return MINI.deserialize(style + '<' + BODY + '>', Placeholder.component(BODY, body));
     }
 
+    /** The placeholder {@link #reread} puts a section sign back through. */
+    private static final String SECTION = "uxmlib_section";
+
+    /**
+     * Read back a string {@link #serialize} wrote, including a section sign in its text.
+     *
+     * <p>The parser refuses a section sign anywhere in its input, because it reads one as a legacy colour code,
+     * and a component's text is what somebody typed: a site's product, a player's name. The sign goes back in
+     * as the letter it was, through a placeholder the serializer can never have written, since it escapes every
+     * {@code <} of the text it writes.
+     */
+    public static Component reread(String serialized) {
+        Objects.requireNonNull(serialized, "serialized");
+        if (serialized.indexOf('\u00a7') < 0) {
+            return MINI.deserialize(serialized);
+        }
+        return MINI.deserialize(
+                serialized.replace("\u00a7", "<" + SECTION + ">"), Placeholder.unparsed(SECTION, "\u00a7"));
+    }
+
     /** Flatten a component to plain text, dropping all formatting. */
     public static String plain(Component component) {
         Objects.requireNonNull(component, "component");

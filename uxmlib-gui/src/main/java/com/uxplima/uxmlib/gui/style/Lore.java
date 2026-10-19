@@ -427,7 +427,7 @@ public final class Lore {
     private static List<Component> split(Component text) {
         List<Component> lines = new ArrayList<>();
         for (String line : LINE_BREAK.split(Text.serialize(text), -1)) {
-            lines.add(Text.mini(line));
+            lines.add(Text.reread(line));
         }
         return lines;
     }

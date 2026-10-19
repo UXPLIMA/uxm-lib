@@ -250,10 +250,9 @@ public final class StyleTokens {
         for (TextColor stop : stops) {
             tag.append(':').append(hex(stop));
         }
-        return Text.mini(tag.append('>')
-                .append(Text.serialize(text))
-                .append("</gradient>")
-                .toString());
+        // The text goes in as the component it is, never written back into MiniMessage: a title is what a
+        // site or a player typed, and a section sign in it made the parser throw and the window not open.
+        return Text.paint(text, tag.append('>').toString());
     }
 
     /** Whether any part of {@code component} names a colour, root or child. */

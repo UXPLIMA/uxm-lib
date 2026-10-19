@@ -148,6 +148,24 @@ class StyleTokensTest {
                 .isEqualTo(serialize(StyleTokens.header(gradient, Component.text("Emotes"))));
     }
 
+    /**
+     * A title is whatever a site or a player typed, and some of them type a legacy colour code out of habit.
+     * Painted by writing the title back into MiniMessage, a section sign made the parser throw, and the window
+     * that drew the tile never opened. The title is painted as the text it is, letters and all.
+     */
+    @Test
+    void aTitleWithASectionSignOrATagIsPaintedAsTheTextItIs() throws ConfigurateException {
+        Theme many = themeWithGradients();
+        Component typed = Component.text("<rainbow>Ten</rainbow> \u00a74red");
+
+        Component painted = StyleTokens.paint(many, typed, "mint");
+
+        assertThat(Text.plain(painted)).isEqualTo("<rainbow>Ten</rainbow> \u00a74red");
+        assertThat(gradientOf(painted))
+                .isEqualTo(gradientOf(StyleTokens.paint(many, Component.text("Emotes"), "mint")));
+        assertThat(Text.plain(StyleTokens.paint(many, typed, 3))).isEqualTo("<rainbow>Ten</rainbow> \u00a74red");
+    }
+
     /** A title that arrived painted was painted on purpose: a lobby name, a rank, a player's own tag. */
     @Test
     void aTitleThatCarriesAColourKeepsIt() throws ConfigurateException {
