@@ -398,6 +398,9 @@ public final class MenuSpecWriter {
             }
             writeGesture(node.node(GESTURE_KEYS.get(kind)), actions == null ? List.of() : actions, requirement, orElse);
         }
+        for (Map.Entry<ClickKind, String> named : click.names().entrySet()) {
+            node.node("names", GESTURE_KEYS.get(named.getKey())).set(named.getValue());
+        }
     }
 
     /**

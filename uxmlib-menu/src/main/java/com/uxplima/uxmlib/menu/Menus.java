@@ -1752,7 +1752,11 @@ public final class Menus {
         Player viewer = ctx.viewer();
         List<BedrockButton> buttons = new ArrayList<>();
         for (ClickKind kind : gestures) {
-            buttons.add(new BedrockButton(renderer.plainMessage(viewer, gestureKey(kind)), null));
+            String label = item.click()
+                    .nameFor(kind)
+                    .map(name -> renderer.plainText(name, ctx))
+                    .orElseGet(() -> renderer.plainMessage(viewer, gestureKey(kind)));
+            buttons.add(new BedrockButton(label, null));
         }
         bedrockScreen.sendSimpleForm(
                 live, renderer.plainMessage(viewer, MenuKeys.GESTURE_TITLE), null, buttons, index -> {

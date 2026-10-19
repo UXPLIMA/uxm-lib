@@ -462,6 +462,34 @@ class MenusBedrockFormTest {
         assertThat(ran).isEmpty();
     }
 
+    /**
+     * A tap has no left and no right, so "left click" names nothing a Bedrock player did. Found live on a shop's
+     * chest tile: the form asked a phone player to choose between "left click" and "right click". A tile may name
+     * what each gesture does, and the form asks with those words; a gesture it does not name keeps the gesture word.
+     */
+    @Test
+    void aTileThatNamesItsGesturesIsAskedAboutInThoseWords() {
+        open("shop", """
+                rows = 1
+                items {
+                  a { slot = 0, material = STONE, name = "A",
+                      click {
+                        left = ["note:open"]
+                        right = ["note:gifts"]
+                        "shift-right" = ["note:other"]
+                        names { left = "Open the chest", right = "Turn gifts on or off" }
+                      } }
+                }
+                """);
+
+        screen.tap(0);
+        assertThat(screen.buttonTexts())
+                .containsExactly("Open the chest", "Turn gifts on or off", "gui.gesture.shift-right");
+
+        screen.tap(1);
+        assertThat(ran).singleElement().satisfies(tap -> assertThat(tap.arg()).isEqualTo("gifts"));
+    }
+
     /** Choosing a gesture runs that gesture's actions, and the handler is told which gesture it was. */
     @Test
     void choosingAGestureRunsThatGesturesActions() {

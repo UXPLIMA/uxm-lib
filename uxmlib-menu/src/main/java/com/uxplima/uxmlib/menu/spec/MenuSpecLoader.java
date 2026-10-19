@@ -787,10 +787,15 @@ public final class MenuSpecLoader {
         Map<ClickKind, List<Ref>> actions = new EnumMap<>(ClickKind.class);
         Map<ClickKind, RequirementSpec> requirements = new EnumMap<>(ClickKind.class);
         Map<ClickKind, ClickBranch> orElse = new EnumMap<>(ClickKind.class);
+        Map<ClickKind, String> names = new EnumMap<>(ClickKind.class);
         if (!node.virtual() && !node.isNull()) {
             for (Map.Entry<Object, ? extends ConfigurationNode> entry :
                     node.childrenMap().entrySet()) {
                 String written = String.valueOf(entry.getKey());
+                if (written.equalsIgnoreCase(GESTURE_NAMES)) {
+                    parseGestureNames(entry.getValue(), names);
+                    continue;
+                }
                 ClickKind kind = CLICK_KEYS.get(written.toLowerCase(java.util.Locale.ROOT));
                 if (kind == null) {
                     // Dropping it silently is the worst answer there is: the button is drawn, it is pressed, and
@@ -804,7 +809,27 @@ public final class MenuSpecLoader {
             }
         }
         // v1 keeps per-gesture conditions empty; visibility is gated by the item-level `view` list instead.
-        return new ClickSpec(actions, Map.of(), requirements, orElse);
+        return new ClickSpec(actions, Map.of(), requirements, orElse, names);
+    }
+
+    /** The key of the click block that names its gestures for a Bedrock form, rather than binding one. */
+    private static final String GESTURE_NAMES = "names";
+
+    /** Reads {@code names { left = "...", right = "..." }}, saying which word is not a gesture rather than dropping it. */
+    private void parseGestureNames(ConfigurationNode node, Map<ClickKind, String> names) {
+        for (Map.Entry<Object, ? extends ConfigurationNode> entry :
+                node.childrenMap().entrySet()) {
+            String written = String.valueOf(entry.getKey());
+            ClickKind kind = CLICK_KEYS.get(written.toLowerCase(java.util.Locale.ROOT));
+            String name = entry.getValue().getString();
+            if (kind == null || name == null || name.isBlank()) {
+                LOG.warning("menu item at " + node.path() + " names '" + written + "', which is not a gesture with a"
+                        + " name, so the form asks with the gesture word. The gestures are " + CLICK_KEYS.keySet()
+                        + ".");
+                continue;
+            }
+            names.put(kind, name);
+        }
     }
 
     /**

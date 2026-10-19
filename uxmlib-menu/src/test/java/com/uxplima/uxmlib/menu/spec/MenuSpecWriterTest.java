@@ -306,6 +306,23 @@ class MenuSpecWriterTest {
                 """);
     }
 
+    /** The words a Bedrock form asks with for each gesture survive the trip, and an item without them gains none. */
+    @Test
+    void roundTripsTheNamesOfAnItemsGestures() {
+        MenuSpec spec = assertRoundTrips("""
+                rows = 1
+                items { a { slot = 0, material = STONE, click {
+                  left = ["message:open"]
+                  right = ["message:gifts"]
+                  names { left = "@menu.chest.open", right = "Turn gifts on or off" }
+                } } }
+                """);
+        assertThat(item(spec, "a").click().nameFor(ClickKind.LEFT)).contains("@menu.chest.open");
+        assertThat(item(spec, "a").click().nameFor(ClickKind.SHIFT_LEFT)).isEmpty();
+        assertThat(writeOf("rows = 1\nitems { a { slot = 0, material = STONE, click { left = [\"message:x\"] } } }"))
+                .doesNotContain("names");
+    }
+
     @Test
     void roundTripsAGestureThatCarriesADenyAndNoRequirements() {
         assertRoundTrips("""

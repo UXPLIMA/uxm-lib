@@ -18,12 +18,17 @@ import java.util.Optional;
  * fails: try block A, else block B, and so on, nested to any depth. Unlike actions and requirements the else-chain is
  * <em>not</em> merged with {@code ANY}: a fallback ladder is a self-contained if / else-if / else structure specific to
  * one gesture, so blending it with a shared {@code ANY} chain would make the branch order ambiguous.
+ *
+ * <p>A gesture may be named ({@link #nameFor}): the words a Bedrock form asks with when a tile binds more than one
+ * gesture. A tap has no left and no right, so "left click" names nothing a Bedrock player did, while "open the chest"
+ * does. A name is a line the menu text path resolves, so it may be a {@code @key}.
  */
 public record ClickSpec(
         Map<ClickKind, List<Ref>> actions,
         Map<ClickKind, List<Ref>> conditions,
         Map<ClickKind, RequirementSpec> requirements,
-        Map<ClickKind, ClickBranch> orElse) {
+        Map<ClickKind, ClickBranch> orElse,
+        Map<ClickKind, String> names) {
 
     /**
      * The historic two-argument form. It forwards to the canonical constructor with no requirement blocks and no
@@ -46,11 +51,30 @@ public record ClickSpec(
         this(actions, conditions, requirements, Map.of());
     }
 
+    /**
+     * The four-argument form (actions, conditions, requirement blocks, else-chains), with no gesture named, so every
+     * call site from before gestures had names keeps compiling unchanged.
+     */
+    public ClickSpec(
+            Map<ClickKind, List<Ref>> actions,
+            Map<ClickKind, List<Ref>> conditions,
+            Map<ClickKind, RequirementSpec> requirements,
+            Map<ClickKind, ClickBranch> orElse) {
+        this(actions, conditions, requirements, orElse, Map.of());
+    }
+
     public ClickSpec {
         actions = copyRefs(Objects.requireNonNull(actions, "actions"));
         conditions = copyRefs(Objects.requireNonNull(conditions, "conditions"));
         requirements = copyRequirements(Objects.requireNonNull(requirements, "requirements"));
         orElse = copyBranches(Objects.requireNonNull(orElse, "orElse"));
+        names = copyNames(Objects.requireNonNull(names, "names"));
+    }
+
+    /** The words {@code kind} is asked about in on a Bedrock form, or empty when the gesture word is to be used. */
+    public Optional<String> nameFor(ClickKind kind) {
+        Objects.requireNonNull(kind, "kind");
+        return Optional.ofNullable(names.get(kind));
     }
 
     /**
@@ -126,7 +150,7 @@ public record ClickSpec(
         } else {
             next.put(kind, List.copyOf(refs));
         }
-        return new ClickSpec(next, conditions, requirements, orElse);
+        return new ClickSpec(next, conditions, requirements, orElse, names);
     }
 
     /**
@@ -145,7 +169,7 @@ public record ClickSpec(
         } else {
             next.put(kind, requirement);
         }
-        return new ClickSpec(actions, conditions, next, orElse);
+        return new ClickSpec(actions, conditions, next, orElse, names);
     }
 
     private static Map<ClickKind, List<Ref>> copyRefs(Map<ClickKind, List<Ref>> source) {
@@ -159,6 +183,13 @@ public record ClickSpec(
         Map<ClickKind, RequirementSpec> copy = new EnumMap<>(ClickKind.class);
         source.forEach((kind, spec) ->
                 copy.put(Objects.requireNonNull(kind, "kind"), Objects.requireNonNull(spec, "requirementSpec")));
+        return Map.copyOf(copy);
+    }
+
+    private static Map<ClickKind, String> copyNames(Map<ClickKind, String> source) {
+        Map<ClickKind, String> copy = new EnumMap<>(ClickKind.class);
+        source.forEach(
+                (kind, name) -> copy.put(Objects.requireNonNull(kind, "kind"), Objects.requireNonNull(name, "name")));
         return Map.copyOf(copy);
     }
 
