@@ -8,8 +8,8 @@ import me.clip.placeholderapi.PlaceholderAPI;
 
 /**
  * A present-guarded bridge to PlaceholderAPI. {@link #apply(Player, String)} expands {@code %papi%}
- * placeholders when PlaceholderAPI is installed and returns the text unchanged when it is not, so
- * callers can use it unconditionally. The {@code me.clip} classes are only touched inside the guarded
+ * placeholders when PlaceholderAPI is installed and leaves them as written when it is not, so callers can use
+ * it unconditionally. The player's own name and id are filled either way. The {@code me.clip} classes are only touched inside the guarded
  * branch, so a server without PlaceholderAPI never resolves them.
  *
  * <p>Named after the plugin it bridges, not after the idea. {@code text.Placeholders} is the general one: a
@@ -28,13 +28,19 @@ public final class PlaceholderApi {
         return Hooks.isPresent(PLUGIN);
     }
 
-    /** Expand placeholders in {@code text} for {@code player}; returns {@code text} unchanged if absent. */
+    /**
+     * Expand placeholders in {@code text} for {@code player}. The player's own {@code %player_name%} and
+     * {@code %player_uuid%} are filled here, with or without PlaceholderAPI and its Player expansion; every other
+     * placeholder is left to PlaceholderAPI, and stays as written when it is absent.
+     */
     public static String apply(Player player, String text) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(text, "text");
+        String own = text.replace("%player_name%", player.getName())
+                .replace("%player_uuid%", player.getUniqueId().toString());
         if (!isAvailable()) {
-            return text;
+            return own;
         }
-        return PlaceholderAPI.setPlaceholders(player, text);
+        return PlaceholderAPI.setPlaceholders(player, own);
     }
 }

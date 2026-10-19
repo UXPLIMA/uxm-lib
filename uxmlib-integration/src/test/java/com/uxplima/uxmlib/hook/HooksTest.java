@@ -49,7 +49,19 @@ class HooksTest {
     void placeholdersReturnTextUnchangedWhenApiAbsent() {
         var player = MockBukkit.getMock().addPlayer();
         assertThat(PlaceholderApi.isAvailable()).isFalse();
-        assertThat(PlaceholderApi.apply(player, "hi %player_name%")).isEqualTo("hi %player_name%");
+        assertThat(PlaceholderApi.apply(player, "hi %server_online%")).isEqualTo("hi %server_online%");
+    }
+
+    /**
+     * The player's own name and id need no plugin. A server without PlaceholderAPI, or with it and without its
+     * Player expansion, printed {@code %player_name%} as written in every effect line an operator wrote.
+     */
+    @Test
+    void thePlayersOwnNameAndIdNeedNoPlaceholderApi() {
+        var player = MockBukkit.getMock().addPlayer("Steve");
+
+        assertThat(PlaceholderApi.apply(player, "hi %player_name%, %player_uuid%"))
+                .isEqualTo("hi Steve, " + player.getUniqueId());
     }
 
     @Test
