@@ -588,6 +588,28 @@ class MenusBedrockFormTest {
                 .satisfies(tap -> assertThat(tap.context().entry()).contains("pick"));
     }
 
+    /**
+     * The form pages as far as its longest list goes. Found live: a shelf of three hundred products under one
+     * shelf showed a Bedrock player the first page and no Next button, because the count was the shelves'.
+     */
+    @Test
+    void aSecondListLongerThanTheFirstGetsANextButton() {
+        lists.register("shelves", ctx -> List.of("tools"));
+        lists.register("products", ctx -> List.of("axe", "pick", "hoe"));
+        open("shop", """
+                rows = 2
+                items {
+                  down {
+                    slots = [9, 10]
+                    list { source = products, template { material = PAPER, name = "product", click { left = ["note"] } } }
+                  }
+                  up { slots = [0, 1], list { source = shelves, template { material = CHEST, name = "shelf" } } }
+                }
+                """);
+
+        assertThat(screen.buttonTexts()).containsExactly("shelf", "product", "product", MenuKeys.PAGE_NEXT);
+    }
+
     /** Tapping Next re-sends the form one page over, so the last entry is reachable without a chest. */
     @Test
     void tappingNextResendsTheFormOnePageOver() {

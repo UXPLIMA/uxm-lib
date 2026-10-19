@@ -227,6 +227,40 @@ class MenuRendererTest {
         assertThat(materialAt(inv, 17)).isEqualTo(Material.ARROW);
     }
 
+    private static final String TWO_LISTS = """
+            rows = 2
+            items {
+              shelves { slots = [0, 1], list { source = shelves, template { material = CHEST, name = "%entry%" } } }
+              products { slots = [9, 10], list { source = products, template { material = PAPER, name = "%entry%" } } }
+              floor { slots = [16, 17], material = GRAY_STAINED_GLASS_PANE, name = "floor" }
+              previous { slot = 16, type = PREVIOUS, material = ARROW, name = "previous", priority = 10 }
+              next { slot = 17, type = NEXT, material = ARROW, name = "next", priority = 10 }
+            }
+            """;
+
+    /**
+     * A window with two lists pages the longer one. Found live on a shop whose shelf window lists the shelves
+     * under a shelf and then its products: the arrows counted the shelves, which fitted on one page, so no next
+     * arrow was drawn and a shelf of three hundred products showed fourteen. The shorter list keeps its last page
+     * on the pages after it.
+     */
+    @Test
+    void aSecondListLongerThanTheFirstIsPagedToo() {
+        Map<String, List<?>> lists = Map.of("shelves", List.of("ores"), "products", List.of("a", "b", "c", "d", "e"));
+        Inventory first = inv(18);
+        renderer.populate(first, spec(TWO_LISTS), MenuContext.of(viewer, null, 0), routed::put, lists);
+        assertThat(materialAt(first, 17)).as("a next arrow over the products").isEqualTo(Material.ARROW);
+
+        Inventory last = inv(18);
+        renderer.populate(last, spec(TWO_LISTS), MenuContext.of(viewer, null, 2), routed::put, lists);
+        assertThat(materialAt(last, 9))
+                .as("the fifth product on the third page")
+                .isEqualTo(Material.PAPER);
+        assertThat(materialAt(last, 10)).isNull();
+        assertThat(materialAt(last, 0)).as("the one shelf stays").isEqualTo(Material.CHEST);
+        assertThat(materialAt(last, 17)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+    }
+
     /** On the last page the previous arrow is drawn and the next is not. */
     @Test
     void theLastPageDrawsOnlyThePreviousArrow() {

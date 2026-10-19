@@ -347,9 +347,10 @@ public final class MenuRenderer {
      * The context a static item renders with, carrying the page numbers its indicator reads (as {@code %page%} and {@code
      * %max_page%} where the host registered them):
      * computed once before static items draw so the indicator matches the count {@link #populateList} pages across. A
-     * spec with no list item stays a single page. Only one list is consulted, {@link MenuSpec#pagedListItem()}: a menu
-     * pairs one scrollable list with its page controls, and the page count those controls report is that list's. It is
-     * the same list the arrows drive, so an indicator that reads "Page 2/4" is naming the pages the arrows turn.
+     * spec with no list item stays a single page. When the first list, {@link MenuSpec#pagedListItem()}, is a paged
+     * source, the count is that list's, because it is the one list a turned page re-queries. Otherwise every list is
+     * held in memory and turned together, and the count is the longest one's, so an indicator that reads "Page 2/4"
+     * is naming the pages the arrows turn.
      *
      * <p>When that list is a paged source (its id is in {@link MenuContext#pagedViews()}), the page and count come from
      * its snapshot (the corpus total the source reported, not the length of the one rendered page) so a "Page x/y"
@@ -366,10 +367,30 @@ public final class MenuRenderer {
         if (view != null) {
             return ctx.withPage(view.page()).withPageCount(view.pageCount());
         }
-        List<?> entries = visibleListEntries(listItem, ctx, resolvedLists);
-        int count = Pagination.paginate(entries, listItem.slots().slots(), ctx.page())
-                .pageCount();
-        return ctx.withPageCount(count);
+        return ctx.withPageCount(longestInMemoryList(ctx, spec, resolvedLists));
+    }
+
+    /**
+     * The page count of a window whose lists are held in memory: the longest one's. An arrow repaints every such list
+     * on the page it turns to, and a list shorter than that keeps its last page, so counting only the first list
+     * clipped every later one to a single page with no arrow to reach the rest. A list from a paged source is left
+     * out: only the first list is re-queried when a page turns.
+     */
+    private int longestInMemoryList(MenuContext ctx, MenuSpec spec, Map<String, List<?>> resolvedLists) {
+        int count = 1;
+        for (MenuItemSpec item : spec.items().values()) {
+            if (item.list().isEmpty()
+                    || ctx.pagedViews()
+                            .containsKey(item.list().orElseThrow().source().id())) {
+                continue;
+            }
+            List<?> entries = visibleListEntries(item, ctx, resolvedLists);
+            count = Math.max(
+                    count,
+                    Pagination.paginate(entries, item.slots().slots(), ctx.page())
+                            .pageCount());
+        }
+        return count;
     }
 
     /** The pre-resolved entries backing {@code listItem}, or an empty list when its source resolved to nothing. */

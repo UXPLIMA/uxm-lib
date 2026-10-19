@@ -1593,8 +1593,8 @@ public final class Menus {
      * list cell's {@code RenderedSlot(template, entry)}. Every list the window draws adds its rows, in the order of
      * the slot each starts at, each cut to the page the chest would show; a window may lay out more than one, as a
      * shop shows the shelves under the current one above its products, and a form that read only the paged list left
-     * the other out. The page count is the paged list's, the one drawn nearest the start of the window, mirroring the
-     * chest renderer's rule; a static-only menu has none and stays a single page. Returns the page count so the caller
+     * the other out. The page count is the longest list's, since every list turns with the page as it does on a
+     * chest; a static-only menu has none and stays a single page. Returns the page count so the caller
      * knows whether to add page-nav buttons.
      *
      * <p>The entries come through {@link MenuRenderer#visibleListEntries}, so the {@code view} block on the list item
@@ -1611,12 +1611,10 @@ public final class Menus {
         if (paged.isEmpty()) {
             return 1;
         }
+        // Every list is turned with the page, as on a chest, so the form pages as far as the longest one goes.
         int pageCount = 1;
         for (MenuItemSpec listItem : listItemsInDrawOrder(spec)) {
-            int count = appendRowsOfOneList(listItem, ctx, viewer, resolved, buttons, handlers);
-            if (listItem.equals(paged.get())) {
-                pageCount = count;
-            }
+            pageCount = Math.max(pageCount, appendRowsOfOneList(listItem, ctx, viewer, resolved, buttons, handlers));
         }
         return pageCount;
     }
