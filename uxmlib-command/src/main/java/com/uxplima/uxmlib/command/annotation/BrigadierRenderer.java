@@ -137,7 +137,7 @@ final class BrigadierRenderer {
 
         String[] literals = branch.literals();
         if (literals.length == 0) {
-            attachRoot(root, chain, executor);
+            attachRoot(root, branch, chain, executor);
             return;
         }
         attachSpine(root, literals, chain, executor, words);
@@ -199,10 +199,22 @@ final class BrigadierRenderer {
         return words.getOrDefault(key(spelling, depth), source -> true);
     }
 
+    /**
+     * The bare command's arguments and flags keep its node: the word above them opens to every branch, and a
+     * sender who may not run the bare command must not be offered what it takes.
+     */
     private static void attachRoot(
             LiteralArgumentBuilder<CommandSourceStack> root,
+            BranchModel branch,
             ArgChain chain,
             com.mojang.brigadier.Command<CommandSourceStack> executor) {
+        Predicate<CommandSourceStack> may = visibilityOf(branch.permission());
+        if (chain.firstArg != null) {
+            chain.firstArg.requires(may.and(chain.firstArg.getRequirement()));
+        }
+        if (chain.prefixFlags != null) {
+            chain.prefixFlags.requires(may.and(chain.prefixFlags.getRequirement()));
+        }
         applyChain(root, chain, executor);
     }
 

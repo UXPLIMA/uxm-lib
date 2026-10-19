@@ -15,6 +15,7 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.uxplima.uxmlib.command.Sender;
+import com.uxplima.uxmlib.command.annotation.annotations.Arg;
 import com.uxplima.uxmlib.command.annotation.annotations.Command;
 import com.uxplima.uxmlib.command.annotation.annotations.Permission;
 import com.uxplima.uxmlib.command.annotation.annotations.Subcommand;
@@ -100,6 +101,19 @@ class SharedWordPermissionTest {
         void reload(Sender sender) {}
     }
 
+    /** The bare command takes an argument only operators may give. */
+    @Command(name = "t")
+    static class OperatorsRootWithArgument {
+
+        @Permission(ADMIN_NODE)
+        @Subcommand("")
+        void root(Sender sender, @Arg("target") String target) {}
+
+        @Permission(PLAYER_NODE)
+        @Subcommand("lang")
+        void lang(Sender sender) {}
+    }
+
     @Command(name = "t")
     static class OperatorsOnlyRoot {
 
@@ -177,6 +191,16 @@ class SharedWordPermissionTest {
         assertThat(child(root, "reload").canUse(holding(PLAYER_NODE))).isFalse();
         assertThat(build(new OperatorsOnlyRoot()).canUse(holding(PLAYER_NODE))).isFalse();
         assertThat(build(new OperatorsOnlyRoot()).canUse(holding(ADMIN_NODE))).isTrue();
+    }
+
+    @Test
+    @DisplayName("the bare command's own argument stays the operator's when the word opens to a player")
+    void theRootArgumentStaysTheOperators() {
+        LiteralCommandNode<CommandSourceStack> root = build(new OperatorsRootWithArgument());
+
+        assertThat(root.canUse(holding(PLAYER_NODE))).isTrue();
+        assertThat(child(root, "target").canUse(holding(PLAYER_NODE))).isFalse();
+        assertThat(child(root, "target").canUse(holding(ADMIN_NODE))).isTrue();
     }
 
     private static LiteralCommandNode<CommandSourceStack> build(Object handler) {
