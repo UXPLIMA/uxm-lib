@@ -27,6 +27,9 @@ import com.uxplima.uxmlib.text.message.Messages;
  */
 final class CatalogueCommandMessages implements CommandMessages {
 
+    /** Where the catalog names an argument for a language: {@code command.argument.<name>}. */
+    static final String ARGUMENT = "command.argument.";
+
     private final Messages messages;
 
     CatalogueCommandMessages(Messages messages) {
@@ -49,13 +52,13 @@ final class CatalogueCommandMessages implements CommandMessages {
             return line(
                     CommandLine.INVALID_VALUE,
                     locale,
-                    Text.placeholder("argument", argument),
+                    Text.placeholder("argument", named(argument, locale)),
                     Text.placeholder("input", input));
         }
         return line(
                 CommandLine.INVALID_VALUE_WHY,
                 locale,
-                Text.placeholder("argument", argument),
+                Text.placeholder("argument", named(argument, locale)),
                 Text.placeholder("input", input),
                 Text.placeholder("reason", reason));
     }
@@ -65,7 +68,7 @@ final class CatalogueCommandMessages implements CommandMessages {
         return line(
                 CommandLine.NOT_ONE_OF,
                 locale,
-                Text.placeholder("argument", argument),
+                Text.placeholder("argument", named(argument, locale)),
                 Text.placeholder("input", input),
                 Text.placeholder("allowed", String.join(", ", allowed)));
     }
@@ -120,6 +123,17 @@ final class CatalogueCommandMessages implements CommandMessages {
     @Override
     public Component helpPageHint(Locale locale, int page) {
         return line(CommandLine.HELP_PAGE_HINT, locale, Text.placeholder("page", String.valueOf(page)));
+    }
+
+    /**
+     * An argument's name in the reader's language: the catalog's {@code command.argument.<name>} where it has
+     * one, the name the code declared otherwise. Without it a Turkish reader was told about a "kind".
+     */
+    private String named(String argument, Locale locale) {
+        if (argument.isBlank()) {
+            return argument;
+        }
+        return messages.catalog().template(MessageKey.of(ARGUMENT + argument, argument), locale);
     }
 
     private Component line(MessageKey key, Locale locale, TagResolver... resolvers) {

@@ -76,6 +76,27 @@ class CatalogueCommandMessagesTest {
         assertThat(shown).isEqualTo("spin: try on, off");
     }
 
+    /**
+     * Found live on uxmConnect: a Turkish reader was told "x geçerli bir kind değil", the argument's name
+     * left in the English the code declares it in. The catalog may name an argument for each language under
+     * {@code command.argument.<name>}; an argument it does not name keeps the name it was declared with.
+     */
+    @Test
+    void anArgumentIsNamedInTheReadersLanguageWhereTheCatalogNamesIt() {
+        CommandMessages messages = messagesHolding(Map.of(
+                TR,
+                Map.of(
+                        "command.not-one-of", "<input> geçerli bir <argument> değil",
+                        "command.invalid-value", "<input> geçerli bir <argument> değil",
+                        "command.argument.kind", "liste")));
+
+        assertThat(Text.plain(messages.notOneOf(TR, "kind", "x", List.of("balance"))))
+                .isEqualTo("x geçerli bir liste değil");
+        assertThat(Text.plain(messages.invalidValue(TR, "kind", "x", ""))).isEqualTo("x geçerli bir liste değil");
+        assertThat(Text.plain(messages.notOneOf(TR, "period", "x", List.of("day"))))
+                .isEqualTo("x geçerli bir period değil");
+    }
+
     @Test
     void everyLineTheCommandLayerWritesIsAnsweredFromTheCatalogue() {
         // A method left at its default is a line a player reads in English, in vanilla colours, from a jar
