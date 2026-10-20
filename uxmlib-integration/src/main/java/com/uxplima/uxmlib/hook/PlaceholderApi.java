@@ -21,6 +21,9 @@ public final class PlaceholderApi {
     /** The PlaceholderAPI plugin name, used for the presence guard. */
     public static final String PLUGIN = "PlaceholderAPI";
 
+    private static final String OWN_NAME = "%player_name%";
+    private static final String OWN_UUID = "%player_uuid%";
+
     private PlaceholderApi() {}
 
     /** Whether PlaceholderAPI is installed and enabled. */
@@ -36,8 +39,17 @@ public final class PlaceholderApi {
     public static String apply(Player player, String text) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(text, "text");
-        String own = text.replace("%player_name%", player.getName())
-                .replace("%player_uuid%", player.getUniqueId().toString());
+        // Most lines hold no placeholder, and such a line asks the player nothing.
+        if (text.indexOf('%') < 0) {
+            return text;
+        }
+        String own = text;
+        if (own.contains(OWN_NAME)) {
+            own = own.replace(OWN_NAME, player.getName());
+        }
+        if (own.contains(OWN_UUID)) {
+            own = own.replace(OWN_UUID, player.getUniqueId().toString());
+        }
         if (!isAvailable()) {
             return own;
         }

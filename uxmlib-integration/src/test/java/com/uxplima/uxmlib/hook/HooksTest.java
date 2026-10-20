@@ -1,6 +1,10 @@
 package com.uxplima.uxmlib.hook;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
+
+import org.bukkit.entity.Player;
 
 import com.uxplima.uxmlib.hook.economy.VaultEconomy;
 import com.uxplima.uxmlib.hook.economy.VaultUnlockedEconomy;
@@ -62,6 +66,19 @@ class HooksTest {
 
         assertThat(PlaceholderApi.apply(player, "hi %player_name%, %player_uuid%"))
                 .isEqualTo("hi Steve, " + player.getUniqueId());
+    }
+
+    /**
+     * Every line an effect resolves passes through here, and most of them hold no placeholder at all. Such a
+     * line asks the player nothing. The name and the id used to be read for every line, so a plugin whose
+     * tests hand over a mocked player failed on a line that never named either.
+     */
+    @Test
+    void aLineWithNoPlaceholderAsksThePlayerNothing() {
+        Player player = mock(Player.class);
+
+        assertThat(PlaceholderApi.apply(player, "five coins, paid")).isEqualTo("five coins, paid");
+        verifyNoInteractions(player);
     }
 
     @Test
