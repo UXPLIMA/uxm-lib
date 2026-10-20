@@ -149,8 +149,19 @@ public final class Messages {
         Objects.requireNonNull(viewer, "viewer");
         Objects.requireNonNull(line, "line");
         Content snapshot = content;
+        return expand(snapshot, snapshot.locales().localeOf(viewer), line);
+    }
+
+    /** {@link #expandLine(Audience, String)} for a caller that knows the language and not the viewer. */
+    public String expandLine(Locale locale, String line) {
+        Objects.requireNonNull(locale, "locale");
+        Objects.requireNonNull(line, "line");
+        return expand(content, locale, line);
+    }
+
+    private static String expand(Content snapshot, Locale locale, String line) {
         return reference(snapshot, line)
-                .map(named -> named.fill(entry(snapshot, viewer, named)))
+                .map(named -> named.fill(snapshot.catalog().template(MessageKey.of(named.key(), named.key()), locale)))
                 .orElse(line);
     }
 

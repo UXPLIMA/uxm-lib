@@ -116,4 +116,12 @@ class OperatorLinesTest {
         assertThat(catalog.declares("only.german")).isTrue();
         assertThat(catalog.declares("nowhere")).isFalse();
     }
+
+    /** A caller that knows only the language, a tooltip drawn for a locale, reads the same entry. */
+    @Test
+    void aLineExpandsForALanguageAsWellAsForAViewer() {
+        assertThat(messages().expandLine(Locale.GERMAN, "@custom.join server=bedwars"))
+                .isEqualTo("<accent>Beitreten bedwars");
+        assertThat(messages().expandLine(Locale.ENGLISH, "own words")).isEqualTo("own words");
+    }
 }
