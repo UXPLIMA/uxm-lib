@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import net.kyori.adventure.text.Component;
@@ -40,6 +41,10 @@ public final class LeaderboardHologram {
 
     private @Nullable TaskHandle task;
 
+    private volatile Supplier<Component> header = Component::empty;
+    private volatile Consumer<Component> drawn = rows -> {};
+    private volatile boolean headed;
+
     /** A leaderboard that always re-renders on the timer (no nearby gate). */
     public LeaderboardHologram(
             Hologram hologram,
@@ -64,6 +69,25 @@ public final class LeaderboardHologram {
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         this.period = Objects.requireNonNull(period, "period");
         this.nearbyGate = Objects.requireNonNull(nearbyGate, "nearbyGate");
+    }
+
+    /**
+     * Write {@code header} above the rows on every refresh. A refresh replaces the whole text, so a title put on
+     * the hologram when it was spawned was gone after the first one.
+     */
+    public LeaderboardHologram headedBy(Supplier<Component> header) {
+        this.header = Objects.requireNonNull(header, "header");
+        this.headed = true;
+        return this;
+    }
+
+    /**
+     * Hand the rows to {@code drawn} after each refresh has written them, on the hologram's own thread. A caller
+     * that sends each viewer a copy of the text of their own sends it again here, since a refresh writes over it.
+     */
+    public LeaderboardHologram afterEachDraw(Consumer<Component> drawn) {
+        this.drawn = Objects.requireNonNull(drawn, "drawn");
+        return this;
     }
 
     /**
@@ -100,8 +124,12 @@ public final class LeaderboardHologram {
         if (!nearbyGate.getAsBoolean()) {
             return;
         }
-        Component text = render();
-        scheduler.entity(hologram.entity(), () -> hologram.setText(text));
+        Component rows = render();
+        Component text = headed ? Component.join(JoinConfiguration.newlines(), header.get(), rows) : rows;
+        scheduler.entity(hologram.entity(), () -> {
+            hologram.setText(text);
+            drawn.accept(rows);
+        });
     }
 
     private Component render() {

@@ -71,6 +71,26 @@ class LeaderboardHologramTest {
         assertThat(Text.plain(holo.lastText)).contains("1. Alice 99").contains("2. Bob 1");
     }
 
+    /** A board with a title keeps it: each refresh writes the title and then the rows, not the rows alone. */
+    @Test
+    void aHeaderSurvivesEveryRefreshAndTheDrawIsReported() {
+        FakeScheduler scheduler = new FakeScheduler();
+        CapturingHologram holo = new CapturingHologram();
+        AtomicReference<Component> drawnRows = new AtomicReference<>(Component.empty());
+        LeaderboardHologram board = new LeaderboardHologram(
+                        holo, renderer(), () -> scores(10, 30), scheduler, Duration.ofSeconds(1))
+                .headedBy(() -> Component.text("Top builders"))
+                .afterEachDraw(drawnRows::set);
+
+        board.start();
+        scheduler.tick();
+
+        assertThat(Text.plain(holo.lastText)).startsWith("Top builders\n1. Bob 30");
+        assertThat(Text.plain(java.util.Objects.requireNonNull(drawnRows.get())))
+                .startsWith("1. Bob 30")
+                .doesNotContain("Top builders");
+    }
+
     @Test
     void startReturnsAndStopCancelsTheTimer() {
         FakeScheduler scheduler = new FakeScheduler();
