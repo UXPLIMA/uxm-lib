@@ -87,4 +87,24 @@ class BedrockScreenTest {
                 .as("the no-op screen never invokes the close callback, since it sends no form to dismiss")
                 .isFalse();
     }
+
+    /**
+     * The screen twin of the late-resolving detector: while no Floodgate is enabled it is the no-op screen, and it
+     * asks again on the next form rather than keeping the answer it got at {@code STARTUP}.
+     */
+    @Test
+    void aResolvingScreenWithoutFloodgateSendsNothing() {
+        org.mockbukkit.mockbukkit.ServerMock server = org.mockbukkit.mockbukkit.MockBukkit.mock();
+        try {
+            AtomicBoolean tapped = new AtomicBoolean(false);
+            BedrockScreen screen = BedrockScreen.resolving(server);
+
+            assertThatCode(() -> screen.sendSimpleForm(
+                            mock(Player.class), "Menu", null, List.of(), index -> tapped.set(true)))
+                    .doesNotThrowAnyException();
+            assertThat(tapped).isFalse();
+        } finally {
+            org.mockbukkit.mockbukkit.MockBukkit.unmock();
+        }
+    }
 }

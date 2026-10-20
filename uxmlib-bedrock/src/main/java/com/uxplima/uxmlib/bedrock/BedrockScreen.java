@@ -166,4 +166,18 @@ public interface BedrockScreen {
         }
         return NONE;
     }
+
+    /**
+     * A screen that asks {@link #forServer} again on each use until a backend answers, then keeps it.
+     *
+     * <p>For a plugin that enables at {@code STARTUP}: it runs before Floodgate whatever load order it declares,
+     * so {@link #forServer} called from its enable always answers {@link #NONE}. Every other plugin keeps calling
+     * {@link #forServer}, which answers once and costs nothing per use.
+     *
+     * @param server the running server, probed for the backend on each use until one is found; never {@code null}
+     * @return a screen that is {@link #NONE} until a backend enables, and that backend from then on
+     */
+    static BedrockScreen resolving(Server server) {
+        return new ResolvingBedrockScreen(server);
+    }
 }

@@ -108,4 +108,28 @@ class BedrockDetectorTest {
     private static boolean mentionsFloodgate(Class<?> type) {
         return type.getName().startsWith("org.geysermc");
     }
+
+    /**
+     * A plugin that enables at {@code STARTUP} runs before every plugin that enables after the worlds, Floodgate
+     * among them, whatever load order it declares. uxmEssentials picked its detector there on 2026-10-20 and
+     * treated every Bedrock player as a Java player for the life of the server.
+     */
+    @Test
+    void resolving_findsABackendThatEnablesAfterIt() {
+        BedrockDetector detector = BedrockDetector.resolving(server);
+        assertThat(detector.backend()).isEqualTo("none");
+
+        MockBukkit.createMockPlugin("Geyser-Spigot");
+
+        assertThat(detector.backend()).isEqualTo("geyser");
+        assertThat(detector.isBedrock(UUID.randomUUID())).isFalse();
+    }
+
+    @Test
+    void resolving_withoutAnyBackend_answersJava() {
+        BedrockDetector detector = BedrockDetector.resolving(server);
+
+        assertThat(detector.isBedrock(UUID.randomUUID())).isFalse();
+        assertThat(detector.xuid(UUID.randomUUID())).isEmpty();
+    }
 }
