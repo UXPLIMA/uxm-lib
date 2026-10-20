@@ -137,7 +137,7 @@ public final class Messages {
             return parse(snapshot, line, line, resolvers);
         }
         CatalogLine named = reference.get();
-        String template = OperatorLines.fill(entry(snapshot, viewer, named), named.arguments());
+        String template = named.fill(entry(snapshot, viewer, named));
         return parse(snapshot, named.key(), template, OperatorLines.withArguments(named.arguments(), resolvers));
     }
 
@@ -150,7 +150,7 @@ public final class Messages {
         Objects.requireNonNull(line, "line");
         Content snapshot = content;
         return reference(snapshot, line)
-                .map(named -> OperatorLines.fill(entry(snapshot, viewer, named), named.arguments()))
+                .map(named -> named.fill(entry(snapshot, viewer, named)))
                 .orElse(line);
     }
 

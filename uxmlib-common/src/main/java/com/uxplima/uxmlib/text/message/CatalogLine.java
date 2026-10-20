@@ -4,6 +4,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -27,10 +28,31 @@ public record CatalogLine(String key, Map<String, String> arguments) {
     private static final char MARK = '@';
     private static final Pattern KEY = Pattern.compile("[A-Za-z0-9_.-]+");
     private static final Pattern NAME = Pattern.compile("[A-Za-z0-9_.-]+");
+    private static final Pattern TOKEN = Pattern.compile("\\{([A-Za-z0-9_.-]+)\\}");
 
     public CatalogLine {
         Objects.requireNonNull(key, "key");
         arguments = Map.copyOf(arguments);
+    }
+
+    /**
+     * {@code template} with each {@code {name}} this line answers replaced by its value, as text. Done before parsing
+     * so a value can sit inside a tag or a placeholder another plugin reads ({@code <color:{accent}>}). A token no
+     * argument answers stays as written, and a value goes in once and is not read again.
+     */
+    public String fill(String template) {
+        Objects.requireNonNull(template, "template");
+        if (arguments.isEmpty() || template.indexOf('{') < 0) {
+            return template;
+        }
+        Matcher matcher = TOKEN.matcher(template);
+        StringBuilder out = new StringBuilder();
+        while (matcher.find()) {
+            String value = arguments.get(matcher.group(1));
+            matcher.appendReplacement(out, Matcher.quoteReplacement(value != null ? value : matcher.group()));
+        }
+        matcher.appendTail(out);
+        return out.toString();
     }
 
     /** The reference {@code line} spells, or empty when the line carries its own words. */

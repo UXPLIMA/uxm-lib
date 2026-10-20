@@ -16,6 +16,7 @@ import com.uxplima.uxmlib.condition.ConditionRequest;
 import com.uxplima.uxmlib.condition.ItemStore;
 import com.uxplima.uxmlib.condition.OperandResolver;
 import com.uxplima.uxmlib.condition.Wallet;
+import com.uxplima.uxmlib.text.message.CatalogLine;
 import com.uxplima.uxmlib.text.style.StyleTokens;
 import com.uxplima.uxmlib.text.style.Theme;
 import org.jspecify.annotations.Nullable;
@@ -130,12 +131,14 @@ public final class ActionContext {
         if (stripped.length() < 2 || stripped.charAt(0) != KEY_MARK) {
             return part;
         }
-        String path = stripped.substring(1);
-        if (path.chars().anyMatch(Character::isWhitespace)) {
+        // A key may carry the values that fill its entry, @join.welcome who=<player>; prose after an at sign does
+        // not parse as one and stays the operator's words.
+        Optional<CatalogLine> named = CatalogLine.parse(stripped);
+        if (named.isEmpty()) {
             return part;
         }
-        String found = words.apply(path);
-        return found == null ? path : found;
+        String found = words.apply(named.get().key());
+        return found == null ? named.get().key() : named.get().fill(found);
     }
 
     /** One text part painted with the theme's roles and labels. See the field. */

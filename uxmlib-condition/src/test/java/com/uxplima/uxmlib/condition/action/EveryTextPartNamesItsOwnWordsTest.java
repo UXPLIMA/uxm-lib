@@ -42,7 +42,8 @@ class EveryTextPartNamesItsOwnWordsTest {
             "state.title", "<green>Everybody",
             "state.subtitle", "You can see the whole lobby",
             "state.bar", "Everybody is visible",
-            "state.chat", "You can see everybody again");
+            "state.chat", "You can see everybody again",
+            "join.welcome", "Welcome to {place}, {who}");
 
     @Test
     @DisplayName("a title and a subtitle each name their own key, with the times after them")
@@ -96,6 +97,28 @@ class EveryTextPartNamesItsOwnWordsTest {
         ArgumentCaptor<BossBar> shown = ArgumentCaptor.forClass(BossBar.class);
         verify(player).showBossBar(shown.capture());
         assertThat(Text.plain(shown.getValue().name())).isEqualTo("Everybody is visible");
+    }
+
+    /** One entry serves every line that differs in a value: the values follow the key and fill its tokens. */
+    @Test
+    @DisplayName("a key may carry the values that fill its entry")
+    void aKeyCarriesItsValues() {
+        Seen seen = new Seen();
+
+        ActionList.parse(List.of("[message] @join.welcome place=\"the lobby\" who=Steve"))
+                .run(context(seen));
+
+        assertThat(seen.messages).containsExactly("Welcome to the lobby, Steve");
+    }
+
+    @Test
+    @DisplayName("an at sign followed by prose is still the operator's own words")
+    void proseAfterAnAtSignIsWords() {
+        Seen seen = new Seen();
+
+        ActionList.parse(List.of("[message] @everyone meet at spawn")).run(context(seen));
+
+        assertThat(seen.messages).containsExactly("@everyone meet at spawn");
     }
 
     @Test
