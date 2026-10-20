@@ -1,10 +1,15 @@
 package com.uxplima.uxmlib.packet.display;
 
 import java.time.Duration;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
@@ -20,6 +25,7 @@ import com.uxplima.uxmlib.packet.display.internal.NmsDisplayTextPackets;
 import com.uxplima.uxmlib.pipeline.ChannelResolver;
 import com.uxplima.uxmlib.pipeline.PacketSender;
 import com.uxplima.uxmlib.scheduler.Scheduler;
+import com.uxplima.uxmlib.scheduler.TaskHandle;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -44,6 +50,7 @@ public final class ViewerText implements Listener {
     private final Scheduler scheduler;
     private final DisplayTextPackets packets;
     private final Map<Integer, Bound> bound = new ConcurrentHashMap<>();
+    private final Map<UUID, Object> languages = new ConcurrentHashMap<>();
 
     private record Bound(TextDisplay display, Function<Player, Component> text) {}
 
@@ -87,6 +94,41 @@ public final class ViewerText implements Listener {
             if (binding.display().isValid() && binding.display().getTrackedBy().contains(viewer)) {
                 send(viewer, binding);
             }
+        }
+    }
+
+    /**
+     * Watch each online player's language and send them everything they see again when it changes. Nothing tells
+     * every plugin on a server that a player chose a language, so the answer is asked of {@code languageOf} every
+     * {@code every}, on each player's own thread. The first answer is remembered and sends nothing.
+     *
+     * @param languageOf the language a player reads, compared with {@code equals}
+     * @param online who is on the server, asked on the global thread
+     * @return the timer, for the caller to cancel when it shuts down
+     */
+    public TaskHandle followLanguage(
+            Function<Player, ?> languageOf, Duration every, Supplier<? extends Collection<? extends Player>> online) {
+        Objects.requireNonNull(languageOf, "languageOf");
+        Objects.requireNonNull(every, "every");
+        Objects.requireNonNull(online, "online");
+        return scheduler.globalTimer(every, every, handle -> {
+            Collection<? extends Player> players = online.get();
+            Set<UUID> here = new HashSet<>();
+            for (Player viewer : players) {
+                here.add(viewer.getUniqueId());
+                scheduler.entity(viewer, () -> notice(viewer, languageOf.apply(viewer)));
+            }
+            languages.keySet().retainAll(here);
+        });
+    }
+
+    private void notice(Player viewer, @Nullable Object language) {
+        if (language == null) {
+            return;
+        }
+        Object before = languages.put(viewer.getUniqueId(), language);
+        if (before != null && !before.equals(language)) {
+            refresh(viewer);
         }
     }
 

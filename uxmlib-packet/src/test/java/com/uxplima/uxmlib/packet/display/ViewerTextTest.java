@@ -36,6 +36,7 @@ class ViewerTextTest {
     private final List<Sent> sent = new ArrayList<>();
     private final List<Runnable> later = new ArrayList<>();
     private final List<Duration> delays = new ArrayList<>();
+    private final List<Consumer<TaskHandle>> timers = new ArrayList<>();
 
     private final DisplayTextPackets packets = new DisplayTextPackets() {
         @Override
@@ -89,7 +90,8 @@ class ViewerTextTest {
 
             @Override
             public TaskHandle globalTimer(Duration delay, Duration period, Consumer<TaskHandle> task) {
-                throw new UnsupportedOperationException();
+                timers.add(task);
+                return DONE;
             }
 
             @Override
@@ -218,5 +220,31 @@ class ViewerTextTest {
         live.refresh(ayse);
 
         assertThat(later).hasSize(1);
+    }
+
+    /**
+     * A player who changes language reads what they already see in the new one. Nothing tells every plugin that a
+     * choice changed, so the language is watched: unchanged, nothing is sent; changed, everything they see is.
+     */
+    @Test
+    void aViewerWhoChangesLanguageIsSentWhatTheyAlreadySee() {
+        Player ayse = player("Ayse");
+        java.util.Map<UUID, String> language = new java.util.HashMap<>(java.util.Map.of(ayse.getUniqueId(), "en"));
+        viewerText.bind(
+                display(7, Set.of(ayse)), viewer -> Component.text(language.getOrDefault(viewer.getUniqueId(), "")));
+        viewerText.followLanguage(
+                viewer -> language.get(viewer.getUniqueId()), Duration.ofSeconds(1), () -> List.of(ayse));
+        sent.clear();
+
+        timers.forEach(timer -> timer.accept(DONE));
+        assertThat(sent).isEmpty();
+
+        language.put(ayse.getUniqueId(), "tr");
+        timers.forEach(timer -> timer.accept(DONE));
+        assertThat(sent).containsExactly(new Sent(ayse, 7, Component.text("tr")));
+
+        sent.clear();
+        timers.forEach(timer -> timer.accept(DONE));
+        assertThat(sent).isEmpty();
     }
 }
