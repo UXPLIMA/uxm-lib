@@ -380,6 +380,13 @@ uxmLib is the same class in two plugins. A choice made for a player who is away 
 and is applied by `LanguageResolver.settle`, which a plugin calls when the player joins. A choice a plugin kept
 before this was shared is shared the first time it answers.
 
+The language files reach the disk through `LanguageFileUpdates.bringUpToDate(loader, "messages", folder)`, once
+per start, before they are read. It writes a file the folder lacks, and it keeps a copy of each shipped file under
+`messages/.defaults/`. On a later start a one-line value that still equals that copy is a line nobody touched, and
+it takes the words the jar ships now; a line the operator changed is theirs. Only that line is rewritten, so the
+file keeps its comments, order and line endings. A new key needs no write: `Languages.load(folder, locale, loader,
+"messages")` reads the jar's file underneath the operator's.
+
 ### Style layer
 
 A palette, the letters an interface is set in, and the tokens a message file writes instead of colours,

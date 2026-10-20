@@ -83,6 +83,9 @@ public final class LanguageFiles {
      *
      * @param loader the plugin's own class loader, which is what carries its resources
      * @param directory where the files sit in the jar, usually {@code messages}
+     * <p>A line a later release corrects never reaches a file this wrote. {@link LanguageFileUpdates#bringUpToDate}
+     * writes the same files and keeps the copy that lets it correct them, and is what a plugin calls.
+     *
      * @return the files this call wrote, which is empty on every start after the first
      */
     public static List<Path> extractShipped(ClassLoader loader, String directory, Path folder) {
