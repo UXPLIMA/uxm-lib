@@ -79,4 +79,27 @@ class HologramOwnerSweepTest {
         assertThat(HologramManager.isOrphanOf(marked(""), "", Set.of())).isTrue();
         assertThat(HologramManager.isOrphanOf(marked("PluginA"), "", Set.of())).isFalse();
     }
+
+    /**
+     * A chunk that loads a leftover of this plugin loses it there and then, on the chunk's own thread, so a chunk
+     * nobody stood in at startup is swept the first time somebody walks into it. Another plugin's is kept.
+     */
+    @Test
+    void aLeftoverIsRemovedAsItsChunkLoads() {
+        HologramManager manager = new HologramManager("PluginA");
+        Entity mine = marked("PluginA");
+        Entity theirs = marked("PluginB");
+
+        manager.sweepIfLeftover(java.util.List.of(mine, theirs));
+
+        assertThat(mine.isValid()).isFalse();
+        assertThat(theirs.isValid()).isTrue();
+    }
+
+    @Test
+    void aManagerWithNoOwnerCannotSweepOnLoad() {
+        org.assertj.core.api.Assertions.assertThatThrownBy(
+                        () -> new HologramManager().sweepLeftoversAsTheyLoad(MockBukkit.createMockPlugin()))
+                .isInstanceOf(IllegalStateException.class);
+    }
 }

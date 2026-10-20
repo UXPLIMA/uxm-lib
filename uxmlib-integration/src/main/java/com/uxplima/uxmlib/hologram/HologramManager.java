@@ -227,6 +227,45 @@ public final class HologramManager {
         return swept;
     }
 
+    /**
+     * Remove this plugin's leftovers chunk by chunk, as their entities load, from now on. Each chunk is swept on
+     * its own thread, which is the only safe way on a server that splits the world into regions, and a chunk that
+     * loads late, long after startup, is swept the first time somebody walks into it. Needs an owner: a manager
+     * with none cannot tell its leftovers from anybody else's.
+     */
+    public void sweepLeftoversAsTheyLoad(Plugin plugin) {
+        Objects.requireNonNull(plugin, "plugin");
+        if (owner.isEmpty()) {
+            throw new IllegalStateException("a manager with no owner cannot tell its leftovers from another plugin's");
+        }
+        plugin.getServer().getPluginManager().registerEvents(new LeftoverSweep(this), plugin);
+    }
+
+    /** The listener behind {@link #sweepLeftoversAsTheyLoad}: one chunk's entities, as they load. */
+    static final class LeftoverSweep implements org.bukkit.event.Listener {
+
+        private final HologramManager manager;
+
+        LeftoverSweep(HologramManager manager) {
+            this.manager = manager;
+        }
+
+        @org.bukkit.event.EventHandler
+        public void onLoad(org.bukkit.event.world.EntitiesLoadEvent event) {
+            manager.sweepIfLeftover(event.getEntities());
+        }
+    }
+
+    /** Remove each of {@code loaded} that is a leftover of this manager's owner. */
+    void sweepIfLeftover(List<? extends org.bukkit.entity.Entity> loaded) {
+        Set<UUID> live = trackedEntities();
+        for (org.bukkit.entity.Entity entity : loaded) {
+            if (isOrphanOf(entity, owner, live)) {
+                entity.remove();
+            }
+        }
+    }
+
     /** Whether {@code entity} is a hologram {@code owner} left behind: marked, owned by it, and not live. */
     static boolean isOrphanOf(org.bukkit.entity.Entity entity, String owner, Set<UUID> live) {
         return Markers.isHologram(entity)
