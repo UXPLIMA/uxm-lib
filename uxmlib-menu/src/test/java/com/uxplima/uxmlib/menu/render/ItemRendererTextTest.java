@@ -58,9 +58,11 @@ class ItemRendererTextTest {
     private static final class RecordingText implements GuiText {
 
         private final List<Map<String, String>> handed = new ArrayList<>();
+        private final List<String> keys = new ArrayList<>();
 
         @Override
         public Component text(Player viewer, String key, Map<String, String> placeholders) {
+            keys.add(key);
             handed.add(Map.copyOf(placeholders));
             return Component.text("catalogue(" + key + ")");
         }
@@ -390,6 +392,29 @@ class ItemRendererTextTest {
         recording.render(item("material = STONE, name = \"@menu.%kind%.title\""), MenuContext.of(viewer, null, 0));
 
         assertThat(words.handed).singleElement().isEqualTo(Map.of("kind", "warp"));
+    }
+
+    /**
+     * A menu file may hand an entry its own values after the key, {@code @menu.price item=sword}, so one entry in each
+     * language file serves every tile that differs only in a value. The catalogue is asked for the bare key, and a
+     * value written on the line wins over a menu value of the same name.
+     */
+    @Test
+    void aKeyedLineHandsTheCatalogueTheBareKeyAndItsOwnArguments() {
+        RecordingText words = new RecordingText();
+        ItemRenderer recording = new ItemRenderer(words, Theme::defaults, placeholders);
+        placeholders.register("item", ctx -> "menu-value");
+        placeholders.register("kind", ctx -> "warp");
+
+        recording.render(
+                item("material = STONE, name = \"@menu.price item=sword note='two words' kind=%kind%\""),
+                MenuContext.of(viewer, null, 0));
+
+        assertThat(words.keys).singleElement().isEqualTo("menu.price");
+        assertThat(words.handed.get(0))
+                .containsEntry("item", "sword")
+                .containsEntry("note", "two words")
+                .containsEntry("kind", "warp");
     }
 
     /**

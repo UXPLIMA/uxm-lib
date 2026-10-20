@@ -27,8 +27,24 @@ public final class HologramManager {
     private final Set<ModelHologram> trackedModels = ConcurrentHashMap.newKeySet();
     private final List<HologramLifecycle> lifecycles = new CopyOnWriteArrayList<>();
 
-    /** Install the built-in lifecycle that keeps the tracked-hologram viewer caches honest. */
+    private final String owner;
+
+    /**
+     * A manager whose holograms carry no owner. Its {@link #sweepOrphans} removes only leftovers that carry none
+     * either, so it never touches another plugin's. Prefer {@link #HologramManager(String)}.
+     */
     public HologramManager() {
+        this("");
+    }
+
+    /**
+     * A manager that writes {@code owner}, the plugin's name, on every entity it spawns or tracks. Entities persist
+     * through a shutdown or a crash, and {@link #sweepOrphans} then removes this plugin's leftovers and no one
+     * else's: several plugins on one server share the world and the marker. Installs the built-in lifecycle that
+     * keeps the tracked-hologram viewer caches honest.
+     */
+    public HologramManager(String owner) {
+        this.owner = Objects.requireNonNull(owner, "owner");
         registerLifecycle(new ViewerInvalidation());
     }
 
@@ -42,6 +58,9 @@ public final class HologramManager {
     /** Track a hologram spawned elsewhere so {@link #removeAll()} will despawn it too. */
     public Hologram track(Hologram hologram) {
         Objects.requireNonNull(hologram, "hologram");
+        if (!owner.isEmpty()) {
+            Markers.own(hologram.entity(), owner);
+        }
         tracked.add(hologram);
         return hologram;
     }
@@ -56,6 +75,9 @@ public final class HologramManager {
     /** Track an item or block hologram spawned elsewhere so {@link #removeAll()} will despawn it too. */
     public ModelHologram track(ModelHologram hologram) {
         Objects.requireNonNull(hologram, "hologram");
+        if (!owner.isEmpty()) {
+            Markers.own(hologram.entity(), owner);
+        }
         trackedModels.add(hologram);
         return hologram;
     }
@@ -185,19 +207,37 @@ public final class HologramManager {
     }
 
     /**
-     * Remove every uxmLib-marked {@link org.bukkit.entity.Display} in {@code world} that this manager is
-     * not tracking: the holograms a previous run left behind after a crash (text displays persist). Run
-     * this once shortly after enable, on the region/global thread. Returns how many were swept.
+     * Remove the holograms this plugin left in {@code world} on an earlier run: the uxmLib-marked
+     * {@link org.bukkit.entity.Display} entities carrying this manager's owner that it is not tracking. Display
+     * entities persist, so a shutdown that saved the world before they were removed, or a crash, leaves them
+     * behind, and each start would add another copy. Run this once the worlds are up and before spawning, on the
+     * region or global thread. Another plugin's holograms carry another owner and are left alone. Returns how many
+     * were swept.
      */
     public int sweepOrphans(org.bukkit.World world) {
         Objects.requireNonNull(world, "world");
+        Set<UUID> live = trackedEntities();
         int swept = 0;
         for (org.bukkit.entity.Display display : world.getEntitiesByClass(org.bukkit.entity.Display.class)) {
-            if (Markers.isHologram(display)) {
+            if (isOrphanOf(display, owner, live)) {
                 display.remove();
                 swept++;
             }
         }
         return swept;
+    }
+
+    /** Whether {@code entity} is a hologram {@code owner} left behind: marked, owned by it, and not live. */
+    static boolean isOrphanOf(org.bukkit.entity.Entity entity, String owner, Set<UUID> live) {
+        return Markers.isHologram(entity)
+                && Markers.ownerOf(entity).equals(owner)
+                && !live.contains(entity.getUniqueId());
+    }
+
+    private Set<UUID> trackedEntities() {
+        Set<UUID> live = new java.util.HashSet<>();
+        tracked.forEach(hologram -> live.add(hologram.entity().getUniqueId()));
+        trackedModels.forEach(hologram -> live.add(hologram.entity().getUniqueId()));
+        return live;
     }
 }

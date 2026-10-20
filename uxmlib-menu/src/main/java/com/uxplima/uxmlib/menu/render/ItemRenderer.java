@@ -67,6 +67,7 @@ import com.uxplima.uxmlib.menu.spec.ItemDecor;
 import com.uxplima.uxmlib.menu.spec.LoreMode;
 import com.uxplima.uxmlib.menu.spec.MenuItemSpec;
 import com.uxplima.uxmlib.menu.spec.RichMeta;
+import com.uxplima.uxmlib.text.message.CatalogLine;
 import com.uxplima.uxmlib.text.style.Theme;
 import com.uxplima.uxmlib.text.style.TitleAlignment;
 import org.jspecify.annotations.NullMarked;
@@ -479,15 +480,46 @@ public final class ItemRenderer {
         String substituted = substitutePlaceholders(dropMathWithMissingOperand(s, ctx), ctx);
         Map<String, String> arguments = namedPlaceholders(s, ctx);
         if (s.startsWith("@")) {
-            String key = substituted.substring(1);
             // The catalog entry may carry {token} arguments (e.g. {sound}, {warp}); it fills them from the same
             // placeholders a %token% would use, so a per-entry list item shows that entry's value. It asks for the
-            // ones it wants by name and they resolve then, rather than every handler running first in case.
-            return guiText.text(ctx.viewer(), key, arguments);
+            // ones it wants by name and they resolve then, rather than every handler running first in case. A line
+            // may also write values after its key, @menu.price item=sword, and those answer first.
+            Optional<CatalogLine> named = CatalogLine.parse(substituted);
+            if (named.isPresent()) {
+                return guiText.text(
+                        ctx.viewer(),
+                        named.get().key(),
+                        writtenFirst(named.get().arguments(), arguments));
+            }
+            return guiText.text(ctx.viewer(), substituted.substring(1), arguments);
         }
         // Not a key, so the words are in the line. The viewer goes with it anyway: a consumer whose files
         // carry a per-viewer shorthand answers here, and one that does not is handed straight to render.
         return guiText.renderFor(ctx.viewer(), applyMath(substituted), arguments);
+    }
+
+    /**
+     * The values written on a line in front of the menu's own. The menu's map answers a name when asked rather than
+     * listing every value it could give, so this asks it by name too instead of copying it.
+     */
+    private static Map<String, String> writtenFirst(Map<String, String> written, Map<String, String> menu) {
+        if (written.isEmpty()) {
+            return menu;
+        }
+        return new AbstractMap<>() {
+            @Override
+            public @Nullable String get(@Nullable Object name) {
+                String own = written.get(name);
+                return own != null ? own : menu.get(name);
+            }
+
+            @Override
+            public Set<Map.Entry<String, String>> entrySet() {
+                Map<String, String> listed = new LinkedHashMap<>(menu);
+                listed.putAll(written);
+                return listed.entrySet();
+            }
+        };
     }
 
     /**

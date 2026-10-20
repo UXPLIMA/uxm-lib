@@ -118,6 +118,20 @@ public final class MessageCatalog {
     }
 
     /**
+     * Whether some locale's file holds {@code path}. This tells a configuration line naming an entry apart from a
+     * line that merely opens with an at sign ({@link CatalogLine}).
+     */
+    public boolean declares(String path) {
+        Objects.requireNonNull(path, "path");
+        for (Map<String, String> templates : templatesByLocale.values()) {
+            if (templates.containsKey(path)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * The template {@code locale}'s own lang file supplies for {@code key} (or its language-only file), or
      * empty when that language has none. Unlike {@link #template} this stops at the one tier asked for: no
      * default locale, no built-in default. It is what a caller needs to tell one language's answer from

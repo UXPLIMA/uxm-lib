@@ -17,7 +17,21 @@ final class Markers {
     private static final NamespacedKey KEY =
             Objects.requireNonNull(NamespacedKey.fromString("uxmlib:hologram"), "marker key");
 
+    private static final NamespacedKey OWNER =
+            Objects.requireNonNull(NamespacedKey.fromString("uxmlib:hologram_owner"), "owner key");
+
     private Markers() {}
+
+    /** Record which plugin spawned {@code entity}, so a sweep at startup removes only that plugin's leftovers. */
+    static void own(Entity entity, String owner) {
+        entity.getPersistentDataContainer().set(OWNER, PersistentDataType.STRING, owner);
+    }
+
+    /** The plugin that spawned {@code entity}, or an empty string for one stamped before owners were recorded. */
+    static String ownerOf(Entity entity) {
+        String owner = entity.getPersistentDataContainer().get(OWNER, PersistentDataType.STRING);
+        return owner == null ? "" : owner;
+    }
 
     /** Tag {@code entity} as part of a uxmLib hologram. */
     static void stamp(Entity entity) {

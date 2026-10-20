@@ -122,6 +122,54 @@ public final class Messages {
     }
 
     /**
+     * Draw one line from a configuration file for {@code viewer}. A line written as {@code @key name=value} reads
+     * that catalogue entry in the viewer's language, its {@code {name}} tokens and {@code <name>} tags filled from
+     * the arguments; any other line is drawn as written. Both go through the house style every catalogue line
+     * does, so an item, a menu or a hologram an owner writes looks like the rest.
+     */
+    public Component renderLine(Audience viewer, String line, TagResolver... resolvers) {
+        Objects.requireNonNull(viewer, "viewer");
+        Objects.requireNonNull(line, "line");
+        Objects.requireNonNull(resolvers, "resolvers");
+        Content snapshot = content;
+        Optional<CatalogLine> reference = reference(snapshot, line);
+        if (reference.isEmpty()) {
+            return parse(snapshot, line, line, resolvers);
+        }
+        CatalogLine named = reference.get();
+        String template = OperatorLines.fill(entry(snapshot, viewer, named), named.arguments());
+        return parse(snapshot, named.key(), template, OperatorLines.withArguments(named.arguments(), resolvers));
+    }
+
+    /**
+     * {@code line} as text for {@code viewer}: the entry it names in their language with its {@code {name}}
+     * tokens filled, or the line itself. For a caller with a pipeline of its own (placeholders before parsing).
+     */
+    public String expandLine(Audience viewer, String line) {
+        Objects.requireNonNull(viewer, "viewer");
+        Objects.requireNonNull(line, "line");
+        Content snapshot = content;
+        return reference(snapshot, line)
+                .map(named -> OperatorLines.fill(entry(snapshot, viewer, named), named.arguments()))
+                .orElse(line);
+    }
+
+    /** Whether {@code line} names an entry some language file holds. */
+    public boolean isCatalogLine(String line) {
+        Objects.requireNonNull(line, "line");
+        return reference(content, line).isPresent();
+    }
+
+    private static Optional<CatalogLine> reference(Content snapshot, String line) {
+        return CatalogLine.parse(line).filter(named -> snapshot.catalog().declares(named.key()));
+    }
+
+    private static String entry(Content snapshot, Audience viewer, CatalogLine named) {
+        Locale locale = snapshot.locales().localeOf(viewer);
+        return snapshot.catalog().template(MessageKey.of(named.key(), named.key()), locale);
+    }
+
+    /**
      * The locale {@code viewer} is being served: the language every message this facade renders for them
      * comes out in.
      *
