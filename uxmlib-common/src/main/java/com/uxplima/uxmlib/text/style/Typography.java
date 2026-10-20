@@ -2,11 +2,16 @@ package com.uxplima.uxmlib.text.style;
 
 import java.util.Objects;
 
+import com.uxplima.uxmlib.text.message.CatalogLine;
+
 /**
  * The letters pass over a message template.
  *
  * <p>A catalog is written in ordinary words and rendered in small capitals, so a translator reads and writes
  * normal letters and no build step ever rewrites the file they work in.
+ *
+ * <p>A key a line names, {@code @menu.title}, is left as written: it is a reference to a catalogue entry, whose own
+ * words are converted where that catalogue is, and a converted reference names nothing.
  *
  * <p>Two kinds of text are left alone. Everything inside angle brackets is a tag or a placeholder, so a
  * colour name, a click action and the {@code <player>} a value arrives through are copied through untouched.
@@ -36,11 +41,20 @@ public final class Typography {
      */
     public static String apply(String template, boolean smallCaps) {
         Objects.requireNonNull(template, "template");
+        if (CatalogLine.parse(template).isPresent()) {
+            return template;
+        }
         StringBuilder out = new StringBuilder(template.length());
         int index = 0;
         int plainDepth = 0;
         while (index < template.length()) {
             char current = template.charAt(index);
+            if (current == '@' && (index == 0 || Character.isWhitespace(template.charAt(index - 1)))) {
+                int end = endOfWord(template, index);
+                out.append(template, index, end);
+                index = end;
+                continue;
+            }
             if (current != '<') {
                 out.append(smallCaps && plainDepth == 0 ? SmallCaps.of(current) : String.valueOf(current));
                 index++;
@@ -70,6 +84,15 @@ public final class Typography {
             index = end + 1;
         }
         return out.toString();
+    }
+
+    /** The index just past the word starting at {@code start}: the next space, or the end. */
+    private static int endOfWord(String template, int start) {
+        int index = start;
+        while (index < template.length() && !Character.isWhitespace(template.charAt(index))) {
+            index++;
+        }
+        return index;
     }
 
     /**
