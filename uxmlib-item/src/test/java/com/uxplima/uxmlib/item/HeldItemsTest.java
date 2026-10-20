@@ -18,10 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 
 /**
- * The one rule every plugin of ours follows when it hands a player an item it keeps: a hotbar tool, an opener,
- * a toggle. On 2026-10-20 six plugins in one lobby followed five rules. One moved another plugin's item aside
- * and left a copy behind on every join, two wrote over whatever held the slot, and three handed out a second
- * copy when the player had moved the first.
+ * Where a plugin puts an item it hands a player and keeps. Each case is one way a shared hotbar goes wrong: another
+ * item moved aside and handed out again, a player's own item written over, a second copy after the player moved the
+ * first, and an inventory with no room at all.
  */
 class HeldItemsTest {
 

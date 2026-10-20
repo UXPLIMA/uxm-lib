@@ -20,12 +20,12 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Keeps a held item where {@link HeldItems} put it: every way it can leave the player is refused here, in one
- * place, for every plugin of ours.
+ * place.
  *
  * <p>A click on it, a click with it on the cursor, a number key or the off-hand key pressed over an inventory slot,
  * a drag, a drop, the off-hand swap and placing it as a block are cancelled, and it is taken out of the drops on
- * death. The lobby tool used to guard the first two only, so a number key pressed over a chest slot carried it out
- * of the hotbar.
+ * death. A lock that checks only the clicked item and the cursor is the usual one, and it misses a number key
+ * pressed over a chest slot, which moves the hotbar item while neither of the two is it.
  *
  * <p>The predicate names the items to keep. A plugin whose operator turned the lock off passes a predicate that
  * answers false. Each handler only cancels its own event, so the guard is safe on any Folia region.

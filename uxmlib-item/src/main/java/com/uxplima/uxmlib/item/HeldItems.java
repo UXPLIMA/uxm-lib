@@ -9,14 +9,14 @@ import org.bukkit.inventory.PlayerInventory;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Where a plugin puts an item it hands a player and keeps: a hotbar tool, an opener, a toggle. One rule for every
- * plugin of ours, because a hotbar is shared and each plugin used to follow its own.
+ * Where a plugin puts an item it hands a player and keeps: a hotbar tool, a menu opener, a toggle. The hotbar is
+ * shared by every plugin on the server and by the player, so the item never takes anybody else's place.
  *
  * <p>The item takes its wanted slot when that slot is empty or already holds it. Otherwise it stays in the slot the
  * player moved it to, or takes the first free storage slot. An item that is not the plugin's own is never written
- * over and never moved: moving another plugin's item aside left a copy behind on every join, and writing over it
- * deleted a player's own item. Every other copy is taken back, so the player holds one. With no room at all the
- * player gets nothing and loses nothing.
+ * over and never moved: writing over it deletes it, and moving it aside makes the plugin that owns it hand it out
+ * again, one more copy each time both plugins place their items. Every other copy is taken back, so the player
+ * holds one. With no room at all the player gets nothing and loses nothing.
  *
  * <p>The predicate names the plugin's own item, by the mark in its persistent data. Call these on the player's own
  * thread: the inventory belongs to the player, and under Folia only that thread may write it.

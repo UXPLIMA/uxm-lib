@@ -111,8 +111,8 @@ class BedrockDetectorTest {
 
     /**
      * A plugin that enables at {@code STARTUP} runs before every plugin that enables after the worlds, Floodgate
-     * among them, whatever load order it declares. uxmEssentials picked its detector there on 2026-10-20 and
-     * treated every Bedrock player as a Java player for the life of the server.
+     * among them, whatever load order it declares. A detector chosen in its enable treats every Bedrock player as a
+     * Java player for the life of the server.
      */
     @Test
     void resolving_findsABackendThatEnablesAfterIt() {

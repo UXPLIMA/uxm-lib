@@ -36,8 +36,8 @@ import org.mockbukkit.mockbukkit.ServerMock;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 /**
- * Every way a held item can leave the player, refused in one place. The lobby tool guarded a click on the item and
- * a click with it on the cursor, and a number key pressed over a chest slot still carried it out of the hotbar.
+ * Every way a held item can leave the player, refused in one place. A lock that checks only the clicked item and the
+ * cursor misses a number key pressed over a chest slot, which still carries the item out of the hotbar.
  */
 class HeldItemGuardTest {
 
