@@ -95,6 +95,7 @@ public final class ConditionList {
         request.broadcast().ifPresent(builder::broadcast);
         request.words().ifPresent(builder::words);
         request.style().ifPresent(builder::style);
+        request.perReaderOnto(builder);
         return builder.build();
     }
 

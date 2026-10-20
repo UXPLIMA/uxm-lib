@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -53,6 +54,8 @@ public final class ConditionRequest {
     private final @Nullable Audience broadcast;
     private final @Nullable Function<String, @Nullable String> words;
     private final @Nullable UnaryOperator<String> style;
+    private final @Nullable BiFunction<Audience, String, @Nullable String> wordsFor;
+    private final @Nullable BiFunction<Audience, String, String> styleFor;
     private final @Nullable BiConsumer<Player, BossBar> barShown;
     private boolean cancelled;
 
@@ -69,6 +72,8 @@ public final class ConditionRequest {
         this.broadcast = builder.broadcast;
         this.words = builder.words;
         this.style = builder.style;
+        this.wordsFor = builder.wordsFor;
+        this.styleFor = builder.styleFor;
         this.barShown = builder.barShown;
     }
 
@@ -146,6 +151,13 @@ public final class ConditionRequest {
         return Optional.ofNullable(style);
     }
 
+    /** Carry the per-reader words and paint onto {@code builder}, when the caller wired them. */
+    public void perReaderOnto(com.uxplima.uxmlib.condition.action.ActionContext.Builder builder) {
+        if (wordsFor != null && styleFor != null) {
+            builder.perReader(wordsFor, styleFor);
+        }
+    }
+
     /** The live, mutable error sink. A condition adds its failure message here. */
     public List<Component> errors() {
         return errors;
@@ -182,6 +194,8 @@ public final class ConditionRequest {
         private @Nullable Audience broadcast;
         private @Nullable Function<String, @Nullable String> words;
         private @Nullable UnaryOperator<String> style;
+        private @Nullable BiFunction<Audience, String, @Nullable String> wordsFor;
+        private @Nullable BiFunction<Audience, String, String> styleFor;
         private @Nullable BiConsumer<Player, BossBar> barShown;
 
         private Builder(OperandResolver resolver) {
@@ -251,6 +265,15 @@ public final class ConditionRequest {
         /** Set how the text of a failure list is painted: this plugin's theme and the reader's language. */
         public Builder style(UnaryOperator<String> style) {
             this.style = Objects.requireNonNull(style, "style");
+            return this;
+        }
+
+        /** Set the words and paint a failure list's broadcast reads each recipient in. */
+        public Builder perReader(
+                BiFunction<Audience, String, @Nullable String> wordsFor,
+                BiFunction<Audience, String, String> styleFor) {
+            this.wordsFor = Objects.requireNonNull(wordsFor, "wordsFor");
+            this.styleFor = Objects.requireNonNull(styleFor, "styleFor");
             return this;
         }
 

@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -82,6 +83,14 @@ public final class ActionContext {
     private final Function<String, @Nullable String> words;
 
     /**
+     * The words and the paint of a text part for one reader, where a line reaches readers who are not the player it
+     * is about: a broadcast. Each reader reads it in their own language. Unwired, every reader reads the player's.
+     */
+    private final @Nullable BiFunction<Audience, String, @Nullable String> wordsFor;
+
+    private final @Nullable BiFunction<Audience, String, String> styleFor;
+
+    /**
      * How the text of a text action is painted before it is drawn: the theme's roles and labels made colours.
      *
      * <p>An effect line went to the parser as written and was drawn with plain MiniMessage, so {@code <tag:'JOBS'>}
@@ -109,6 +118,8 @@ public final class ActionContext {
         this.itemStore = builder.itemStore;
         this.later = builder.later;
         this.words = builder.words;
+        this.wordsFor = builder.wordsFor;
+        this.styleFor = builder.styleFor;
         this.style = builder.style;
         this.barShown = builder.barShown;
     }
@@ -127,6 +138,27 @@ public final class ActionContext {
      */
     public String words(String part) {
         Objects.requireNonNull(part, "part");
+        return wordsFrom(part, words);
+    }
+
+    /** Whether a text part can be read per reader. See {@link #wordsFor}. */
+    public boolean readsPerReader() {
+        return wordsFor != null;
+    }
+
+    /** One text part with its words and its paint for {@code reader}. Unwired, the player's own. */
+    public String forReader(Audience reader, String part) {
+        Objects.requireNonNull(reader, "reader");
+        Objects.requireNonNull(part, "part");
+        BiFunction<Audience, String, @Nullable String> readerWords = wordsFor;
+        BiFunction<Audience, String, String> readerStyle = styleFor;
+        if (readerWords == null || readerStyle == null) {
+            return style(words(part));
+        }
+        return readerStyle.apply(reader, wordsFrom(part, path -> readerWords.apply(reader, path)));
+    }
+
+    private static String wordsFrom(String part, Function<String, @Nullable String> lookup) {
         String stripped = part.strip();
         if (stripped.length() < 2 || stripped.charAt(0) != KEY_MARK) {
             return part;
@@ -137,7 +169,7 @@ public final class ActionContext {
         if (named.isEmpty()) {
             return part;
         }
-        String found = words.apply(named.get().key());
+        String found = lookup.apply(named.get().key());
         return found == null ? named.get().key() : named.get().fill(found);
     }
 
@@ -224,6 +256,9 @@ public final class ActionContext {
                 .broadcast(broadcast)
                 .words(words)
                 .style(style);
+        if (wordsFor != null && styleFor != null) {
+            request.perReader(wordsFor, styleFor);
+        }
         if (player != null) {
             request.player(player);
         }
@@ -250,6 +285,8 @@ public final class ActionContext {
                     + " key is drawn as its words rather than as itself.");
         };
         private UnaryOperator<String> style = line -> StyleTokens.expand(line, Theme.defaults(), false);
+        private @Nullable BiFunction<Audience, String, @Nullable String> wordsFor;
+        private @Nullable BiFunction<Audience, String, String> styleFor;
         private BiConsumer<Player, BossBar> barShown = (to, bar) -> {};
         private BiConsumer<Duration, Runnable> later = (delay, what) -> {
             throw new IllegalStateException("an action asked for something to happen in " + delay
@@ -309,6 +346,19 @@ public final class ActionContext {
          */
         public Builder style(UnaryOperator<String> style) {
             this.style = Objects.requireNonNull(style, "style");
+            return this;
+        }
+
+        /**
+         * Wire the words and the paint of a text part for one reader, for a line that reaches readers other than
+         * the player it is about. {@code [broadcast]} reads each recipient their own. Unwired, a broadcast reads
+         * every recipient the player's words.
+         */
+        public Builder perReader(
+                BiFunction<Audience, String, @Nullable String> wordsFor,
+                BiFunction<Audience, String, String> styleFor) {
+            this.wordsFor = Objects.requireNonNull(wordsFor, "wordsFor");
+            this.styleFor = Objects.requireNonNull(styleFor, "styleFor");
             return this;
         }
 

@@ -121,6 +121,32 @@ class EveryTextPartNamesItsOwnWordsTest {
         assertThat(seen.messages).containsExactly("@everyone meet at spawn");
     }
 
+    /**
+     * A broadcast reaches everybody, and everybody reads it in their own words. Read once for the player who set it
+     * off, every reader got that player's language.
+     */
+    @Test
+    @DisplayName("a broadcast naming a key reads in each reader's own words")
+    void aBroadcastReadsInEachReadersWords() {
+        Seen english = new Seen();
+        Seen turkish = new Seen();
+        Map<String, String> turkishWords = Map.of("join.welcome", "{who} {place} yerine geldi");
+        ActionContext context = ActionContext.builder(OperandResolver.identity())
+                .target(english)
+                .broadcast(Audience.audience(english, turkish))
+                .words(CATALOGUE::get)
+                .perReader(
+                        (reader, path) -> reader == turkish ? turkishWords.get(path) : CATALOGUE.get(path),
+                        (reader, line) -> line)
+                .build();
+
+        ActionList.parse(List.of("[broadcast] @join.welcome place=spawn who=Steve"))
+                .run(context);
+
+        assertThat(english.messages).containsExactly("Welcome to spawn, Steve");
+        assertThat(turkish.messages).containsExactly("Steve spawn yerine geldi");
+    }
+
     @Test
     @DisplayName("words written out are left as they are, an at sign inside them included")
     void writtenWordsAreLeftAlone() {

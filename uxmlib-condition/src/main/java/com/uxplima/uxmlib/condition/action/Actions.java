@@ -46,7 +46,15 @@ public final class Actions {
     /** {@code [broadcast] <template>}: render the template and send it to the broadcast audience. */
     public static Action broadcast(String template) {
         Objects.requireNonNull(template, "template");
-        return asyncText(context -> context.broadcast().sendMessage(render(context, template)));
+        return asyncText(context -> {
+            if (!context.readsPerReader()) {
+                context.broadcast().sendMessage(render(context, template));
+                return;
+            }
+            context.broadcast()
+                    .forEachAudience(reader ->
+                            reader.sendMessage(Text.mini(context.resolve(context.forReader(reader, template)))));
+        });
     }
 
     /** {@code [actionbar] <template>}: render the template into the target's action bar. */
