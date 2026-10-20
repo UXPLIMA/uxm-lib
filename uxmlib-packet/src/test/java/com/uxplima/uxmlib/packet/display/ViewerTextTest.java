@@ -204,4 +204,19 @@ class ViewerTextTest {
 
         assertThat(sent).containsExactly(new Sent(ayse, 7, Component.text("Merhaba")));
     }
+
+    /** A server with no internals to build packets from, a test server for one, binds and tracks without failing. */
+    @Test
+    void theLiveSenderBuildsNothingWhereTheServerHasNoInternals() {
+        Player ayse = player("Ayse");
+        TextDisplay display = display(7, Set.of(ayse));
+        ViewerText live = ViewerText.live(recordingScheduler());
+
+        live.bind(display, viewer -> Component.text("Merhaba"));
+        live.onTrack(new PlayerTrackEntityEvent(ayse, display));
+        later.forEach(Runnable::run);
+        live.refresh(ayse);
+
+        assertThat(later).hasSize(1);
+    }
 }

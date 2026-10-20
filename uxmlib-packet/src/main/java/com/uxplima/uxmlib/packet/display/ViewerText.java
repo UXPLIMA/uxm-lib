@@ -20,6 +20,7 @@ import com.uxplima.uxmlib.packet.display.internal.NmsDisplayTextPackets;
 import com.uxplima.uxmlib.pipeline.ChannelResolver;
 import com.uxplima.uxmlib.pipeline.PacketSender;
 import com.uxplima.uxmlib.scheduler.Scheduler;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A shared {@link TextDisplay} that each viewer reads in their own words: their language, their name, their
@@ -46,9 +47,12 @@ public final class ViewerText implements Listener {
 
     private record Bound(TextDisplay display, Function<Player, Component> text) {}
 
-    /** A ViewerText that writes real packets to each viewer's connection. */
+    /**
+     * A ViewerText that writes real packets to each viewer's connection. The packet classes are reached on the
+     * first send, not here, and a server without them (a test server) is sent nothing.
+     */
     public static ViewerText live(Scheduler scheduler) {
-        return new ViewerText(scheduler, new NmsDisplayTextPackets(new PacketSender(new ChannelResolver())));
+        return new ViewerText(scheduler, new LivePackets());
     }
 
     public ViewerText(Scheduler scheduler, DisplayTextPackets packets) {
@@ -109,5 +113,51 @@ public final class ViewerText implements Listener {
     private void send(Player viewer, Bound binding) {
         Component text = binding.text().apply(viewer);
         packets.send(viewer, packets.textOverride(binding.display().getEntityId(), text));
+    }
+
+    /** The real packets, built on first use; nothing at all where the server's own classes are missing. */
+    private static final class LivePackets implements DisplayTextPackets {
+
+        private static final Object NOTHING = new Object();
+
+        private volatile @Nullable DisplayTextPackets real;
+        private volatile boolean missing;
+
+        private @Nullable DisplayTextPackets real() {
+            DisplayTextPackets built = real;
+            if (built != null || missing) {
+                return built;
+            }
+            try {
+                built = new NmsDisplayTextPackets(new PacketSender(new ChannelResolver()));
+                real = built;
+                return built;
+            } catch (LinkageError absent) {
+                missing = true;
+                return null;
+            }
+        }
+
+        @Override
+        public Object textOverride(int entityId, Component text) {
+            DisplayTextPackets built = real();
+            if (built == null) {
+                return NOTHING;
+            }
+            try {
+                return built.textOverride(entityId, text);
+            } catch (LinkageError absent) {
+                missing = true;
+                return NOTHING;
+            }
+        }
+
+        @Override
+        public void send(Player viewer, Object packet) {
+            DisplayTextPackets built = real;
+            if (built != null && packet != NOTHING) {
+                built.send(viewer, packet);
+            }
+        }
     }
 }
