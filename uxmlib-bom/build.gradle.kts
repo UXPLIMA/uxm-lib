@@ -1,6 +1,6 @@
 plugins {
     `java-platform`
-    `maven-publish`
+    id("uxmlib.nexus-repository")
 }
 
 // A BOM so a consumer can align every uxmlib-* artifact to one version with a single platform import.

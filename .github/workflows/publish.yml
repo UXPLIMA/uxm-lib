@@ -108,4 +108,14 @@ jobs:
               status=1
             fi
           done
+          # The BOM is a java-platform with its own publication. It was built and never published until the
+          # repository moved into a convention of its own, so it is read back here as well.
+          bom="https://repo.uxplima.com/repository/maven-releases/com/uxplima/uxmlib/uxmlib-bom/$VERSION/uxmlib-bom-$VERSION.pom"
+          code=$(curl -sS -o /dev/null -w '%{http_code}' --head "$bom")
+          if [ "$code" = "200" ]; then
+            echo "ok: uxmlib-bom-$VERSION.pom is served"
+          else
+            echo "::error::$bom answered $code, so the BOM did not land"
+            status=1
+          fi
           exit $status
