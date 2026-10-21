@@ -1672,6 +1672,9 @@ public final class MenuListener implements Listener {
         if (event.getInventory().getHolder() instanceof MenuHolder holder) {
             contentRegions.readBack(holder, event.getInventory());
             closeMenu(holder);
+            if (closesForGood(event.getReason())) {
+                runEach(holder, holder.ctx(), ClickKind.LEFT, holder.spec().closeActions());
+            }
             restoreBottom(holder, event.getPlayer());
             // A preview window carries a close hook that steps the operator back to the grid editor; the reopen it runs
             // funnels through the scheduler, so it is deferred off this close event rather than opening a window inside
@@ -1725,13 +1728,18 @@ public final class MenuListener implements Listener {
      * The single teardown choke-point both close paths (the player closing the window and a quit with it open) funnel
      * through: it stops the refresh task so a timer can never re-render a closed window. Idempotent, so a close that is
      * immediately followed by a quit close is a harmless no-op.
-     *
-     * <p>Phase 2 adds generic close actions: this is where {@code spec.closeActions()} will be dispatched through the
-     * {@link ActionRegistry}, branching on whether the menu was really closed versus reopened by navigation. v1 has no
-     * generic action handlers, so teardown is the only work.
      */
     private void closeMenu(MenuHolder holder) {
         holder.cancelRefresh();
+    }
+
+    /**
+     * Whether a window that closed for {@code reason} is gone, so its {@code close-actions} run. Not when another
+     * window takes its place, which is a page, a child window or the next menu, and not when the viewer left the
+     * server, where there is nobody left to act for.
+     */
+    private static boolean closesForGood(InventoryCloseEvent.Reason reason) {
+        return reason != InventoryCloseEvent.Reason.OPEN_NEW && reason != InventoryCloseEvent.Reason.DISCONNECT;
     }
 
     /**
