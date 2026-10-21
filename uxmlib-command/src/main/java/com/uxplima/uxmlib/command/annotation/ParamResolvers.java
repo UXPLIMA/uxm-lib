@@ -43,8 +43,7 @@ public final class ParamResolvers {
      *
      * <p>{@link PlayerNames} is registered under {@link PlayerNames#KEY} so an argument that takes a player by
      * name rather than by {@code Player} can suggest without each plugin carrying the same eight lines. A
-     * {@code String} argument suggests nothing on its own, and twenty five of ours across five plugins were
-     * typed blind until 2026-09-08.
+     * {@code String} argument suggests nothing on its own, so without it such an argument is typed blind.
      */
     public static ParamResolvers withDefaults() {
         ParamResolvers resolvers = new ParamResolvers();

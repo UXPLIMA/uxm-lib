@@ -36,7 +36,7 @@ public interface Log {
      * ({@code JavaPlugin.getLogger()}).
      *
      * <p>{@link #debug} maps onto {@link java.util.logging.Level#FINE}, so an operator turns it on through the
-     * logging configuration the server already has rather than through a switch of ours.
+     * logging configuration the server already has rather than through a switch of the library's.
      *
      * @param logger the logger to write to; never {@code null}
      * @return a binding over {@code logger}

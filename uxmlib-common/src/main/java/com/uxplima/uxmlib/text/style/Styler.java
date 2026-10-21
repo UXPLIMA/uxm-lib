@@ -24,7 +24,7 @@ import org.jspecify.annotations.Nullable;
  * already applied. That is what makes the default compiled into a key look exactly like the file: the default
  * is a template like any other and goes through the same two steps.
  *
- * <p>One name can be both a colour role and a value, and {@code <level>} is the one that caught the estate out:
+ * <p>One name can be both a colour role and a value, and {@code <level>} is the plainest case:
  * a role of {@code theme.conf} and the natural name for a level number. Where the pass runs at render time the
  * value wins, because both halves are in one hand there. Where it runs at load, over a catalogue, no value
  * exists yet: a plugin that knows its own value names says so through the {@link java.util.function.Predicate}

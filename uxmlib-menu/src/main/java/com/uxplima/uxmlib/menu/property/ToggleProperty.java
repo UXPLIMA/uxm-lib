@@ -61,7 +61,7 @@ public final class ToggleProperty<S> implements EditableProperty {
     /**
      * The same, with the state handed over already painted and with a click line of this button's own.
      *
-     * <p>A state is a coloured word by UI-STYLE 9, and the plain-text constructor has nowhere to put the
+     * <p>A state is a coloured word, and the plain-text constructor has nowhere to put the
      * colour: a caller that answered {@code "<good>On"} had those characters printed on the button, because
      * the editor puts a value through the catalogue and the catalogue inserts a value as text. This is the
      * constructor for a caller that has a component in hand, which is every caller that reads its words out

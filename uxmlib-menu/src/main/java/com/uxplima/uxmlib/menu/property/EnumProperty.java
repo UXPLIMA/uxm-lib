@@ -184,7 +184,7 @@ public final class EnumProperty<E> implements EditableProperty {
     }
 
     private ItemStack optionIcon(Player viewer, E option, E selected) {
-        // The option name is a plain value string; wrap it in the value token so it picks up the canon accent.
+        // The option name is a plain value string; wrap it in the value token so it picks up the theme's accent.
         // The icon is the per-option material (the type selector's spawn eggs); the fixed-icon constructor passes
         // a function that always returns the one configured material.
         ItemBuilder builder = ItemBuilder.of(optionIconFn.apply(option))

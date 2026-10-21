@@ -86,9 +86,9 @@ public final class EditorRenderer {
 
     /**
      * One property's button: the property icon, the shared value-lore, and the property's own label as the title
-     * on the first lore line, which is where the canon keeps a tile's title. The label used to be the display
-     * name, which put it outside the tooltip's body and left the lore opening on the generic word every property
-     * shares ("setting") rather than on the setting the player is looking at.
+     * on the first lore line, which is where a tile keeps its title. As the display name it would sit outside the
+     * tooltip's body and leave the lore opening on the generic word every property shares ("setting") rather than
+     * on the setting the player is looking at.
      */
     private ItemStack propertyButton(Player viewer, EditorSpec spec, EditableProperty property) {
         Component value = property.drawnValue(viewer)
@@ -103,12 +103,12 @@ public final class EditorRenderer {
     /**
      * The blocks under a property's title, as one component with the line breaks in it.
      *
-     * <p>One component rather than a list of one, which is what this handed {@link Tiles#titled} until 2026-09-09.
-     * That overload asks whether the last <em>line</em> it was given is blank, a multi-line component is not, and so
-     * every property tile in the estate closed on two blank lines and sat a line taller than every other tile. The
+     * <p>One component rather than a list of one. {@link Tiles#titled} asks whether the last <em>line</em> it was
+     * given is blank, and a multi-line component is not, so a list of one would close every property tile on two
+     * blank lines and sit it a line taller than every other tile. The
      * component overload measures the last line of the text, which is the question that was meant.
      *
-     * <p>A spec that names the keys gets the tile UI-STYLE 7.2 describes: the breadcrumb under the title, the
+     * <p>A spec that names the keys gets the full editor tile: the breadcrumb under the title, the
      * {@code ✎} header with the words that say what the setting is, the {@code ≡} header with the current value
      * as a fact under it, and the {@code →} click line. One that names none gets the single unpadded line every
      * editor drew before, which is what keeps an existing consumer's screens exactly as they were.

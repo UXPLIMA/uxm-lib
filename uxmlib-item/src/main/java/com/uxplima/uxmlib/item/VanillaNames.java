@@ -16,10 +16,10 @@ import com.uxplima.uxmlib.text.message.MessageKey;
 /**
  * The name of a vanilla thing, in the language the reader reads.
  *
- * <p>A material, a mob and an enchantment have no name of ours. Minecraft ships the table, in the client,
- * in every language the client has, and it is right for every player whose client is set to the language
- * they read. So the rule is one sentence: <strong>our catalogue wins, and the client answers for
- * everything else.</strong>
+ * <p>A material, a mob and an enchantment have no name in a plugin's catalogue. Minecraft ships the table, in the
+ * client, in every language the client has, and it is right for every player whose client is set to the language they
+ * read. So the rule is one sentence: <strong>the plugin's catalogue wins, and the client answers for everything
+ * else.</strong>
  *
  * <p>An operator who wants one name of their own writes the key for that one thing, and nobody has to
  * write the other nine hundred. The keys are {@code vanilla.material.<name>}, {@code vanilla.entity.<name>}
@@ -30,8 +30,8 @@ import com.uxplima.uxmlib.text.message.MessageKey;
  * parses, so the client's own name arrives as a {@code <lang:...>} tag rather than as a component the
  * token could not carry.
  *
- * <p>This replaces what ADR 0007 asked for and nobody built: a table of ours in every language we ship,
- * maintained against the version the platform moves to. The ADR says so now.
+ * <p>The alternative is a table of every name in every language a plugin ships, maintained against every
+ * version the platform moves to, which the client already carries.
  */
 public final class VanillaNames {
 
@@ -153,7 +153,7 @@ public final class VanillaNames {
      *
      * <p>A {@link MessageKey} carries a built-in default and these have none: a name nobody wrote is the
      * client's to draw, so the default here is the path, which nothing reads. {@code MessageKey.of} refuses
-     * a blank one, and rightly: every other key in the estate has a sentence behind it.
+     * a blank one, and rightly: every other key has a sentence behind it.
      */
     private record Vanilla(String path) implements MessageKey {
 

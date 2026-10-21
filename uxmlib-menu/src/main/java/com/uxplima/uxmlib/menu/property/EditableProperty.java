@@ -20,10 +20,10 @@ import org.jspecify.annotations.NullMarked;
  * Consumer} that calls the module's existing application use case). The framework is the inbound adapter; the use case
  * is the only place the change is actually made, so the GUI and the equivalent command always go through the same code.
  *
- * <p>Implementations are canon-styled (label/value text via {@link String} catalog entries), schedule any write off the
- * tick thread through the shared {@code Scheduler}, and gate destructive steps behind a confirm. The supplied set is
- * {@link ToggleProperty}, {@link TextProperty}, {@link NumberProperty}, {@link EnumProperty}, and {@link ListProperty};
- * a module composes them, it does not subclass them.
+ * <p>Implementations are styled by the theme (label/value text via {@link String} catalog entries), schedule any write
+ * off the tick thread through the shared {@code Scheduler}, and gate destructive steps behind a confirm. The supplied
+ * set is {@link ToggleProperty}, {@link TextProperty}, {@link NumberProperty}, {@link EnumProperty}, and {@link
+ * ListProperty}; a module composes them, it does not subclass them.
  */
 @NullMarked
 public interface EditableProperty {
@@ -46,10 +46,10 @@ public interface EditableProperty {
      * has to stay: a text property's value is whatever an operator typed, and an operator who names a crate
      * {@code <red>} has to read those characters back rather than have them parsed.
      *
-     * <p>Which leaves nowhere for a value that is genuinely markup. A toggle's state is a coloured word by
-     * UI-STYLE 9, and a toggle that answered {@code "<good>On"} had those characters printed on the button:
-     * the owner read {@code ANNOUNCED TO THE SERVER <#9AA5BE>ᴏꜰꜰ} off a uxmCrates screen on 2026-09-09. A
-     * property that has already painted its value says so here and the editor draws it as it is.
+     * <p>Which leaves nowhere for a value that is genuinely markup. A toggle's state is a coloured word, and a toggle
+     * that answered {@code "<good>On"} would have those characters printed on the button: {@code ANNOUNCED TO THE
+     * SERVER <#9AA5BE>ᴏꜰꜰ}. A property that has already painted its value says so here and the editor draws it as it
+     * is.
      */
     default Optional<Component> drawnValue(Player viewer) {
         return Optional.empty();

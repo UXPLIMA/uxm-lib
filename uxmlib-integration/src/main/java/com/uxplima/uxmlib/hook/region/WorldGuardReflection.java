@@ -12,7 +12,7 @@ import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The one reflective way into WorldGuard, for every plugin of ours and for this library.
+ * The one reflective way into WorldGuard, for every plugin built on this library and for the library itself.
  *
  * <p>WorldGuard is named only by string class name ({@code com.sk89q.worldguard.WorldGuard},
  * {@code com.sk89q.worldedit.bukkit.BukkitAdapter}), so no field or method signature here carries a
@@ -21,9 +21,8 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A reflective chain is exactly the code that must not be copied. The compiler does not check it, so a
  * WorldGuard release that moves one step breaks every copy separately, and the copy somebody forgets is the
- * one that fails on a customer's server. On 2026-09-22 there were two: uxmEssentials held this one, and
- * this library held a smaller one for its claim provider. This is the one left. uxmEssentials wrote it and
- * it moved here, because reaching into another plugin is a mechanism.
+ * one that fails on a customer's server. So there is one, here, because reaching into another plugin is a
+ * mechanism.
  *
  * <p>Every method rethrows its reflective failure rather than swallowing it, so each caller keeps its own
  * fail-open policy: the claim provider degrades to unclaimed, a region gate to "not denied".

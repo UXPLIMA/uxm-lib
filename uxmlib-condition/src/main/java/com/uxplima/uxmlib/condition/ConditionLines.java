@@ -8,8 +8,8 @@ import java.util.Optional;
  * One condition, written as an operator writes it.
  *
  * <p>The library owned three condition kinds and no way to read a line into one, so every plugin that wanted
- * a requirement in a file wrote the same twenty lines of prefix matching. uxmCrates had a copy called
- * {@code RequirementLines}, and a second copy is a grammar that drifts: the drift shows up as a requirement
+ * a requirement in a file wrote the same twenty lines of prefix matching. A plugin's own copy is a grammar
+ * that drifts: the drift shows up as a requirement
  * that loads and then never applies, which nobody notices until an economy has already leaked.
  *
  * <p>Three shapes, and the last is the fallback so a bare placeholder comparison needs no prefix:

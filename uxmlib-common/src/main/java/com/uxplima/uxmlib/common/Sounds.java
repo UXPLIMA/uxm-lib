@@ -20,9 +20,8 @@ import org.jspecify.annotations.Nullable;
  *
  * <p><strong>The constant spelling resolves too.</strong> {@code BLOCK_NOTE_BLOCK_PLING} is what a wiki
  * prints and what an operator copies, and it is the registry key with every dot turned into an underscore.
- * Until 2026-09-22 it resolved to nothing here, and nothing said so: thirty three shipped values across
- * this estate were written that way and every one of them was silence. The fold cannot be undone by
- * guessing which underscores were dots, so the registry is asked instead.
+ * Without this it would resolve to nothing, and nothing would say so: the sound would simply be silence.
+ * The fold cannot be undone by guessing which underscores were dots, so the registry is asked instead.
  */
 public final class Sounds {
 

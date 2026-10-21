@@ -24,7 +24,7 @@ import org.jspecify.annotations.Nullable;
  * One registry for one server, whichever plugin loaded first.
  *
  * <p>{@link NametagRegistry} ends the fight between two plugins that both want a player's scoreboard team,
- * but only inside one jar. Every plugin of ours shades uxmLib and relocates it, so
+ * but only inside one jar. Every plugin that uses this library shades and relocates it, so
  * {@code com.uxplima.a.libs.uxmlib...NametagRegistry} and {@code com.uxplima.b.libs...NametagRegistry} are two
  * unrelated classes holding two registries and creating two teams. The plugins were composing into one name
  * each, separately, and the second still lost.
@@ -295,7 +295,7 @@ public final class SharedNametags implements Nametags {
      * <p>The verb and every argument are types from the boot class loader, from Bukkit or from Adventure, and
      * none of the three is ever shaded, so both sides of a call see the same classes whatever they relocated.
      * The mark is in {@code toString} because that is the one thing a plain {@code Function} can carry across
-     * two class loaders that share no type of ours.
+     * two class loaders that share no type of this library.
      */
     private record Bridge(String plugin, NametagRegistry registry) implements Function<Object[], Object> {
 

@@ -17,8 +17,8 @@ import org.spongepowered.configurate.ConfigurationNode;
 import org.spongepowered.configurate.serialize.SerializationException;
 
 /**
- * Reads an item spec from a HOCON {@link ConfigurationNode} into an {@link ItemBuilder}: the single
- * most-replicated competitor pattern, and the seam the GUI menu loader sits on. A node looks like:
+ * Reads an item spec from a HOCON {@link ConfigurationNode} into an {@link ItemBuilder}: the pattern
+ * every item file needs, and the seam the GUI menu loader sits on. A node looks like:
  *
  * <pre>{@code
  * material = DIAMOND_SWORD            # required
@@ -80,8 +80,8 @@ public final class ItemConfig {
      * remaining option is to write the block it is drawn as, which is a different item.
      *
      * <p>Static and set once, the way the placeholder hook is. It is a property of the server rather than
-     * of a plugin: four of ours read item files and all four want the same answer, and threading a source
-     * through every reader would be four copies of the same wiring.
+     * of a plugin: every plugin that reads item files wants the same answer, and threading a source through
+     * every reader would be one copy of the same wiring per plugin.
      */
     @FunctionalInterface
     public interface ItemSource {
@@ -96,7 +96,7 @@ public final class ItemConfig {
     /**
      * Say where an item this server's material list does not know comes from.
      *
-     * <p>Called once, at enable, by whichever plugin of ours starts first. Calling it again replaces the
+     * <p>Called once, at enable, by whichever plugin starts first. Calling it again replaces the
      * source, which is what a reload does.
      */
     public static void itemsFrom(ItemSource source) {

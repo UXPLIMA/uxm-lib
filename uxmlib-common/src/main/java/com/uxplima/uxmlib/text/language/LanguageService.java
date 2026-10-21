@@ -11,7 +11,7 @@ import java.util.UUID;
  * <p>A plugin asks the service first and its own store second, so a server that runs a provider gives a
  * player one language across every plugin and every backend, and a server that runs none loses nothing but
  * that convenience. Nothing here is required: a plugin with no provider resolves a language on its own, which
- * is why no plugin of ours may ever declare a dependency on one.
+ * is why a plugin never needs to declare a dependency on one.
  *
  * <p>An implementation answers for a player who is not online and who has never been seen, so
  * {@link #languageOf} returns empty rather than a guess.

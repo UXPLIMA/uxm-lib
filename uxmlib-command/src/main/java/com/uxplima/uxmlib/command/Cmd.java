@@ -54,7 +54,7 @@ public final class Cmd {
     /**
      * Whether the server has this node registered with {@code default: true}.
      *
-     * <p>Read off the server rather than out of a list of ours, so the descriptor stays the one place that
+     * <p>Read off the server rather than out of a list kept here, so the descriptor stays the one place that
      * says which verbs belong to a player. A node nothing registered, and a call made before a server
      * exists, answer no: the safe half of the question, which is to hide.
      */

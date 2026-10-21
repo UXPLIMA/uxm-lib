@@ -50,10 +50,10 @@ public final class EditorState {
      * removal is gated behind.
      *
      * <p>They are carried here rather than asked of the click listener, because a consumer builds its engine and its
-     * listener separately and nothing made the two agree. uxmCrates wired an engine that could open an editor and a
-     * listener that could not serve one: every click on a property threw {@code an editor listener needs a selector
-     * opener} into the console, the window sat there doing nothing, and the whole editor read as broken. Every other
-     * plugin in the estate wires its listener the same way, so every editor in the estate had the same hole.
+     * listener separately and nothing made the two agree. An engine that could open an editor beside a listener that
+     * could not serve one threw {@code an editor listener needs a selector opener} on every property click, the
+     * window sat there doing nothing, and the whole editor read as broken. Every plugin wires its listener the
+     * same way, so every editor would have the same hole.
      *
      * <p>An editor opened through the engine now carries the engine's own three, so the pair cannot disagree. The
      * listener's own fields stay as the fallback for a listener built with them directly.

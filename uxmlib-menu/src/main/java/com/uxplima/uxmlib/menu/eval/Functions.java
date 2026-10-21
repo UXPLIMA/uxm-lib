@@ -13,8 +13,8 @@ import java.util.function.DoubleUnaryOperator;
 final class Functions {
 
     /**
-     * The sandbox's arithmetic. {@code sin}, {@code cos} and {@code tau} joined it on 2026-09-08 so a motion
-     * can be written in a file: a circle is a sine and a cosine of the same turn, and without them the only
+     * The sandbox's arithmetic. {@code sin}, {@code cos} and {@code tau} are in it so a motion can be written
+     * in a file: a circle is a sine and a cosine of the same turn, and without them the only
      * curves an operator could have were the ones somebody had already compiled in.
      */
     private static final Set<String> NAMES =

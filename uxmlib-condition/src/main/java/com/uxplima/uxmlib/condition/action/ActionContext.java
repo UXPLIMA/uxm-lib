@@ -63,7 +63,7 @@ public final class ActionContext {
      * seam, wired by whoever builds the context to their own scheduler, and it is one line.
      *
      * <p>Left unwired it throws rather than doing nothing. A verb an operator wrote that silently does not
-     * happen is the failure this estate keeps paying for: the file is right, the log is clean, and the thing
+     * happen is the worst failure a file can have: the file is right, the log is clean, and the thing
      * never occurs. The first {@code [bossbar]} on an unwired plugin says so, in the console, with the name of
      * the method that is missing.
      */
@@ -271,8 +271,8 @@ public final class ActionContext {
         private final OperandResolver resolver;
         private Audience target = Audience.empty();
         // The third seam of the same shape, and the same answer. An audience with no members renders
-        // the line, takes it and drops it: uxmCrates announced its supply drop envoy to nobody for as
-        // long as that feature existed. Audience.empty() stays for a caller who means it.
+        // the line, takes it and drops it, and an announcement nobody hears looks exactly like one that
+        // worked. Audience.empty() stays for a caller who means it.
         private Audience broadcast = unwiredBroadcast();
         private @Nullable Player player;
         private CommandSink consoleSink = CommandSink.unwired("[console]", "consoleSink");

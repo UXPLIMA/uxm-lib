@@ -34,9 +34,8 @@ import org.jspecify.annotations.Nullable;
  * <p>{@code Holograms.spawn} creates a real {@code TextDisplay}. That is the right answer when an operator
  * wants to walk up to the hologram and click it, and it stays. It is the wrong answer when the hologram is
  * decoration: a real entity is in the entity count, is written to the region file, comes back after a chunk
- * unload only if the server agrees, and can be reached by anything that reaches entities. A shop that floats
- * an item over a chest learned that the hard way, because the item was a real dropped entity and the market
- * duplicated it.
+ * unload only if the server agrees, and can be reached by anything that reaches entities: an item floated as a
+ * real dropped entity can be picked up and duplicated.
  *
  * <p>This costs the server nothing. The display exists only in the clients that were sent it, so it cannot be
  * hit, moved, duplicated, swept by an entity clearer or lost to a chunk unload.

@@ -29,7 +29,7 @@ import org.jspecify.annotations.Nullable;
  * <p>The built-in chain is immutable, but the composition root may opt a chain into a live {@link IconProviderRegistry}
  * via {@link #withRuntime}: a plugin then registers its own {@link IconProvider} through the public {@code MenuApi} and
  * {@link #resolve} consults the runtime registry <em>after</em> every built-in, so a registered provider adds new
- * prefixes and can never shadow one of ours.
+ * prefixes and can never shadow a built-in one.
  */
 public final class IconProviders {
 

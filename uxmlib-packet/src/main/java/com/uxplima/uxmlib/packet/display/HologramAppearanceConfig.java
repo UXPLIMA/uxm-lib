@@ -12,9 +12,9 @@ import org.spongepowered.configurate.ConfigurationNode;
 /**
  * Reads the whole appearance of a hologram out of one HOCON block.
  *
- * <p>The canon says every property in the appearance table is a key an operator can set, and that a plugin
- * that writes its own reader for them is the defect the rule was written for. This is the reader, once, so
- * that every plugin in the estate spells the same words in the same file.
+ * <p>Every property of the appearance is a key an operator can set, and a plugin that writes its own reader
+ * for them drifts from every other. This is the reader, once, so that every plugin spells the same words in
+ * the same file.
  *
  * <pre>{@code
  * appearance {

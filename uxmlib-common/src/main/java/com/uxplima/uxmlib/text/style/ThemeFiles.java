@@ -19,7 +19,7 @@ import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
  * differently should not have to give up the shared file to get it.
  *
  * <p><b>The name of that folder is the caller's, and this library holds none.</b> Which plugins form a suite,
- * and what the folder they share is called, is a convention of one estate: a library that named a folder would
+ * and what the folder they share is called, is a convention of one set of plugins: a library that named a folder would
  * be sending every consumer to read a file in a directory they never created and share with plugins they have
  * never heard of. So the name is a parameter. A plugin with no suite around it passes {@link #own(Path)} and
  * reads its own folder, which is the answer for a plugin that stands alone.

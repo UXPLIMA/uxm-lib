@@ -21,7 +21,7 @@ import org.jspecify.annotations.Nullable;
  * <ol>
  *   <li>the language the server forces, when it forces one;
  *   <li>the player's own choice: from a registered {@link LanguageService} first, then from the player's own
- *       data through {@link SharedLanguage}, which every plugin of ours on the server reads, and last from
+ *       data through {@link SharedLanguage}, which every plugin built on this library reads, and last from
  *       this plugin's own {@link PlayerLanguages}. The last is what a plugin kept before the choice was
  *       shared, and the first time it answers it is shared too;
  *   <li>the client's language, when the server follows it: the last one remembered, else the one the client
@@ -108,8 +108,8 @@ public final class LanguageResolver implements LocaleSource {
     }
 
     /**
-     * Record a player's choice, in the provider when there is one, on the player's data for every plugin of
-     * ours, and in this plugin's own store either way.
+     * Record a player's choice, in the provider when there is one, on the player's data for every plugin
+     * built on this library, and in this plugin's own store either way.
      *
      * <p>The local write is not a duplicate. It is what keeps the choice when a provider is removed from the
      * server, and what answers while a provider is starting up. A player who is away cannot have their data

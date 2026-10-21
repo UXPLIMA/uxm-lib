@@ -20,7 +20,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The language a player chose, kept on the player's own data so that every plugin of ours on the server reads
+ * The language a player chose, kept on the player's own data so that every plugin built on this library reads
  * the same answer.
  *
  * <p>Each plugin shades this library under its own package. Two plugins therefore never share a class, and a
@@ -37,8 +37,8 @@ import org.jspecify.annotations.Nullable;
  * <p>{@link LanguageResolver} does all of this for a plugin. A plugin that resolves a language its own way
  * reads and writes the choice through {@link #read} and {@link #write}, so it agrees with every other.
  *
- * <p>The data belongs to one server. A network carries the choice between servers through a provider such as
- * uxmLang, which writes it here when the player arrives.
+ * <p>The data belongs to one server. A network carries the choice between servers through a language
+ * provider, which writes it here when the player arrives.
  */
 public final class SharedLanguage {
 

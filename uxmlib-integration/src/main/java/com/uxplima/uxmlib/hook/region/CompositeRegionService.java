@@ -23,7 +23,7 @@ import com.uxplima.uxmlib.hook.PluginHook;
  *
  * <ul>
  *   <li>Building and interacting are refused if any provider refuses. Two protection plugins are two
- *       protections, and honouring the more permissive one would let a plugin of ours do what a player
+ *       protections, and honouring the more permissive one would let a plugin do what a player
  *       standing there could not.
  *   <li>The regions covering a point are the union. A name is a name whoever gave it.
  *   <li>Wilderness is land no provider claims, which follows from the union being empty.

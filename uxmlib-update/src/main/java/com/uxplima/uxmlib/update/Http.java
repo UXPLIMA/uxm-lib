@@ -17,11 +17,10 @@ import java.util.function.Function;
  */
 final class Http {
 
-    // Redirects are followed because a release endpoint outlives the name it was published under: GitHub
-    // answers 301 for a repository that has been renamed, and both of ours have been. Without this the 301
-    // fell into the non-2xx branch below and the check reported "no release" for as long as the old name was
-    // configured. NORMAL follows every redirect except an HTTPS to HTTP downgrade, which is the one case
-    // where failing is the better answer.
+    // Redirects are followed because a release endpoint outlives the name it was published under: GitHub answers 301
+    // for a repository that has been renamed. Without this the 301 would fall into the non-2xx branch below and the
+    // check would report "no release" for as long as the old name was configured. NORMAL follows every redirect except
+    // an HTTPS to HTTP downgrade, which is the one case where failing is the better answer.
     private static final HttpClient CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .followRedirects(HttpClient.Redirect.NORMAL)

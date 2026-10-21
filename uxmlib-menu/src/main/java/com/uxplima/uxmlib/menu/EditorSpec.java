@@ -41,10 +41,9 @@ public final class EditorSpec {
      * under it, the {@code ≡} header over the value, and the {@code →} click line. Each is a catalogue key the
      * consumer supplies and each is optional.
      *
-     * <p>An editor used to draw a title and one bare line, so every editor screen in the estate was two lines
-     * where UI-STYLE 7.2 asks for six, and the value sat hard against the left edge with no padding. The owner
-     * reported it against uxmCrates on 2026-09-08, and it was never that plugin's to fix: every editor of
-     * every plugin is drawn by {@code EditorRenderer}. A spec that names none of these draws what it drew
+     * <p>Without these an editor draws a title and one bare line, two lines where a full editor tile has six,
+     * with the value hard against the left edge. Every editor of every plugin is drawn by
+     * {@code EditorRenderer}, so the blocks are named here. A spec that names none of these draws what it drew
      * before, so nothing already shipped changes shape until its author asks.
      */
     private final String crumb;
@@ -104,9 +103,8 @@ public final class EditorSpec {
     /**
      * The catalogue key of the breadcrumb under the title, or empty when this spec draws none.
      *
-     * <p>UI-STYLE 7.2 puts a breadcrumb on every tile and the blank line that separates the blocks comes after it,
-     * so a tile without one reads with its {@code ✎} header hard against its title. That is what a property button
-     * looked like until 2026-09-09.
+     * <p>A full tile has a breadcrumb under its title, and the blank line that separates the blocks comes after it,
+     * so a tile without one reads with its {@code ✎} header hard against its title.
      */
     public String crumb() {
         return crumb;
@@ -249,8 +247,8 @@ public final class EditorSpec {
          * The same, for a caller that gates the delete inside its own handler.
          *
          * <p>The engine then draws the button and calls the handler, and asks nothing: the one window the player
-         * sees is the caller's. Handing a title here as well is what put two identical confirm windows in front of
-         * every editor in the estate, so the two forms are separate rather than one form with a nullable argument.
+         * sees is the caller's. Handing a title here as well would put two identical confirm windows in front of
+         * every editor, so the two forms are separate rather than one form with a nullable argument.
          */
         public Builder onDelete(String deleteName, BiConsumer<Player, @Nullable Object> onDelete) {
             this.delete = new Delete(

@@ -16,8 +16,8 @@ import org.jspecify.annotations.Nullable;
  * <p>Every requirement line and every reward line goes through the condition engine, and the engine asks a
  * resolver to expand an operand before it compares it. A plugin that hands it the identity compares
  * {@code %vault_eco_balance%} as those twenty characters: the line never fails, it is simply never true,
- * and nothing is logged. This is the one resolver the estate uses, so that cannot happen in one plugin and
- * not in another.
+ * and nothing is logged. This is the one resolver every plugin uses, so that cannot happen in one plugin
+ * and not in another.
  *
  * <p><strong>Static, and set once</strong>, for the reason {@link ContentNames} is: what a player's skill
  * level is belongs to the server rather than to a plugin, and several of the places that build a resolver
@@ -66,7 +66,7 @@ public final class Operands {
     }
 
     /**
-     * The resolver a plugin of ours reads every operator written line with.
+     * The resolver a plugin reads every operator written line with.
      *
      * <p>A skill level first, because it is answered without PlaceholderAPI and a server that has both
      * should get the same number either way. Everything else goes to PlaceholderAPI, which returns the text

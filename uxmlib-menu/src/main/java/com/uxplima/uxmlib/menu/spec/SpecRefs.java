@@ -11,9 +11,9 @@ import java.util.function.Predicate;
  * Every id a menu file names, so the engine can say which of them nobody answers.
  *
  * <p>A menu is a file an operator edits and an id is a word they type. The engine looks each one up at
- * the moment it needs it, and until 2026-09-22 it found nothing and said nothing: an action id nobody
- * registered was a button that did nothing, and a condition id nobody registered hid the tile it
- * guarded. The hidden tile is the worse of the two to find, because it produces no click, so the
+ * the moment it needs it, and without this check it finds nothing and says nothing: an action id
+ * nobody registered is a button that does nothing, and a condition id nobody registered hides the tile
+ * it guards. The hidden tile is the worse of the two to find, because it produces no click, so the
  * warning the click path prints can never reach it.
  *
  * <p>The ids are collected rather than checked here: whether one is registered is the caller's
@@ -21,8 +21,8 @@ import java.util.function.Predicate;
  * more places than it looks: a menu's own open and close lists and its Bedrock submit list, the open
  * requirement, and for every item its click actions per gesture, each gesture's requirement block and
  * else chain, its view requirements with their success and deny lists, what it runs on a dropped
- * item, and all of that again for a list's row template. Until 2026-10-08 the blocks, the chains, the
- * drop actions, the template and the submit list were not read, so a typo there stayed silent.
+ * item, and all of that again for a list's row template, so a typo in any of them is reported rather
+ * than silent.
  *
  * <p>Resolution is the engine's own, through {@link Ref#resolve}, so a namespaced id that carries a
  * value is not reported: {@code auction:sort:newest} finds {@code auction:sort} and is answered.
@@ -57,9 +57,9 @@ public final class SpecRefs {
     }
 
     /**
-     * An item's actions: each gesture's list, requirement blocks and else chain, its view block's outcomes, what it runs
-     * on a dropped item, and the
-     * same again for a list's row template, which the engine runs exactly as it runs a fixed item.
+     * An item's actions: each gesture's list, requirement blocks and else chain, its view block's outcomes, what it
+     * runs on a dropped item, and the same again for a list's row template, which the engine runs exactly as it runs a
+     * fixed item.
      */
     private static void itemActions(MenuItemSpec item, List<Ref> refs) {
         ClickSpec click = item.click();

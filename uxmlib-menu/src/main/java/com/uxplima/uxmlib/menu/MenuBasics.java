@@ -25,8 +25,8 @@ import org.jspecify.annotations.NullMarked;
  * of them.
  *
  * <p>{@code perm} is here because the loader writes it. An item's {@code permission = "<node>"} becomes a
- * {@code perm:<node>} view requirement, and until 0.111.0 no plugin but uxmEssentials answered it, so an item
- * gated that way was hidden from every viewer: an unregistered condition fails closed.
+ * {@code perm:<node>} view requirement, and a plugin that did not answer it would hide an item gated that way
+ * from every viewer: an unregistered condition fails closed.
  *
  * <p>These are mechanisms and not a look. Nothing here decides a colour, a word, or a layout: the file says
  * what to run and the plugin says what its own verbs mean. That is why the library may hold them.
@@ -67,9 +67,9 @@ public final class MenuBasics {
     /**
      * The three list verbs and the page arrows' conditions. The window syntax has had {@code list-sort},
      * {@code list-filter} and {@code list-search} ({@link ListControlSyntax}) and the engine carries them out through
-     * {@link com.uxplima.uxmlib.menu.runtime.MenuControl}, but until 0.130.0 nothing registered them, so every sort,
-     * filter, search and tab button was a dead click in a plugin that did not write its own. {@code has-next} and
-     * {@code has-previous} (and {@code has-prev}, which uxmEssentials' windows write) read the page the window is on.
+     * {@link com.uxplima.uxmlib.menu.runtime.MenuControl}, so a plugin that does not write its own still has working
+     * sort, filter, search and tab buttons. {@code has-next} and {@code has-previous} (and the shorter
+     * {@code has-prev}) read the page the window is on.
      * A line that does not parse does nothing, as an unknown list does.
      */
     private static void registerListControls(MenuBindings bindings) {

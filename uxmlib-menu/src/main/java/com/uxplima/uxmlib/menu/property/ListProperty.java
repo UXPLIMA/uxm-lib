@@ -24,12 +24,13 @@ import com.uxplima.uxmlib.text.style.Theme;
 import org.jspecify.annotations.NullMarked;
 
 /**
- * A property whose click opens a sub-menu for editing a list of string entries: add, remove behind a confirm,
- * reorder, and edit each line. It is backed by a single {@code List<String>} the caller reads and writes through a use case (e.g. a
- * hologram's text lines). The sub-menu draws one button per entry into the configured entry slots: left-click moves the
- * line up, right-click moves it down, shift-left-click edits the line through an anvil, and shift-right-click removes
- * it (confirm-gated). An add button opens an anvil for a new line. Each mutation rewrites the whole list through the
- * setter off the tick thread via the shared {@link Scheduler}, then re-opens the sub-menu so the change shows.
+ * A property whose click opens a sub-menu for editing a list of string entries: add, remove behind a confirm, reorder,
+ * and edit each line. It is backed by a single {@code List<String>} the caller reads and writes through a use case
+ * (e.g. a hologram's text lines). The sub-menu draws one button per entry into the configured entry slots: left-click
+ * moves the line up, right-click moves it down, shift-left-click edits the line through an anvil, and shift-right-click
+ * removes it (confirm-gated). An add button opens an anvil for a new line. Each mutation rewrites the whole list
+ * through the setter off the tick thread via the shared {@link Scheduler}, then re-opens the sub-menu so the change
+ * shows.
  *
  * <p>Every label, hint, and the sub-menu title are catalog keys resolved through {@link GuiText}; the slots and
  * materials come from the caller (the editor layout conf), so nothing is hardcoded. The setter is the module's existing
@@ -104,10 +105,9 @@ public final class ListProperty implements EditableProperty {
     /**
      * What the button reports: the lines themselves, or the word for a list that holds none.
      *
-     * <p>It used to be the count, and a count after a label reads as the value: {@code ᴍᴏɴᴇʏ ɪᴛ ᴘᴀʏꜱ 0} says
-     * the reward pays nothing, which is true, and says it with a number that is not the amount. The owner
-     * read it off a uxmCrates screen on 2026-09-09. A caller that names no word for an empty list keeps the
-     * count it had.
+     * <p>A count after a label reads as the value: {@code ᴍᴏɴᴇʏ ɪᴛ ᴘᴀʏꜱ 0} says the reward pays nothing, which
+     * is true, and says it with a number that is not the amount. A caller that names no word for an empty list
+     * keeps the count.
      *
      * <p>Cut to the width a tooltip reads at, because a tooltip grows to its longest line and four lines of a
      * lore joined together would draw a box wider than the window it hangs over.

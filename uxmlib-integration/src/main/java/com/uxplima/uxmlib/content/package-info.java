@@ -1,5 +1,5 @@
 /**
- * The seams by which a plugin of ours attributes an action to somebody else's content.
+ * The seams by which a plugin attributes an action to somebody else's content.
  *
  * <p>Seven questions and one shape, and the shape is the one {@code claim} already proved: one interface per
  * question, a provider per vendor, and a composite that answers from whichever is installed. Never a

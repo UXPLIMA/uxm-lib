@@ -11,7 +11,7 @@
  * {@link com.uxplima.uxmlib.hud.nametag.NametagSink}, whose shipped implementation writes to a scoreboard
  * team; a consumer can supply another.
  *
- * <p>The registry settles the fight inside one jar. Every plugin of ours relocates its own copy of this
+ * <p>The registry settles the fight inside one jar. Every plugin that shades this library relocates its copy of this
  * package, so two plugins each building a registry is two registries and two teams, and the second still
  * loses. {@link com.uxplima.uxmlib.hud.nametag.SharedNametags} is what makes it one registry for one server:
  * the first plugin to load builds it and offers it through the server's service manager under a boot-loader

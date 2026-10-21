@@ -131,11 +131,11 @@ public final class Actions {
     /**
      * {@code [particle] <name> [count] [spread] [data]}: a puff of particles where the player is standing.
      *
-     * <p>The one visual an interaction can carry that is not text. A name the server does not know is skipped
-     * rather than thrown, the same way an unparseable sound key is: an operator's typo in a cosmetic line may
-     * not stop the message and the sound beside it from happening. A particle that needs data takes it from the
-     * line's last word, or a default when there is none; {@link ParticleOptions#read} reads it, and data it cannot read is
-     * skipped the same way.
+     * <p>The one visual an interaction can carry that is not text. A name the server does not know is skipped rather
+     * than thrown, the same way an unparseable sound key is: an operator's typo in a cosmetic line may not stop the
+     * message and the sound beside it from happening. A particle that needs data takes it from the line's last word, or
+     * a default when there is none; {@link ParticleOptions#read} reads it, and data it cannot read is skipped the same
+     * way.
      */
     public static Action particle(ParticleSpec spec) {
         Objects.requireNonNull(spec, "spec");
@@ -194,11 +194,10 @@ public final class Actions {
     /**
      * The spelling the client takes, from whichever spelling the operator wrote.
      *
-     * <p>A key is lower case with dots, and that is what an operator who read one of our files writes. What
+     * <p>A key is lower case with dots, and that is what an operator who read a shipped file writes. What
      * a wiki prints is {@code ENTITY_PLAYER_LEVELUP}, and that is what an operator who read a wiki writes.
-     * The second was refused here, silently, until 2026-09-22: {@link Key#parseable} says no to an upper
-     * case letter, the line was skipped, and nothing anywhere said why. Thirty three shipped values across
-     * this estate were written that way.
+     * Both are taken. {@link Key#parseable} says no to an upper case letter, so without this the second
+     * would be skipped and nothing anywhere would say why.
      *
      * <p>The plain key is tried first and costs nothing, so the common case does not reach the registry.
      * Only a key the client would refuse is looked up, and a name that is neither is still silence.
@@ -321,9 +320,9 @@ public final class Actions {
     }
 
     /**
-     * {@code [take-money] [currency] <amount>}: take the amount from the context's {@link Wallet}. The take is
-     * all or nothing: the wallet either pays the whole amount or the action throws {@link ActionCostException}
-     * having spent nothing.
+     * {@code [take-money] [currency] <amount>}: take the amount from the context's {@link
+     * com.uxplima.uxmlib.condition.Wallet}. The take is all or nothing: the wallet either pays the whole amount or the
+     * action throws {@link ActionCostException} having spent nothing.
      */
     public static CostAction takeMoney(MoneyCost cost) {
         Objects.requireNonNull(cost, "cost");

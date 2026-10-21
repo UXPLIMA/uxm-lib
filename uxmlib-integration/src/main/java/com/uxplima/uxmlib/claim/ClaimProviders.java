@@ -106,8 +106,7 @@ public final class ClaimProviders {
      * {@link ClaimProvider#active()} once, while the composite is built, and folds in only the ones that
      * answered yes. A candidate that answers no at that moment is out for the whole run. uxmClaims answers
      * by resolving a class out of another plugin's jar, so a uxmClaims that loads after the caller has no
-     * class to find. uxmEssentials excused it on the grounds that it names no plugin, and that was the
-     * wrong reading of what the load order decides here.
+     * class to find, and that is a load order question like every other candidate's.
      */
     public static List<String> candidatePluginNames() {
         return REGISTRY.stream().map(Registration::pluginName).toList();

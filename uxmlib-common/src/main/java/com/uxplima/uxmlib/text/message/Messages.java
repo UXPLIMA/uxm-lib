@@ -223,8 +223,7 @@ public final class Messages {
      * <p>{@code <level>} is a colour role in {@code theme.conf} and it is also the natural name for a level
      * number. The style pass runs once when the plugin loads, long before any value exists, so it paints the
      * token and consumes it; the resolver then meets nothing to fill and the sentence still reads like a
-     * sentence: {@code Level  of 100}. Nothing threw. uxmSkills lost seven lines that way and uxmMinions twenty,
-     * and both were found by a person looking at a screen.
+     * sentence: {@code Level  of 100}. Nothing throws, and only a person looking at a screen would notice.
      *
      * <p>So the pass writes down which role tokens it ate that a value could have been meant by, and this is the
      * one place that holds those and the values a caller actually supplies at the same time. It cannot make the

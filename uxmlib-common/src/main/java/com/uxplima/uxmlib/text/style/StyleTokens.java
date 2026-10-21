@@ -77,11 +77,11 @@ public final class StyleTokens {
     /**
      * The same, told which names carry a value the caller is going to supply.
      *
-     * <p>This is the answer to a collision that cost the estate twenty seven lines in one week. {@code <level>}
-     * is a colour role in {@code theme.conf} and it is also the natural name for a level number. The colour pass
-     * ran first, painted the token and consumed it, the value resolver then met nothing to fill, and the sentence
-     * still read like a sentence: {@code Level  of 100}. Nothing threw, nothing logged, and no test that reads a
-     * file could see it, because a token eaten by a role is a valid tag in a valid line.
+     * <p>This is the answer to a collision between a role and a value. {@code <level>} is a colour role in
+     * {@code theme.conf} and it is also the natural name for a level number. Without it the colour pass runs
+     * first, paints the token and consumes it, the value resolver then meets nothing to fill, and the sentence
+     * still reads like a sentence: {@code Level  of 100}. Nothing throws, nothing logs, and no test that reads a
+     * file can see it, because a token eaten by a role is a valid tag in a valid line.
      *
      * <p>A name this predicate answers for is left in the template for the value, on one condition: the template
      * must never close it. {@code <value>50</value>} is a colour and nothing else, because a value that is

@@ -23,10 +23,9 @@ import org.spongepowered.configurate.hocon.HoconConfigurationLoader;
  * <p>The menu engine draws a few screens nobody wrote a file for: the confirm prompt, the page arrows a long
  * list grows, the colour picker, and the acknowledgement a cancelled prompt sends. Each names a key and asks
  * the host's catalogue for it. That is still how it works, and the host still wins; what changes here is what
- * happens when the host has no line. It used to be the key itself, printed at a player: uxmEssentials was the
- * one plugin of the suite that had written these keys, and nothing anywhere said that the other twenty seven
- * owed them. The owner found it by cancelling a prompt in the crate editor and reading
- * {@code gui.input.cancelled} in chat.
+ * happens when the host has no line. Without this it would be the key itself, printed at a player: a plugin
+ * that never wrote these keys would answer a cancelled prompt with {@code gui.input.cancelled} in chat, and
+ * nothing anywhere would say that it owed them.
  *
  * <p>So the library answers for its own namespace. These files are the floor under the plugin's own language
  * files, never over them: {@link Languages} reads a plugin's {@code messages_<tag>.conf} on top, key by key,

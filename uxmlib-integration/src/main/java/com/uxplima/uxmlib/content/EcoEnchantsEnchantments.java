@@ -13,9 +13,9 @@ import org.bukkit.persistence.PersistentDataType;
 /**
  * {@link ForeignEnchantments} over EcoEnchants.
  *
- * <p>Read by shape rather than by API, and deliberately. EcoEnchants is built on libreforge, which this
- * estate may not use: its licence forbids production use until a change date, and reading its API from a
- * jar we ship is exactly the use it forbids. What is read instead is the item, which is ours to read: an
+ * <p>Read by shape rather than by API, and deliberately. EcoEnchants is built on libreforge, whose licence
+ * forbids production use until a change date, and reading its API from a shipped jar is exactly the use it
+ * forbids. What is read instead is the item, which any plugin may read: an
  * enchantment plugin leaves its levels in the item's own container, and any integer under any key there is
  * offered under that key.
  *

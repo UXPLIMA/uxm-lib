@@ -18,7 +18,7 @@ import com.uxplima.uxmlib.text.style.SmallCapsTag;
 public final class Text {
 
     /**
-     * The parser every message of every plugin of ours goes through. It is the standard one with one tag
+     * The parser every message rendered through this library goes through. It is the standard one with one tag
      * added: {@code <caps>…</caps>}, which writes what it holds in small capitals. A template that never
      * names it is parsed exactly as MiniMessage parses it.
      */

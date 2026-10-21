@@ -9,8 +9,8 @@ import java.util.UUID;
  * writing one player's name. It could not settle the other half. A cosmetic that spawns a mob, a hologram that
  * rides an armour stand and a display that follows somebody all need a team, because a collision rule is a
  * property of a team and of nothing else, and a {@code NametagContribution} carries a prefix, a suffix and a
- * colour and cannot carry one. So uxmCosmetics created {@code uxmcosmetics} by hand and put entity ids in it,
- * and that is one plugin claiming a slot on an object the whole server shares. This is the missing half.
+ * colour and cannot carry one. A plugin that creates such a team by hand claims a slot on an object the whole
+ * server shares. This is the missing half.
  *
  * <p>A team here is keyed by what it does, never by who asked. Two plugins that both want "pushes nobody" get
  * the same team and neither learns about the other. The registry keeps a team per distinct {@link TeamOptions},

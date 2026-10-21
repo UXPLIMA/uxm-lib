@@ -142,8 +142,8 @@ public final class ConfiguredCommands {
     /**
      * Whether {@code key} should be registered at all.
      *
-     * <p>Disabling is a real need: a server that already has a {@code /glow} from another plugin wants ours
-     * off rather than fighting over the label, and an operator who wants only the menu can turn the command
+     * <p>Disabling is a real need: a server that already has a {@code /glow} from another plugin wants this
+     * one off rather than fighting over the label, and an operator who wants only the menu can turn the command
      * off entirely.
      */
     public boolean isEnabled(String key, String fallbackName) {

@@ -19,8 +19,8 @@ import org.jspecify.annotations.Nullable;
  * colour, so exactly one contribution can own it.
  *
  * <p>Who that owner is, is a {@link ColorOwner}, because it is not a thing this library can know. Two
- * plugins claiming one name is a question about the server they run on: an estate that sells a rank colour
- * wants the rank to win, and an estate whose glow is a toy wants the toy to win. {@link ColorOwner#newest()}
+ * plugins claiming one name is a question about the server they run on: a server that sells a rank colour
+ * wants the rank to win, and a server whose glow is a toy wants the toy to win. {@link ColorOwner#newest()}
  * is the shipped answer and the reason is a player: somebody who just switched a glow on and saw nothing
  * happen reads it as a broken feature rather than as a precedence rule. {@link ColorOwner#byPriority()} is
  * the other common answer, and a consumer may write its own.
@@ -75,7 +75,7 @@ public record ComposedNametag(
 
         /**
          * The smallest {@link NametagContribution#priority()} wears the colour, and a tie goes to the
-         * plugin that asked last. It is the answer for an estate where a colour is earned rather than
+         * plugin that asked last. It is the answer for a server where a colour is earned rather than
          * switched on: put the rank plugin first in the file and nothing can take the name off it.
          */
         static ColorOwner byPriority() {

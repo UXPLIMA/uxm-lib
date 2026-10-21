@@ -871,8 +871,8 @@ public final class MenuListener implements Listener {
      * Route a click in a confirm window: the yes/no slot runs its decision exactly once. The single-fire guard on the
      * {@link ConfirmState} makes a stray second click in the same tick a no-op, and the window is closed before the
      * decision runs (the order the removed {@code uxmlib-gui} window used) so a decision that opens another menu is not
-     * clobbered by the close. The close funnels through the one {@code closeMenu}, so no second listener or teardown path is
-     * introduced. A click on a non-button slot does nothing; the click is already cancelled.
+     * clobbered by the close. The close funnels through the one {@code closeMenu}, so no second listener or teardown
+     * path is introduced. A click on a non-button slot does nothing; the click is already cancelled.
      */
     private void handleConfirmClick(MenuHolder holder, ConfirmState confirm, int slot, Player clicker) {
         Runnable decision = confirm.decisionAt(slot).orElse(null);
@@ -944,9 +944,8 @@ public final class MenuListener implements Listener {
      *
      * <p>The openers come from the editor first and from this listener second. An editor opened through the engine
      * carries the engine's own pair on its {@link EditorState}, which is what makes a property click work whatever a
-     * consumer passed to this constructor: a plugin builds its engine and its listener separately, and uxmCrates wired
-     * an engine that could open an editor beside a listener that could not serve one. Every property click threw here
-     * and the window sat there doing nothing.
+     * consumer passed to this constructor: a plugin builds its engine and its listener separately, and an engine that
+     * can open an editor beside a listener that cannot serve one would throw here on every property click.
      */
     private void runProperty(
             MenuHolder holder, EditorState editor, EditableProperty property, boolean rightClick, boolean shiftClick) {
@@ -1153,7 +1152,8 @@ public final class MenuListener implements Listener {
     /**
      * A click on the top canvas: always cancelled. A held item placed or swapped onto a content cell captures a copy of
      * it into that menu slot; anything else (an empty cursor, a pick-up, a nav / control / editor gesture) runs the
-     * ordinary {@link #handleGridClick} path, so the existing place / move / clear / open-editor behaviour is unchanged.
+     * ordinary {@link #handleGridClick} path, so the existing place / move / clear / open-editor behaviour is
+     * unchanged.
      */
     private void handleCaptureTopClick(MenuHolder holder, GridViewState grid, InventoryClickEvent event, int raw) {
         event.setCancelled(true);
@@ -1195,8 +1195,8 @@ public final class MenuListener implements Listener {
 
     /**
      * A drag over a capture grid. When it touches any top-canvas slot the whole drag is cancelled (no real item is ever
-     * split into the canvas) and every dragged content cell captures a copy of the held item; a drag that stays entirely
-     * in the viewer's own inventory is left alone so they can spread their own stack there.
+     * split into the canvas) and every dragged content cell captures a copy of the held item; a drag that stays
+     * entirely in the viewer's own inventory is left alone so they can spread their own stack there.
      */
     private void handleCaptureGridDrag(MenuHolder holder, GridViewState grid, InventoryDragEvent event) {
         int topSize = event.getView().getTopInventory().getSize();
@@ -1288,12 +1288,11 @@ public final class MenuListener implements Listener {
     /**
      * Walk a list of refs in order on the viewer's own thread, stopping at the first one that refuses.
      *
-     * <p>This is where a cost became possible to write. Every ref of a gesture used to be handed to the entity
-     * scheduler on its own, and that scheduler always defers, so the refs of one list were separate tasks: they kept
-     * their order and nothing that ran in one could reach the next. A file that wrote a charge as the action before
-     * the thing it paid for handed the thing over whether or not the charge went through, which is why the estate
-     * folded every charge into the verb that gives. One hop for the whole list, and a walk that reads what each
-     * action answered, is the difference.
+     * <p>This is what makes a cost possible to write. Handed to the entity scheduler one ref at a time, which always
+     * defers, the refs of one list would be separate tasks: they keep their order and nothing that runs in one can
+     * reach the next, so a charge written before the thing it pays for would hand the thing over whether or not the
+     * charge went through. One hop for the whole list, and a walk that reads what each action answered, is the
+     * difference.
      *
      * <p>An action that throws is logged and the walk goes on, which is what a list of separate tasks did: one bad
      * binding must not silently swallow the four verbs after it.
@@ -1503,8 +1502,8 @@ public final class MenuListener implements Listener {
      * <p>The same one hop, the same stop and the same walk as a gesture's own chain: a deny list, an else-branch and
      * a per-requirement list are lists of actions like any other, and an action in one that refuses stops the rest of
      * that list. An {@code input:} step in one prompts and the rest of that list waits for the line, and a
-     * {@code confirm:} step opens its window. They were logged and skipped until 2026-09-23, so the rest of a deny
-     * list ran as though the player had answered.
+     * {@code confirm:} step opens its window. Skipping them would run the rest of a deny list as though the player
+     * had answered.
      */
     private void runEach(MenuHolder holder, MenuContext base, ClickKind kind, List<Ref> refs) {
         if (refs.isEmpty()) {
@@ -1578,11 +1577,12 @@ public final class MenuListener implements Listener {
      * Resolve a bound ref to the effective ref the registry actually dispatches. {@link Ref#parse} is registry-blind:
      * it only splits an {@code id:value} token when the head is one of a few well-known generic prefixes, so a later
      * generic action written as {@code [give-money:100]} arrives here with the whole token as its id and would miss the
-     * registry (a silent no-op). The authoritative split now lives on {@link Ref#resolve(java.util.function.Predicate)},
-     * which this hands the action registry's {@code has}: a registered head re-splits (modifiers riding along), and a
-     * feature ref ({@code economy:open-bank}) or an already-split generic ({@code sound:x}) is returned unchanged so its
-     * dispatch stays byte-identical. The very same {@code Ref.resolve} gates the condition sites against the condition
-     * registry, so a valued condition ({@code has-money:100}) reaches its handler the same way.
+     * registry (a silent no-op). The authoritative split now lives on {@link
+     * Ref#resolve(java.util.function.Predicate)}, which this hands the action registry's {@code has}: a registered head
+     * re-splits (modifiers riding along), and a feature ref ({@code economy:open-bank}) or an already-split generic
+     * ({@code sound:x}) is returned unchanged so its dispatch stays byte-identical. The very same {@code Ref.resolve}
+     * gates the condition sites against the condition registry, so a valued condition ({@code has-money:100}) reaches
+     * its handler the same way.
      */
     private Ref resolveEffective(Ref ref) {
         return ref.resolve(actions::has);

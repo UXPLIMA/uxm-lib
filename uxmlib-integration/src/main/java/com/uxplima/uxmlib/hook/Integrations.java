@@ -25,8 +25,6 @@ import org.bukkit.plugin.Plugin;
  * falls back to its no-op and says so once, rather than taking this plugin's enable down with it.
  *
  * <p>An instance, not static state: uxmLib is relocated into every plugin, and each plugin resolves its own.
- * Written first in uxmEssentials and moved here on 2026-09-22, because it is a mechanism every plugin with an
- * optional dependency can use.
  */
 public final class Integrations {
 
@@ -53,8 +51,8 @@ public final class Integrations {
      *
      * <p>For a plugin that enables before the plugins it reads. One that loads at {@code STARTUP} enables before
      * every ordinary plugin, and no {@code load: BEFORE} reaches across load phases, so an integration resolved
-     * while it enables never finds Vault. uxmEssentials is such a plugin, and on 2026-09-22 its Vault economy and
-     * permission capabilities were the no-op for the whole run on a server with Vault.
+     * while it enables never finds Vault, and its Vault economy and permission would be the no-op for the
+     * whole run on a server that has Vault.
      *
      * <p>Each capability is handed out as a stand-in that answers with the no-op until {@link ServerLoadEvent}
      * fires, when every plugin has enabled; an integration that was absent is resolved again then, and the

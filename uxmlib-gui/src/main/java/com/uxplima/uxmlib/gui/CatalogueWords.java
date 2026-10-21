@@ -31,7 +31,7 @@ import org.jspecify.annotations.Nullable;
  * one word of their own still gets the colours of the server.
  *
  * <p>A line that starts with {@code tile:} is a whole tile rather than one line, and {@link MenuTiles} draws
- * it in the six blocks the canon fixes. Everything else is one line of words. Every way in reads the mark: the
+ * it in its six blocks. Everything else is one line of words. Every way in reads the mark: the
  * written line, the key a file spelled {@code @tile:...} while the written line could not reach a viewer, and the
  * viewer-less reading. No caller of this class can hand a tile in and get the characters back.
  *
@@ -117,10 +117,10 @@ public final class CatalogueWords implements GuiText {
      * <p>The path is its own last answer: a key an operator invented and never translated shows the key on the
      * tile rather than an empty line, which is the cue that it needs a line.
      *
-     * <p>A key that carries the tile mark is a tile. A menu file may write one as {@code @tile:<colour> @<key>},
-     * and files in the estate do, so the mark is read here as well as on the written line and both spellings draw
-     * the same tooltip. A file written from now on wants the bare {@code tile:} form, which is the one the canon
-     * describes and the one a line of a lore list is read as without a catalogue lookup in front of it.
+     * <p>A key that carries the tile mark is a tile. A menu file may write one as {@code @tile:<colour> @<key>}, and
+     * files do, so the mark is read here as well as on the written line and both spellings draw the same tooltip. A new
+     * file wants the bare {@code tile:} form, which is the one a line of a lore list is read as without a catalogue
+     * lookup in front of it.
      */
     @Override
     public Component text(Player viewer, String key, Map<String, String> values) {
@@ -162,8 +162,8 @@ public final class CatalogueWords implements GuiText {
         }
         // The values go into the style pass as well as into the parse. A written line is styled here, with the
         // row's values already in hand, so a token named after a colour role does not have to be lost: a name
-        // the row answers is left in the line for the value rather than painted and eaten. That is the collision
-        // that cost the estate twenty seven lines, and this is the road where it costs nothing to win.
+        // the row answers is left in the line for the value rather than painted and eaten. That is the role and
+        // value collision, and this is the road where it costs nothing to win.
         return Text.mini(styler.apply(raw, messages.localeOf(viewer), named::has), named);
     }
 

@@ -42,9 +42,8 @@ import org.spongepowered.configurate.serialize.SerializationException;
  * <p>The half that was missing. {@code ItemConfig} has read the full definition of an item since it was
  * written and its own javadoc said a writer could come later; without one, every plugin that takes an item
  * out of a player's hand had to invent its own subset, and every one of them invented a smaller subset than
- * the reader understands. uxmCrates stored a material, a count, a name, lore, a glint and two model fields,
- * so a Sharpness V sword handed to its reward editor was written down as a plain sword with a glint on it,
- * and an enchanted book could not be written down at all.
+ * the reader understands: a material, a count, a name, lore and a glint, so a Sharpness V sword was written
+ * down as a plain sword with a glint on it, and an enchanted book could not be written down at all.
  *
  * <p>The rule this class keeps is one sentence: <strong>a file we write must be a file we read</strong>.
  * Every key here is a key {@code ItemConfig.load} understands, spelled the same way, so the round trip is

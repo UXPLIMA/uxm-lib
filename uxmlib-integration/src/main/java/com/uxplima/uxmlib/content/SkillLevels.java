@@ -6,8 +6,8 @@ import java.util.UUID;
 /**
  * What another plugin says a player's level in one of its skills is.
  *
- * <p>Read and never written. A skill plugin owns its own progression and we do not touch it: what a plugin
- * of ours wants is to be able to say "this row pays more to a player whose mining is above fifty", and that
+ * <p>Read and never written. A skill plugin owns its own progression and nothing here touches it: what a
+ * plugin wants is to be able to say "this row pays more to a player whose mining is above fifty", and that
  * is a read.
  *
  * <p>The skill is named by the operator, in the vendor's own spelling, because which skills a server has is

@@ -311,7 +311,7 @@ public final class ItemRenderer {
         Optional<ItemStack> base = iconProviders.resolve(materialSpec, ctx);
         Component name = resolveText(item.name(), ctx);
         List<Component> lore = combineLore(item, base, ctx);
-        // The canon writes a tile's title on the first lore line under a blank name; a lore-less button keeps
+        // A tile writes its title on the first lore line under a blank name; a lore-less button keeps
         // the one-line name it was written with.
         boolean untitled = Tiles.isUntitled(name, lore);
         List<Component> titled = Tiles.titled(theme.get(), name, lore);
@@ -1249,9 +1249,9 @@ public final class ItemRenderer {
     }
 
     /**
-     * A registry key for an attribute name. A legacy category prefix ({@code generic.}, {@code player.}, …) is
-     * stripped so the old {@code generic.attack_damage} spelling still resolves to the modern flat {@code attack_damage}
-     * key; null when the remainder is not a valid key.
+     * A registry key for an attribute name. A legacy category prefix ({@code generic.}, {@code player.}, …) is stripped
+     * so the old {@code generic.attack_damage} spelling still resolves to the modern flat {@code attack_damage} key;
+     * null when the remainder is not a valid key.
      */
     private static @Nullable NamespacedKey attributeKey(String raw) {
         String name = raw.trim();

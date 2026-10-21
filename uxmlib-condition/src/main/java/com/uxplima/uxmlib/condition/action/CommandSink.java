@@ -18,10 +18,9 @@ public interface CommandSink {
     /**
      * A sink that silently discards every command.
      *
-     * <p>It was the default until 2026-09-22 and is not one now. A verb an operator wrote that silently
-     * does not happen is the failure this estate keeps paying for: the file is right, the log is clean,
-     * and the command never runs. Silence is still available, and it has to be asked for, which is what a
-     * test that only wants the line reached does.
+     * <p>It is not the default. A verb an operator wrote that silently does not happen is the worst failure a file can
+     * have: the file is right, the log is clean, and the command never runs. Silence is still available, and it has to
+     * be asked for, which is what a test that only wants the line reached does.
      */
     static CommandSink noop() {
         return commandLine -> {};

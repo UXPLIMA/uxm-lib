@@ -17,7 +17,7 @@ import org.jspecify.annotations.Nullable;
  * dependency on Homestead, so this class loads and runs whether or not Homestead is present.
  *
  * <p>Homestead publishes its API jar only to GitHub Packages, which requires an authenticated token to
- * resolve, so it cannot be verified by the canon check nor pulled anonymously in CI, ruling out a typed
+ * resolve, so it cannot be pulled anonymously in CI, ruling out a typed
  * {@code compileOnly} dependency. Its API surface is a set of stable static manager classes, which this
  * provider reaches reflectively.
  *

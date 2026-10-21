@@ -7,8 +7,8 @@ import org.bukkit.inventory.ItemStack;
 /**
  * What another plugin's enchantments an item is carrying.
  *
- * <p>None of the competitors reads this either. A server running an enchantment plugin beside ours has
- * items whose enchantments ours cannot see, so a condition written against one of them is a condition that
+ * <p>A server running an enchantment plugin beside another has items whose enchantments the other cannot
+ * see without this, so a condition written against one of them is a condition that
  * never fires and an operator who wrote it has no way to tell why.
  *
  * <p>The level is what the vendor says it is. Nothing here caps, scales or interprets one: an enchantment

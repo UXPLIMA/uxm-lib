@@ -13,13 +13,11 @@ import org.joml.Vector3f;
  * value so the driver and its tests need no server.
  *
  * <p>The vocabulary is Bukkit's own ({@link Display.Billboard}, {@link TextDisplay.TextAlignment},
- * {@link Color}) and not an enum of ours, so a plugin that moves an entity hologram onto packets keeps the
+ * {@link Color}) and not an enum of this library, so a plugin that moves an entity hologram onto packets keeps the
  * words it already wrote for {@code Holograms.builder()}.
  *
- * <p>This carries the whole of the appearance table in the UI canon, which is the level uxmEssentials draws a
- * hologram at. It held ten of the properties until 2026-09-09 and a plugin that wanted a glow, a brightness
- * override, a ground shadow or a line gap had no way to ask for one. That is a library gap and it is fixed
- * here rather than worked around in the plugin that found it.
+ * <p>This carries every property a text display has, so a plugin that wants a glow, a brightness override, a
+ * ground shadow or a line gap asks for it here rather than working around the library.
  *
  * <p>A property an operator did not set keeps the vanilla value, and each one that has no natural "unset"
  * carries a sentinel that says so: {@link #NO_GLOW}, {@link #WORLD_BRIGHTNESS} and {@link #VANILLA_SHADOW}.
@@ -28,7 +26,7 @@ import org.joml.Vector3f;
  * <p>{@code com.uxplima.uxmlib.nametag.Appearance} is the entity-riding twin of this record and the two are
  * deliberately separate. That one carries the line-of-sight fade a nametag needs and rides a player; this one
  * is anchored in the world and fades for nobody. Sharing one record would mean moving the nametag types down
- * into this module, which renames types uxmEssentials already imports.
+ * into this module, which would rename types consumers already import.
  *
  * @param billboard how the text turns to face the viewer
  * @param background the colour behind the glyphs; alpha 0 is a transparent panel

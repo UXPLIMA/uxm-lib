@@ -271,7 +271,7 @@ public final class Theme {
      * The roles: the shipped ones, then every role the file writes applied on top.
      *
      * <p>The map is open on purpose. A closed list would drop a role a server invented, silently, which is
-     * how the file stopped being the server's and became ours. The two blocks are read in order, so a file
+     * and the file would stop being the server's. The two blocks are read in order, so a file
      * that still writes the old {@code colours} block keeps working and a {@code roles} entry wins.
      */
     private static Map<String, TextColor> roles(ConfigurationNode node, Map<String, TextColor> palette) {

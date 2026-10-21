@@ -26,9 +26,9 @@ import org.bukkit.plugin.ServicePriority;
  *
  * <h2>Why the contract is a plain {@link Runnable}</h2>
  *
- * <p>Every plugin of ours shades uxmLib and relocates it into its own namespace, so
+ * <p>A plugin that uses this library shades it and relocates it into its own namespace, so
  * {@code com.uxplima.a.libs.uxmlib.X} and {@code com.uxplima.b.libs.uxmlib.X} are two unrelated classes. An
- * interface of our own could therefore never be passed from one plugin to another. {@code Runnable} comes
+ * interface of this library could therefore never be passed from one plugin to another. {@code Runnable} comes
  * from the boot class loader, so every plugin on the server sees the same type, whatever it relocated.
  *
  * <p>The registration is marked, and only marked registrations are ever run. A plugin that registers a
@@ -132,7 +132,7 @@ public final class BackupParticipants {
     /**
      * A participant, wrapped so that it can be told apart from any other {@code Runnable} service on the
      * server. The mark is in {@code toString}, because that is the one thing a plain {@code Runnable} can
-     * carry across two class loaders that share no type of ours.
+     * carry across two class loaders that share no type of this library.
      */
     private record Marked(String plugin, Runnable flushToDisk) implements Runnable {
 

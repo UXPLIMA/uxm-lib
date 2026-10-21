@@ -11,8 +11,8 @@ import org.bukkit.inventory.ItemStack;
 /**
  * What a file calls the thing that was just worked on.
  *
- * <p>A plugin of ours prices work by naming what it was aimed at, and without this the name is always the
- * vanilla material or entity type. A server running Oraxen then prices its ruby ore as deepslate, a server
+ * <p>A plugin prices work by naming what it was aimed at, and without this the name is always the vanilla
+ * material or entity type. A server running Oraxen then prices its ruby ore as deepslate, a server
  * running CustomCrops pays the same for a tomato as for the wheat it is drawn as, and a server running a
  * stacker pays for one of the forty mobs a player just killed.
  *
@@ -41,7 +41,7 @@ public final class ContentNames {
     /**
      * Say where a custom name comes from.
      *
-     * <p>Called once at enable by whichever plugin of ours starts first, and safe for all of them to call:
+     * <p>Called once at enable by whichever plugin starts first, and safe for all of them to call:
      * the seams are the same either way. Calling it again replaces them, which is what a reload does.
      */
     public static void namedBy(CustomItems byItems, CustomMobs byMobs, CustomHarvests byHarvests) {
@@ -94,8 +94,8 @@ public final class ContentNames {
     /**
      * The same, upper case, for a table that spells a material the way the server does.
      *
-     * <p>Two of our plugins write their tables in upper case and three in lower, which is a difference in
-     * the files rather than one anybody should have to think about here. A custom id keeps the vendor's own
+     * <p>Some plugins write their tables in upper case and some in lower, which is a difference in the files
+     * rather than one anybody should have to think about here. A custom id keeps the vendor's own
      * spelling either way: an id is a name and not a material.
      */
     public static String upperOf(Block block) {

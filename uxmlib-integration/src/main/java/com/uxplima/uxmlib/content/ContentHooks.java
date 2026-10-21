@@ -85,7 +85,7 @@ public final class ContentHooks {
      * the ruby, and everything else in the spec, the name, the lore, the enchantments, is applied on top
      * of it exactly as it would be on an ordinary one.
      *
-     * <p>Called once at enable by whichever plugin of ours starts first, and it is safe for all of them to
+     * <p>Called once at enable by whichever plugin starts first, and it is safe for all of them to
      * call it: the source is the same seam either way. A server with no custom item plugin installs a
      * source that answers nothing, which is what every reader already assumed.
      */
