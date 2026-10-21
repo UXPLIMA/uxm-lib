@@ -91,6 +91,8 @@ class ItemBannerMapBuildersTest {
                 .isInstanceOf(NullPointerException.class);
     }
 
+    // The map colour API is deprecated on 26.3, where the game no longer has a map colour: see ItemMetaSupport.
+    @SuppressWarnings("deprecation")
     @Test
     void setsMapColourAndScaling() {
         ItemStack map = ItemBuilder.of(Material.FILLED_MAP)

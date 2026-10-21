@@ -143,6 +143,10 @@ final class ItemMetaSupport {
         meta.setPatterns(List.copyOf(patterns));
     }
 
+    // The game dropped the map colour component in 26.3 and the API kept the setter as a method that does
+    // nothing. Whether the builder keeps a call that does nothing is an open question; until it is answered
+    // the call stays and says so here.
+    @SuppressWarnings("deprecation")
     static void mapColor(MapMeta meta, Color color) {
         meta.setColor(color);
     }

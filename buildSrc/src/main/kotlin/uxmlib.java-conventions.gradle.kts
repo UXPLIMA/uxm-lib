@@ -65,6 +65,10 @@ tasks.withType<JavaCompile>().configureEach {
             "-Xlint:all",
             "-Xlint:-processing",
             "-Xlint:-serial",
+            // "classfile" judges the class files of a dependency, not this source. The joml the platform ships
+            // writes an old class file version that still carries type annotations, so every module that reads
+            // a Vector3f would fail on a jar it cannot change.
+            "-Xlint:-classfile",
             "-Werror",
             "-parameters",
         ),

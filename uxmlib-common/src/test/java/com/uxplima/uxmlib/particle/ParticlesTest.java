@@ -3,6 +3,8 @@ package com.uxplima.uxmlib.particle;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
+import java.util.Objects;
+
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Particle;
@@ -47,7 +49,8 @@ class ParticlesTest {
             assertThat(spawned.particle()).isEqualTo(Particle.DUST);
             assertThat(spawned.count()).isEqualTo(10);
             assertThat(spawned.data()).isInstanceOf(Particle.DustOptions.class);
-            assertThat(((Particle.DustOptions) spawned.data()).getColor()).isEqualTo(Color.RED);
+            assertThat(((Particle.DustOptions) Objects.requireNonNull(spawned.data())).getColor())
+                    .isEqualTo(Color.RED);
         });
     }
 
@@ -69,7 +72,10 @@ class ParticlesTest {
         assertThat(spawned.offsetX()).isEqualTo(0.5);
         assertThat(spawned.offsetY()).isEqualTo(0.25);
         assertThat(spawned.offsetZ()).isEqualTo(0.1);
-        assertThat(spawned.extra()).isEqualTo(0.2);
+        // The speed a caller passes is one number, and the server spreads it over all three axes.
+        assertThat(spawned.speedX()).isEqualTo(0.2);
+        assertThat(spawned.speedY()).isEqualTo(0.2);
+        assertThat(spawned.speedZ()).isEqualTo(0.2);
     }
 
     @Test
@@ -78,8 +84,12 @@ class ParticlesTest {
 
         Particles.spawn(player, where, ParticleOptions.of(Particle.HEART), 2);
 
-        // A player-scoped spawn is not broadcast through the world's spawn list.
-        assertThat(world.getSpawnedParticles()).isEmpty();
+        // A player-scoped spawn reaches that player and nobody else.
+        assertThat(world.getSpawnedParticles()).singleElement().satisfies(spawned -> {
+            assertThat(spawned.particle()).isEqualTo(Particle.HEART);
+            assertThat(spawned.count()).isEqualTo(2);
+            assertThat(spawned.receivers()).containsExactly(player);
+        });
     }
 
     @Test
