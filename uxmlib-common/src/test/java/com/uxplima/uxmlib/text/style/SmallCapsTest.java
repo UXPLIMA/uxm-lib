@@ -32,4 +32,15 @@ class SmallCapsTest {
     void lettersOutsideAsciiKeepTheirOwnWriting() {
         assertThat(SmallCaps.of("Etiket açık")).isEqualTo("ᴇᴛɪᴋᴇᴛ ᴀçıᴋ");
     }
+
+    /**
+     * A capital with no small-capital form stood at full height among the small capitals: {@code DİL} read as a tall
+     * {@code İ} between two small letters. It is written in lower case, the height of a small capital, and a capital
+     * whose lower case is a Latin letter takes that letter's small capital.
+     */
+    @Test
+    void aCapitalWithNoSmallFormTakesItsLowerCase() {
+        assertThat(SmallCaps.of("DİL ÇOK ĞÖŞÜ")).isEqualTo("ᴅɪʟ çᴏᴋ ğöşü");
+        assertThat(SmallCaps.of("Çevrimiçi")).isEqualTo("çᴇᴠʀɪᴍɪçɪ");
+    }
 }
