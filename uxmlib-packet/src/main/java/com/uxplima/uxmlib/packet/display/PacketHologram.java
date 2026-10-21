@@ -56,6 +56,9 @@ import org.jspecify.annotations.Nullable;
  */
 public final class PacketHologram {
 
+    /** The {@link #boxId} of a hologram that was never given a click box. */
+    private static final int NO_BOX = -1;
+
     /** Refresh cadence when a caller names none: every half-second. */
     public static final Duration DEFAULT_REFRESH_PERIOD = Duration.ofMillis(500);
 
@@ -75,6 +78,10 @@ public final class PacketHologram {
     private Function<Player, List<PacketLine>> lines;
     private HologramAppearance appearance;
     private Predicate<Player> audience = viewer -> true;
+    private @Nullable ClickBox box;
+    /** The entity id of the click box, taken the first time a box is set and kept for the hologram's life. */
+    private int boxId = NO_BOX;
+
     private @Nullable TaskHandle refresh;
     private boolean removed;
 
@@ -200,6 +207,28 @@ public final class PacketHologram {
         this.audience = Objects.requireNonNull(mayView, "mayView");
     }
 
+    /**
+     * Give the hologram a box a player can click, {@code width} by {@code height} blocks, standing on the anchor;
+     * a size of zero takes it away. The box is an interaction entity sent with the stack, so a click on it reaches
+     * the server as an unknown entity, which {@link PacketHologramClicks} answers. Changing it rebuilds the stack
+     * on every client on the next frame.
+     */
+    public void setClickBox(float width, float height) {
+        if (width <= 0 || height <= 0) {
+            this.box = null;
+            return;
+        }
+        if (boxId == NO_BOX) {
+            boxId = packets.allocateEntityId();
+        }
+        this.box = new ClickBox(width, height);
+    }
+
+    /** Whether {@code entityId} is this hologram's click box, as a click names it. */
+    public boolean owns(int entityId) {
+        return box != null && entityId == boxId;
+    }
+
     /** Replace the look. It takes effect on the next {@link #update()}. */
     public void setAppearance(HologramAppearance next) {
         this.appearance = Objects.requireNonNull(next, "next");
@@ -222,7 +251,7 @@ public final class PacketHologram {
         }
         removed = true;
         for (Shown viewer : shown.values()) {
-            despawn(viewer.player(), viewer.lines().size());
+            despawn(viewer);
         }
         shown.clear();
         TaskHandle task = refresh;
@@ -257,16 +286,17 @@ public final class PacketHologram {
     private void reconcile(UUID id, Player player) {
         List<PacketLine> next = linesFor(player);
         Shown current = shown.get(id);
-        if (current != null && sameEntities(current.lines(), next)) {
+        if (current != null && sameEntities(current.lines(), next) && Objects.equals(current.box(), box)) {
             repaint(player, current, next);
-            shown.put(id, new Shown(player, List.copyOf(next), appearance));
+            shown.put(id, new Shown(player, List.copyOf(next), appearance, box));
             return;
         }
         if (current != null) {
-            despawn(player, current.lines().size());
+            despawn(current);
         }
-        spawn(player, next);
-        shown.put(id, new Shown(player, List.copyOf(next), appearance));
+        @Nullable ClickBox sent = box;
+        spawn(player, next, sent);
+        shown.put(id, new Shown(player, List.copyOf(next), appearance, sent));
     }
 
     /** Whether two stacks are the same entities on the client: as many lines, each of the same entity type. */
@@ -290,8 +320,8 @@ public final class PacketHologram {
         }
     }
 
-    /** Send one viewer the whole stack: a spawn and a metadata packet per line, as a single frame. */
-    private void spawn(Player player, List<PacketLine> next) {
+    /** Send one viewer the whole stack: a spawn and a metadata packet per line, and the box, as a single frame. */
+    private void spawn(Player player, List<PacketLine> next, @Nullable ClickBox sent) {
         List<Object> frame = new ArrayList<>(next.size() * 2);
         for (int i = 0; i < next.size(); i++) {
             int id = lineId(i);
@@ -311,6 +341,11 @@ public final class PacketHologram {
                 frame.add(metadata);
             }
         }
+        if (sent != null) {
+            frame.add(packets.spawnPacket(
+                    boxId, "interaction", anchor.getX(), anchor.getY(), anchor.getZ(), anchor.getYaw(), 0.0f));
+            frame.add(packets.interactionSize(boxId, sent.width(), sent.height()));
+        }
         packets.send(player, packets.bundle(frame));
     }
 
@@ -320,22 +355,25 @@ public final class PacketHologram {
             if (!stillNear.contains(id)) {
                 Shown gone = shown.remove(id);
                 if (gone != null) {
-                    despawn(gone.player(), gone.lines().size());
+                    despawn(gone);
                 }
             }
         }
     }
 
-    /** Take the first {@code lines} line entities off one viewer's client. */
-    private void despawn(Player player, int lines) {
-        if (lines <= 0) {
-            return;
-        }
-        int[] ids = new int[lines];
+    /** Take every entity one viewer's client holds for the hologram off it: its lines, and its box if it had one. */
+    private void despawn(Shown viewer) {
+        int lines = viewer.lines().size();
+        int[] ids = new int[lines + (viewer.box() == null ? 0 : 1)];
         for (int i = 0; i < lines; i++) {
             ids[i] = lineId(i);
         }
-        packets.send(player, packets.removePacket(ids));
+        if (viewer.box() != null) {
+            ids[lines] = boxId;
+        }
+        if (ids.length > 0) {
+            packets.send(viewer.player(), packets.removePacket(ids));
+        }
     }
 
     /** The metadata packet for one line and its own offset within the stack, or none for a mob. */
@@ -380,6 +418,13 @@ public final class PacketHologram {
         };
     }
 
-    /** One viewer being shown the hologram: who they are, and the lines and look their client is holding. */
-    private record Shown(Player player, List<PacketLine> lines, HologramAppearance appearance) {}
+    /** One viewer being shown the hologram: who they are, and the lines, look and box their client is holding. */
+    private record Shown(
+            Player player,
+            List<PacketLine> lines,
+            HologramAppearance appearance,
+            @Nullable ClickBox box) {}
+
+    /** The size of a click box, in blocks. */
+    private record ClickBox(float width, float height) {}
 }

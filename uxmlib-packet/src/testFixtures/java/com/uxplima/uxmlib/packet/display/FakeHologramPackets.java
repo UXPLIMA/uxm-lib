@@ -31,6 +31,9 @@ public final class FakeHologramPackets implements HologramPackets {
     /** A packet that paints a block display. */
     public record BlockMetadata(int entityId, BlockData block, HologramAppearance appearance, Vector3f translation) {}
 
+    /** A packet that sizes a click box. */
+    public record InteractionSize(int entityId, float width, float height) {}
+
     /** A packet that removes entities. */
     public record Remove(List<Integer> entityIds) {}
 
@@ -67,6 +70,11 @@ public final class FakeHologramPackets implements HologramPackets {
     @Override
     public Object metadataPacket(int entityId, Component text, HologramAppearance appearance, Vector3f translation) {
         return new Metadata(entityId, text, appearance, new Vector3f(translation));
+    }
+
+    @Override
+    public Object interactionSize(int entityId, float width, float height) {
+        return new InteractionSize(entityId, width, height);
     }
 
     @Override

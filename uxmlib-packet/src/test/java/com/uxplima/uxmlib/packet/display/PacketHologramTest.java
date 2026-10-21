@@ -476,6 +476,45 @@ class PacketHologramTest {
         assertThat(packets.packetsFor(alice)).singleElement().isInstanceOf(FakeHologramPackets.Bundle.class);
     }
 
+    @Test
+    @DisplayName("a click box is sent with the stack as an interaction of that size, and the hologram owns its id")
+    void aClickBoxIsSentWithTheStack() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        PacketHologram hologram = show(viewer -> List.of(Component.text("click me")));
+        hologram.setClickBox(1.5f, 2.0f);
+
+        scheduler.firstFrame();
+
+        FakeHologramPackets.Bundle frame =
+                (FakeHologramPackets.Bundle) packets.packetsFor(alice).get(0);
+        FakeHologramPackets.Spawn box = frame.packets().stream()
+                .filter(packet -> packet instanceof FakeHologramPackets.Spawn spawn
+                        && spawn.entityTypeKey().equals("interaction"))
+                .map(FakeHologramPackets.Spawn.class::cast)
+                .findFirst()
+                .orElseThrow();
+        assertThat(frame.packets()).contains(new FakeHologramPackets.InteractionSize(box.entityId(), 1.5f, 2.0f));
+        assertThat(hologram.owns(box.entityId())).isTrue();
+        assertThat(hologram.owns(box.entityId() + 1000)).isFalse();
+    }
+
+    @Test
+    @DisplayName("a click box set after the stack is up rebuilds the stack with the box")
+    void aClickBoxSetLaterRebuildsTheStack() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        PacketHologram hologram = show(viewer -> List.of(Component.text("click me")));
+        scheduler.firstFrame();
+        packets.forget();
+
+        hologram.setClickBox(1.0f, 1.0f);
+        scheduler.tick();
+
+        List<Object> sent = packets.packetsFor(alice);
+        assertThat(sent.get(0)).isInstanceOf(FakeHologramPackets.Remove.class);
+        FakeHologramPackets.Bundle frame = (FakeHologramPackets.Bundle) sent.get(1);
+        assertThat(frame.packets()).anyMatch(packet -> packet instanceof FakeHologramPackets.InteractionSize);
+    }
+
     private PacketHologram showLines(java.util.function.Function<Player, List<PacketLine>> lines) {
         return PacketHologram.showLines(packets, scheduler, anchor, HologramAppearance.defaults(), lines);
     }

@@ -42,6 +42,9 @@ public final class HologramProbe {
     private static void apply(Map<Integer, PacketLine> held, Object packet) {
         switch (packet) {
             case FakeHologramPackets.Bundle bundle -> bundle.packets().forEach(inner -> apply(held, inner));
+            case FakeHologramPackets.Spawn spawn when spawn.entityTypeKey().equals("interaction") -> {
+                // A click box is not a line a viewer reads.
+            }
             case FakeHologramPackets.Spawn spawn ->
                 // A display holds nothing until it is painted; a mob is whole the moment it is spawned.
                 held.put(
@@ -54,6 +57,9 @@ public final class HologramProbe {
             case FakeHologramPackets.ItemMetadata item -> paint(held, item.entityId(), PacketLine.item(item.item()));
             case FakeHologramPackets.BlockMetadata block ->
                 paint(held, block.entityId(), PacketLine.block(block.block()));
+            case FakeHologramPackets.InteractionSize size -> {
+                // The size of a click box, which is not a line either.
+            }
             case FakeHologramPackets.Remove remove -> remove.entityIds().forEach(held::remove);
             default -> throw new IllegalStateException("a packet the probe does not know: " + packet);
         }

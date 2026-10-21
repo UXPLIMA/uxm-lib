@@ -56,6 +56,12 @@ public interface HologramPackets {
     /** The same for the block display {@code entityId} showing {@code block}. */
     Object blockMetadata(int entityId, BlockData block, HologramAppearance appearance, Vector3f translation);
 
+    /**
+     * Build the set-entity-data packet that sizes the interaction {@code entityId} to {@code width} by
+     * {@code height} blocks and makes it answer a click, so a hologram can be clicked where it floats.
+     */
+    Object interactionSize(int entityId, float width, float height);
+
     /** Build the remove-entities packet that despawns {@code entityIds} for one viewer. */
     Object removePacket(int[] entityIds);
 

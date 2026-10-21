@@ -63,6 +63,9 @@ public final class NmsHologramPackets implements HologramPackets {
     private final EntityDataAccessor<Byte> sharedFlagsAccessor;
     private final EntityDataAccessor<net.minecraft.world.item.ItemStack> itemAccessor;
     private final EntityDataAccessor<net.minecraft.world.level.block.state.BlockState> blockAccessor;
+    private final EntityDataAccessor<Float> interactionWidthAccessor;
+    private final EntityDataAccessor<Float> interactionHeightAccessor;
+    private final EntityDataAccessor<Boolean> interactionResponseAccessor;
     /** The shared-flag bit that makes an entity glow, read off the class rather than written as 0x40. */
     private final int glowingFlag;
 
@@ -97,6 +100,11 @@ public final class NmsHologramPackets implements HologramPackets {
                 Reflect.accessor(net.minecraft.world.entity.Display.ItemDisplay.class, "DATA_ITEM_STACK_ID");
         this.blockAccessor =
                 Reflect.accessor(net.minecraft.world.entity.Display.BlockDisplay.class, "DATA_BLOCK_STATE_ID");
+        this.interactionWidthAccessor = Reflect.accessor(net.minecraft.world.entity.Interaction.class, "DATA_WIDTH_ID");
+        this.interactionHeightAccessor =
+                Reflect.accessor(net.minecraft.world.entity.Interaction.class, "DATA_HEIGHT_ID");
+        this.interactionResponseAccessor =
+                Reflect.accessor(net.minecraft.world.entity.Interaction.class, "DATA_RESPONSE_ID");
     }
 
     @Override
@@ -136,6 +144,16 @@ public final class NmsHologramPackets implements HologramPackets {
         List<SynchedEntityData.DataValue<?>> values = displayValues(appearance, translation);
         values.add(SynchedEntityData.DataValue.create(blockAccessor, ((CraftBlockData) block).getState()));
         return new ClientboundSetEntityDataPacket(entityId, values);
+    }
+
+    @Override
+    public Object interactionSize(int entityId, float width, float height) {
+        return new ClientboundSetEntityDataPacket(
+                entityId,
+                List.of(
+                        SynchedEntityData.DataValue.create(interactionWidthAccessor, width),
+                        SynchedEntityData.DataValue.create(interactionHeightAccessor, height),
+                        SynchedEntityData.DataValue.create(interactionResponseAccessor, true)));
     }
 
     /** What every display has, text or not: the turn, the reach, the place and size, and the optional looks. */
