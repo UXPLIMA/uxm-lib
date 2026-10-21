@@ -2,11 +2,8 @@ package com.uxplima.uxmlib.packet.display;
 
 import java.time.Duration;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -26,6 +23,7 @@ import com.uxplima.uxmlib.pipeline.ChannelResolver;
 import com.uxplima.uxmlib.pipeline.PacketSender;
 import com.uxplima.uxmlib.scheduler.Scheduler;
 import com.uxplima.uxmlib.scheduler.TaskHandle;
+import com.uxplima.uxmlib.text.message.LanguageWatch;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -50,7 +48,6 @@ public final class ViewerText implements Listener {
     private final Scheduler scheduler;
     private final DisplayTextPackets packets;
     private final Map<Integer, Bound> bound = new ConcurrentHashMap<>();
-    private final Map<UUID, Object> languages = new ConcurrentHashMap<>();
 
     private record Bound(TextDisplay display, Function<Player, Component> text) {}
 
@@ -108,28 +105,7 @@ public final class ViewerText implements Listener {
      */
     public TaskHandle followLanguage(
             Function<Player, ?> languageOf, Duration every, Supplier<? extends Collection<? extends Player>> online) {
-        Objects.requireNonNull(languageOf, "languageOf");
-        Objects.requireNonNull(every, "every");
-        Objects.requireNonNull(online, "online");
-        return scheduler.globalTimer(every, every, handle -> {
-            Collection<? extends Player> players = online.get();
-            Set<UUID> here = new HashSet<>();
-            for (Player viewer : players) {
-                here.add(viewer.getUniqueId());
-                scheduler.entity(viewer, () -> notice(viewer, languageOf.apply(viewer)));
-            }
-            languages.keySet().retainAll(here);
-        });
-    }
-
-    private void notice(Player viewer, @Nullable Object language) {
-        if (language == null) {
-            return;
-        }
-        Object before = languages.put(viewer.getUniqueId(), language);
-        if (before != null && !before.equals(language)) {
-            refresh(viewer);
-        }
+        return LanguageWatch.follow(scheduler, languageOf, every, online, this::refresh);
     }
 
     /** Unbind everything, for a plugin shutting down or reloading. */
