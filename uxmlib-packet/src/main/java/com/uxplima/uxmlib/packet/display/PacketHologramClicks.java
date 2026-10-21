@@ -18,8 +18,10 @@ import com.uxplima.uxmlib.scheduler.Scheduler;
  *
  * <p>The box exists only in the clients it was sent to, so the server does not know it was clicked through the
  * ordinary interact event. Paper reports it as an unknown entity with the id the client named, and this
- * listener finds the hologram that owns that id. The client sends one event per hand for a single click, so
- * only the main hand's is answered. The handler runs on the clicking player's own thread, where running a
+ * listener finds the hologram that owns that id. A client may name any id, so a click counts only from a
+ * player whose client was sent that box and still holds it: one outside the audience or out of range is not
+ * answered, and neither is a click on a hologram that was removed. The client sends one event per hand for a
+ * single click, so only the main hand's is answered. The handler runs on the clicking player's own thread, where running a
  * command or opening a menu for them is safe.
  *
  * <p>Register it as a listener once: {@code server.getPluginManager().registerEvents(clicks, plugin)}.
@@ -61,9 +63,9 @@ public final class PacketHologramClicks implements Listener {
             return;
         }
         int entityId = event.getEntityId();
+        Player player = event.getPlayer();
         for (Map.Entry<PacketHologram, Clicked> entry : handlers.entrySet()) {
-            if (entry.getKey().owns(entityId)) {
-                Player player = event.getPlayer();
+            if (entry.getKey().clickableBy(player, entityId)) {
                 boolean attack = event.isAttack();
                 Clicked handler = entry.getValue();
                 scheduler.entity(player, () -> handler.clicked(player, attack));

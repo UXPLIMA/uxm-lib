@@ -32,6 +32,8 @@ import org.mockbukkit.mockbukkit.ServerMock;
 class PacketHologramClicksTest {
 
     private ServerMock server;
+    private World world;
+    private FakeRegionScheduler frames;
     private Player alice;
     private PacketHologram hologram;
     private int boxId;
@@ -42,11 +44,11 @@ class PacketHologramClicksTest {
     @BeforeEach
     void setUp() {
         server = MockBukkit.mock();
-        World world = server.addSimpleWorld("world");
+        world = server.addSimpleWorld("world");
         alice = server.addPlayer("Alice");
         alice.teleport(new Location(world, 1, 64, 1));
         FakeHologramPackets packets = new FakeHologramPackets();
-        FakeRegionScheduler frames = new FakeRegionScheduler();
+        frames = new FakeRegionScheduler();
         hologram = PacketHologram.show(
                 packets,
                 frames,
@@ -109,6 +111,39 @@ class PacketHologramClicksTest {
     @Test
     void anUnregisteredHologramIsNotAnswered() {
         router.unregister(hologram);
+        router.onUseUnknownEntity(click(boxId, false, EquipmentSlot.HAND));
+        hops.runAll();
+
+        assertThat(clicks).isEmpty();
+    }
+
+    @Test
+    void aPlayerWhoWasNeverShownTheBoxCannotClickIt() {
+        Player mallory = server.addPlayer("Mallory");
+        mallory.teleport(new Location(world, 400, 64, 400));
+
+        router.onUseUnknownEntity(
+                new PlayerUseUnknownEntityEvent(mallory, boxId, false, EquipmentSlot.HAND, new Vector()));
+        hops.runAll();
+
+        assertThat(clicks).isEmpty();
+    }
+
+    @Test
+    void aPlayerLeftOutOfTheAudienceCannotClickIt() {
+        hologram.setAudience(viewer -> false);
+        frames.tick();
+
+        router.onUseUnknownEntity(click(boxId, false, EquipmentSlot.HAND));
+        hops.runAll();
+
+        assertThat(clicks).isEmpty();
+    }
+
+    @Test
+    void aRemovedHologramCannotBeClicked() {
+        hologram.remove();
+
         router.onUseUnknownEntity(click(boxId, false, EquipmentSlot.HAND));
         hops.runAll();
 

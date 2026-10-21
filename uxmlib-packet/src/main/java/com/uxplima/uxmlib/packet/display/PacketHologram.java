@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.IntStream;
@@ -81,6 +82,11 @@ public final class PacketHologram {
     private @Nullable ClickBox box;
     /** The entity id of the click box, taken the first time a box is set and kept for the hologram's life. */
     private int boxId = NO_BOX;
+    /**
+     * The viewers whose client holds the box now. Written on the anchor's region thread with {@link #shown} and
+     * read wherever a click arrives, so a client can only click a box it was actually sent.
+     */
+    private final Set<UUID> boxHolders = ConcurrentHashMap.newKeySet();
 
     private @Nullable TaskHandle refresh;
     private boolean removed;
@@ -229,6 +235,15 @@ public final class PacketHologram {
         return box != null && entityId == boxId;
     }
 
+    /**
+     * Whether a click by {@code player} on {@code entityId} is a click on this hologram's box: the id is the box's,
+     * and {@code player}'s client was sent the box and still holds it. A client that names the id without having
+     * been shown the box, from outside the audience or out of range, is not answered.
+     */
+    public boolean clickableBy(Player player, int entityId) {
+        return owns(entityId) && boxHolders.contains(player.getUniqueId());
+    }
+
     /** Replace the look. It takes effect on the next {@link #update()}. */
     public void setAppearance(HologramAppearance next) {
         this.appearance = Objects.requireNonNull(next, "next");
@@ -250,6 +265,8 @@ public final class PacketHologram {
             return;
         }
         removed = true;
+        box = null;
+        boxHolders.clear();
         for (Shown viewer : shown.values()) {
             despawn(viewer);
         }
@@ -297,6 +314,11 @@ public final class PacketHologram {
         @Nullable ClickBox sent = box;
         spawn(player, next, sent);
         shown.put(id, new Shown(player, List.copyOf(next), appearance, sent));
+        if (sent == null) {
+            boxHolders.remove(id);
+        } else {
+            boxHolders.add(id);
+        }
     }
 
     /** Whether two stacks are the same entities on the client: as many lines, each of the same entity type. */
@@ -354,6 +376,7 @@ public final class PacketHologram {
         for (UUID id : new HashSet<>(shown.keySet())) {
             if (!stillNear.contains(id)) {
                 Shown gone = shown.remove(id);
+                boxHolders.remove(id);
                 if (gone != null) {
                     despawn(gone);
                 }
