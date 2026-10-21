@@ -88,8 +88,9 @@ class MenuBasicsTest {
         bindings = new MenuBindings();
         MenuRenderer renderer = new MenuRenderer(
                 new ItemRenderer(new PlainText(), Theme::defaults, bindings.placeholders()), bindings.conditions());
-        menus = new Menus(
-                renderer, new SameThreadScheduler(), bindings.lists(), null, bindings.actions(), bindings.conditions());
+        menus = Menus.builder(renderer, new SameThreadScheduler(), bindings.lists())
+                .openRegistries(bindings.actions(), bindings.conditions())
+                .build();
         MenuBasics.register(bindings, menus);
         echo = new Echo();
         MockBukkit.getMock().getCommandMap().register("uxmlib", echo);

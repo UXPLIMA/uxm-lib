@@ -101,46 +101,15 @@ public final class TextInput {
     @Nullable private final TextInputBackend signBackend;
 
     /**
-     * The native-dialog backend a {@code dialog} input point uses, or {@code null} when no dialog backend is wired: the
-     * server predates the 1.21.6 Dialog API, or the seam predates the dialog backend. When {@code null}, a {@code
-     * dialog} input point falls back to the sign backend (or the anvil if no sign backend either), and the seam logs
-     * the substitution once through {@link #dialogFallback()} so the operator is not silently handed a sign.
+     * The native-dialog backend a {@code dialog} input point uses, or {@code null} when no dialog backend is wired.
+     * When {@code null}, a {@code dialog} input point falls back to the sign backend (or the anvil if no sign backend
+     * either), and the seam logs the substitution once through {@link #dialogFallback()} so the operator is not
+     * silently handed a sign.
      */
     @Nullable private final TextInputBackend dialogBackend;
 
     /** Guards the one-time {@code input_mode_unavailable} log so a repeated dialog fallback does not spam the console. */
     private final AtomicBoolean dialogFallbackWarned = new AtomicBoolean();
-
-    /**
-     * As the eight-argument constructor, but with no Bedrock redirect: every player gets the anvil or chat prompt.
-     * Kept so the tests and any wiring that predates the Bedrock seam stay a delegating call.
-     */
-    public TextInput(
-            InputSettings settings,
-            GuiText guiText,
-            Scheduler scheduler,
-            AnvilTextBackend anvilBackend,
-            ChatTextBackend chatBackend,
-            Log log) {
-        this(settings, guiText, scheduler, anvilBackend, chatBackend, BedrockDetector.NONE, BedrockScreen.NONE, log);
-    }
-
-    /**
-     * As the ten-argument constructor, but with neither a sign nor a dialog backend: a {@code sign} or {@code dialog}
-     * input point falls back to the anvil backend. Kept so the tests and any wiring that predates the native-screen
-     * backends stay a delegating call.
-     */
-    public TextInput(
-            InputSettings settings,
-            GuiText guiText,
-            Scheduler scheduler,
-            AnvilTextBackend anvilBackend,
-            ChatTextBackend chatBackend,
-            BedrockDetector bedrock,
-            BedrockScreen bedrockScreen,
-            Log log) {
-        this(settings, guiText, scheduler, anvilBackend, chatBackend, bedrock, bedrockScreen, null, null, log);
-    }
 
     public TextInput(
             InputSettings settings,

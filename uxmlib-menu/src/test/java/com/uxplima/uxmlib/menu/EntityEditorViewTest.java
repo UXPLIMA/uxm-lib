@@ -100,7 +100,9 @@ class EntityEditorViewTest {
         MenuRenderer renderer = new MenuRenderer(
                 new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()), new ConditionRegistry());
         EditorRenderer editor = withEditorSupport ? new EditorRenderer(new PlainText(), Theme::defaults) : null;
-        return new Menus(renderer, new SameThreadScheduler(), new ListSourceRegistry(), editor);
+        return Menus.builder(renderer, new SameThreadScheduler(), new ListSourceRegistry())
+                .editorRenderer(editor)
+                .build();
     }
 
     private EntityEditorView.Builder<Subject> view(Menus menus, EntityEditorLayout layout) {

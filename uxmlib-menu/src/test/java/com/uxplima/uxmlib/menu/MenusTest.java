@@ -446,7 +446,7 @@ class MenusTest {
     // -- the history an engine was wired with ---------------------------------------------------------------
 
     private Menus withHistory(LastMenu history) {
-        return new Menus(renderer(), scheduler, lists, null, null, null, history);
+        return Menus.builder(renderer(), scheduler, lists).lastMenu(history).build();
     }
 
     /**

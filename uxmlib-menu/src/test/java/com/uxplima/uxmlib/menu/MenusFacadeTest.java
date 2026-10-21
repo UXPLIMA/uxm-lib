@@ -136,7 +136,9 @@ class MenusFacadeTest {
         scheduler = new GlobalScheduler();
         actions = new ActionRegistry();
         actions.register("shop:buy", ran::add);
-        menus = new Menus(renderer(), scheduler, new ListSourceRegistry(), null, actions, new ConditionRegistry());
+        menus = Menus.builder(renderer(), scheduler, new ListSourceRegistry())
+                .openRegistries(actions, new ConditionRegistry())
+                .build();
     }
 
     @AfterEach
@@ -264,14 +266,14 @@ class MenusFacadeTest {
         lists.register("shop:rows", ctx -> List.copyOf(rows));
         PlaceholderRegistry placeholders = new PlaceholderRegistry();
         placeholders.register("row", ctx -> ctx.entry().map(String::valueOf).orElse(""));
-        menus = new Menus(
-                new MenuRenderer(
-                        new ItemRenderer(new PlainText(), Theme::defaults, placeholders), new ConditionRegistry()),
-                scheduler,
-                lists,
-                null,
-                actions,
-                new ConditionRegistry());
+        menus = Menus.builder(
+                        new MenuRenderer(
+                                new ItemRenderer(new PlainText(), Theme::defaults, placeholders),
+                                new ConditionRegistry()),
+                        scheduler,
+                        lists)
+                .openRegistries(actions, new ConditionRegistry())
+                .build();
         open(
                 "shop",
                 "rows = 3\nitems { rows { slots = [\"0-8\"], list { source = \"shop:rows\","
@@ -292,22 +294,21 @@ class MenusFacadeTest {
     void aRedrawOfAWindowWithNoListWaitsForNothing() {
         List<Runnable> held = new ArrayList<>();
         boolean[] holding = {false};
-        menus = new Menus(
-                renderer(),
-                new SameThreadScheduler() {
-                    @Override
-                    public com.uxplima.uxmlib.scheduler.TaskHandle async(Runnable task) {
-                        if (!holding[0]) {
-                            return super.async(task);
-                        }
-                        held.add(task);
-                        return FINISHED;
-                    }
-                },
-                new ListSourceRegistry(),
-                null,
-                actions,
-                new ConditionRegistry());
+        menus = Menus.builder(
+                        renderer(),
+                        new SameThreadScheduler() {
+                            @Override
+                            public com.uxplima.uxmlib.scheduler.TaskHandle async(Runnable task) {
+                                if (!holding[0]) {
+                                    return super.async(task);
+                                }
+                                held.add(task);
+                                return FINISHED;
+                            }
+                        },
+                        new ListSourceRegistry())
+                .openRegistries(actions, new ConditionRegistry())
+                .build();
         open("shop", "rows = 3\nitems { one { slot = 0, material = STONE, name = \"n\" } }");
         Inventory window = viewer.getOpenInventory().getTopInventory();
         window.setItem(0, null);

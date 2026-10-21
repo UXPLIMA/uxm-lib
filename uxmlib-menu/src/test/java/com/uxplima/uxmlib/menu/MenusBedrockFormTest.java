@@ -232,7 +232,11 @@ class MenusBedrockFormTest {
 
     /** The same wiring the fixture uses, on whichever scheduler the test needs. */
     private Menus engine(SameThreadScheduler on) {
-        return new Menus(renderer(), on, lists, null, actions, conditions, history, detector, screen);
+        return Menus.builder(renderer(), on, lists)
+                .openRegistries(actions, conditions)
+                .lastMenu(history)
+                .bedrock(detector, screen)
+                .build();
     }
 
     @AfterEach

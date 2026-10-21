@@ -138,8 +138,9 @@ class MenusChildWindowsTest {
     }
 
     private static Menus engine(SameThreadScheduler scheduler) {
-        return new Menus(
-                renderer(), scheduler, new ListSourceRegistry(), new EditorRenderer(new PlainText(), Theme::defaults));
+        return Menus.builder(renderer(), scheduler, new ListSourceRegistry())
+                .editorRenderer(new EditorRenderer(new PlainText(), Theme::defaults))
+                .build();
     }
 
     private static String plain(Component component) {
@@ -293,13 +294,14 @@ class MenusChildWindowsTest {
         ConfigurationNode left = CommentedConfigurationNode.root();
         left.node("menu-titles").set("left");
         Theme theme = Theme.from(left);
-        Menus engine = new Menus(
-                new MenuRenderer(
-                        new ItemRenderer(new PlainText(), () -> theme, new PlaceholderRegistry()),
-                        new ConditionRegistry()),
-                scheduler,
-                new ListSourceRegistry(),
-                new EditorRenderer(new PlainText(), () -> theme));
+        Menus engine = Menus.builder(
+                        new MenuRenderer(
+                                new ItemRenderer(new PlainText(), () -> theme, new PlaceholderRegistry()),
+                                new ConditionRegistry()),
+                        scheduler,
+                        new ListSourceRegistry())
+                .editorRenderer(new EditorRenderer(new PlainText(), () -> theme))
+                .build();
 
         engine.openList(viewer, listSpec(3));
         assertThat(plain(viewer.getOpenInventory().title()))
@@ -495,7 +497,9 @@ class MenusChildWindowsTest {
         actions.register("pay", ctx -> fired.add("pay"));
         ConditionRegistry conditions = new ConditionRegistry();
         conditions.register("never", (ctx, args) -> false);
-        Menus gated = new Menus(renderer(), scheduler, new ListSourceRegistry(), null, actions, conditions);
+        Menus gated = Menus.builder(renderer(), scheduler, new ListSourceRegistry())
+                .openRegistries(actions, conditions)
+                .build();
         MenuSpec spec =
                 new MenuSpecLoader().parse("rows = 3\nopen-requirement = [ \"never\" ]\nopen-actions = [ \"pay\" ]");
 
@@ -509,7 +513,9 @@ class MenusChildWindowsTest {
     @Test
     void aPreviewIsNotRecordedAsSomewhereToStepBackTo() {
         LastMenu history = new LastMenu();
-        Menus tracked = new Menus(renderer(), scheduler, new ListSourceRegistry(), null, null, null, history);
+        Menus tracked = Menus.builder(renderer(), scheduler, new ListSourceRegistry())
+                .lastMenu(history)
+                .build();
 
         tracked.openPreview(viewer, new MenuSpecLoader().parse("rows = 3"), () -> {});
 

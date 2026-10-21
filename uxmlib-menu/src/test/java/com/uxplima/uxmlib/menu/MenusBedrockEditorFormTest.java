@@ -221,16 +221,11 @@ class MenusBedrockEditorFormTest {
         ConditionRegistry conditions = new ConditionRegistry();
         MenuRenderer renderer = new MenuRenderer(
                 new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()), conditions);
-        menus = new Menus(
-                renderer,
-                new SameThreadScheduler(),
-                new ListSourceRegistry(),
-                new EditorRenderer(new PlainText(), Theme::defaults),
-                new ActionRegistry(),
-                conditions,
-                null,
-                detector,
-                screen);
+        menus = Menus.builder(renderer, new SameThreadScheduler(), new ListSourceRegistry())
+                .editorRenderer(new EditorRenderer(new PlainText(), Theme::defaults))
+                .openRegistries(new ActionRegistry(), conditions)
+                .bedrock(detector, screen)
+                .build();
     }
 
     @AfterEach

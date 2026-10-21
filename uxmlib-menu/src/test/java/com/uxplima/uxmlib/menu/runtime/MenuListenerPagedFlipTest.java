@@ -119,17 +119,10 @@ class MenuListenerPagedFlipTest {
         plain = new ListSourceRegistry();
         MenuRenderer renderer = new MenuRenderer(
                 new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()), new ConditionRegistry());
-        menus = new Menus(
-                renderer,
-                scheduler,
-                plain,
-                null,
-                null,
-                null,
-                null,
-                com.uxplima.uxmlib.bedrock.BedrockDetector.NONE,
-                com.uxplima.uxmlib.bedrock.BedrockScreen.NONE,
-                paged);
+        menus = Menus.builder(renderer, scheduler, plain)
+                .bedrock(com.uxplima.uxmlib.bedrock.BedrockDetector.NONE, com.uxplima.uxmlib.bedrock.BedrockScreen.NONE)
+                .pagedLists(paged)
+                .build();
         listener = MenuListener.builder(renderer, new ActionRegistry(), new ConditionRegistry(), scheduler, plugin)
                 .clickCooldown(0L, () -> 1_000_000L)
                 .pagedLists(paged)

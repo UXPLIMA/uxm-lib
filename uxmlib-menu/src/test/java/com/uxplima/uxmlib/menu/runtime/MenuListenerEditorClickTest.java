@@ -113,8 +113,9 @@ class MenuListenerEditorClickTest {
         SameThreadScheduler scheduler = new SameThreadScheduler();
         MenuRenderer renderer = new MenuRenderer(
                 new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()), new ConditionRegistry());
-        menus = new Menus(
-                renderer, scheduler, new ListSourceRegistry(), new EditorRenderer(new PlainText(), Theme::defaults));
+        menus = Menus.builder(renderer, scheduler, new ListSourceRegistry())
+                .editorRenderer(new EditorRenderer(new PlainText(), Theme::defaults))
+                .build();
         // Exactly how every plugin in the estate builds it: no editor renderer, no selector opener, no confirm opener.
         listener = new MenuListener(renderer, new ActionRegistry(), new ConditionRegistry(), scheduler, plugin);
     }

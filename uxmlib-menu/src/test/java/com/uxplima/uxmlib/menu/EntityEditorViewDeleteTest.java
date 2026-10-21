@@ -113,8 +113,9 @@ class EntityEditorViewDeleteTest {
         SameThreadScheduler scheduler = new SameThreadScheduler();
         MenuRenderer renderer = new MenuRenderer(
                 new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()), new ConditionRegistry());
-        menus = new Menus(
-                renderer, scheduler, new ListSourceRegistry(), new EditorRenderer(new PlainText(), Theme::defaults));
+        menus = Menus.builder(renderer, scheduler, new ListSourceRegistry())
+                .editorRenderer(new EditorRenderer(new PlainText(), Theme::defaults))
+                .build();
         listener = new MenuListener(renderer, new ActionRegistry(), new ConditionRegistry(), scheduler, plugin);
     }
 

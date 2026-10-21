@@ -103,7 +103,7 @@ public final class Menus {
      * The streaming counterpart to {@link #lists}: the sources that answer for one page of a large corpus rather than
      * handing the whole of it over. Empty on every engine wired without one (a list/spec-only test fixture and any
      * production menu set with no paged source) in which case {@link #resolveLists} finds every source in {@link
-     * #lists} and never consults this registry, so those opens stay byte-identical to before this seam existed.
+     * #lists} and never consults this registry.
      */
     private final PagedListSourceRegistry pagedLists;
 
@@ -117,7 +117,7 @@ public final class Menus {
     /**
      * The action registry an open runs a spec's {@code open-actions} through, and the condition registry it gates a
      * spec's {@code open-requirement} on. Both are null on an engine wired without them (every list/spec-only test
-     * fixture) in which case an open neither gates nor fires open-actions, byte-identical to before this seam existed.
+     * fixture) in which case an open neither gates nor fires open-actions.
      * Only production wiring, which has the fully populated registries, passes them; a spec with no open-
      * requirement/open-actions is unaffected either way.
      */
@@ -127,7 +127,7 @@ public final class Menus {
 
     /**
      * The per-player reopen tracker {@code /menu last} reads. Null on every engine wired without it (every list/spec-
-     * only test fixture) in which case an open records nothing, byte-identical to before this seam existed. Only
+     * only test fixture) in which case an open records nothing. Only
      * production wiring, which builds one tracker and shares it with the {@code /menu} command, passes it; and even
      * then only a subject-less open (a custom menu) is remembered, in {@link #rememberLastOpen}.
      */
@@ -136,7 +136,7 @@ public final class Menus {
     /**
      * Whether a viewer is a Bedrock (Floodgate) player, so an engine menu can be redirected to a native form for them
      * rather than a chest. Defaults to {@link BedrockDetector#NONE} (always Java) on every engine wired without it, so
-     * an open there falls straight through to the chest path, byte-identical to before this seam existed. Only
+     * an open there falls straight through to the chest path. Only
      * production wiring, on a server with Floodgate, passes a detector that ever answers {@code true}.
      */
     private final BedrockDetector bedrock;
@@ -173,122 +173,92 @@ public final class Menus {
      */
     private final Set<String> refsChecked = ConcurrentHashMap.newKeySet();
 
+    /**
+     * An engine over a renderer, a scheduler and the list sources, with nothing optional: no typed editors, no open
+     * gate or open actions, no reopen tracker, no Bedrock form and no paged source. {@link #builder} adds them.
+     */
     public Menus(MenuRenderer renderer, Scheduler scheduler, ListSourceRegistry lists) {
-        this(renderer, scheduler, lists, null);
+        this(builder(renderer, scheduler, lists));
     }
 
-    public Menus(
-            MenuRenderer renderer,
-            Scheduler scheduler,
-            ListSourceRegistry lists,
-            @Nullable EditorRenderer editorRenderer) {
-        this(renderer, scheduler, lists, editorRenderer, null, null);
+    private Menus(Builder builder) {
+        this.renderer = builder.renderer;
+        this.scheduler = builder.scheduler;
+        this.lists = builder.lists;
+        this.editorRenderer = builder.editorRenderer;
+        this.openActionRegistry = builder.openActionRegistry;
+        this.openConditionRegistry = builder.openConditionRegistry;
+        this.lastMenu = builder.lastMenu;
+        this.bedrock = builder.bedrock;
+        this.bedrockScreen = builder.bedrockScreen;
+        this.pagedLists = builder.pagedLists;
     }
 
-    /**
-     * The action/condition-aware constructor: the same engine plus the registries an open needs to run a spec's {@code
-     * open-actions} and gate on its {@code open-requirement}. Delegates to the canonical constructor with a {@code
-     * null} reopen tracker, so every existing {@code new Menus(...)} call-site (almost all test fixtures) compiles
-     * unchanged and records no reopen target: byte-identical to before that seam existed.
-     */
-    public Menus(
-            MenuRenderer renderer,
-            Scheduler scheduler,
-            ListSourceRegistry lists,
-            @Nullable EditorRenderer editorRenderer,
-            @Nullable ActionRegistry openActionRegistry,
-            @Nullable ConditionRegistry openConditionRegistry) {
-        this(renderer, scheduler, lists, editorRenderer, openActionRegistry, openConditionRegistry, null);
+    /** An engine over the three parts every menu needs, with each optional part set on the builder. */
+    public static Builder builder(MenuRenderer renderer, Scheduler scheduler, ListSourceRegistry lists) {
+        return new Builder(renderer, scheduler, lists);
     }
 
     /**
-     * The reopen-tracker constructor, kept so every existing {@code new Menus(...)} call-site (almost all test
-     * fixtures) compiles unchanged. It delegates to the canonical constructor with the Java-only Bedrock defaults
-     * ({@link BedrockDetector#NONE} and {@link BedrockScreen#NONE}) so an open there never redirects to a form and
-     * stays byte-identical to before the Bedrock seam existed. Only production wiring passes the resolved detector and
-     * screen.
+     * The optional parts of a {@link Menus}. Each one left unset is the absence its field documents: an open skips
+     * the requirement gate and runs no open actions, records no reopen target, never redirects to a Bedrock form, and
+     * resolves every list through the in-memory sources.
      */
-    public Menus(
-            MenuRenderer renderer,
-            Scheduler scheduler,
-            ListSourceRegistry lists,
-            @Nullable EditorRenderer editorRenderer,
-            @Nullable ActionRegistry openActionRegistry,
-            @Nullable ConditionRegistry openConditionRegistry,
-            @Nullable LastMenu lastMenu) {
-        this(
-                renderer,
-                scheduler,
-                lists,
-                editorRenderer,
-                openActionRegistry,
-                openConditionRegistry,
-                lastMenu,
-                BedrockDetector.NONE,
-                BedrockScreen.NONE);
-    }
+    public static final class Builder {
 
-    /**
-     * The canonical constructor production wiring uses: the action/condition-aware engine, the reopen tracker {@code
-     * /menu last} reads, and the Bedrock detector/screen the open choke-point consults to redirect a Floodgate viewer
-     * to a native form. Every other constructor delegates here with {@code null} for the parameters it does not carry
-     * and the Java-only Bedrock defaults, so the roughly ninety existing {@code new Menus(...)} call-sites compile
-     * unchanged and open exactly as before: with null registries an open skips the requirement gate and runs no open-
-     * actions, with a null tracker it records no reopen target, and with the {@code NONE} Bedrock defaults it never
-     * redirects to a form. Only production wiring, which has the fully populated registries, the shared tracker, and
-     * the resolved Bedrock detector/screen, passes them.
-     */
-    public Menus(
-            MenuRenderer renderer,
-            Scheduler scheduler,
-            ListSourceRegistry lists,
-            @Nullable EditorRenderer editorRenderer,
-            @Nullable ActionRegistry openActionRegistry,
-            @Nullable ConditionRegistry openConditionRegistry,
-            @Nullable LastMenu lastMenu,
-            BedrockDetector bedrock,
-            BedrockScreen bedrockScreen) {
-        this(
-                renderer,
-                scheduler,
-                lists,
-                editorRenderer,
-                openActionRegistry,
-                openConditionRegistry,
-                lastMenu,
-                bedrock,
-                bedrockScreen,
-                new PagedListSourceRegistry());
-    }
+        private final MenuRenderer renderer;
+        private final Scheduler scheduler;
+        private final ListSourceRegistry lists;
+        private @Nullable EditorRenderer editorRenderer;
+        private @Nullable ActionRegistry openActionRegistry;
+        private @Nullable ConditionRegistry openConditionRegistry;
+        private @Nullable LastMenu lastMenu;
+        private BedrockDetector bedrock = BedrockDetector.NONE;
+        private BedrockScreen bedrockScreen = BedrockScreen.NONE;
+        private PagedListSourceRegistry pagedLists = new PagedListSourceRegistry();
 
-    /**
-     * The paged-source-aware canonical constructor: the same engine plus the {@link PagedListSourceRegistry} whose
-     * sources answer for one page of a large corpus rather than the whole of it. Every other constructor delegates here
-     * with an empty registry, so the roughly ninety existing {@code new Menus(...)} call-sites compile unchanged and
-     * resolve every list through the in-memory {@link #lists} exactly as before: an open there never consults the paged
-     * registry. Only production wiring, which holds the feature-populated paged registry, passes it.
-     */
-    public Menus(
-            MenuRenderer renderer,
-            Scheduler scheduler,
-            ListSourceRegistry lists,
-            @Nullable EditorRenderer editorRenderer,
-            @Nullable ActionRegistry openActionRegistry,
-            @Nullable ConditionRegistry openConditionRegistry,
-            @Nullable LastMenu lastMenu,
-            BedrockDetector bedrock,
-            BedrockScreen bedrockScreen,
-            PagedListSourceRegistry pagedLists) {
-        this.renderer = Objects.requireNonNull(renderer, "renderer");
-        this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
-        this.lists = Objects.requireNonNull(lists, "lists");
-        this.editorRenderer = editorRenderer;
-        this.openActionRegistry = openActionRegistry;
-        this.openConditionRegistry = openConditionRegistry;
-        this.lastMenu = lastMenu;
-        this.bedrock = Objects.requireNonNull(bedrock, "bedrock");
-        this.bedrockScreen = Objects.requireNonNull(bedrockScreen, "bedrockScreen");
-        this.pagedLists = Objects.requireNonNull(pagedLists, "pagedLists");
+        private Builder(MenuRenderer renderer, Scheduler scheduler, ListSourceRegistry lists) {
+            this.renderer = Objects.requireNonNull(renderer, "renderer");
+            this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
+            this.lists = Objects.requireNonNull(lists, "lists");
+        }
+
+        /** The renderer a typed property editor is drawn through. */
+        public Builder editorRenderer(@Nullable EditorRenderer editorRenderer) {
+            this.editorRenderer = editorRenderer;
+            return this;
+        }
+
+        /** The registries an open runs a spec's {@code open-actions} through and gates its {@code open-requirement} on. */
+        public Builder openRegistries(@Nullable ActionRegistry actions, @Nullable ConditionRegistry conditions) {
+            this.openActionRegistry = actions;
+            this.openConditionRegistry = conditions;
+            return this;
+        }
+
+        /** The tracker that remembers the last menu a player opened, for a reopen command to read. */
+        public Builder lastMenu(@Nullable LastMenu lastMenu) {
+            this.lastMenu = lastMenu;
+            return this;
+        }
+
+        /** The detector and screen an open consults to show a Bedrock viewer a native form instead of a chest. */
+        public Builder bedrock(BedrockDetector detector, BedrockScreen screen) {
+            this.bedrock = Objects.requireNonNull(detector, "detector");
+            this.bedrockScreen = Objects.requireNonNull(screen, "screen");
+            return this;
+        }
+
+        /** The sources that answer for one page of a large list rather than the whole of it. */
+        public Builder pagedLists(PagedListSourceRegistry pagedLists) {
+            this.pagedLists = Objects.requireNonNull(pagedLists, "pagedLists");
+            return this;
+        }
+
+        /** The engine. */
+        public Menus build() {
+            return new Menus(this);
+        }
     }
 
     /** Registers a parsed spec under its id; a feature does this once at wiring time. */
@@ -545,8 +515,8 @@ public final class Menus {
 
     /**
      * Reads the window's list sources again off the tick thread and draws it with the rows they return. A list is how a
-     * window shows state that changes, so a redraw that painted the rows it opened with showed the change everywhere but
-     * there. A window with no list is drawn at once.
+     * window shows state that changes, so a redraw that painted the rows it opened with showed the change everywhere
+     * but there. A window with no list is drawn at once.
      */
     private void redrawWithFreshLists(MenuHolder holder) {
         MenuSpec spec = holder.spec();
@@ -1349,7 +1319,7 @@ public final class Menus {
      * Remember this open as the viewer's {@code /menu last} target: but only a subject-less one, a disk-loaded custom
      * menu. A feature menu carries a live domain subject (a warp, a home owner) that must never be reopened blind, and
      * it has its own command, so those are deliberately not recorded. An engine wired without a tracker (every
-     * list/spec-only fixture) records nothing, so an open there stays byte-identical to before this seam.
+     * list/spec-only fixture) records nothing.
      */
     private void rememberLastOpen(
             Player viewer, String specId, @Nullable Object subject, int page, Map<String, String> arguments) {
@@ -1416,13 +1386,12 @@ public final class Menus {
     /**
      * Whether every requirement in {@code requirements} tests true for {@code viewer}, with {@code arguments} bound.
      * The gate is open (the open proceeds, the command runs) when the engine was wired without a condition registry
-     * (every list/spec-only test engine) or nothing is required, so an engine that predates this seam behaves
-     * byte-identically. Otherwise every requirement ref is an AND gate: each is resolved against the condition
-     * registry (the same registry-aware split the click path uses, so a valued token like {@code has-money:100}
-     * reaches its handler with {@code value=100}), has its {@code %argument_<name>%} tokens expanded from
-     * {@code arguments} (so a gate can read a typed command argument, for example {@code expr:%argument_amount% > 0}),
-     * and must test true. An unregistered or false condition fails the gate closed, so a wiring gap keeps the window
-     * shut rather than showing it.
+     * (every list/spec-only test engine) or nothing is required. Otherwise every requirement ref is an AND gate: each
+     * is resolved against the condition registry (the same registry-aware split the click path uses, so a valued token
+     * like {@code has-money:100} reaches its handler with {@code value=100}), has its {@code %argument_<name>%} tokens
+     * expanded from {@code arguments} (so a gate can read a typed command argument, for example {@code
+     * expr:%argument_amount% > 0}), and must test true. An unregistered or false condition fails the gate closed, so a
+     * wiring gap keeps the window shut rather than showing it.
      */
     public boolean passes(Player viewer, List<Ref> requirements, Map<String, String> arguments) {
         Objects.requireNonNull(viewer, "viewer");
@@ -1449,7 +1418,7 @@ public final class Menus {
     /**
      * Run the spec's {@code open-actions} in order, now that the window is open on the viewer's entity thread: where
      * touching the live inventory is legal. Skipped when the engine was wired without an action registry (a list/spec-
-     * only test engine), so an engine that predates this seam runs nothing extra. Each ref is resolved against the
+     * only test engine). Each ref is resolved against the
      * action registry (the same registry-aware split the click path takes) and dispatched through a {@link
      * MenuActionContext} carrying {@link ClickKind#LEFT} as the neutral kind (no gesture fired on an open) and the
      * four-argument, no-control constructor, so a {@code refresh} written as an open-action is a harmless no-op rather
@@ -1658,8 +1627,7 @@ public final class Menus {
     /**
      * Append the form-native Previous/Next buttons a paged list needs: a Previous when the viewer is past page zero, a
      * Next when a further page exists, each re-sending the form one page over. These are text-only (no icon: a page
-     * control needs none). A single-page menu (a static-only menu or a list that fits one page) adds neither, so its
-     * form is byte-identical to before this slice.
+     * control needs none). A single-page menu (a static-only menu or a list that fits one page) adds neither.
      */
     private void appendPageButtons(
             MenuSpec spec,
