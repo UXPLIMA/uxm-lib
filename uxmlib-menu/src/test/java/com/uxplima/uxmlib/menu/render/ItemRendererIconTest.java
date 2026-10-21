@@ -282,7 +282,7 @@ class ItemRendererIconTest {
     void aSpecThatAsksForTheVanillaTooltipHidesNothing() {
         MenuItemSpec spec = item("material = DIAMOND_SWORD, name = \"n\", decor { hide-vanilla-tooltip = false }");
 
-        assertThat(ItemRenderer.hiddenFor(spec.decor().meta())).isEmpty();
+        assertThat(RichMetaWriter.hiddenFor(spec.decor().meta())).isEmpty();
     }
 
     /** Silence is the default, because a menu tile is a button and a button's tooltip is what the operator wrote. */
@@ -290,7 +290,7 @@ class ItemRendererIconTest {
     void aPlainSpecSilencesTheWholeVanillaSet() {
         MenuItemSpec spec = item("material = DIAMOND_SWORD, name = \"n\"");
 
-        assertThat(ItemRenderer.hiddenFor(spec.decor().meta()))
+        assertThat(RichMetaWriter.hiddenFor(spec.decor().meta()))
                 .containsExactlyInAnyOrderElementsOf(Tooltips.vanillaComponents());
     }
 
@@ -303,7 +303,7 @@ class ItemRendererIconTest {
     void aComponentTheOperatorDeclaredKeepsItsLine() {
         MenuItemSpec spec = item("material = DIAMOND_SWORD, name = \"n\", decor { enchantments = [\"sharpness:5\"] }");
 
-        Set<DataComponentType> hidden = ItemRenderer.hiddenFor(spec.decor().meta());
+        Set<DataComponentType> hidden = RichMetaWriter.hiddenFor(spec.decor().meta());
 
         assertThat(hidden).doesNotContain(DataComponentTypes.ENCHANTMENTS);
         assertThat(hidden)
@@ -317,8 +317,8 @@ class ItemRendererIconTest {
         MenuItemSpec unbreakable = item("material = DIAMOND_SWORD, name = \"n\", decor { unbreakable = true }");
         MenuItemSpec dyed = item("material = LEATHER_CHESTPLATE, name = \"n\", decor { leather-color = \"#A1FF33\" }");
 
-        assertThat(ItemRenderer.hiddenFor(unbreakable.decor().meta())).doesNotContain(DataComponentTypes.UNBREAKABLE);
-        assertThat(ItemRenderer.hiddenFor(dyed.decor().meta())).doesNotContain(DataComponentTypes.DYED_COLOR);
+        assertThat(RichMetaWriter.hiddenFor(unbreakable.decor().meta())).doesNotContain(DataComponentTypes.UNBREAKABLE);
+        assertThat(RichMetaWriter.hiddenFor(dyed.decor().meta())).doesNotContain(DataComponentTypes.DYED_COLOR);
     }
 
     private static Set<DataComponentType> minus(Set<DataComponentType> all, DataComponentType removed) {
