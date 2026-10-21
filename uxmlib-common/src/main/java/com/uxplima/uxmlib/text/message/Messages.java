@@ -16,6 +16,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 
 import com.uxplima.uxmlib.text.Text;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The i18n facade: resolves a viewer's locale, looks up the locale-specific template for a {@link MessageKey}
@@ -147,6 +148,26 @@ public final class Messages {
         String template = named.fill(entry(snapshot, viewer, named));
         return parse(
                 snapshot, viewer, named.key(), template, OperatorLines.withArguments(named.arguments(), resolvers));
+    }
+
+    /**
+     * {@link #renderLine(Audience, String, TagResolver...)} for a caller that knows the language and not the viewer:
+     * an item view drawing on a network thread, where the player object is not to be touched. {@code viewerName}
+     * fills {@code <player>} when given.
+     */
+    public Component renderLine(Locale locale, @Nullable String viewerName, String line, TagResolver... resolvers) {
+        Objects.requireNonNull(locale, "locale");
+        Objects.requireNonNull(line, "line");
+        Objects.requireNonNull(resolvers, "resolvers");
+        Content snapshot = content;
+        Optional<String> name = Optional.ofNullable(viewerName);
+        Optional<CatalogLine> reference = reference(snapshot, line);
+        if (reference.isEmpty()) {
+            return parse(snapshot, name, line, line, resolvers);
+        }
+        CatalogLine named = reference.get();
+        String template = named.fill(snapshot.catalog().template(MessageKey.of(named.key(), named.key()), locale));
+        return parse(snapshot, name, named.key(), template, OperatorLines.withArguments(named.arguments(), resolvers));
     }
 
     /**
@@ -324,10 +345,15 @@ public final class Messages {
      * text and is never read as markup.
      */
     private Component parse(Content snapshot, Audience viewer, String path, String template, TagResolver[] resolvers) {
+        return parse(snapshot, nameOf(viewer), path, template, resolvers);
+    }
+
+    private Component parse(
+            Content snapshot, Optional<String> viewerName, String path, String template, TagResolver[] resolvers) {
         reportShadowed(snapshot, path, resolvers);
         TagResolver[] all = new TagResolver[resolvers.length + 2];
         all[0] = snapshot.base();
-        all[1] = nameOf(viewer)
+        all[1] = viewerName
                 .map(name -> (TagResolver) Placeholder.unparsed(VIEWER_TAG, name))
                 .orElse(TagResolver.empty());
         System.arraycopy(resolvers, 0, all, 2, resolvers.length);

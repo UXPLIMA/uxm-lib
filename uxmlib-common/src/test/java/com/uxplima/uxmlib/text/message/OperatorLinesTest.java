@@ -124,4 +124,23 @@ class OperatorLinesTest {
                 .isEqualTo("<accent>Beitreten bedwars");
         assertThat(messages().expandLine(Locale.ENGLISH, "own words")).isEqualTo("own words");
     }
+
+    /**
+     * A caller that knows the language and not the player, such as an item view drawing on a network thread, draws
+     * the same line the viewer would read: the entry in that language, its arguments filled, the base style on it,
+     * and {@code <player>} filled when a name is given.
+     */
+    @Test
+    void aLineRendersForALanguageAsWellAsForAViewer() {
+        Messages messages = messages();
+
+        Component german = messages.renderLine(Locale.GERMAN, "Alex", "@custom.join server=skyblock");
+        Component named = messages.renderLine(Locale.ENGLISH, "Alex", "<player> joined");
+        Component nameless = messages.renderLine(Locale.ENGLISH, null, "@custom.count count=3");
+
+        assertThat(plain(german)).isEqualTo("Beitreten skyblock");
+        assertThat(german.color()).isEqualTo(NamedTextColor.BLUE);
+        assertThat(plain(named)).isEqualTo("Alex joined");
+        assertThat(plain(nameless)).isEqualTo("Players: 3");
+    }
 }
