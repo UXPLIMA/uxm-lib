@@ -61,7 +61,7 @@ class ThemeTest {
     @Test
     void aFileChangesTheColoursItNamesAndKeepsTheRest() throws ConfigurateException {
         ConfigurationNode node = CommentedConfigurationNode.root();
-        node.node("colours", "accent").set("#ff0000");
+        node.node("roles", "accent").set("#ff0000");
 
         Theme theme = Theme.from(node);
 
@@ -115,18 +115,18 @@ class ThemeTest {
         assertThat(theme.categoryRole("money")).isEqualTo("accent");
     }
 
-    /** The separator lived under the prefix block before the glyphs were configurable. Both still work. */
+    /** The separator is a glyph like the others: the glyphs block names it, and the prefix block holds categories. */
     @Test
-    void aSeparatorUnderThePrefixBlockIsStillRead() throws ConfigurateException {
-        ConfigurationNode legacy = CommentedConfigurationNode.root();
-        legacy.node("prefix", "separator").set("»");
+    void theSeparatorIsReadFromTheGlyphsBlock() throws ConfigurateException {
+        ConfigurationNode glyphs = CommentedConfigurationNode.root();
+        glyphs.node("glyphs", "separator").set("|");
 
-        ConfigurationNode both = CommentedConfigurationNode.root();
-        both.node("prefix", "separator").set("»");
-        both.node("glyphs", "separator").set("|");
+        ConfigurationNode underPrefix = CommentedConfigurationNode.root();
+        underPrefix.node("prefix", "separator").set("»");
 
-        assertThat(Theme.from(legacy).separator()).isEqualTo("»");
-        assertThat(Theme.from(both).separator()).isEqualTo("|");
+        assertThat(Theme.from(glyphs).separator()).isEqualTo("|");
+        assertThat(Theme.from(underPrefix).separator())
+                .isEqualTo(Theme.defaults().separator());
     }
 
     @Test
@@ -180,7 +180,7 @@ class ThemeTest {
         ConfigurationNode node = CommentedConfigurationNode.root();
 
         assertThatThrownBy(() -> {
-                    node.node("colours", "accent").set("blue");
+                    node.node("roles", "accent").set("blue");
                     Theme.from(node);
                 })
                 .isInstanceOf(IllegalArgumentException.class)
@@ -292,16 +292,15 @@ class ThemeTest {
     }
 
     @Test
-    void theOldColoursBlockStillWorksAndARoleWins() throws ConfigurateException {
+    void theRolesAreReadFromTheRolesBlockAlone() throws ConfigurateException {
         ConfigurationNode node = CommentedConfigurationNode.root();
-        node.node("colours", "accent").set("#ff0000");
         node.node("colours", "value").set("#00ff00");
         node.node("roles", "accent").set("#0000ff");
 
         Theme theme = Theme.from(node);
 
         assertThat(theme.hex("accent")).isEqualTo("#0000ff");
-        assertThat(theme.hex("value")).isEqualTo("#00ff00");
+        assertThat(theme.hex("value")).isEqualTo(Theme.defaults().hex("value"));
     }
 
     @Test

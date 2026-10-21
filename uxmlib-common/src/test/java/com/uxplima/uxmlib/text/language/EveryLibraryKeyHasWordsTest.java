@@ -37,13 +37,6 @@ class EveryLibraryKeyHasWordsTest {
     /** Any {@code "gui.something"} literal, which is the shape every one of these keys is written in. */
     private static final Pattern KEY = Pattern.compile("\"(gui\\.[a-z0-9.-]+)\"");
 
-    /**
-     * The two names the dialog buttons carried before they were made generic. They are asked for only when the
-     * current name answers nothing, so shipping words for them here would mean the fallback could never fire
-     * and a catalogue still written against the old pair would silently lose its wording.
-     */
-    private static final Set<String> NOT_OURS_TO_ANSWER = Set.of("gui.input.dialog-submit", "gui.input.dialog-cancel");
-
     @Test
     void everyKeyTheEngineAsksForHasALineInEveryShippedLanguage() throws IOException {
         Set<String> asked = askedKeys();
@@ -100,7 +93,6 @@ class EveryLibraryKeyHasWordsTest {
                 }
             }
         }
-        keys.removeAll(NOT_OURS_TO_ANSWER);
         return keys;
     }
 }

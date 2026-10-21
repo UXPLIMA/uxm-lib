@@ -98,9 +98,6 @@ public final class Theme {
 
     private static final String SEPARATOR = "separator";
 
-    /** The block that held the roles before the palette existed. A file that still uses it keeps working. */
-    private static final String LEGACY_ROLES = "colours";
-
     private final Map<String, TextColor> roles;
     private final List<TextColor> wheel;
     private final Map<String, List<TextColor>> gradients;
@@ -284,13 +281,11 @@ public final class Theme {
     /**
      * The roles: the shipped ones, then every role the file writes applied on top.
      *
-     * <p>The map is open on purpose. A closed list would drop a role a server invented, silently, which is
-     * and the file would stop being the server's. The two blocks are read in order, so a file
-     * that still writes the old {@code colours} block keeps working and a {@code roles} entry wins.
+     * <p>The map is open on purpose. A closed list would drop a role a server invented, silently,
+     * and the file would stop being the server's.
      */
     private static Map<String, TextColor> roles(ConfigurationNode node, Map<String, TextColor> palette) {
         Map<String, TextColor> roles = new LinkedHashMap<>(DEFAULT_ROLES);
-        readColours(node.node(LEGACY_ROLES), palette, roles);
         readColours(node.node("roles"), palette, roles);
         return roles;
     }
@@ -319,19 +314,13 @@ public final class Theme {
     }
 
     /**
-     * Every glyph the file names, reading {@code prefix.separator} as well as {@code glyphs.separator}. The
-     * separator lived under the prefix block before the rest of the glyphs were configurable, so a file that
-     * still keeps it there is still read; a {@code glyphs.separator} wins over it.
+     * Every glyph the file names, the separator among them.
      *
      * <p>The map is open, like the roles. A name this library never heard of is still a glyph, so a file may
      * draw a part of an interface this library does not know about.
      */
     private static Map<String, String> glyphs(ConfigurationNode node) {
         Map<String, String> glyphs = new LinkedHashMap<>(DEFAULT_GLYPHS);
-        String legacySeparator = node.node("prefix", SEPARATOR).getString();
-        if (legacySeparator != null) {
-            glyphs.put(SEPARATOR, legacySeparator);
-        }
         for (Map.Entry<Object, ? extends ConfigurationNode> child :
                 node.node("glyphs").childrenMap().entrySet()) {
             String value = child.getValue().getString();

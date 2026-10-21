@@ -138,48 +138,28 @@ class DialogTextBackendTest {
         assertThat(words.asked).containsExactly(TextInput.SUBMIT_KEY, TextInput.CANCEL_KEY);
     }
 
-    // -- the pair of keys that was renamed --------------------------------------------------------------------
+    // -- the button words ----------------------------------------------------------------------------------------
 
     /**
-     * These two words were asked for under {@code gui.input.dialog-submit} and {@code gui.input.dialog-cancel}
-     * before the library collapsed the pair into the generic {@code gui.input.submit}/{@code gui.input.cancel}. A
-     * catalog written against the older pair answered the new key with the key itself, so a player opening a dialog
-     * prompt read the literal text {@code gui.input.submit} on the button, in every language. The rename now carries
-     * its own fallback: the older name is asked for when the catalog has no entry under the current one.
+     * The words are asked under the current pair only. These two were once asked under {@code gui.input.dialog-*}
+     * as well; that fallback is gone, so a catalog written against the older pair shows the current key on the
+     * button, which names the entry it has to add, and is never asked the older one.
      */
     @Test
-    void aCatalogStillCarryingTheOlderDialogKeysShowsItsWordsAndNotARawKey() {
+    void aCatalogStillCarryingTheOlderDialogKeysIsNotAskedThem() {
         PartialCatalog catalog =
-                new PartialCatalog(Map.of(TextInput.LEGACY_SUBMIT_KEY, "Confirm", TextInput.LEGACY_CANCEL_KEY, "Back"));
+                new PartialCatalog(Map.of("gui.input.dialog-submit", "Confirm", "gui.input.dialog-cancel", "Back"));
 
         new DialogTextBackend(prompt, catalog).open(viewer, Component.text("a name"), null, results::add);
 
-        assertThat(plain(prompt.submitLabel)).isEqualTo("Confirm");
-        assertThat(plain(prompt.cancelLabel)).isEqualTo("Back");
+        assertThat(plain(prompt.submitLabel)).isEqualTo(TextInput.SUBMIT_KEY);
+        assertThat(plain(prompt.cancelLabel)).isEqualTo(TextInput.CANCEL_KEY);
+        assertThat(catalog.asked).containsExactly(TextInput.SUBMIT_KEY, TextInput.CANCEL_KEY);
     }
 
-    /** A catalog that answers a blank for the current key has nothing under it either, so the older name is tried. */
+    /** The current key is the one the library asks for, and a catalog that answers it shows its own words. */
     @Test
-    void aCatalogAnsweringABlankUnderTheCurrentKeyFallsBackToTheOlderOne() {
-        PartialCatalog catalog = new PartialCatalog(Map.of(
-                TextInput.SUBMIT_KEY,
-                "",
-                TextInput.CANCEL_KEY,
-                "",
-                TextInput.LEGACY_SUBMIT_KEY,
-                "Confirm",
-                TextInput.LEGACY_CANCEL_KEY,
-                "Back"));
-
-        new DialogTextBackend(prompt, catalog).open(viewer, Component.text("a name"), null, results::add);
-
-        assertThat(plain(prompt.submitLabel)).isEqualTo("Confirm");
-        assertThat(plain(prompt.cancelLabel)).isEqualTo("Back");
-    }
-
-    /** The current key is the one the library asks for. A catalog that answers it is never asked the older name. */
-    @Test
-    void aCatalogCarryingTheCurrentKeysIsNeverAskedTheOlderPair() {
+    void aCatalogCarryingTheCurrentKeysShowsItsWords() {
         PartialCatalog catalog =
                 new PartialCatalog(Map.of(TextInput.SUBMIT_KEY, "Confirm", TextInput.CANCEL_KEY, "Back"));
 
@@ -191,11 +171,11 @@ class DialogTextBackendTest {
     }
 
     /**
-     * A catalog holding neither pair still shows the current key, which is the library's own convention for a word
+     * A catalog holding nothing for the buttons shows the current key, which is the library's own convention for a word
      * nobody wrote: the failure is on the button rather than swallowed, and it names the key to add.
      */
     @Test
-    void aCatalogCarryingNeitherPairShowsTheCurrentKeyRatherThanTheOlderOne() {
+    void aCatalogCarryingNoWordsShowsTheCurrentKey() {
         PartialCatalog catalog = new PartialCatalog(Map.of());
 
         new DialogTextBackend(prompt, catalog).open(viewer, Component.text("a name"), null, results::add);

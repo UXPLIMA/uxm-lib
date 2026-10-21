@@ -73,7 +73,7 @@ class StylerTest {
     void aNewPaletteReachesEverythingAlreadyHoldingTheStyler() throws ConfigurateException {
         Styler styler = new Styler(smallCapsInEnglish());
         ConfigurationNode node = CommentedConfigurationNode.root();
-        node.node("colours", "body").set("#ff0000");
+        node.node("roles", "body").set("#ff0000");
         node.node("small-caps", "en").set(true);
 
         styler.reload(Theme.from(node));
