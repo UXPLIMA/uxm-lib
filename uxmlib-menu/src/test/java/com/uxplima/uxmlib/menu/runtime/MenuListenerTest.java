@@ -29,7 +29,6 @@ import com.uxplima.uxmlib.menu.api.event.MenuClickEvent;
 import com.uxplima.uxmlib.menu.binding.ActionRegistry;
 import com.uxplima.uxmlib.menu.binding.ConditionRegistry;
 import com.uxplima.uxmlib.menu.binding.ListSourceRegistry;
-import com.uxplima.uxmlib.menu.binding.PagedListSourceRegistry;
 import com.uxplima.uxmlib.menu.binding.PlaceholderRegistry;
 import com.uxplima.uxmlib.menu.render.ItemRenderer;
 import com.uxplima.uxmlib.menu.render.MenuRenderer;
@@ -122,20 +121,9 @@ class MenuListenerTest {
     }
 
     private MenuListener listenerWithCooldown(long cooldownMs) {
-        return new MenuListener(
-                renderer(),
-                actions,
-                new ConditionRegistry(),
-                new SameThreadScheduler(),
-                plugin,
-                null,
-                null,
-                null,
-                cooldownMs,
-                now::get,
-                new PagedListSourceRegistry(),
-                null,
-                null);
+        return MenuListener.builder(renderer(), actions, new ConditionRegistry(), new SameThreadScheduler(), plugin)
+                .clickCooldown(cooldownMs, now::get)
+                .build();
     }
 
     @AfterEach

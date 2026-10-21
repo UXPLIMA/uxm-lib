@@ -187,20 +187,11 @@ class MenuListenerListControlTest {
                 com.uxplima.uxmlib.bedrock.BedrockDetector.NONE,
                 com.uxplima.uxmlib.bedrock.BedrockScreen.NONE,
                 paged);
-        listener = new MenuListener(
-                renderer,
-                actions,
-                new ConditionRegistry(),
-                scheduler,
-                plugin,
-                null,
-                null,
-                null,
-                0L,
-                () -> 1_000_000L,
-                paged,
-                prompt,
-                null);
+        listener = MenuListener.builder(renderer, actions, new ConditionRegistry(), scheduler, plugin)
+                .clickCooldown(0L, () -> 1_000_000L)
+                .pagedLists(paged)
+                .textPrompt(prompt)
+                .build();
     }
 
     @AfterEach
@@ -432,20 +423,10 @@ class MenuListenerListControlTest {
         registerCorpusSource();
         MenuRenderer renderer = new MenuRenderer(
                 new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()), new ConditionRegistry());
-        listener = new MenuListener(
-                renderer,
-                actions,
-                new ConditionRegistry(),
-                scheduler,
-                plugin,
-                null,
-                null,
-                null,
-                0L,
-                () -> 1_000_000L,
-                paged,
-                null,
-                null);
+        listener = MenuListener.builder(renderer, actions, new ConditionRegistry(), scheduler, plugin)
+                .clickCooldown(0L, () -> 1_000_000L)
+                .pagedLists(paged)
+                .build();
         open();
         int before = asked.size();
 
@@ -593,22 +574,18 @@ class MenuListenerListControlTest {
         registerCorpusSource();
         open();
         DeferringEntity deferring = new DeferringEntity();
-        listener = new MenuListener(
-                new MenuRenderer(
-                        new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()),
-                        new ConditionRegistry()),
-                actions,
-                new ConditionRegistry(),
-                deferring,
-                plugin,
-                null,
-                null,
-                null,
-                0L,
-                () -> 1_000_000L,
-                paged,
-                prompt,
-                null);
+        listener = MenuListener.builder(
+                        new MenuRenderer(
+                                new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()),
+                                new ConditionRegistry()),
+                        actions,
+                        new ConditionRegistry(),
+                        deferring,
+                        plugin)
+                .clickCooldown(0L, () -> 1_000_000L)
+                .pagedLists(paged)
+                .textPrompt(prompt)
+                .build();
 
         click(4);
         assertThat(prompt.opened)
@@ -646,22 +623,18 @@ class MenuListenerListControlTest {
 
     /** The engine under test, wired to {@code deferring} so both of its hops onto the viewer's thread are queued. */
     private MenuListener deferringListener(DeferringEntity deferring) {
-        return new MenuListener(
-                new MenuRenderer(
-                        new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()),
-                        new ConditionRegistry()),
-                actions,
-                new ConditionRegistry(),
-                deferring,
-                plugin,
-                null,
-                null,
-                null,
-                0L,
-                () -> 1_000_000L,
-                paged,
-                prompt,
-                null);
+        return MenuListener.builder(
+                        new MenuRenderer(
+                                new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry()),
+                                new ConditionRegistry()),
+                        actions,
+                        new ConditionRegistry(),
+                        deferring,
+                        plugin)
+                .clickCooldown(0L, () -> 1_000_000L)
+                .pagedLists(paged)
+                .textPrompt(prompt)
+                .build();
     }
 
     /**

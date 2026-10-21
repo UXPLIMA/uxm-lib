@@ -130,20 +130,10 @@ class MenuListenerPagedFlipTest {
                 com.uxplima.uxmlib.bedrock.BedrockDetector.NONE,
                 com.uxplima.uxmlib.bedrock.BedrockScreen.NONE,
                 paged);
-        listener = new MenuListener(
-                renderer,
-                new ActionRegistry(),
-                new ConditionRegistry(),
-                scheduler,
-                plugin,
-                null,
-                null,
-                null,
-                0L,
-                () -> 1_000_000L,
-                paged,
-                null,
-                null);
+        listener = MenuListener.builder(renderer, new ActionRegistry(), new ConditionRegistry(), scheduler, plugin)
+                .clickCooldown(0L, () -> 1_000_000L)
+                .pagedLists(paged)
+                .build();
     }
 
     @AfterEach

@@ -25,7 +25,6 @@ import com.uxplima.uxmlib.menu.binding.ActionRegistry;
 import com.uxplima.uxmlib.menu.binding.ConditionRegistry;
 import com.uxplima.uxmlib.menu.binding.ContentProviderRegistry;
 import com.uxplima.uxmlib.menu.binding.ListSourceRegistry;
-import com.uxplima.uxmlib.menu.binding.PagedListSourceRegistry;
 import com.uxplima.uxmlib.menu.binding.PlaceholderRegistry;
 import com.uxplima.uxmlib.menu.providers.ContentClick;
 import com.uxplima.uxmlib.menu.providers.ContentProvider;
@@ -170,20 +169,10 @@ class MenuListenerContentTest {
                 contents);
         SameThreadScheduler scheduler = new SameThreadScheduler();
         menus = new Menus(renderer, scheduler, new ListSourceRegistry());
-        listener = new MenuListener(
-                renderer,
-                new ActionRegistry(),
-                new ConditionRegistry(),
-                scheduler,
-                plugin,
-                null,
-                null,
-                null,
-                0L,
-                () -> 1_000_000L,
-                new PagedListSourceRegistry(),
-                null,
-                contents);
+        listener = MenuListener.builder(renderer, new ActionRegistry(), new ConditionRegistry(), scheduler, plugin)
+                .clickCooldown(0L, () -> 1_000_000L)
+                .contents(contents)
+                .build();
     }
 
     @AfterEach

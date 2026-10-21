@@ -175,238 +175,148 @@ public final class MenuListener implements Listener {
      */
     private final LongSupplier clock;
 
+    /**
+     * A listener with nothing optional: no editors, no child windows, no click floor, no paged sources, no text prompt
+     * and no content regions. A menu that needs none of those routes through it fully; {@link #builder} adds them.
+     */
     public MenuListener(
             MenuRenderer renderer,
             ActionRegistry actions,
             ConditionRegistry conditions,
             Scheduler scheduler,
             Plugin plugin) {
-        this(renderer, actions, conditions, scheduler, plugin, null, null, null);
+        this(builder(renderer, actions, conditions, scheduler, plugin));
     }
 
-    public MenuListener(
+    private MenuListener(Builder builder) {
+        this.renderer = builder.renderer;
+        this.actions = builder.actions;
+        this.conditions = builder.conditions;
+        this.scheduler = builder.scheduler;
+        this.plugin = builder.plugin;
+        this.editorRenderer = builder.editorRenderer;
+        this.selectorOpener = builder.selectorOpener;
+        this.confirmOpener = builder.confirmOpener;
+        this.defaultClickCooldownMs = builder.defaultClickCooldownMs;
+        this.clock = builder.clock;
+        this.pagedLists = builder.pagedLists;
+        this.textPrompt = builder.textPrompt;
+        this.contents = builder.contents;
+        this.feedback = new MenuFeedback(builder.sounds, builder.speaksForItself);
+    }
+
+    /** A listener over the five parts every menu needs, with each optional part set on the builder. */
+    public static Builder builder(
             MenuRenderer renderer,
             ActionRegistry actions,
             ConditionRegistry conditions,
             Scheduler scheduler,
-            Plugin plugin,
-            @Nullable EditorRenderer editorRenderer) {
-        this(renderer, actions, conditions, scheduler, plugin, editorRenderer, null, null);
-    }
-
-    public MenuListener(
-            MenuRenderer renderer,
-            ActionRegistry actions,
-            ConditionRegistry conditions,
-            Scheduler scheduler,
-            Plugin plugin,
-            @Nullable EditorRenderer editorRenderer,
-            @Nullable SelectorOpener selectorOpener) {
-        this(renderer, actions, conditions, scheduler, plugin, editorRenderer, selectorOpener, null);
-    }
-
-    public MenuListener(
-            MenuRenderer renderer,
-            ActionRegistry actions,
-            ConditionRegistry conditions,
-            Scheduler scheduler,
-            Plugin plugin,
-            @Nullable EditorRenderer editorRenderer,
-            @Nullable SelectorOpener selectorOpener,
-            @Nullable ConfirmOpener confirmOpener) {
-        this(
-                renderer,
-                actions,
-                conditions,
-                scheduler,
-                plugin,
-                editorRenderer,
-                selectorOpener,
-                confirmOpener,
-                0L,
-                System::currentTimeMillis);
+            Plugin plugin) {
+        return new Builder(renderer, actions, conditions, scheduler, plugin);
     }
 
     /**
-     * The anti-spam-aware form carrying the cooldown floor and its clock, kept so every existing construction and test
-     * (all of which predate paged sources) compiles unchanged. Delegates to the canonical constructor with an empty
-     * {@link PagedListSourceRegistry}, so a listener built here can never flip a paged list (no menu it routes carries
-     * a paged view) and a flip stays the synchronous cache re-slice it always was.
+     * The optional parts of a {@link MenuListener}. Each one left unset is the absence the field documents: no editor,
+     * no child window, no click floor on the real clock, no paged source, no text prompt, no content region, the
+     * shipped sounds and a rule that keeps nothing quiet.
      */
-    public MenuListener(
-            MenuRenderer renderer,
-            ActionRegistry actions,
-            ConditionRegistry conditions,
-            Scheduler scheduler,
-            Plugin plugin,
-            @Nullable EditorRenderer editorRenderer,
-            @Nullable SelectorOpener selectorOpener,
-            @Nullable ConfirmOpener confirmOpener,
-            long defaultClickCooldownMs,
-            LongSupplier clock) {
-        this(
-                renderer,
-                actions,
-                conditions,
-                scheduler,
-                plugin,
-                editorRenderer,
-                selectorOpener,
-                confirmOpener,
-                defaultClickCooldownMs,
-                clock,
-                new PagedListSourceRegistry(),
-                null);
-    }
+    public static final class Builder {
 
-    /**
-     * The paged-source-aware form, kept so every construction and test that predates the text-input seam compiles
-     * unchanged. Delegates to the canonical constructor with no text prompt, so a listener built here cannot drive an
-     * {@code input:} step (it runs that step's cancel refs instead): no menu such a listener routes carries one.
-     */
-    public MenuListener(
-            MenuRenderer renderer,
-            ActionRegistry actions,
-            ConditionRegistry conditions,
-            Scheduler scheduler,
-            Plugin plugin,
-            @Nullable EditorRenderer editorRenderer,
-            @Nullable SelectorOpener selectorOpener,
-            @Nullable ConfirmOpener confirmOpener,
-            long defaultClickCooldownMs,
-            LongSupplier clock,
-            PagedListSourceRegistry pagedLists) {
-        this(
-                renderer,
-                actions,
-                conditions,
-                scheduler,
-                plugin,
-                editorRenderer,
-                selectorOpener,
-                confirmOpener,
-                defaultClickCooldownMs,
-                clock,
-                pagedLists,
-                null);
-    }
+        private final MenuRenderer renderer;
+        private final ActionRegistry actions;
+        private final ConditionRegistry conditions;
+        private final Scheduler scheduler;
+        private final Plugin plugin;
+        private @Nullable EditorRenderer editorRenderer;
+        private @Nullable SelectorOpener selectorOpener;
+        private @Nullable ConfirmOpener confirmOpener;
+        private long defaultClickCooldownMs;
+        private LongSupplier clock = System::currentTimeMillis;
+        private PagedListSourceRegistry pagedLists = new PagedListSourceRegistry();
+        private @Nullable MenuTextPrompt textPrompt;
+        private @Nullable ContentProviderRegistry contents;
+        private MenuSounds sounds = MenuSounds.defaults();
+        private Predicate<List<Ref>> speaksForItself = MenuFeedback.SUPPRESSES_NOTHING;
 
-    /**
-     * The canonical constructor, carrying the anti-spam cooldown floor, its clock, the paged list sources a page flip
-     * re-queries, and the text-prompt capability an {@code input:} step drives. Every shorter form above delegates here
-     * with no floor, the real system clock, an empty paged registry and no text prompt, so every existing construction
-     * and test is unchanged; only production wiring, which holds the feature-populated paged registry and the
-     * text-input seam, passes them.
-     */
-    public MenuListener(
-            MenuRenderer renderer,
-            ActionRegistry actions,
-            ConditionRegistry conditions,
-            Scheduler scheduler,
-            Plugin plugin,
-            @Nullable EditorRenderer editorRenderer,
-            @Nullable SelectorOpener selectorOpener,
-            @Nullable ConfirmOpener confirmOpener,
-            long defaultClickCooldownMs,
-            LongSupplier clock,
-            PagedListSourceRegistry pagedLists,
-            @Nullable MenuTextPrompt textPrompt) {
-        this(
-                renderer,
-                actions,
-                conditions,
-                scheduler,
-                plugin,
-                editorRenderer,
-                selectorOpener,
-                confirmOpener,
-                defaultClickCooldownMs,
-                clock,
-                pagedLists,
-                textPrompt,
-                null);
-    }
-
-    /**
-     * The canonical constructor, carrying on top of everything above the content-region providers a menu's live-item
-     * slots are filled and policed by. Every shorter form delegates here with none, so a menu with no {@code content
-     * {}} block (every menu before this seam existed) routes exactly as before.
-     */
-    public MenuListener(
-            MenuRenderer renderer,
-            ActionRegistry actions,
-            ConditionRegistry conditions,
-            Scheduler scheduler,
-            Plugin plugin,
-            @Nullable EditorRenderer editorRenderer,
-            @Nullable SelectorOpener selectorOpener,
-            @Nullable ConfirmOpener confirmOpener,
-            long defaultClickCooldownMs,
-            LongSupplier clock,
-            PagedListSourceRegistry pagedLists,
-            @Nullable MenuTextPrompt textPrompt,
-            @Nullable ContentProviderRegistry contents) {
-        this(
-                renderer,
-                actions,
-                conditions,
-                scheduler,
-                plugin,
-                editorRenderer,
-                selectorOpener,
-                confirmOpener,
-                defaultClickCooldownMs,
-                clock,
-                pagedLists,
-                textPrompt,
-                contents,
-                MenuSounds.defaults(),
-                MenuFeedback.SUPPRESSES_NOTHING);
-    }
-
-    /**
-     * The canonical constructor, carrying on top of everything above the sounds a menu plays and the rule that decides
-     * when the engine keeps quiet because a gesture already speaks for itself. Every shorter form delegates to the one
-     * above with the engine's own shipped sounds and a rule that suppresses nothing, so a host that wires neither
-     * sounds exactly as it did.
-     *
-     * <p>{@code speaksForItself} is asked of a gesture's own action list. The engine cannot answer it, because an
-     * action id belongs to the vocabulary a host registered and a library holding a copy of one consumer's action
-     * names would go quietly wrong the day that consumer adds or renames one.
-     */
-    public MenuListener(
-            MenuRenderer renderer,
-            ActionRegistry actions,
-            ConditionRegistry conditions,
-            Scheduler scheduler,
-            Plugin plugin,
-            @Nullable EditorRenderer editorRenderer,
-            @Nullable SelectorOpener selectorOpener,
-            @Nullable ConfirmOpener confirmOpener,
-            long defaultClickCooldownMs,
-            LongSupplier clock,
-            PagedListSourceRegistry pagedLists,
-            @Nullable MenuTextPrompt textPrompt,
-            @Nullable ContentProviderRegistry contents,
-            MenuSounds sounds,
-            Predicate<List<Ref>> speaksForItself) {
-        this.renderer = Objects.requireNonNull(renderer, "renderer");
-        this.actions = Objects.requireNonNull(actions, "actions");
-        this.conditions = Objects.requireNonNull(conditions, "conditions");
-        this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
-        this.plugin = Objects.requireNonNull(plugin, "plugin");
-        this.editorRenderer = editorRenderer;
-        this.selectorOpener = selectorOpener;
-        this.confirmOpener = confirmOpener;
-        if (defaultClickCooldownMs < 0) {
-            throw new IllegalArgumentException("defaultClickCooldownMs must be >= 0: " + defaultClickCooldownMs);
+        private Builder(
+                MenuRenderer renderer,
+                ActionRegistry actions,
+                ConditionRegistry conditions,
+                Scheduler scheduler,
+                Plugin plugin) {
+            this.renderer = Objects.requireNonNull(renderer, "renderer");
+            this.actions = Objects.requireNonNull(actions, "actions");
+            this.conditions = Objects.requireNonNull(conditions, "conditions");
+            this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
+            this.plugin = Objects.requireNonNull(plugin, "plugin");
         }
-        this.defaultClickCooldownMs = defaultClickCooldownMs;
-        this.clock = Objects.requireNonNull(clock, "clock");
-        this.pagedLists = Objects.requireNonNull(pagedLists, "pagedLists");
-        this.textPrompt = textPrompt;
-        this.contents = contents;
-        this.feedback = new MenuFeedback(sounds, speaksForItself);
+
+        /** The renderer a property's reopen hook repaints a typed editor through. */
+        public Builder editorRenderer(@Nullable EditorRenderer editorRenderer) {
+            this.editorRenderer = editorRenderer;
+            return this;
+        }
+
+        /** The opener a property's click hook shows its picker through, as an engine child window. */
+        public Builder selectorOpener(@Nullable SelectorOpener selectorOpener) {
+            this.selectorOpener = selectorOpener;
+            return this;
+        }
+
+        /** The opener a {@code confirm:} step and a destructive property step show their confirm window through. */
+        public Builder confirmOpener(@Nullable ConfirmOpener confirmOpener) {
+            this.confirmOpener = confirmOpener;
+            return this;
+        }
+
+        /**
+         * The server-wide click floor in milliseconds, measured against {@code clock}. A menu that sets its own
+         * {@code click-cooldown} overrides it, and {@code 0} means no throttling.
+         *
+         * @throws IllegalArgumentException when {@code milliseconds} is negative
+         */
+        public Builder clickCooldown(long milliseconds, LongSupplier clock) {
+            if (milliseconds < 0) {
+                throw new IllegalArgumentException("the click cooldown must be >= 0: " + milliseconds);
+            }
+            this.defaultClickCooldownMs = milliseconds;
+            this.clock = Objects.requireNonNull(clock, "clock");
+            return this;
+        }
+
+        /** The streaming list sources a page flip re-queries. */
+        public Builder pagedLists(PagedListSourceRegistry pagedLists) {
+            this.pagedLists = Objects.requireNonNull(pagedLists, "pagedLists");
+            return this;
+        }
+
+        /** The text prompt an {@code input:} step drives. */
+        public Builder textPrompt(@Nullable MenuTextPrompt textPrompt) {
+            this.textPrompt = textPrompt;
+            return this;
+        }
+
+        /** The providers behind a menu's {@code content {}} regions. */
+        public Builder contents(@Nullable ContentProviderRegistry contents) {
+            this.contents = contents;
+            return this;
+        }
+
+        /**
+         * The sounds a menu plays, and the rule that keeps the engine quiet when a gesture already speaks for itself.
+         * The rule is asked of a gesture's own action list, because an action id belongs to the vocabulary the host
+         * registered and only the host knows which of its ids already play a sound.
+         */
+        public Builder feedback(MenuSounds sounds, Predicate<List<Ref>> speaksForItself) {
+            this.sounds = Objects.requireNonNull(sounds, "sounds");
+            this.speaksForItself = Objects.requireNonNull(speaksForItself, "speaksForItself");
+            return this;
+        }
+
+        /** The listener, ready for {@link MenuListener#install}. */
+        public MenuListener build() {
+            return new MenuListener(this);
+        }
     }
 
     /** Registers this listener with the server. Called once when the menu engine starts. */

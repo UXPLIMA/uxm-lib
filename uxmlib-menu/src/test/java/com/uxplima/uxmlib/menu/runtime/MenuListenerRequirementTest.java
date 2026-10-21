@@ -21,7 +21,6 @@ import com.uxplima.uxmlib.menu.Menus;
 import com.uxplima.uxmlib.menu.binding.ActionRegistry;
 import com.uxplima.uxmlib.menu.binding.ConditionRegistry;
 import com.uxplima.uxmlib.menu.binding.ListSourceRegistry;
-import com.uxplima.uxmlib.menu.binding.PagedListSourceRegistry;
 import com.uxplima.uxmlib.menu.binding.PlaceholderRegistry;
 import com.uxplima.uxmlib.menu.render.ItemRenderer;
 import com.uxplima.uxmlib.menu.render.MenuRenderer;
@@ -90,20 +89,9 @@ class MenuListenerRequirementTest {
         });
 
         menus = new Menus(renderer(), new SameThreadScheduler(), new ListSourceRegistry());
-        listener = new MenuListener(
-                renderer(),
-                actions,
-                conditions,
-                new SameThreadScheduler(),
-                plugin,
-                null,
-                null,
-                null,
-                0L,
-                () -> 1_000_000L,
-                new PagedListSourceRegistry(),
-                null,
-                null);
+        listener = MenuListener.builder(renderer(), actions, conditions, new SameThreadScheduler(), plugin)
+                .clickCooldown(0L, () -> 1_000_000L)
+                .build();
     }
 
     private static MenuRenderer renderer() {
