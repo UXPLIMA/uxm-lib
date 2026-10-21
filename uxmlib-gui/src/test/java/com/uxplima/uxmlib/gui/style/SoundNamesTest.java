@@ -40,6 +40,15 @@ class SoundNamesTest {
         assertThat(SoundNames.key("BLOCK_NOTE_BLOCK_PLING")).isEqualTo(SoundNames.key("block.note_block.pling"));
     }
 
+    /**
+     * A constant written in lower case is the same constant. The library's other sound reader already takes it, and
+     * one file read by both must not play through one and fall silent through the other.
+     */
+    @Test
+    void aConstantInLowerCaseIsTheSameConstant() {
+        assertThat(SoundNames.key("block_note_block_pling")).isEqualTo(SoundNames.key("block.note_block.pling"));
+    }
+
     /** The fold runs dots to underscores, so a name with several of them is one sound and not a prefix match. */
     @Test
     void everyDotOfTheKeyIsOneUnderscoreOfTheConstant() {

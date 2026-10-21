@@ -4,12 +4,10 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
 
-import org.bukkit.Registry;
-
 import net.kyori.adventure.key.Key;
 
+import com.uxplima.uxmlib.common.Sounds;
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 
 /**
  * The two ways an operator writes a sound, and the one key both of them name.
@@ -73,14 +71,11 @@ public final class SoundNames {
         return name.indexOf('.') >= 0 || name.indexOf(':') >= 0;
     }
 
-    /** The key of the sound this server calls {@code name}, or empty when it calls nothing that. */
+    /**
+     * The key of the sound this server calls {@code name}, or empty when it calls nothing that. {@link Sounds} holds
+     * the one table of constant names, built once and read in any case.
+     */
     private static Optional<Key> constant(String name) {
-        for (org.bukkit.Sound sound : Registry.SOUND_EVENT) {
-            @Nullable Key key = Registry.SOUND_EVENT.getKey(sound);
-            if (key != null && name.equals(key.value().replace('.', '_').toUpperCase(Locale.ROOT))) {
-                return Optional.of(key);
-            }
-        }
-        return Optional.empty();
+        return Sounds.keyOf(name).map(Key::key);
     }
 }
