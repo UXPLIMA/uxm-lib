@@ -29,6 +29,8 @@ public final class HologramManager {
 
     private final String owner;
 
+    private volatile boolean adoptsUnowned;
+
     /**
      * A manager whose holograms carry no owner. Its {@link #sweepOrphans} removes only leftovers that carry none
      * either, so it never touches another plugin's. Prefer {@link #HologramManager(String)}.
@@ -46,6 +48,17 @@ public final class HologramManager {
     public HologramManager(String owner) {
         this.owner = Objects.requireNonNull(owner, "owner");
         registerLifecycle(new ViewerInvalidation());
+    }
+
+    /**
+     * Also take, as this plugin's leftovers, the persistent hologram entities that carry no owner. They were marked
+     * before owners were recorded, so no manager with an owner would ever claim them, and each one stays in the world
+     * under the hologram that replaced it. Call it in a plugin that spawned persistent holograms then. A hologram
+     * spawned with no owner now is not persistent, so a live one is never taken. Returns this manager.
+     */
+    public HologramManager adoptUnownedLeftovers() {
+        adoptsUnowned = true;
+        return this;
     }
 
     /** Spawn {@code builder} at {@code location} and track the result. Must run on the region thread. */
@@ -219,7 +232,7 @@ public final class HologramManager {
         Set<UUID> live = trackedEntities();
         int swept = 0;
         for (org.bukkit.entity.Display display : world.getEntitiesByClass(org.bukkit.entity.Display.class)) {
-            if (isOrphanOf(display, owner, live)) {
+            if (isLeftover(display, live)) {
                 display.remove();
                 swept++;
             }
@@ -260,10 +273,20 @@ public final class HologramManager {
     void sweepIfLeftover(List<? extends org.bukkit.entity.Entity> loaded) {
         Set<UUID> live = trackedEntities();
         for (org.bukkit.entity.Entity entity : loaded) {
-            if (isOrphanOf(entity, owner, live)) {
+            if (isLeftover(entity, live)) {
                 entity.remove();
             }
         }
+    }
+
+    /** Whether {@code entity} is a leftover of this manager, or one with no owner that it adopted. */
+    private boolean isLeftover(org.bukkit.entity.Entity entity, Set<UUID> live) {
+        return isOrphanOf(entity, owner, live)
+                || (adoptsUnowned
+                        && entity.isPersistent()
+                        && Markers.isHologram(entity)
+                        && Markers.ownerOf(entity).isEmpty()
+                        && !live.contains(entity.getUniqueId()));
     }
 
     /** Whether {@code entity} is a hologram {@code owner} left behind: marked, owned by it, and not live. */

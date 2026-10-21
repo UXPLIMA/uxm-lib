@@ -102,4 +102,37 @@ class HologramOwnerSweepTest {
                         () -> new HologramManager().sweepLeftoversAsTheyLoad(MockBukkit.createMockPlugin()))
                 .isInstanceOf(IllegalStateException.class);
     }
+
+    /**
+     * A hologram marked before owners were recorded carries none, and a manager with an owner could never claim it,
+     * so it stood in the world for good under the live one and showed through it. A plugin that spawned holograms
+     * then adopts them: a persistent one with no owner is a leftover. One spawned with no owner today is not
+     * persistent, so a live one is kept, and so is another plugin's.
+     */
+    @Test
+    void anAdoptingManagerSweepsPersistentLeftoversThatCarryNoOwner() {
+        HologramManager manager = new HologramManager("PluginA").adoptUnownedLeftovers();
+        Entity old = marked("");
+        old.setPersistent(true);
+        Entity liveWithoutOwner = marked("");
+        liveWithoutOwner.setPersistent(false);
+        Entity theirs = marked("PluginB");
+
+        manager.sweepIfLeftover(java.util.List.of(old, liveWithoutOwner, theirs));
+
+        assertThat(old.isValid()).isFalse();
+        assertThat(liveWithoutOwner.isValid()).isTrue();
+        assertThat(theirs.isValid()).isTrue();
+    }
+
+    @Test
+    void aManagerThatDoesNotAdoptKeepsLeftoversThatCarryNoOwner() {
+        HologramManager manager = new HologramManager("PluginA");
+        Entity old = marked("");
+        old.setPersistent(true);
+
+        manager.sweepIfLeftover(java.util.List.of(old));
+
+        assertThat(old.isValid()).isTrue();
+    }
 }
