@@ -28,7 +28,7 @@ import org.jspecify.annotations.Nullable;
  * <p>A {@code ServerPlayer} object graph can expose more than one {@link Channel}-typed reference (an
  * embedded/local channel for integrated-server play, a wrapped child channel), so the walk does not blindly
  * take the first Channel it sees: it prefers a channel whose pipeline actually carries the gameplay
- * {@code anchor} handler (the vanilla {@code "decoder"}), and only falls back to the first open channel when
+ * {@code anchor} handler (the vanilla {@code "encoder"}), and only falls back to the first open channel when
  * no anchor-bearing one is found. That keeps the interceptor from anchoring onto a channel that never sees
  * gameplay packets.
  *
@@ -43,14 +43,14 @@ public final class ChannelResolver {
 
     private final String anchorName;
 
-    /** Resolve preferring a channel whose pipeline carries the default {@code "decoder"} anchor. */
+    /** Resolve preferring a channel whose pipeline carries the default {@code "encoder"} anchor. */
     public ChannelResolver() {
         this(PacketPipeline.DEFAULT_ANCHOR);
     }
 
     /**
      * @param anchorName the pipeline handler a gameplay channel must contain to be preferred over any other
-     *     open channel reachable in the object graph (e.g. {@code "decoder"})
+     *     open channel reachable in the object graph (e.g. {@code "encoder"})
      */
     public ChannelResolver(String anchorName) {
         this.anchorName = Objects.requireNonNull(anchorName, "anchorName");

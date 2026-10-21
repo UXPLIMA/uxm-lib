@@ -19,8 +19,11 @@ import org.jspecify.annotations.Nullable;
  * position with a {@link PipelineWatchdog} pass when other plugins splice ahead of it.
  *
  * <p>Anchoring is by handler <em>name</em>, not index: our duplex handler is added immediately after the
- * vanilla {@code "decoder"} (so it sees fully-formed packet objects in both directions) under a stable name
- * derived from {@code handlerName}. Every pipeline mutation is idempotent: a re-inject that finds the
+ * vanilla {@code "encoder"}, under a stable name derived from {@code handlerName}. That is the one place a
+ * packet is a packet in both directions. A packet the server sends is written at the tail and runs towards the
+ * head, so it is still a packet object (and already out of its bundle) until the encoder turns it into bytes;
+ * a packet the client sends runs from the head and is a packet once the decoder has read it, which is before
+ * this point. A handler after the decoder sees the client's packets and only bytes of the server's. Every pipeline mutation is idempotent: a re-inject that finds the
  * handler already present is a no-op, and an eject that finds it gone is silent, so join/quit/reorder
  * choreography can call these freely without double-add or double-remove crashes.
  *
@@ -31,8 +34,8 @@ import org.jspecify.annotations.Nullable;
  */
 public class PacketPipeline {
 
-    /** The vanilla handler our duplex handler sits immediately after; stable across 1.21.x. */
-    public static final String DEFAULT_ANCHOR = "decoder";
+    /** The vanilla handler our duplex handler sits immediately after, towards the tail. */
+    public static final String DEFAULT_ANCHOR = "encoder";
 
     private final ChannelResolver resolver;
     private final PacketListenerRegistry registry;
@@ -63,7 +66,7 @@ public class PacketPipeline {
     }
 
     /**
-     * Inject our interceptor into {@code player}'s pipeline, immediately after the {@code "decoder"} anchor.
+     * Inject our interceptor into {@code player}'s pipeline, immediately after the {@code "encoder"} anchor.
      * Idempotent. Returns {@code false} (no throw) if the channel cannot be resolved or the anchor is absent.
      */
     public boolean inject(Player player) {

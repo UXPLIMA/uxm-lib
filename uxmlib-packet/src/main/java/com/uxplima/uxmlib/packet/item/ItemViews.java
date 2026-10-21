@@ -33,7 +33,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>This is the whole plumbing a consumer would otherwise write again: a channel resolver, a listener
  * registry, the inject on join, the eject on quit, the players already online when the plugin enables, and
- * the delayed reorder pass that puts our handler back after the vanilla decoder when another plugin splices
+ * the delayed reorder pass that puts our handler back after the vanilla encoder when another plugin splices
  * ahead of it. {@code uxmlib-pipeline} deliberately leaves that choreography to its caller; this is the
  * caller for the item case.
  *

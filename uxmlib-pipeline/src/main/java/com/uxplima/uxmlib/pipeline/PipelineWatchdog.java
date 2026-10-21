@@ -25,7 +25,7 @@ public final class PipelineWatchdog {
     /**
      * @param handlerName the name our handler is registered under in the pipeline
      * @param anchorName the name of the stable vanilla handler ours must sit immediately after (e.g.
-     *     {@code "decoder"})
+     *     {@code "encoder"})
      */
     public PipelineWatchdog(String handlerName, String anchorName) {
         this.handlerName = requireNonBlank(handlerName, "handlerName");
