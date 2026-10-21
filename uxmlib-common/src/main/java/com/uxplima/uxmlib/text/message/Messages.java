@@ -7,8 +7,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.bukkit.entity.Player;
-
 import net.kyori.adventure.audience.Audience;
 import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.text.Component;
@@ -387,7 +385,7 @@ public final class Messages {
         if (named.isPresent()) {
             return named;
         }
-        return viewer instanceof Player player ? Optional.ofNullable(player.getName()) : Optional.empty();
+        return BukkitViewers.nameOf(viewer);
     }
 
     private static Message channel(Content snapshot, MessageKey key) {

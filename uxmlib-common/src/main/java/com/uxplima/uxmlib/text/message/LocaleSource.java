@@ -42,13 +42,10 @@ public interface LocaleSource {
         @Override
         public Locale localeOf(Audience viewer) {
             Objects.requireNonNull(viewer, "viewer");
-            if (viewer instanceof Player player) {
-                // Paper says never null, and a player still joining, or one a test mocks, answers it anyway:
-                // the catalogue then looked up a null locale and the line was lost.
-                Locale own = player.locale();
-                return own != null ? own : defaultLocale;
-            }
-            return defaultLocale;
+            // A player still joining, or one a test mocks, answers null: the catalogue then looked up a null
+            // locale and the line was lost. Anything that is not a Bukkit player, a proxy's own included, has none.
+            Locale own = BukkitViewers.localeOf(viewer);
+            return own != null ? own : defaultLocale;
         }
     }
 }
