@@ -44,7 +44,8 @@ public final class StyleTokens {
      * a colour of its own: {@code <h:'HOME':good>} or {@code <h:'HOME':4>}.
      */
     private static final Pattern LABELLED = Pattern.compile(
-            "<(tag|etag|h|g):(?:'([^']*)'|\"([^\"]*)\"|([^:>]*))(?::([a-z0-9_-]+))?>", Pattern.CASE_INSENSITIVE);
+            "(?<!\\\\)<(tag|etag|h|g):(?:'([^']*)'|\"([^\"]*)\"|([^:>]*))(?::([a-z0-9_-]+))?>",
+            Pattern.CASE_INSENSITIVE);
 
     /** The gradient a {@code <h:>} header is painted with, when the theme names one. */
     private static final String HEADER = "header";
@@ -57,8 +58,9 @@ public final class StyleTokens {
      *
      * <p>Digits and dashes are allowed because the roles of a theme are the server's own names, not a list
      * this class holds. A word that is not a role of the theme is left alone, so somebody else's tag survives.
+     * A tag escaped with a backslash is text somebody typed, so neither pattern reads one.
      */
-    private static final Pattern COLOUR = Pattern.compile("</?([a-z0-9_-]+)>");
+    private static final Pattern COLOUR = Pattern.compile("(?<!\\\\)</?([a-z0-9_-]+)>");
 
     private StyleTokens() {}
 

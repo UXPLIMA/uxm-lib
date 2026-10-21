@@ -72,6 +72,17 @@ class StyleTokensTest {
     }
 
     /**
+     * An escaped tag is text a player typed, and it stays the text they typed. Expanded, {@code \\<accent>} became
+     * {@code \\<color:#55ffff>} and the player read a hex code where they had written a word.
+     */
+    @Test
+    void anEscapedTokenIsLeftAsText() {
+        assertThat(StyleTokens.expand("\\<accent>hi\\</accent>", theme, false)).isEqualTo("\\<accent>hi\\</accent>");
+        assertThat(StyleTokens.expand("\\<h:'Warps'> <accent>x", theme, false))
+                .isEqualTo("\\<h:'Warps'> <color:#55ffff>x");
+    }
+
+    /**
      * A theme may put every label in small capitals, in a language not written in them too, where each letter of the
      * label has one. A label half converted reads worse than one left alone, so one with a letter that has none keeps
      * its letters.
