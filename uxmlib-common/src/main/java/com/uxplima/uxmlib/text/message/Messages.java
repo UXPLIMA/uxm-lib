@@ -130,6 +130,24 @@ public final class Messages {
     }
 
     /**
+     * {@link #render(Audience, MessageKey, TagResolver...)} for a caller that knows the language and not the viewer:
+     * an item view drawing on a network thread, where the player object is not to be touched. {@code viewerName}
+     * fills {@code <player>} when given.
+     */
+    public Component render(Locale locale, @Nullable String viewerName, MessageKey key, TagResolver... resolvers) {
+        Objects.requireNonNull(locale, "locale");
+        Objects.requireNonNull(key, "key");
+        Objects.requireNonNull(resolvers, "resolvers");
+        Content snapshot = content;
+        return parse(
+                snapshot,
+                Optional.ofNullable(viewerName),
+                key.path(),
+                snapshot.catalog().template(key, locale),
+                resolvers);
+    }
+
+    /**
      * Draw one line from a configuration file for {@code viewer}. A line written as {@code @key name=value} reads
      * that catalogue entry in the viewer's language, its {@code {name}} tokens and {@code <name>} tags filled from
      * the arguments; any other line is drawn as written. Both go through the house style every catalogue line

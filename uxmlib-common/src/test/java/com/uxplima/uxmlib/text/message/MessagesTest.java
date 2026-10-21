@@ -268,6 +268,28 @@ class MessagesTest {
         assertThat(paintedWith(shown.subtitle(), NamedTextColor.BLUE)).isTrue();
     }
 
+    /**
+     * A caller that knows the language and not the player, such as an item view drawing on a network thread, reads
+     * the same key the viewer would: the entry in that language, the base style, the caller's values, and
+     * {@code <player>} filled when a name is given.
+     */
+    @Test
+    void aKeyRendersForALanguageAsWellAsForAViewer() {
+        MessageCatalog catalog = new MessageCatalog(
+                Map.of(
+                        Locale.ENGLISH, Map.of("join.welcome", "<accent>Welcome <name>, <player>"),
+                        Locale.GERMAN, Map.of("join.welcome", "<accent>Servus <name>, <player>")),
+                Locale.ENGLISH);
+        Messages messages = new Messages(catalog, LocaleSource.ofDefault(Locale.ENGLISH), Map.of(), accent());
+
+        Component german = messages.render(Locale.GERMAN, "Ayse", WELCOME, Text.placeholder("name", "Alex"));
+        Component nameless = messages.render(Locale.ENGLISH, null, WELCOME, Text.placeholder("name", "Alex"));
+
+        assertThat(Text.plain(german)).isEqualTo("Servus Alex, Ayse");
+        assertThat(paintedWith(german, NamedTextColor.BLUE)).isTrue();
+        assertThat(Text.plain(nameless)).startsWith("Welcome Alex, ");
+    }
+
     @Test
     void reloadingSwapsTheWordsForAnInstanceThatIsAlreadyInjectedEverywhere() {
         PlayerMock player = server.addPlayer();
