@@ -15,7 +15,7 @@ import org.jspecify.annotations.Nullable;
  * can drive a frame with {@link #tick()} and see that the handle was cancelled. Every family the hologram must
  * not use throws, so reaching for the wrong thread is caught here rather than on a live server.
  */
-final class FakeRegionScheduler implements Scheduler {
+public final class FakeRegionScheduler implements Scheduler {
 
     private @Nullable Runnable firstFrame;
     private @Nullable Consumer<TaskHandle> timerTask;
@@ -49,7 +49,7 @@ final class FakeRegionScheduler implements Scheduler {
     }
 
     /** Run the first frame the hologram scheduled onto the anchor's region. */
-    void firstFrame() {
+    public void firstFrame() {
         Runnable task = firstFrame;
         if (task != null) {
             task.run();
@@ -57,22 +57,22 @@ final class FakeRegionScheduler implements Scheduler {
     }
 
     /** Fire the captured refresh once, as a tick would. */
-    void tick() {
+    public void tick() {
         Consumer<TaskHandle> task = timerTask;
         if (task != null) {
             task.accept(handle);
         }
     }
 
-    boolean cancelled() {
+    public boolean cancelled() {
         return cancelled;
     }
 
-    @Nullable Location timerLocation() {
+    public @Nullable Location timerLocation() {
         return timerLocation;
     }
 
-    boolean hasTimer() {
+    public boolean hasTimer() {
         return timerTask != null;
     }
 

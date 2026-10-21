@@ -15,25 +15,25 @@ import org.joml.Vector3f;
  * the structure of what was built and, through {@link #sends}, which viewer each packet reached. Entity ids
  * come from a counter so a test can check that an id stays bound to its line across refreshes.
  */
-final class FakeHologramPackets implements HologramPackets {
+public final class FakeHologramPackets implements HologramPackets {
 
     /** A packet that adds an entity at a position. */
-    record Spawn(int entityId, double x, double y, double z) {}
+    public record Spawn(int entityId, double x, double y, double z) {}
 
     /** A packet that paints one line; carries the text so a test can match viewer to content. */
-    record Metadata(int entityId, Component text, HologramAppearance appearance, Vector3f translation) {}
+    public record Metadata(int entityId, Component text, HologramAppearance appearance, Vector3f translation) {}
 
     /** A packet that removes entities. */
-    record Remove(List<Integer> entityIds) {}
+    public record Remove(List<Integer> entityIds) {}
 
     /** A bundle wrapping several packets into one frame. */
-    record Bundle(List<Object> packets) {}
+    public record Bundle(List<Object> packets) {}
 
     /** One recorded send: the packet and the viewer it was written to. */
-    record Sent(Player viewer, Object packet) {}
+    public record Sent(Player viewer, Object packet) {}
 
     private final AtomicInteger nextId = new AtomicInteger(1);
-    final List<Sent> sends = new ArrayList<>();
+    public final List<Sent> sends = new ArrayList<>();
 
     @Override
     public int allocateEntityId() {
@@ -70,19 +70,19 @@ final class FakeHologramPackets implements HologramPackets {
     }
 
     /** How many entity ids have been handed out so far. */
-    int allocations() {
+    public int allocations() {
         return nextId.get() - 1;
     }
 
     /** Everything written to {@code viewer}, in order. */
-    List<Object> packetsFor(Player viewer) {
+    public List<Object> packetsFor(Player viewer) {
         return sends.stream()
                 .filter(sent -> sent.viewer().equals(viewer))
                 .map(Sent::packet)
                 .toList();
     }
 
-    void forget() {
+    public void forget() {
         sends.clear();
     }
 }

@@ -1,6 +1,7 @@
 plugins {
     id("uxmlib.java-conventions")
     id("uxmlib.publish-conventions")
+    `java-test-fixtures`
     alias(libs.plugins.paperweight.userdev)
 }
 
@@ -29,6 +30,13 @@ dependencies {
     testImplementation(libs.bundles.adventure)
     testImplementation(libs.bundles.testing)
     testImplementation(libs.netty.transport)
+
+    // The fakes a consumer's own tests drive a packet hologram with: a recording packet seam, a scheduler that
+    // runs a frame on demand, and a probe that reads back what a viewer's client holds. They name the Paper
+    // API and Adventure, which every consumer already has on its test classpath, so neither is passed on.
+    testFixturesCompileOnly(libs.paper.api)
+    testFixturesCompileOnly(libs.bundles.adventure)
+    testFixturesCompileOnly(libs.jspecify)
 }
 
 // Keep the Mojang-mapped dev bundle off the test classpath. MockBukkit drives the plugin against the plain
@@ -49,4 +57,19 @@ paperweight {
 // would have to join the chain here, and a comment that says so is worth more than a clever rule.
 tasks.named("paperweightUserdevSetup") {
     mustRunAfter(":uxmlib-nametags:paperweightUserdevSetup")
+}
+
+// The fixtures' classpaths read the Paper API too, so they accept its Java 25 metadata the way the convention
+// widens the main and test classpaths; the bytecode they emit stays at the library's release.
+listOf("testFixturesCompileClasspath", "testFixturesRuntimeClasspath").forEach { name ->
+    configurations.named(name) {
+        attributes {
+            attribute(
+                org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE,
+                libs.versions.java.toolchain
+                    .get()
+                    .toInt(),
+            )
+        }
+    }
 }
