@@ -14,9 +14,9 @@ import org.jspecify.annotations.NullMarked;
  * the back/delete/filler materials. Holds layout integers and materials only (every label, value, and title is a
  * catalog key) so an operator-edited layout and a translated catalog never collide.
  *
- * <p>Built once at load time by {@link GuiLayouts#loadEntityEditor}; the editor reads {@link #propertySlots} to place
+ * <p>Built once, through {@link #codeDefault} or {@link #withDelete}; the editor reads {@link #propertySlots} to place
  * and to resolve a clicked slot back to its property. The delete slot is optional: an editor for a non-deletable entity
- * omits it from the conf and the editor shows no delete button.
+ * has none and the editor shows no delete button.
  *
  * @param rows the editor row count, 1..6
  * @param propertySlots the slots property buttons fill, in property order

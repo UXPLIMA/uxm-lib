@@ -16,7 +16,7 @@ import com.uxplima.uxmlib.menu.property.EditableProperty;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The editor analog of a {@link MenuSpec}: the recipe the engine draws a typed property editor from. It carries
+ * The editor analog of a {@link com.uxplima.uxmlib.menu.spec.MenuSpec}: the recipe the engine draws a typed property editor from. It carries
  * the {@link EntityEditorLayout} (rows, the ordered property slots, the back and delete slots and their materials),
  * a per-viewer title, the catalog line each property's current value renders into, the back label, an optional
  * delete label with its confirm title, the function that derives the live property list from the subject, and the

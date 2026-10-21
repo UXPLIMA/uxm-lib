@@ -22,7 +22,7 @@ import org.jspecify.annotations.Nullable;
  * The one entry point for capturing a line of text from a player, whether through an anvil or through chat. A call
  * site hands a {@link InputRequest} (a stable key, a prompt label, an optional anvil pre-fill) plus a submit and a
  * cancel callback; the seam reads the operator's per-key mode from {@link InputSettings}, opens the matching backend,
- * and routes the result. It is the upper floor of this package: {@link PlayerInput} and {@link AnvilInput} own the
+ * and routes the result. It is the upper floor of this package: {@link PlayerInput} and {@link com.uxplima.uxmlib.gui.anvil.AnvilInput} own the
  * mechanisms that talk to a client, and this chooses between them, applies the operator's policy, and hands a call
  * site one answer. A call site names neither a backend nor a screen.
  *
