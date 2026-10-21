@@ -15,6 +15,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -79,7 +80,8 @@ public final class HuskClaimsClaimProvider implements ClaimProvider {
         }
         try {
             Object position = adapt(new Location(bukkitWorld, blockX, CLAIM_LOOKUP_Y, blockZ));
-            Object api = Class.forName(API_CLASS).getMethod("getInstance").invoke(null);
+            Object api = Reflected.requireMethod(Reflected.requireType(API_CLASS), "getInstance")
+                    .invoke(null);
             Object claim = unwrap(singleArg(api, "getClaimAt", position).invoke(api, position));
             if (claim == null) {
                 return Optional.empty();
@@ -93,8 +95,8 @@ public final class HuskClaimsClaimProvider implements ClaimProvider {
 
     /** {@code BukkitHuskClaims.Adapter.adapt(Location)}, HuskClaims' own Bukkit-to-position conversion. */
     private static Object adapt(Location location) throws ReflectiveOperationException {
-        Object position =
-                Class.forName(ADAPTER_CLASS).getMethod("adapt", Location.class).invoke(null, location);
+        Object position = Reflected.requireMethod(Reflected.requireType(ADAPTER_CLASS), "adapt", Location.class)
+                .invoke(null, location);
         return Objects.requireNonNull(position, "HuskClaims adapted a location to null");
     }
 
@@ -104,7 +106,7 @@ public final class HuskClaimsClaimProvider implements ClaimProvider {
      * position actually is rather than by a type we would have to declare.
      */
     private static Method singleArg(Object target, String name, Object arg) throws ReflectiveOperationException {
-        for (Method candidate : target.getClass().getMethods()) {
+        for (Method candidate : Reflected.methods(target.getClass())) {
             if (candidate.getName().equals(name)
                     && candidate.getParameterCount() == 1
                     && candidate.getParameterTypes()[0].isInstance(arg)) {
@@ -188,7 +190,7 @@ public final class HuskClaimsClaimProvider implements ClaimProvider {
         @Override
         public Optional<UUID> owner() {
             try {
-                Object owner = unwrap(claim.getClass().getMethod("getOwner").invoke(claim));
+                Object owner = unwrap(Reflected.methodOn(claim, "getOwner").invoke(claim));
                 return owner instanceof UUID id ? Optional.of(id) : Optional.empty();
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);
@@ -199,7 +201,7 @@ public final class HuskClaimsClaimProvider implements ClaimProvider {
         @Override
         public Set<UUID> trusted() {
             try {
-                Object users = claim.getClass().getMethod("getTrustedUsers").invoke(claim);
+                Object users = Reflected.methodOn(claim, "getTrustedUsers").invoke(claim);
                 if (!(users instanceof Map<?, ?> table)) {
                     return Set.of();
                 }

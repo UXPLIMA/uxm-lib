@@ -11,6 +11,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -99,12 +100,12 @@ public final class ResidenceClaimProvider implements ClaimProvider {
 
     /** {@code Residence.getResidenceManager().getByLoc(Location)}, the residence at the block, or {@code null}. */
     private static @Nullable Object residenceAt(Location location) throws ReflectiveOperationException {
-        Object manager =
-                Class.forName(RESIDENCE_CLASS).getMethod("getResidenceManager").invoke(null);
+        Object manager = Reflected.requireMethod(Reflected.requireType(RESIDENCE_CLASS), "getResidenceManager")
+                .invoke(null);
         if (manager == null) {
             return null;
         }
-        return manager.getClass().getMethod("getByLoc", Location.class).invoke(manager, location);
+        return Reflected.methodOn(manager, "getByLoc", Location.class).invoke(manager, location);
     }
 
     /**
@@ -148,7 +149,7 @@ public final class ResidenceClaimProvider implements ClaimProvider {
         @Override
         public String ownerName() {
             try {
-                Object owner = residence.getClass().getMethod("getOwner").invoke(residence);
+                Object owner = Reflected.methodOn(residence, "getOwner").invoke(residence);
                 return owner instanceof String name ? name : "";
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);
@@ -160,13 +161,11 @@ public final class ResidenceClaimProvider implements ClaimProvider {
         public boolean playerHas(String playerName, String flag) {
             try {
                 Object permissions =
-                        residence.getClass().getMethod("getPermissions").invoke(residence);
+                        Reflected.methodOn(residence, "getPermissions").invoke(residence);
                 if (permissions == null) {
                     return false;
                 }
-                Object answer = permissions
-                        .getClass()
-                        .getMethod("playerHas", String.class, String.class, boolean.class)
+                Object answer = Reflected.methodOn(permissions, "playerHas", String.class, String.class, boolean.class)
                         .invoke(permissions, playerName, flag, false);
                 return Boolean.TRUE.equals(answer);
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {

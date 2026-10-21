@@ -9,6 +9,7 @@ import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -104,7 +105,7 @@ public final class GriefDefenderClaimProvider implements ClaimProvider {
     }
 
     private @Nullable Object core() throws Exception {
-        Class<?> apiClass = Class.forName(API_CLASS);
+        Class<?> apiClass = Reflected.requireType(API_CLASS);
         Method accessor = getCore;
         if (accessor == null) {
             accessor = apiClass.getMethod("getCore");
@@ -117,14 +118,15 @@ public final class GriefDefenderClaimProvider implements ClaimProvider {
         if (getClaimAt != null) {
             return;
         }
-        Class<?> coreClass = Class.forName("com.griefdefender.api.Core");
-        Class<?> claimClass = Class.forName("com.griefdefender.api.claim.Claim");
-        Class<?> trustTypeClass = Class.forName("com.griefdefender.api.claim.TrustType");
+        Class<?> coreClass = Reflected.requireType("com.griefdefender.api.Core");
+        Class<?> claimClass = Reflected.requireType("com.griefdefender.api.claim.Claim");
+        Class<?> trustTypeClass = Reflected.requireType("com.griefdefender.api.claim.TrustType");
         getClaimAt = coreClass.getMethod("getClaimAt", UUID.class, int.class, int.class, int.class);
         getOwnerUniqueId = claimClass.getMethod("getOwnerUniqueId");
         isUserTrusted = claimClass.getMethod("isUserTrusted", UUID.class, trustTypeClass);
         isWilderness = claimClass.getMethod("isWilderness");
-        builderTrustType = Class.forName(TRUST_TYPES_CLASS).getField("BUILDER").get(null);
+        builderTrustType =
+                Reflected.requireType(TRUST_TYPES_CLASS).getField("BUILDER").get(null);
     }
 
     private void logUnavailableOnce(Throwable t) {

@@ -1,6 +1,7 @@
 package com.uxplima.uxmlib.content;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -28,6 +29,22 @@ public final class Reflected {
     private static final Map<String, Object> CLASSES = new ConcurrentHashMap<>();
 
     private static final Map<String, Object> METHODS = new ConcurrentHashMap<>();
+
+    /** The public methods of each class, listed once, held by the class so it can still be unloaded. */
+    private static final ClassValue<List<Method>> METHOD_LISTS = new ClassValue<>() {
+        @Override
+        protected List<Method> computeValue(Class<?> type) {
+            return List.of(type.getMethods());
+        }
+    };
+
+    /** The methods found on each class by {@link #requireMethod}, held the same way. */
+    private static final ClassValue<Map<String, Method>> ON_CLASS = new ClassValue<>() {
+        @Override
+        protected Map<String, Method> computeValue(Class<?> type) {
+            return new ConcurrentHashMap<>();
+        }
+    };
 
     private Reflected() {}
 
@@ -85,6 +102,65 @@ public final class Reflected {
         } catch (NoSuchMethodException | SecurityException | LinkageError absent) {
             return MISSING;
         }
+    }
+
+    /**
+     * The public method {@code name} of {@code target}'s own class, as {@link Class#getMethod} finds it, looked up
+     * once per class. A claim check runs on every block break, and {@code getMethod} searches the class and copies
+     * the method each time. A method that is not there is not remembered: it throws as {@code getMethod} does.
+     */
+    public static Method methodOn(Object target, String name, Class<?>... parameters) throws NoSuchMethodException {
+        Objects.requireNonNull(target, "target");
+        return requireMethod(target.getClass(), name, parameters);
+    }
+
+    /** The public method {@code name} of {@code type}, as {@link Class#getMethod} finds it, looked up once. */
+    public static Method requireMethod(Class<?> type, String name, Class<?>... parameters)
+            throws NoSuchMethodException {
+        Objects.requireNonNull(type, "type");
+        Objects.requireNonNull(name, "name");
+        Map<String, Method> found = ON_CLASS.get(type);
+        String key = signature(name, parameters);
+        @Nullable Method method = found.get(key);
+        if (method == null) {
+            method = type.getMethod(name, parameters);
+            found.put(key, method);
+        }
+        return method;
+    }
+
+    /**
+     * Every public method of {@code type}, as {@link Class#getMethods} lists them, listed once per class.
+     * {@code getMethods} copies the whole table on each call, which a lookup by argument type would pay per check.
+     */
+    public static List<Method> methods(Class<?> type) {
+        Objects.requireNonNull(type, "type");
+        return METHOD_LISTS.get(type);
+    }
+
+    /**
+     * One class by name, as {@link Class#forName(String)} finds it, remembered once found. A miss is not remembered:
+     * a plugin that is not loaded yet when a provider first asks may be loaded the next time.
+     */
+    public static Class<?> requireType(String name) throws ClassNotFoundException {
+        Objects.requireNonNull(name, "name");
+        if (CLASSES.get(name) instanceof Class<?> known) {
+            return known;
+        }
+        Class<?> found = Class.forName(name);
+        CLASSES.put(name, found);
+        return found;
+    }
+
+    private static String signature(String name, Class<?>... parameters) {
+        if (parameters.length == 0) {
+            return name;
+        }
+        StringBuilder key = new StringBuilder(name).append('(');
+        for (Class<?> parameter : parameters) {
+            key.append(parameter.getName()).append(',');
+        }
+        return key.append(')').toString();
     }
 
     /**

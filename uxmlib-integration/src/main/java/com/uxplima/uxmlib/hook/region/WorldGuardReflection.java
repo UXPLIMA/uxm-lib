@@ -8,6 +8,7 @@ import org.bukkit.Location;
 import org.bukkit.Server;
 import org.bukkit.World;
 
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -57,7 +58,7 @@ public final class WorldGuardReflection {
     /** True only when a covering region explicitly sets the named custom flag to DENY at {@code location}. */
     public static boolean queryDeny(Location location, String flagName) throws ReflectiveOperationException {
         Object registry = flagRegistry();
-        Object flag = registry.getClass().getMethod("get", String.class).invoke(registry, flagName);
+        Object flag = Reflected.methodOn(registry, "get", String.class).invoke(registry, flagName);
         if (flag == null) {
             return false; // the flag never registered (WorldGuard loaded after us); nothing to enforce
         }
@@ -67,48 +68,47 @@ public final class WorldGuardReflection {
 
     /** {@code WorldGuard.getInstance()}: the singleton every reflective walk into WorldGuard starts from. */
     public static Object instance() throws ReflectiveOperationException {
-        return Class.forName("com.sk89q.worldguard.WorldGuard")
-                .getMethod("getInstance")
+        return Reflected.requireMethod(Reflected.requireType("com.sk89q.worldguard.WorldGuard"), "getInstance")
                 .invoke(null);
     }
 
     /** {@code WorldGuard.getInstance().getPlatform().getRegionContainer()}: the container both queries and CRUD use. */
     public static Object regionContainer() throws ReflectiveOperationException {
         Object instance = instance();
-        Object platform = instance.getClass().getMethod("getPlatform").invoke(instance);
-        return platform.getClass().getMethod("getRegionContainer").invoke(platform);
+        Object platform = Reflected.methodOn(instance, "getPlatform").invoke(instance);
+        return Reflected.methodOn(platform, "getRegionContainer").invoke(platform);
     }
 
     /** {@code WorldGuard.getInstance().getFlagRegistry()}: where custom flags are registered and looked up. */
     public static Object flagRegistry() throws ReflectiveOperationException {
         Object instance = instance();
-        return instance.getClass().getMethod("getFlagRegistry").invoke(instance);
+        return Reflected.methodOn(instance, "getFlagRegistry").invoke(instance);
     }
 
     /** {@code RegionContainer#createQuery()}: the spatial query object every "what covers this spot" read needs. */
     public static Object createQuery() throws ReflectiveOperationException {
         Object container = regionContainer();
-        return container.getClass().getMethod("createQuery").invoke(container);
+        return Reflected.methodOn(container, "createQuery").invoke(container);
     }
 
     /** Adapt a Bukkit {@link Location} to the WorldEdit location the region container's query expects. */
     public static Object adapt(Location location) throws ReflectiveOperationException {
-        return Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter")
-                .getMethod("adapt", Location.class)
+        return Reflected.requireMethod(
+                        Reflected.requireType("com.sk89q.worldedit.bukkit.BukkitAdapter"), "adapt", Location.class)
                 .invoke(null, location);
     }
 
     /** Adapt a Bukkit {@link World} to the WorldEdit world the region container's per-world lookup expects. */
     public static Object adaptWorld(World world) throws ReflectiveOperationException {
-        return Class.forName("com.sk89q.worldedit.bukkit.BukkitAdapter")
-                .getMethod("adapt", World.class)
+        return Reflected.requireMethod(
+                        Reflected.requireType("com.sk89q.worldedit.bukkit.BukkitAdapter"), "adapt", World.class)
                 .invoke(null, world);
     }
 
     /** {@code RegionQuery#getApplicableRegions(Location)} matched by the single WorldEdit-location argument. */
     public static @Nullable Object applicableRegions(Object query, Object weLocation)
             throws ReflectiveOperationException {
-        for (Method candidate : query.getClass().getMethods()) {
+        for (Method candidate : Reflected.methods(query.getClass())) {
             if (candidate.getName().equals("getApplicableRegions")
                     && candidate.getParameterCount() == 1
                     && candidate.getParameterTypes()[0].isInstance(weLocation)) {
@@ -120,10 +120,10 @@ public final class WorldGuardReflection {
 
     /** {@code ApplicableRegionSet#queryState(RegionAssociable, StateFlag...)} with a null subject and our one flag. */
     private static @Nullable Object queryState(Object regions, Object flag) throws ReflectiveOperationException {
-        Class<?> stateFlag = Class.forName("com.sk89q.worldguard.protection.flags.StateFlag");
+        Class<?> stateFlag = Reflected.requireType("com.sk89q.worldguard.protection.flags.StateFlag");
         Object flags = Array.newInstance(stateFlag, 1);
         Array.set(flags, 0, flag);
-        for (Method candidate : regions.getClass().getMethods()) {
+        for (Method candidate : Reflected.methods(regions.getClass())) {
             if (candidate.getName().equals("queryState")
                     && candidate.getParameterCount() == 2
                     && candidate.getParameterTypes()[1].isArray()) {

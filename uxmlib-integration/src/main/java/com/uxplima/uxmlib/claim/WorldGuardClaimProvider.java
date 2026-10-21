@@ -14,6 +14,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import com.uxplima.uxmlib.hook.region.WorldGuardReflection;
 import org.jspecify.annotations.NullMarked;
 
@@ -107,7 +108,7 @@ public final class WorldGuardClaimProvider implements ClaimProvider {
         if (applicable == null) {
             return List.of();
         }
-        Object regions = applicable.getClass().getMethod("getRegions").invoke(applicable);
+        Object regions = Reflected.methodOn(applicable, "getRegions").invoke(applicable);
         if (!(regions instanceof Collection<?> set)) {
             return List.of();
         }
@@ -119,7 +120,7 @@ public final class WorldGuardClaimProvider implements ClaimProvider {
     }
 
     private static String regionId(Object region) throws ReflectiveOperationException {
-        return String.valueOf(region.getClass().getMethod("getId").invoke(region));
+        return String.valueOf(Reflected.methodOn(region, "getId").invoke(region));
     }
 
     /**
@@ -174,12 +175,12 @@ public final class WorldGuardClaimProvider implements ClaimProvider {
 
         private boolean domainContains(String domainAccessor, UUID player) {
             try {
-                Object domain = region.getClass().getMethod(domainAccessor).invoke(region);
+                Object domain = Reflected.methodOn(region, domainAccessor).invoke(region);
                 if (domain == null) {
                     return false;
                 }
                 Object contains =
-                        domain.getClass().getMethod("contains", UUID.class).invoke(domain, player);
+                        Reflected.methodOn(domain, "contains", UUID.class).invoke(domain, player);
                 return Boolean.TRUE.equals(contains);
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);

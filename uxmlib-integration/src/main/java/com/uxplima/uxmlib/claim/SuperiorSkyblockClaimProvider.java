@@ -11,6 +11,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -96,12 +97,14 @@ public final class SuperiorSkyblockClaimProvider implements ClaimProvider {
 
     /** {@code SuperiorSkyblockAPI.getIslandAt(Location)}, the island at the block, or {@code null} off any island. */
     private static @Nullable Object islandAt(Location location) throws ReflectiveOperationException {
-        return Class.forName(API_CLASS).getMethod("getIslandAt", Location.class).invoke(null, location);
+        return Reflected.requireMethod(Reflected.requireType(API_CLASS), "getIslandAt", Location.class)
+                .invoke(null, location);
     }
 
     /** {@code SuperiorSkyblockAPI.getPlayer(UUID)}, the wrapper for the UUID, or {@code null} when unknown. */
     private static @Nullable Object superiorPlayer(UUID player) throws ReflectiveOperationException {
-        return Class.forName(API_CLASS).getMethod("getPlayer", UUID.class).invoke(null, player);
+        return Reflected.requireMethod(Reflected.requireType(API_CLASS), "getPlayer", UUID.class)
+                .invoke(null, player);
     }
 
     /**
@@ -144,12 +147,12 @@ public final class SuperiorSkyblockClaimProvider implements ClaimProvider {
         @Override
         public Optional<UUID> owner() {
             try {
-                Object owner = Class.forName(ISLAND_CLASS).getMethod("getOwner").invoke(island);
+                Object owner = Reflected.requireMethod(Reflected.requireType(ISLAND_CLASS), "getOwner")
+                        .invoke(island);
                 if (owner == null) {
                     return Optional.empty();
                 }
-                Object id = Class.forName(SUPERIOR_PLAYER_CLASS)
-                        .getMethod("getUniqueId")
+                Object id = Reflected.requireMethod(Reflected.requireType(SUPERIOR_PLAYER_CLASS), "getUniqueId")
                         .invoke(owner);
                 return id instanceof UUID uuid ? Optional.of(uuid) : Optional.empty();
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
@@ -179,9 +182,9 @@ public final class SuperiorSkyblockClaimProvider implements ClaimProvider {
                 if (wrapper == null) {
                     return false;
                 }
-                Class<?> superiorPlayerClass = Class.forName(SUPERIOR_PLAYER_CLASS);
-                Object answer = Class.forName(ISLAND_CLASS)
-                        .getMethod(method, superiorPlayerClass)
+                Class<?> superiorPlayerClass = Reflected.requireType(SUPERIOR_PLAYER_CLASS);
+                Object answer = Reflected.requireMethod(
+                                Reflected.requireType(ISLAND_CLASS), method, superiorPlayerClass)
                         .invoke(island, wrapper);
                 return Boolean.TRUE.equals(answer);
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {

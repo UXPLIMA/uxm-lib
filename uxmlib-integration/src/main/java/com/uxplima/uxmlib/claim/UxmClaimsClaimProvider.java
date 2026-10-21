@@ -10,6 +10,7 @@ import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -57,7 +58,7 @@ public final class UxmClaimsClaimProvider implements ClaimProvider {
     @Override
     public boolean active() {
         try {
-            Class<?> apiClass = Class.forName(API_CLASS);
+            Class<?> apiClass = Reflected.requireType(API_CLASS);
             Method instance = apiClass.getMethod("getInstance");
             return instance.invoke(null) != null;
         } catch (Throwable t) {
@@ -101,9 +102,9 @@ public final class UxmClaimsClaimProvider implements ClaimProvider {
         if (getInstance != null) {
             return;
         }
-        Class<?> apiClass = Class.forName(API_CLASS);
-        Class<?> locationClass = Class.forName(LOCATION_CLASS);
-        Class<?> claimClass = Class.forName("com.uxplima.claim.domain.model.Claim");
+        Class<?> apiClass = Reflected.requireType(API_CLASS);
+        Class<?> locationClass = Reflected.requireType(LOCATION_CLASS);
+        Class<?> claimClass = Reflected.requireType("com.uxplima.claim.domain.model.Claim");
         Method facadeAccessor = apiClass.getMethod("claimFacade");
         getInstance = apiClass.getMethod("getInstance");
         claimFacade = facadeAccessor;

@@ -11,6 +11,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -67,7 +68,7 @@ public final class ExcellentClaimsClaimProvider implements ClaimProvider {
             return false;
         }
         try {
-            Class<?> apiClass = Class.forName(API_CLASS);
+            Class<?> apiClass = Reflected.requireType(API_CLASS);
             return Boolean.TRUE.equals(apiClass.getMethod("isLoaded").invoke(null));
         } catch (Throwable t) {
             return false;
@@ -113,8 +114,8 @@ public final class ExcellentClaimsClaimProvider implements ClaimProvider {
         if (getPrioritizedClaim != null) {
             return;
         }
-        Class<?> apiClass = Class.forName(API_CLASS);
-        Class<?> claimClass = Class.forName("su.nightexpress.excellentclaims.api.claim.Claim");
+        Class<?> apiClass = Reflected.requireType(API_CLASS);
+        Class<?> claimClass = Reflected.requireType("su.nightexpress.excellentclaims.api.claim.Claim");
         getClaimManager = apiClass.getMethod("getClaimManager");
         getPrioritizedClaim = getClaimManager.getReturnType().getMethod("getPrioritizedClaim", Location.class);
         getOwnerId = claimClass.getMethod("getOwnerId");

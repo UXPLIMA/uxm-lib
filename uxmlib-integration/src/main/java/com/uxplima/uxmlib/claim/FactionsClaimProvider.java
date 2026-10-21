@@ -13,6 +13,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -78,11 +79,11 @@ public final class FactionsClaimProvider implements ClaimProvider {
             return Optional.empty();
         }
         try {
-            Constructor<?> fLocation = Class.forName(FLOCATION_CLASS).getConstructor(Location.class);
+            Constructor<?> fLocation = Reflected.requireType(FLOCATION_CLASS).getConstructor(Location.class);
             Object at = fLocation.newInstance(new Location(bukkitWorld, blockX, CLAIM_LOOKUP_Y, blockZ));
-            Object board = Class.forName(BOARD_CLASS).getMethod("getInstance").invoke(null);
-            Object faction = board.getClass()
-                    .getMethod("getFactionAt", Class.forName(FLOCATION_CLASS))
+            Object board = Reflected.requireMethod(Reflected.requireType(BOARD_CLASS), "getInstance")
+                    .invoke(null);
+            Object faction = Reflected.methodOn(board, "getFactionAt", Reflected.requireType(FLOCATION_CLASS))
                     .invoke(board, at);
             if (faction == null || unclaimed(faction)) {
                 return Optional.empty();
@@ -100,7 +101,7 @@ public final class FactionsClaimProvider implements ClaimProvider {
     }
 
     private static boolean flag(Object faction, String method) throws ReflectiveOperationException {
-        return Boolean.TRUE.equals(faction.getClass().getMethod(method).invoke(faction));
+        return Boolean.TRUE.equals(Reflected.methodOn(faction, method).invoke(faction));
     }
 
     /**
@@ -167,16 +168,15 @@ public final class FactionsClaimProvider implements ClaimProvider {
         @Override
         public Optional<Object> factionOf(UUID player) {
             try {
-                Object fPlayers =
-                        Class.forName(FPLAYERS_CLASS).getMethod("getInstance").invoke(null);
+                Object fPlayers = Reflected.requireMethod(Reflected.requireType(FPLAYERS_CLASS), "getInstance")
+                        .invoke(null);
                 OfflinePlayer offline = server.getOfflinePlayer(player);
-                Object fPlayer = fPlayers.getClass()
-                        .getMethod("getByOfflinePlayer", OfflinePlayer.class)
+                Object fPlayer = Reflected.methodOn(fPlayers, "getByOfflinePlayer", OfflinePlayer.class)
                         .invoke(fPlayers, offline);
                 if (fPlayer == null) {
                     return Optional.empty();
                 }
-                Object theirs = fPlayer.getClass().getMethod("getFaction").invoke(fPlayer);
+                Object theirs = Reflected.methodOn(fPlayer, "getFaction").invoke(fPlayer);
                 if (theirs == null || flag(theirs, "isWilderness")) {
                     // Factions models "no faction" as membership of wilderness, which trusts nobody anywhere.
                     return Optional.empty();
@@ -197,7 +197,7 @@ public final class FactionsClaimProvider implements ClaimProvider {
                 return Optional.empty();
             }
             try {
-                Object id = candidate.getClass().getMethod("getId").invoke(candidate);
+                Object id = Reflected.methodOn(candidate, "getId").invoke(candidate);
                 return Optional.of(id == null ? candidate : id);
             } catch (ReflectiveOperationException | LinkageError | RuntimeException noId) {
                 return Optional.of(candidate);

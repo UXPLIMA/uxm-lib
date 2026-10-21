@@ -12,6 +12,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -96,13 +97,12 @@ public final class PlotSquaredClaimProvider implements ClaimProvider {
 
     /** {@code BukkitUtil.adapt(Location).getOwnedPlot()}: the owned plot at the block, or {@code null}. */
     private static @Nullable Object ownedPlotAt(Location location) throws ReflectiveOperationException {
-        Object psLocation = Class.forName(BUKKIT_UTIL_CLASS)
-                .getMethod("adapt", Location.class)
+        Object psLocation = Reflected.requireMethod(Reflected.requireType(BUKKIT_UTIL_CLASS), "adapt", Location.class)
                 .invoke(null, location);
         if (psLocation == null) {
             return null;
         }
-        return psLocation.getClass().getMethod("getOwnedPlot").invoke(psLocation);
+        return Reflected.methodOn(psLocation, "getOwnedPlot").invoke(psLocation);
     }
 
     /**
@@ -147,7 +147,7 @@ public final class PlotSquaredClaimProvider implements ClaimProvider {
         @Override
         public Optional<UUID> owner() {
             try {
-                Object owner = plot.getClass().getMethod("getOwner").invoke(plot);
+                Object owner = Reflected.methodOn(plot, "getOwner").invoke(plot);
                 return owner instanceof UUID id ? Optional.of(id) : Optional.empty();
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);
@@ -167,7 +167,7 @@ public final class PlotSquaredClaimProvider implements ClaimProvider {
 
         private boolean booleanCall(String method, UUID player) {
             try {
-                Object answer = plot.getClass().getMethod(method, UUID.class).invoke(plot, player);
+                Object answer = Reflected.methodOn(plot, method, UUID.class).invoke(plot, player);
                 return Boolean.TRUE.equals(answer);
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);
@@ -178,7 +178,7 @@ public final class PlotSquaredClaimProvider implements ClaimProvider {
         @Override
         public boolean isDenied(UUID player) {
             try {
-                Object denied = plot.getClass().getMethod("getDenied").invoke(plot);
+                Object denied = Reflected.methodOn(plot, "getDenied").invoke(plot);
                 return denied instanceof Set<?> set && set.contains(player);
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);

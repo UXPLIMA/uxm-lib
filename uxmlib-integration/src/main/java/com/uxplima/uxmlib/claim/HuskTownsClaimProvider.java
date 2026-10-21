@@ -14,6 +14,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -73,10 +74,11 @@ public final class HuskTownsClaimProvider implements ClaimProvider {
             return Optional.empty();
         }
         try {
-            Object api = Class.forName(API_CLASS).getMethod("getInstance").invoke(null);
+            Object api = Reflected.requireMethod(Reflected.requireType(API_CLASS), "getInstance")
+                    .invoke(null);
             Location location = new Location(bukkitWorld, blockX, CLAIM_LOOKUP_Y, blockZ);
-            Object townClaim = unwrap(
-                    api.getClass().getMethod("getClaimAt", Location.class).invoke(api, location));
+            Object townClaim =
+                    unwrap(Reflected.methodOn(api, "getClaimAt", Location.class).invoke(api, location));
             if (townClaim == null) {
                 return Optional.empty();
             }
@@ -146,11 +148,11 @@ public final class HuskTownsClaimProvider implements ClaimProvider {
         @Override
         public Set<UUID> members() {
             try {
-                Object town = townClaim.getClass().getMethod("town").invoke(townClaim);
+                Object town = Reflected.methodOn(townClaim, "town").invoke(townClaim);
                 if (town == null) {
                     return Set.of();
                 }
-                Object members = town.getClass().getMethod("getMembers").invoke(town);
+                Object members = Reflected.methodOn(town, "getMembers").invoke(town);
                 if (!(members instanceof Map<?, ?> roster)) {
                     return Set.of();
                 }

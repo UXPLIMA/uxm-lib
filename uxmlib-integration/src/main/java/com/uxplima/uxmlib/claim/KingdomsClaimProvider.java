@@ -11,6 +11,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -90,11 +91,12 @@ public final class KingdomsClaimProvider implements ClaimProvider {
 
     /** {@code Land.getLand(Location)}: the land covering the block, or {@code null} outside a KingdomsX world. */
     private static @Nullable Object landAt(Location location) throws ReflectiveOperationException {
-        return Class.forName(LAND_CLASS).getMethod("getLand", Location.class).invoke(null, location);
+        return Reflected.requireMethod(Reflected.requireType(LAND_CLASS), "getLand", Location.class)
+                .invoke(null, location);
     }
 
     private static boolean claimed(Object land) throws ReflectiveOperationException {
-        return Boolean.TRUE.equals(land.getClass().getMethod("isClaimed").invoke(land));
+        return Boolean.TRUE.equals(Reflected.methodOn(land, "isClaimed").invoke(land));
     }
 
     /**
@@ -156,7 +158,7 @@ public final class KingdomsClaimProvider implements ClaimProvider {
         @Override
         public Optional<Object> kingdom() {
             try {
-                return identity(land.getClass().getMethod("getKingdom").invoke(land));
+                return identity(Reflected.methodOn(land, "getKingdom").invoke(land));
             } catch (NoSuchMethodException moved) {
                 partialApi();
                 return Optional.empty();
@@ -169,13 +171,13 @@ public final class KingdomsClaimProvider implements ClaimProvider {
         @Override
         public Optional<Object> kingdomOf(UUID player) {
             try {
-                Object kingdomPlayer = Class.forName(KINGDOM_PLAYER_CLASS)
-                        .getMethod("getKingdomPlayer", UUID.class)
+                Object kingdomPlayer = Reflected.requireMethod(
+                                Reflected.requireType(KINGDOM_PLAYER_CLASS), "getKingdomPlayer", UUID.class)
                         .invoke(null, player);
                 if (kingdomPlayer == null) {
                     return Optional.empty();
                 }
-                return identity(kingdomPlayer.getClass().getMethod("getKingdom").invoke(kingdomPlayer));
+                return identity(Reflected.methodOn(kingdomPlayer, "getKingdom").invoke(kingdomPlayer));
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);
                 return Optional.empty();
@@ -191,7 +193,7 @@ public final class KingdomsClaimProvider implements ClaimProvider {
                 return Optional.empty();
             }
             try {
-                Object id = kingdom.getClass().getMethod("getId").invoke(kingdom);
+                Object id = Reflected.methodOn(kingdom, "getId").invoke(kingdom);
                 return Optional.of(id == null ? kingdom : id);
             } catch (ReflectiveOperationException | LinkageError | RuntimeException noId) {
                 return Optional.of(kingdom);

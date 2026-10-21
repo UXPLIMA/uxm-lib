@@ -12,6 +12,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -68,7 +69,7 @@ public final class XClaimClaimProvider implements ClaimProvider {
             return false;
         }
         try {
-            Class.forName(CLAIM_CLASS);
+            Reflected.requireType(CLAIM_CLASS);
             return true;
         } catch (Throwable t) {
             return false;
@@ -109,10 +110,10 @@ public final class XClaimClaimProvider implements ClaimProvider {
         if (getByChunk != null) {
             return;
         }
-        Class<?> claimClass = Class.forName(CLAIM_CLASS);
-        Class<?> chunkRefClass = Class.forName(CHUNK_REF_CLASS);
-        Class<?> permissionClass = Class.forName(PERMISSION_CLASS);
-        Class<?> xcPlayerClass = Class.forName("codes.wasabi.xclaim.api.XCPlayer");
+        Class<?> claimClass = Reflected.requireType(CLAIM_CLASS);
+        Class<?> chunkRefClass = Reflected.requireType(CHUNK_REF_CLASS);
+        Class<?> permissionClass = Reflected.requireType(PERMISSION_CLASS);
+        Class<?> xcPlayerClass = Reflected.requireType("codes.wasabi.xclaim.api.XCPlayer");
         chunkRefCtor = chunkRefClass.getConstructor(World.class, int.class, int.class);
         getByChunk = claimClass.getMethod("getByChunk", chunkRefClass);
         getOwner = claimClass.getMethod("getOwner");

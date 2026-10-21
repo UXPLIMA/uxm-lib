@@ -12,6 +12,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -92,14 +93,14 @@ public final class BentoBoxClaimProvider implements ClaimProvider {
 
     /** {@code BentoBox.getInstance().getIslands().getIslandAt(Location)} unwrapped, or {@code null} off any island. */
     private static @Nullable Object islandAt(Location location) throws ReflectiveOperationException {
-        Object instance =
-                Class.forName(BENTO_BOX_CLASS).getMethod("getInstance").invoke(null);
+        Object instance = Reflected.requireMethod(Reflected.requireType(BENTO_BOX_CLASS), "getInstance")
+                .invoke(null);
         if (instance == null) {
             return null;
         }
-        Object islands = instance.getClass().getMethod("getIslands").invoke(instance);
+        Object islands = Reflected.methodOn(instance, "getIslands").invoke(instance);
         Object result =
-                islands.getClass().getMethod("getIslandAt", Location.class).invoke(islands, location);
+                Reflected.methodOn(islands, "getIslandAt", Location.class).invoke(islands, location);
         return result instanceof Optional<?> island ? island.orElse(null) : null;
     }
 
@@ -142,7 +143,7 @@ public final class BentoBoxClaimProvider implements ClaimProvider {
         @Override
         public Optional<UUID> owner() {
             try {
-                Object owner = island.getClass().getMethod("getOwner").invoke(island);
+                Object owner = Reflected.methodOn(island, "getOwner").invoke(island);
                 return owner instanceof UUID id ? Optional.of(id) : Optional.empty();
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);
@@ -153,7 +154,7 @@ public final class BentoBoxClaimProvider implements ClaimProvider {
         @Override
         public boolean isMember(UUID player) {
             try {
-                Object members = island.getClass().getMethod("getMemberSet").invoke(island);
+                Object members = Reflected.methodOn(island, "getMemberSet").invoke(island);
                 return members instanceof Set<?> set && set.contains(player);
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);
@@ -165,7 +166,7 @@ public final class BentoBoxClaimProvider implements ClaimProvider {
         public boolean isBanned(UUID player) {
             try {
                 Object banned =
-                        island.getClass().getMethod("isBanned", UUID.class).invoke(island, player);
+                        Reflected.methodOn(island, "isBanned", UUID.class).invoke(island, player);
                 return Boolean.TRUE.equals(banned);
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);

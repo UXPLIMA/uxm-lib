@@ -11,6 +11,7 @@ import org.bukkit.World;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -91,12 +92,13 @@ public final class TownyClaimProvider implements ClaimProvider {
 
     /** {@code TownyAPI.getInstance()}: the API singleton, reached only past the plugin-present guard. */
     private static Object townyApi() throws ReflectiveOperationException {
-        return Class.forName(API_CLASS).getMethod("getInstance").invoke(null);
+        return Reflected.requireMethod(Reflected.requireType(API_CLASS), "getInstance")
+                .invoke(null);
     }
 
     /** {@code TownyAPI.getTownBlock(Location)}: the plot covering the block, or {@code null} in wilderness. */
     private static @Nullable Object townBlockAt(Object api, Location location) throws ReflectiveOperationException {
-        return api.getClass().getMethod("getTownBlock", Location.class).invoke(api, location);
+        return Reflected.methodOn(api, "getTownBlock", Location.class).invoke(api, location);
     }
 
     /**
@@ -144,7 +146,7 @@ public final class TownyClaimProvider implements ClaimProvider {
         public Optional<UUID> personalOwner() {
             try {
                 Object resident =
-                        townBlock.getClass().getMethod("getResidentOrNull").invoke(townBlock);
+                        Reflected.methodOn(townBlock, "getResidentOrNull").invoke(townBlock);
                 return residentUuid(resident);
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);
@@ -159,7 +161,7 @@ public final class TownyClaimProvider implements ClaimProvider {
                 if (town == null) {
                     return Optional.empty();
                 }
-                return residentUuid(town.getClass().getMethod("getMayor").invoke(town));
+                return residentUuid(Reflected.methodOn(town, "getMayor").invoke(town));
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);
                 return Optional.empty();
@@ -174,7 +176,7 @@ public final class TownyClaimProvider implements ClaimProvider {
                     return false;
                 }
                 Object answer =
-                        town.getClass().getMethod("hasResident", UUID.class).invoke(town, player);
+                        Reflected.methodOn(town, "hasResident", UUID.class).invoke(town, player);
                 return Boolean.TRUE.equals(answer);
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);
@@ -186,14 +188,14 @@ public final class TownyClaimProvider implements ClaimProvider {
         public boolean isOutlaw(UUID player) {
             try {
                 Object resident =
-                        api.getClass().getMethod("getResident", UUID.class).invoke(api, player);
+                        Reflected.methodOn(api, "getResident", UUID.class).invoke(api, player);
                 Object town = townOrNull();
                 if (resident == null || town == null) {
                     return false;
                 }
-                Class<?> residentClass = Class.forName(RESIDENT_CLASS);
+                Class<?> residentClass = Reflected.requireType(RESIDENT_CLASS);
                 Object answer =
-                        town.getClass().getMethod("hasOutlaw", residentClass).invoke(town, resident);
+                        Reflected.methodOn(town, "hasOutlaw", residentClass).invoke(town, resident);
                 return Boolean.TRUE.equals(answer);
             } catch (ReflectiveOperationException | LinkageError | RuntimeException failure) {
                 degrade(failure);
@@ -202,14 +204,14 @@ public final class TownyClaimProvider implements ClaimProvider {
         }
 
         private @Nullable Object townOrNull() throws ReflectiveOperationException {
-            return townBlock.getClass().getMethod("getTownOrNull").invoke(townBlock);
+            return Reflected.methodOn(townBlock, "getTownOrNull").invoke(townBlock);
         }
 
         private Optional<UUID> residentUuid(@Nullable Object resident) throws ReflectiveOperationException {
             if (resident == null) {
                 return Optional.empty();
             }
-            Object uuid = resident.getClass().getMethod("getUUID").invoke(resident);
+            Object uuid = Reflected.methodOn(resident, "getUUID").invoke(resident);
             return uuid instanceof UUID id ? Optional.of(id) : Optional.empty();
         }
     }

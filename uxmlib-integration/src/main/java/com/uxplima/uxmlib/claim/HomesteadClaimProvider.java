@@ -9,6 +9,7 @@ import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.common.Log;
+import com.uxplima.uxmlib.content.Reflected;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -64,7 +65,7 @@ public final class HomesteadClaimProvider implements ClaimProvider {
             return false;
         }
         try {
-            Class.forName(CHUNK_MANAGER_CLASS);
+            Reflected.requireType(CHUNK_MANAGER_CLASS);
             return true;
         } catch (Throwable t) {
             return false;
@@ -105,11 +106,11 @@ public final class HomesteadClaimProvider implements ClaimProvider {
         if (findChunk != null) {
             return;
         }
-        Class<?> chunkManagerClass = Class.forName(CHUNK_MANAGER_CLASS);
-        Class<?> memberManagerClass = Class.forName(MEMBER_MANAGER_CLASS);
-        Class<?> banManagerClass = Class.forName(BAN_MANAGER_CLASS);
-        Class<?> regionChunkClass = Class.forName("tfagaming.projects.minecraft.homestead.models.RegionChunk");
-        Class<?> regionClass = Class.forName("tfagaming.projects.minecraft.homestead.models.Region");
+        Class<?> chunkManagerClass = Reflected.requireType(CHUNK_MANAGER_CLASS);
+        Class<?> memberManagerClass = Reflected.requireType(MEMBER_MANAGER_CLASS);
+        Class<?> banManagerClass = Reflected.requireType(BAN_MANAGER_CLASS);
+        Class<?> regionChunkClass = Reflected.requireType("tfagaming.projects.minecraft.homestead.models.RegionChunk");
+        Class<?> regionClass = Reflected.requireType("tfagaming.projects.minecraft.homestead.models.Region");
         findChunk = chunkManagerClass.getMethod("findChunk", UUID.class, int.class, int.class);
         getRegion = regionChunkClass.getMethod("getRegion");
         getRegionUniqueId = regionClass.getMethod("getUniqueId");
