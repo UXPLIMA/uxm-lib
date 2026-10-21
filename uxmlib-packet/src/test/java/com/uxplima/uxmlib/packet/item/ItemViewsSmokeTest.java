@@ -99,6 +99,27 @@ class ItemViewsSmokeTest {
         assertThat(scheduler.delayed()).isEmpty();
     }
 
+    /**
+     * A server without the internals the item packets are built from, a test server or a line this release was not
+     * built for, still gets an installer. It draws nothing, so every item goes out as the server holds it: a
+     * tooltip in the words it was given with, never a plugin that fails to enable.
+     */
+    @Test
+    @DisplayName("a server without the internals gets a view that draws nothing")
+    void aServerWithoutTheInternalsGetsAViewThatDrawsNothing() {
+        ItemPackets none = ItemViews.packetsOrNone(plugin, () -> {
+            throw new NoClassDefFoundError("net/minecraft/world/item/ItemInstance");
+        });
+
+        assertThat(none.carriesItems(new Object())).isFalse();
+        assertThat(none.carriesClientItem(new Object())).isFalse();
+        ItemViews views = new ItemViews(plugin, scheduler, none, (viewer, real) -> real);
+        PlayerMock player = server.addPlayer();
+        assertThatCode(views::install).doesNotThrowAnyException();
+        assertThatCode(views::uninstall).doesNotThrowAnyException();
+        assertThat(views.isInjected(player)).isFalse();
+    }
+
     private ItemViews views() {
         return new ItemViews(plugin, scheduler, new FakeItemPackets(), (viewer, real) -> real);
     }

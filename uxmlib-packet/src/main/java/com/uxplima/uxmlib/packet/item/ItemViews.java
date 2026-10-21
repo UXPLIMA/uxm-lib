@@ -8,6 +8,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -17,6 +19,7 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import com.uxplima.uxmlib.packet.item.internal.NmsItemPackets;
@@ -74,7 +77,51 @@ public final class ItemViews implements Listener {
      * @param view what every viewer is shown in place of the item the server holds
      */
     public ItemViews(Plugin plugin, Scheduler scheduler, ItemView view) {
-        this(plugin, scheduler, new NmsItemPackets(), view);
+        this(plugin, scheduler, packetsOrNone(plugin, () -> new NmsItemPackets()), view);
+    }
+
+    /**
+     * The server's item packets, or a packet layer that touches no item when this server does not have the
+     * internals they are built from: a test server, or a line this release was not built for. The view then draws
+     * nothing and every item goes out as the server holds it, which costs a tooltip its viewer's words and never
+     * costs a plugin its enable.
+     */
+    static ItemPackets packetsOrNone(Plugin plugin, Supplier<ItemPackets> server) {
+        try {
+            return server.get();
+        } catch (LinkageError absent) {
+            plugin.getSLF4JLogger()
+                    .warn(
+                            "This server does not have the internals item views are drawn with, so items are shown as"
+                                    + " the server holds them: {}",
+                            absent.toString());
+            return NoItems.INSTANCE;
+        }
+    }
+
+    /** The packet layer of a server without the internals: no packet carries an item it can rewrite. */
+    private enum NoItems implements ItemPackets {
+        INSTANCE;
+
+        @Override
+        public boolean carriesItems(Object packet) {
+            return false;
+        }
+
+        @Override
+        public @Nullable Object withItems(Object packet, UnaryOperator<ItemStack> shown) {
+            return null;
+        }
+
+        @Override
+        public boolean carriesClientItem(Object packet) {
+            return false;
+        }
+
+        @Override
+        public @Nullable Object withClientItem(Object packet, UnaryOperator<ItemStack> restored) {
+            return null;
+        }
     }
 
     /**
