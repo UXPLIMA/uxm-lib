@@ -82,8 +82,8 @@ public final class PacketListenerRegistry {
     private static PacketVerdict invoke(
             PacketListener listener, PacketDirection direction, @Nullable UUID player, Object packet) {
         return direction == PacketDirection.OUTBOUND
-                ? listener.onSendVerdict(player, packet)
-                : listener.onReceiveVerdict(player, packet);
+                ? listener.onSend(player, packet)
+                : listener.onReceive(player, packet);
     }
 
     private static List<Throwable> record(@Nullable List<Throwable> faults, Throwable fault) {
@@ -102,11 +102,6 @@ public final class PacketListenerRegistry {
         public Dispatch {
             Objects.requireNonNull(action, "action");
             faults = List.copyOf(faults);
-        }
-
-        /** A dispatch that only passes or cancels, carrying no replacement: the back-compat shape. */
-        public Dispatch(PacketAction action, List<Throwable> faults) {
-            this(action, null, faults);
         }
 
         /** {@code true} if the folded verdict cancels the packet. */

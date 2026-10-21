@@ -5,25 +5,21 @@ import java.util.Objects;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A listener's verdict on a packet, the richer form that can also <em>rewrite</em> a packet rather than only
- * pass or drop it. Three outcomes:
+ * A listener's verdict on a packet. Three outcomes:
  *
  * <ul>
- *   <li>{@link #pass()}: let the packet continue unchanged (the legacy {@link PacketAction#PASS});
- *   <li>{@link #cancel()}: drop the packet (the legacy {@link PacketAction#CANCEL});
+ *   <li>{@link #pass()}: let the packet continue unchanged;
+ *   <li>{@link #cancel()}: drop the packet;
  *   <li>{@link #rewrite(Object)}: forward a <em>replacement</em> packet in place of the original.
  * </ul>
  *
- * <p>This is the superset of {@link PacketAction}: {@link #from(PacketAction)} maps the two legacy verdicts onto
- * the matching verdict here, so a listener that only implements the {@link PacketListener#onSend} /
- * {@link PacketListener#onReceive} pass/cancel methods behaves exactly as before: a listener opts into rewrite
- * by overriding {@link PacketListener#onSendVerdict} instead. The folding rule (see
- * {@link PacketListenerRegistry}) keeps {@code cancel} a veto that beats a rewrite, so an observe-only or
- * cancelling listener is never overridden by a rewriting one.
+ * <p>The folding rule (see {@link PacketListenerRegistry}) keeps {@code cancel} a veto that beats a rewrite, so an
+ * observe-only or cancelling listener is never overridden by a rewriting one. {@link #from(PacketAction)} reads the
+ * pass or cancel a folded dispatch carries back as a verdict.
  *
- * <p>Rewrite is an <em>outbound</em> mechanism: the interceptor only honours a replacement on the server→client
- * write path (an inbound rewrite is meaningless here and is treated as a pass). The replacement is an opaque
- * {@link Object} (the same raw packet type the channel speaks in), so this type carries no packet knowledge.
+ * <p>A rewrite works both ways: on the way out the client is sent the replacement, and on the way in the server
+ * reads it. The replacement is an opaque {@link Object} (the same raw packet type the channel speaks in), so this
+ * type carries no packet knowledge.
  */
 public sealed interface PacketVerdict permits PacketVerdict.Pass, PacketVerdict.Cancel, PacketVerdict.Rewrite {
 
@@ -42,7 +38,7 @@ public sealed interface PacketVerdict permits PacketVerdict.Pass, PacketVerdict.
         return new Rewrite(replacement);
     }
 
-    /** The verdict matching a legacy {@link PacketAction}: {@code PASS} -> {@link #pass()}, {@code CANCEL} -> {@link #cancel()}. */
+    /** The verdict matching a {@link PacketAction}: {@code PASS} is {@link #pass()}, {@code CANCEL} is {@link #cancel()}. */
     static PacketVerdict from(PacketAction action) {
         Objects.requireNonNull(action, "action");
         return action.cancels() ? cancel() : pass();

@@ -63,7 +63,7 @@ class ItemViewCreativeTest {
         ItemStack shown = shownCopyOf(sword);
         shown.setAmount(3);
 
-        PacketVerdict verdict = listener.onReceiveVerdict(VIEWER, new FakeItemPackets.CreativeSlot(36, shown));
+        PacketVerdict verdict = listener.onReceive(VIEWER, new FakeItemPackets.CreativeSlot(36, shown));
 
         FakeItemPackets.CreativeSlot restored =
                 (FakeItemPackets.CreativeSlot) Objects.requireNonNull(verdict.replacement());
@@ -77,7 +77,7 @@ class ItemViewCreativeTest {
     void aCreativeSlotCarryingAnUnmarkedItemIsLeftAlone() {
         ItemStack own = new ItemStack(Material.STONE);
 
-        PacketVerdict verdict = listener.onReceiveVerdict(VIEWER, new FakeItemPackets.CreativeSlot(36, own));
+        PacketVerdict verdict = listener.onReceive(VIEWER, new FakeItemPackets.CreativeSlot(36, own));
 
         assertThat(verdict.cancels()).isFalse();
         assertThat(verdict.replacement()).isNull();
@@ -88,7 +88,7 @@ class ItemViewCreativeTest {
         ItemStack shown = shownCopyOf(new ItemStack(Material.DIAMOND_SWORD));
         UUID mallory = UUID.fromString("00000000-0000-0000-0000-0000000000bb");
 
-        PacketVerdict verdict = listener.onReceiveVerdict(mallory, new FakeItemPackets.CreativeSlot(36, shown));
+        PacketVerdict verdict = listener.onReceive(mallory, new FakeItemPackets.CreativeSlot(36, shown));
 
         FakeItemPackets.CreativeSlot kept =
                 (FakeItemPackets.CreativeSlot) Objects.requireNonNull(verdict.replacement());
@@ -104,7 +104,7 @@ class ItemViewCreativeTest {
         meta.getPersistentDataContainer().set(KEY, PersistentDataType.LONG, 42L);
         forged.setItemMeta(meta);
 
-        PacketVerdict verdict = listener.onReceiveVerdict(VIEWER, new FakeItemPackets.CreativeSlot(36, forged));
+        PacketVerdict verdict = listener.onReceive(VIEWER, new FakeItemPackets.CreativeSlot(36, forged));
 
         FakeItemPackets.CreativeSlot kept =
                 (FakeItemPackets.CreativeSlot) Objects.requireNonNull(verdict.replacement());
@@ -116,7 +116,7 @@ class ItemViewCreativeTest {
         ItemStack shown = shownCopyOf(new ItemStack(Material.DIAMOND_SWORD));
 
         listener.forget(VIEWER);
-        PacketVerdict verdict = listener.onReceiveVerdict(VIEWER, new FakeItemPackets.CreativeSlot(36, shown));
+        PacketVerdict verdict = listener.onReceive(VIEWER, new FakeItemPackets.CreativeSlot(36, shown));
 
         FakeItemPackets.CreativeSlot kept =
                 (FakeItemPackets.CreativeSlot) Objects.requireNonNull(verdict.replacement());
@@ -130,13 +130,13 @@ class ItemViewCreativeTest {
                 new ItemViewListener(packets, new NamespacedKey("other", "shown-from"), (viewer, real) -> real);
         ItemStack shown = shownCopyOf(new ItemStack(Material.DIAMOND_SWORD));
 
-        PacketVerdict verdict = other.onReceiveVerdict(VIEWER, new FakeItemPackets.CreativeSlot(36, shown));
+        PacketVerdict verdict = other.onReceive(VIEWER, new FakeItemPackets.CreativeSlot(36, shown));
 
         assertThat(verdict.replacement()).isNull();
     }
 
     private ItemStack shownCopyOf(ItemStack real) {
-        PacketVerdict verdict = listener.onSendVerdict(VIEWER, new FakeItemPackets.Slot(real));
+        PacketVerdict verdict = listener.onSend(VIEWER, new FakeItemPackets.Slot(real));
         return ((FakeItemPackets.Slot) Objects.requireNonNull(verdict.replacement())).item();
     }
 

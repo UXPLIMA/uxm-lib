@@ -26,8 +26,8 @@ class PacketListenerRegistryTest {
     @Test
     void registerIsIdempotentForSameInstanceAndPreservesOrder() {
         PacketListenerRegistry registry = new PacketListenerRegistry();
-        PacketListener a = (id, packet) -> PacketAction.PASS;
-        PacketListener b = (id, packet) -> PacketAction.PASS;
+        PacketListener a = (id, packet) -> PacketVerdict.pass();
+        PacketListener b = (id, packet) -> PacketVerdict.pass();
         registry.register(a);
         registry.register(a);
         registry.register(b);
@@ -40,11 +40,11 @@ class PacketListenerRegistryTest {
         List<String> seen = new ArrayList<>();
         registry.register((id, packet) -> {
             seen.add("first");
-            return PacketAction.CANCEL;
+            return PacketVerdict.cancel();
         });
         registry.register((id, packet) -> {
             seen.add("second");
-            return PacketAction.PASS;
+            return PacketVerdict.pass();
         });
 
         PacketListenerRegistry.Dispatch dispatch = registry.dispatch(PacketDirection.OUTBOUND, PLAYER, new Object());
@@ -57,7 +57,7 @@ class PacketListenerRegistryTest {
     void inboundDispatchUsesOnReceiveDefaultPass() {
         PacketListenerRegistry registry = new PacketListenerRegistry();
         // Only overrides onSend; onReceive defaults to PASS, so an inbound dispatch must not cancel.
-        registry.register((id, packet) -> PacketAction.CANCEL);
+        registry.register((id, packet) -> PacketVerdict.cancel());
 
         PacketListenerRegistry.Dispatch dispatch = registry.dispatch(PacketDirection.INBOUND, PLAYER, new Object());
 
@@ -69,13 +69,13 @@ class PacketListenerRegistryTest {
         PacketListenerRegistry registry = new PacketListenerRegistry();
         registry.register(new PacketListener() {
             @Override
-            public PacketAction onSend(@Nullable UUID player, Object packet) {
-                return PacketAction.PASS;
+            public PacketVerdict onSend(@Nullable UUID player, Object packet) {
+                return PacketVerdict.pass();
             }
 
             @Override
-            public PacketAction onReceive(@Nullable UUID player, Object packet) {
-                return PacketAction.CANCEL;
+            public PacketVerdict onReceive(@Nullable UUID player, Object packet) {
+                return PacketVerdict.cancel();
             }
         });
 
@@ -91,7 +91,7 @@ class PacketListenerRegistryTest {
         registry.register((id, packet) -> {
             throw boom;
         });
-        registry.register((id, packet) -> PacketAction.PASS);
+        registry.register((id, packet) -> PacketVerdict.pass());
 
         PacketListenerRegistry.Dispatch dispatch = registry.dispatch(PacketDirection.OUTBOUND, PLAYER, new Object());
 
@@ -116,7 +116,7 @@ class PacketListenerRegistryTest {
     void aCancelBeatsARewrite() {
         PacketListenerRegistry registry = new PacketListenerRegistry();
         registry.register(rewritingOnSend(new Object()));
-        registry.register((id, packet) -> PacketAction.CANCEL);
+        registry.register((id, packet) -> PacketVerdict.cancel());
 
         PacketListenerRegistry.Dispatch dispatch = registry.dispatch(PacketDirection.OUTBOUND, PLAYER, new Object());
 
@@ -135,13 +135,7 @@ class PacketListenerRegistryTest {
         registry.register(rewritingOnSend(first));
         registry.register(new PacketListener() {
             @Override
-            public PacketAction onSend(@Nullable UUID player, Object packet) {
-                seen.add(packet);
-                return PacketAction.PASS;
-            }
-
-            @Override
-            public PacketVerdict onSendVerdict(@Nullable UUID player, Object packet) {
+            public PacketVerdict onSend(@Nullable UUID player, Object packet) {
                 seen.add(packet);
                 return PacketVerdict.rewrite(new Object());
             }
@@ -159,12 +153,12 @@ class PacketListenerRegistryTest {
         PacketListenerRegistry registry = new PacketListenerRegistry();
         registry.register(new PacketListener() {
             @Override
-            public PacketAction onSend(@Nullable UUID player, Object packet) {
-                return PacketAction.PASS;
+            public PacketVerdict onSend(@Nullable UUID player, Object packet) {
+                return PacketVerdict.pass();
             }
 
             @Override
-            public PacketVerdict onReceiveVerdict(@Nullable UUID player, Object packet) {
+            public PacketVerdict onReceive(@Nullable UUID player, Object packet) {
                 return PacketVerdict.rewrite(new Object());
             }
         });
@@ -179,12 +173,7 @@ class PacketListenerRegistryTest {
     private static PacketListener rewritingOnSend(Object replacement) {
         return new PacketListener() {
             @Override
-            public PacketAction onSend(@Nullable UUID player, Object packet) {
-                return PacketAction.PASS;
-            }
-
-            @Override
-            public PacketVerdict onSendVerdict(@Nullable UUID player, Object packet) {
+            public PacketVerdict onSend(@Nullable UUID player, Object packet) {
                 return PacketVerdict.rewrite(replacement);
             }
         };
@@ -196,7 +185,7 @@ class PacketListenerRegistryTest {
         List<@Nullable UUID> seen = new ArrayList<>();
         registry.register((id, packet) -> {
             seen.add(id);
-            return PacketAction.PASS;
+            return PacketVerdict.pass();
         });
 
         registry.dispatch(PacketDirection.OUTBOUND, null, new Object());
@@ -207,7 +196,7 @@ class PacketListenerRegistryTest {
     @Test
     void unregisterRemovesTheListener() {
         PacketListenerRegistry registry = new PacketListenerRegistry();
-        PacketListener listener = (id, packet) -> PacketAction.PASS;
+        PacketListener listener = (id, packet) -> PacketVerdict.pass();
         registry.register(listener);
         assertThat(registry.unregister(listener)).isTrue();
         assertThat(registry.isEmpty()).isTrue();

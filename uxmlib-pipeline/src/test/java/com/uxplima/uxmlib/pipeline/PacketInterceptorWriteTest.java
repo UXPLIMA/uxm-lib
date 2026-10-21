@@ -25,7 +25,7 @@ class PacketInterceptorWriteTest {
     @Test
     void aPassForwardsTheOriginalPacketUnchanged() {
         PacketListenerRegistry registry = new PacketListenerRegistry();
-        registry.register((id, packet) -> PacketAction.PASS);
+        registry.register((id, packet) -> PacketVerdict.pass());
         EmbeddedChannel channel = channelWith(registry);
         Object original = "original";
 
@@ -47,7 +47,7 @@ class PacketInterceptorWriteTest {
     @Test
     void aCancelDropsTheOutboundPacket() {
         PacketListenerRegistry registry = new PacketListenerRegistry();
-        registry.register((id, packet) -> PacketAction.CANCEL);
+        registry.register((id, packet) -> PacketVerdict.cancel());
         EmbeddedChannel channel = channelWith(registry);
 
         channel.writeOutbound("dropped");
@@ -61,12 +61,7 @@ class PacketInterceptorWriteTest {
         PacketListenerRegistry registry = new PacketListenerRegistry();
         registry.register(new PacketListener() {
             @Override
-            public PacketAction onSend(@Nullable UUID player, Object packet) {
-                return PacketAction.PASS;
-            }
-
-            @Override
-            public PacketVerdict onSendVerdict(@Nullable UUID player, Object packet) {
+            public PacketVerdict onSend(@Nullable UUID player, Object packet) {
                 return PacketVerdict.rewrite(replacement);
             }
         });

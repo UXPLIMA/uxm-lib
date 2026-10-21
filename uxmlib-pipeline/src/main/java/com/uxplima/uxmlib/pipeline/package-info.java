@@ -17,10 +17,9 @@
  *
  * <ul>
  *   <li>{@link com.uxplima.uxmlib.pipeline.PacketListener}: the seam: {@code onSend}/{@code onReceive} return a
- *       {@link com.uxplima.uxmlib.pipeline.PacketAction} (pass or cancel). A listener may instead override
- *       {@code onSendVerdict} to return a {@link com.uxplima.uxmlib.pipeline.PacketVerdict}, which also supports a
- *       {@code rewrite} that forwards a replacement packet downstream on the outbound path. Listeners never
- *       throw across the channel; faults are swallowed and the packet passes (fail-open).
+ *       {@link com.uxplima.uxmlib.pipeline.PacketVerdict}: pass, cancel, or a {@code rewrite} that hands the
+ *       other side a replacement packet. Listeners never throw across the channel; faults are swallowed and the
+ *       packet passes (fail-open).
  *   <li>{@link com.uxplima.uxmlib.pipeline.PacketListenerRegistry}: an ordered, thread-safe registry that
  *       dispatches a packet to every listener and folds their decisions into a single pass/cancel/rewrite
  *       verdict (cancel vetoes; the first rewrite otherwise wins). Pure logic; fully unit-tested.

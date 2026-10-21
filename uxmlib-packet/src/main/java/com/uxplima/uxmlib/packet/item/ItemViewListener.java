@@ -12,7 +12,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
-import com.uxplima.uxmlib.pipeline.PacketAction;
 import com.uxplima.uxmlib.pipeline.PacketListener;
 import com.uxplima.uxmlib.pipeline.PacketVerdict;
 import org.jspecify.annotations.Nullable;
@@ -53,17 +52,8 @@ public final class ItemViewListener implements PacketListener {
         this.view = Objects.requireNonNull(view, "view");
     }
 
-    /**
-     * Never used to decide anything: this listener rewrites rather than cancels, so the pass/cancel half of
-     * the seam always passes and {@link #onSendVerdict} carries the real answer.
-     */
     @Override
-    public PacketAction onSend(@Nullable UUID player, Object packet) {
-        return PacketAction.PASS;
-    }
-
-    @Override
-    public PacketVerdict onSendVerdict(@Nullable UUID player, Object packet) {
+    public PacketVerdict onSend(@Nullable UUID player, Object packet) {
         Objects.requireNonNull(packet, "packet");
         if (player == null || !packets.carriesItems(packet)) {
             // Before login there is no viewer to draw for, and most outbound packets carry no item at all.
@@ -75,7 +65,7 @@ public final class ItemViewListener implements PacketListener {
     }
 
     @Override
-    public PacketVerdict onReceiveVerdict(@Nullable UUID player, Object packet) {
+    public PacketVerdict onReceive(@Nullable UUID player, Object packet) {
         Objects.requireNonNull(packet, "packet");
         if (player == null || !packets.carriesClientItem(packet)) {
             return PacketVerdict.pass();

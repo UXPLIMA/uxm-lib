@@ -55,12 +55,7 @@ class PacketPipelineVanillaShapeTest {
         EmbeddedChannel channel = injected();
         registry.register(new PacketListener() {
             @Override
-            public PacketAction onSend(@Nullable UUID player, Object packet) {
-                return PacketAction.PASS;
-            }
-
-            @Override
-            public PacketVerdict onSendVerdict(@Nullable UUID player, Object packet) {
+            public PacketVerdict onSend(@Nullable UUID player, Object packet) {
                 return PacketVerdict.rewrite("drawn_" + packet);
             }
         });
@@ -76,12 +71,12 @@ class PacketPipelineVanillaShapeTest {
         EmbeddedChannel channel = injected();
         registry.register(new PacketListener() {
             @Override
-            public PacketAction onSend(@Nullable UUID player, Object packet) {
-                return PacketAction.PASS;
+            public PacketVerdict onSend(@Nullable UUID player, Object packet) {
+                return PacketVerdict.pass();
             }
 
             @Override
-            public PacketVerdict onReceiveVerdict(@Nullable UUID player, Object packet) {
+            public PacketVerdict onReceive(@Nullable UUID player, Object packet) {
                 return PacketVerdict.rewrite("restored_" + packet);
             }
         });
@@ -98,15 +93,15 @@ class PacketPipelineVanillaShapeTest {
         EmbeddedChannel channel = vanillaShaped();
         registry.register(new PacketListener() {
             @Override
-            public PacketAction onSend(@Nullable UUID player, Object packet) {
+            public PacketVerdict onSend(@Nullable UUID player, Object packet) {
                 sent.add(packet);
-                return PacketAction.PASS;
+                return PacketVerdict.pass();
             }
 
             @Override
-            public PacketAction onReceive(@Nullable UUID player, Object packet) {
+            public PacketVerdict onReceive(@Nullable UUID player, Object packet) {
                 received.add(packet);
-                return PacketAction.PASS;
+                return PacketVerdict.pass();
             }
         });
         PacketPipeline pipeline = new PacketPipeline(new ChannelResolver(), registry, "uxmlib_packet", fault -> {});

@@ -12,7 +12,6 @@ import org.bukkit.inventory.ItemStack;
 
 import net.kyori.adventure.text.Component;
 
-import com.uxplima.uxmlib.pipeline.PacketAction;
 import com.uxplima.uxmlib.pipeline.PacketDirection;
 import com.uxplima.uxmlib.pipeline.PacketListenerRegistry;
 import com.uxplima.uxmlib.pipeline.PacketVerdict;
@@ -51,7 +50,7 @@ class ItemViewListenerTest {
     void aPacketWithoutAnItemPasses() {
         ItemViewListener listener = new ItemViewListener(packets, KEY, (viewer, real) -> real);
 
-        PacketVerdict verdict = listener.onSendVerdict(VIEWER, "a packet with no item in it");
+        PacketVerdict verdict = listener.onSend(VIEWER, "a packet with no item in it");
 
         assertThat(verdict.cancels()).isFalse();
         assertThat(verdict.replacement()).isNull();
@@ -67,7 +66,7 @@ class ItemViewListenerTest {
             return real;
         });
 
-        PacketVerdict verdict = listener.onSendVerdict(null, new FakeItemPackets.Slot(sword()));
+        PacketVerdict verdict = listener.onSend(null, new FakeItemPackets.Slot(sword()));
 
         assertThat(verdict.replacement()).isNull();
         assertThat(seen).isEmpty();
@@ -80,7 +79,7 @@ class ItemViewListenerTest {
         ItemViewListener listener = new ItemViewListener(packets, KEY, (viewer, real) -> real);
         FakeItemPackets.Slot packet = new FakeItemPackets.Slot(sword());
 
-        PacketVerdict verdict = listener.onSendVerdict(VIEWER, packet);
+        PacketVerdict verdict = listener.onSend(VIEWER, packet);
 
         assertThat(verdict.replacement()).isNull();
         assertThat(verdict.cancels()).isFalse();
@@ -93,7 +92,7 @@ class ItemViewListenerTest {
         ItemViewListener listener = new ItemViewListener(packets, KEY, (viewer, real) -> decorated(real));
         FakeItemPackets.Slot packet = new FakeItemPackets.Slot(sword());
 
-        PacketVerdict verdict = listener.onSendVerdict(VIEWER, packet);
+        PacketVerdict verdict = listener.onSend(VIEWER, packet);
 
         assertThat(verdict.cancels()).isFalse();
         assertThat(verdict.replacement()).isInstanceOf(FakeItemPackets.Slot.class);
@@ -114,17 +113,18 @@ class ItemViewListenerTest {
             return real;
         });
 
-        listener.onSendVerdict(VIEWER, new FakeItemPackets.Slot(sword()));
+        listener.onSend(VIEWER, new FakeItemPackets.Slot(sword()));
 
         assertThat(seen).containsExactly(VIEWER);
     }
 
     @Test
-    @DisplayName("the pass and cancel half of the seam never cancels")
-    void thePassCancelHalfAlwaysPasses() {
+    @DisplayName("a view never cancels a packet, it only redraws one")
+    void aViewNeverCancels() {
         ItemViewListener listener = new ItemViewListener(packets, KEY, (viewer, real) -> decorated(real));
 
-        assertThat(listener.onSend(VIEWER, new FakeItemPackets.Slot(sword()))).isEqualTo(PacketAction.PASS);
+        assertThat(listener.onSend(VIEWER, new FakeItemPackets.Slot(sword())).cancels())
+                .isFalse();
     }
 
     @Test
