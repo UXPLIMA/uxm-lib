@@ -7,8 +7,12 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bukkit.entity.Player;
+
 import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.identity.Identity;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 
 import com.uxplima.uxmlib.text.Text;
@@ -45,6 +49,9 @@ public final class Messages {
     public static final String SUBTITLE_SUFFIX = ".subtitle";
 
     private static final System.Logger LOG = System.getLogger(Messages.class.getName());
+
+    /** The tag that names the player a line is drawn for. */
+    private static final String VIEWER_TAG = "player";
 
     /**
      * The collisions already reported, as {@code path/role}. A defect is worth saying once: a line that draws on
@@ -134,11 +141,12 @@ public final class Messages {
         Content snapshot = content;
         Optional<CatalogLine> reference = reference(snapshot, line);
         if (reference.isEmpty()) {
-            return parse(snapshot, line, line, resolvers);
+            return parse(snapshot, viewer, line, line, resolvers);
         }
         CatalogLine named = reference.get();
         String template = named.fill(entry(snapshot, viewer, named));
-        return parse(snapshot, named.key(), template, OperatorLines.withArguments(named.arguments(), resolvers));
+        return parse(
+                snapshot, viewer, named.key(), template, OperatorLines.withArguments(named.arguments(), resolvers));
     }
 
     /**
@@ -206,7 +214,7 @@ public final class Messages {
 
     private Component render(Content snapshot, Audience viewer, MessageKey key, TagResolver[] resolvers) {
         Locale locale = snapshot.locales().localeOf(viewer);
-        return parse(snapshot, key.path(), snapshot.catalog().template(key, locale), resolvers);
+        return parse(snapshot, viewer, key.path(), snapshot.catalog().template(key, locale), resolvers);
     }
 
     /**
@@ -282,8 +290,8 @@ public final class Messages {
         }
         title.send(
                 viewer,
-                parse(snapshot, key.path(), title.template(), resolvers),
-                parse(snapshot, subtitleKey.path(), title.subtitle(), resolvers));
+                parse(snapshot, viewer, key.path(), title.template(), resolvers),
+                parse(snapshot, viewer, subtitleKey.path(), title.subtitle(), resolvers));
     }
 
     /** Show the title from {@code locale}'s own lang file, or report that it does not hold both halves. */
@@ -302,25 +310,38 @@ public final class Messages {
         }
         title.send(
                 viewer,
-                parse(snapshot, key.path(), text.get(), resolvers),
-                parse(snapshot, subtitleKey.path(), subtitle.get(), resolvers));
+                parse(snapshot, viewer, key.path(), text.get(), resolvers),
+                parse(snapshot, viewer, subtitleKey.path(), subtitle.get(), resolvers));
         return true;
     }
 
     /**
-     * Parse one template with the base resolver behind the caller's own. MiniMessage gives the last resolver
-     * it is handed the final say, so the base goes in first and a call site's {@code <name>} beats a house
-     * {@code <name>} rather than being shadowed by it.
+     * Parse one template with the base resolver and the viewer's name behind the caller's own. MiniMessage gives
+     * the last resolver it is handed the final say, so the base goes in first and a call site's {@code <name>}
+     * beats a house {@code <name>} rather than being shadowed by it.
+     *
+     * <p>{@code <player>} names the viewer unless the caller names someone else, so a line that greets the
+     * player it is drawn for reads right even where the call site forgot to pass the name. The name goes in as
+     * text and is never read as markup.
      */
-    private Component parse(Content snapshot, String path, String template, TagResolver[] resolvers) {
+    private Component parse(Content snapshot, Audience viewer, String path, String template, TagResolver[] resolvers) {
         reportShadowed(snapshot, path, resolvers);
-        if (resolvers.length == 0) {
-            return Text.mini(template, snapshot.base());
-        }
-        TagResolver[] all = new TagResolver[resolvers.length + 1];
+        TagResolver[] all = new TagResolver[resolvers.length + 2];
         all[0] = snapshot.base();
-        System.arraycopy(resolvers, 0, all, 1, resolvers.length);
+        all[1] = nameOf(viewer)
+                .map(name -> (TagResolver) Placeholder.unparsed(VIEWER_TAG, name))
+                .orElse(TagResolver.empty());
+        System.arraycopy(resolvers, 0, all, 2, resolvers.length);
         return Text.mini(template, TagResolver.resolver(all));
+    }
+
+    /** The viewer's name: the audience's own when it carries one, else the player's, else none. */
+    private static Optional<String> nameOf(Audience viewer) {
+        Optional<String> named = viewer.get(Identity.NAME);
+        if (named.isPresent()) {
+            return named;
+        }
+        return viewer instanceof Player player ? Optional.of(player.getName()) : Optional.empty();
     }
 
     private static Message channel(Content snapshot, MessageKey key) {
