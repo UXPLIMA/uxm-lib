@@ -57,6 +57,7 @@ public final class ItemViews implements Listener {
     private final Scheduler scheduler;
     private final PacketPipeline pipeline;
     private final PacketListenerRegistry registry = new PacketListenerRegistry();
+    private final ItemViewListener listener;
 
     /** Each viewer's language as last read on their own thread, for a view drawing on an I/O thread. */
     private final Map<UUID, String> languages = new ConcurrentHashMap<>();
@@ -86,7 +87,8 @@ public final class ItemViews implements Listener {
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         Objects.requireNonNull(packets, "packets");
         Objects.requireNonNull(view, "view");
-        this.registry.register(new ItemViewListener(packets, new NamespacedKey(plugin, "shown-from"), view));
+        this.listener = new ItemViewListener(packets, new NamespacedKey(plugin, "shown-from"), view);
+        this.registry.register(listener);
         this.pipeline = new PacketPipeline(
                 new ChannelResolver(),
                 registry,
@@ -200,5 +202,6 @@ public final class ItemViews implements Listener {
     public void ejectOnQuit(PlayerQuitEvent event) {
         pipeline.eject(event.getPlayer());
         languages.remove(event.getPlayer().getUniqueId());
+        listener.forget(event.getPlayer().getUniqueId());
     }
 }

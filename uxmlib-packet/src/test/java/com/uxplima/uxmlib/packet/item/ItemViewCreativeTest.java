@@ -23,8 +23,9 @@ import org.mockbukkit.mockbukkit.MockBukkit;
 /**
  * A creative client sends back the item it was shown, and the server would keep the words a view drew on it, then
  * draw them a second time. Proven on a live 26.3 server: after one creative slot packet the server's sword carried
- * the lore the view had drawn. So every drawn copy carries the server's own item, and a creative slot packet that
- * brings a drawn copy back hands the server its own item instead.
+ * the lore the view had drawn. So every drawn copy carries a token for the server's own item, kept on the server
+ * for that viewer, and a creative slot packet that brings a drawn copy back hands the server its own item instead.
+ * The item itself never travels: a client could forge it, read what the view hid, or swell a packet with it.
  */
 class ItemViewCreativeTest {
 
@@ -46,16 +47,14 @@ class ItemViewCreativeTest {
     }
 
     @Test
-    void aDrawnItemCarriesWhatTheServerHolds() {
+    void aDrawnItemCarriesATokenAndNotTheServersItem() {
         ItemStack sword = new ItemStack(Material.DIAMOND_SWORD);
 
         ItemStack shown = shownCopyOf(sword);
 
-        assertThat(shown.getItemMeta().getPersistentDataContainer().has(KEY, PersistentDataType.BYTE_ARRAY))
+        assertThat(shown.getItemMeta().getPersistentDataContainer().has(KEY, PersistentDataType.LONG))
                 .isTrue();
-        byte[] carried = Objects.requireNonNull(
-                shown.getItemMeta().getPersistentDataContainer().get(KEY, PersistentDataType.BYTE_ARRAY));
-        assertThat(packets.itemOf(carried)).isEqualTo(sword);
+        assertThat(shown.getItemMeta().getPersistentDataContainer().getKeys()).containsExactly(KEY);
     }
 
     @Test
@@ -82,6 +81,47 @@ class ItemViewCreativeTest {
 
         assertThat(verdict.cancels()).isFalse();
         assertThat(verdict.replacement()).isNull();
+    }
+
+    @Test
+    void anotherPlayersTokenRestoresNothing() {
+        ItemStack shown = shownCopyOf(new ItemStack(Material.DIAMOND_SWORD));
+        UUID mallory = UUID.fromString("00000000-0000-0000-0000-0000000000bb");
+
+        PacketVerdict verdict = listener.onReceiveVerdict(mallory, new FakeItemPackets.CreativeSlot(36, shown));
+
+        FakeItemPackets.CreativeSlot kept =
+                (FakeItemPackets.CreativeSlot) Objects.requireNonNull(verdict.replacement());
+        assertThat(kept.item().getItemMeta().getPersistentDataContainer().has(KEY))
+                .isFalse();
+        assertThat(kept.item().getType()).isEqualTo(Material.DIAMOND_SWORD);
+    }
+
+    @Test
+    void aForgedTokenRestoresNothing() {
+        ItemStack forged = new ItemStack(Material.STONE);
+        ItemMeta meta = forged.getItemMeta();
+        meta.getPersistentDataContainer().set(KEY, PersistentDataType.LONG, 42L);
+        forged.setItemMeta(meta);
+
+        PacketVerdict verdict = listener.onReceiveVerdict(VIEWER, new FakeItemPackets.CreativeSlot(36, forged));
+
+        FakeItemPackets.CreativeSlot kept =
+                (FakeItemPackets.CreativeSlot) Objects.requireNonNull(verdict.replacement());
+        assertThat(kept.item()).isEqualTo(new ItemStack(Material.STONE));
+    }
+
+    @Test
+    void aViewerWhoLeftIsForgotten() {
+        ItemStack shown = shownCopyOf(new ItemStack(Material.DIAMOND_SWORD));
+
+        listener.forget(VIEWER);
+        PacketVerdict verdict = listener.onReceiveVerdict(VIEWER, new FakeItemPackets.CreativeSlot(36, shown));
+
+        FakeItemPackets.CreativeSlot kept =
+                (FakeItemPackets.CreativeSlot) Objects.requireNonNull(verdict.replacement());
+        assertThat(kept.item().getItemMeta().getPersistentDataContainer().has(KEY))
+                .isFalse();
     }
 
     @Test

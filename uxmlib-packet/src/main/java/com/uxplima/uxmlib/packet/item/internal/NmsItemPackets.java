@@ -194,16 +194,6 @@ public final class NmsItemPackets implements ItemPackets {
         return item == null ? null : new ServerboundSetCreativeModeSlotPacket(creative.slotNum(), item);
     }
 
-    @Override
-    public byte[] bytesOf(org.bukkit.inventory.ItemStack item) {
-        return item.serializeAsBytes();
-    }
-
-    @Override
-    public org.bukkit.inventory.ItemStack itemOf(byte[] bytes) {
-        return org.bukkit.inventory.ItemStack.deserializeBytes(bytes);
-    }
-
     /**
      * One item through the view. Returns {@code null} when nothing changed, which is what lets the caller
      * forward the original packet rather than build a copy of it.

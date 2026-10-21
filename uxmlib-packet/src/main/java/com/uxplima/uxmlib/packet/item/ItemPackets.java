@@ -43,10 +43,4 @@ public interface ItemPackets {
      * item unchanged.
      */
     @Nullable Object withClientItem(Object packet, UnaryOperator<ItemStack> restored);
-
-    /** {@code item} as bytes a drawn copy can carry. */
-    byte[] bytesOf(ItemStack item);
-
-    /** The item {@link #bytesOf} wrote. */
-    ItemStack itemOf(byte[] bytes);
 }

@@ -25,9 +25,6 @@ final class FakeItemPackets implements ItemPackets {
     /** Every packet the port was asked to rewrite, in order. */
     private final List<Object> asked = new ArrayList<>();
 
-    /** The fake's own item encoding: an index into the items it was asked to keep. */
-    private final List<ItemStack> kept = new ArrayList<>();
-
     @Override
     public boolean carriesItems(Object packet) {
         return packet instanceof Slot;
@@ -51,19 +48,6 @@ final class FakeItemPackets implements ItemPackets {
         CreativeSlot creative = (CreativeSlot) packet;
         ItemStack item = restored.apply(creative.item());
         return item.equals(creative.item()) ? null : new CreativeSlot(creative.slot(), item);
-    }
-
-    @Override
-    public byte[] bytesOf(ItemStack item) {
-        kept.add(item.clone());
-        return java.nio.ByteBuffer.allocate(Integer.BYTES)
-                .putInt(kept.size() - 1)
-                .array();
-    }
-
-    @Override
-    public ItemStack itemOf(byte[] bytes) {
-        return kept.get(java.nio.ByteBuffer.wrap(bytes).getInt()).clone();
     }
 
     List<Object> asked() {

@@ -1,7 +1,11 @@
 package com.uxplima.uxmlib.packet.item;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
@@ -23,10 +27,12 @@ import org.jspecify.annotations.Nullable;
  * test per outbound packet and nothing else.
  *
  * <p>A creative client sends back the item it was shown, so the server would keep the words the view drew and
- * draw them again on top. Every changed copy therefore carries the server's own item under this listener's
- * key, and a creative slot that brings a copy back hands the server its own item, in the count the client
- * chose. A second view on the same connection draws over the first and is undone before it, so the copies
- * unwind in order.
+ * draw them again on top. Every changed copy therefore carries a token under this listener's key, the server
+ * keeps the item behind each token for that viewer, and a creative slot that brings a copy back hands the
+ * server its own item, in the count the client chose. The item itself never travels: a client could forge it,
+ * read what the view hid, or swell a packet with it. A token another viewer was sent, or one the server no
+ * longer holds, restores nothing and its mark is dropped. A second view on the same connection draws over the
+ * first and is undone before it, so the copies unwind in order.
  *
  * <p>Runs on a Netty I/O thread. See {@link ItemView} for what that forbids.
  */
@@ -35,6 +41,7 @@ public final class ItemViewListener implements PacketListener {
     private final ItemPackets packets;
     private final NamespacedKey shownFrom;
     private final ItemView view;
+    private final Map<UUID, ShownItems> shownTo = new ConcurrentHashMap<>();
 
     /**
      * @param shownFrom the key a drawn copy carries the server's own item under; one per plugin, so two views
@@ -73,7 +80,8 @@ public final class ItemViewListener implements PacketListener {
         if (player == null || !packets.carriesClientItem(packet)) {
             return PacketVerdict.pass();
         }
-        Object replacement = packets.withClientItem(packet, this::restored);
+        UUID viewer = player;
+        Object replacement = packets.withClientItem(packet, sent -> restored(viewer, sent));
         return replacement == null ? PacketVerdict.pass() : PacketVerdict.rewrite(replacement);
     }
 
@@ -83,25 +91,68 @@ public final class ItemViewListener implements PacketListener {
         if (drawn.equals(real)) {
             return real;
         }
+        long token = shownTo.computeIfAbsent(viewer, id -> new ShownItems()).keep(real);
         ItemStack marked = drawn.clone();
         ItemMeta meta = marked.getItemMeta();
-        meta.getPersistentDataContainer().set(shownFrom, PersistentDataType.BYTE_ARRAY, packets.bytesOf(real));
+        meta.getPersistentDataContainer().set(shownFrom, PersistentDataType.LONG, token);
         marked.setItemMeta(meta);
         return marked;
     }
 
-    /** The server's own item when {@code sent} is a copy this listener drew, in the count the client chose. */
-    private ItemStack restored(ItemStack sent) {
+    /** Drop what was kept for {@code viewer}, who left. */
+    public void forget(UUID viewer) {
+        shownTo.remove(viewer);
+    }
+
+    /**
+     * The server's own item when {@code sent} is a copy this listener drew for {@code viewer}, in the count the
+     * client chose; {@code sent} without its mark when the token is not one the server holds for them.
+     */
+    private ItemStack restored(UUID viewer, ItemStack sent) {
         if (!sent.hasItemMeta()) {
             return sent;
         }
-        byte @Nullable [] own =
-                sent.getItemMeta().getPersistentDataContainer().get(shownFrom, PersistentDataType.BYTE_ARRAY);
-        if (own == null) {
+        Long token = sent.getItemMeta().getPersistentDataContainer().get(shownFrom, PersistentDataType.LONG);
+        if (token == null) {
             return sent;
         }
-        ItemStack real = packets.itemOf(own);
+        ShownItems kept = shownTo.get(viewer);
+        @Nullable ItemStack real = kept == null ? null : kept.find(token);
+        if (real == null) {
+            ItemStack unmarked = sent.clone();
+            ItemMeta meta = unmarked.getItemMeta();
+            meta.getPersistentDataContainer().remove(shownFrom);
+            unmarked.setItemMeta(meta);
+            return unmarked;
+        }
         real.setAmount(sent.getAmount());
         return real;
+    }
+
+    /**
+     * The items one viewer was last shown copies of, by token. Bounded, so a long session cannot grow it: an item
+     * drawn so long ago that it fell out was resent since, under a newer token.
+     */
+    private static final class ShownItems {
+
+        private static final int KEPT = 512;
+
+        private final Map<Long, ItemStack> items = new LinkedHashMap<>(64, 0.75f, true) {
+            @Override
+            protected boolean removeEldestEntry(Map.Entry<Long, ItemStack> eldest) {
+                return size() > KEPT;
+            }
+        };
+
+        synchronized long keep(ItemStack real) {
+            long token = ThreadLocalRandom.current().nextLong();
+            items.put(token, real.clone());
+            return token;
+        }
+
+        synchronized @Nullable ItemStack find(long token) {
+            ItemStack real = items.get(token);
+            return real == null ? null : real.clone();
+        }
     }
 }
