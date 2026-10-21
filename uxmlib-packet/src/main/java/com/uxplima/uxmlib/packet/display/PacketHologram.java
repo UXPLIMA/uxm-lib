@@ -42,8 +42,9 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Every refresh the hologram asks the anchor's world who is within {@code viewDistance} blocks. A player
  * who comes into range is sent the spawn frame, a player who leaves it is sent a remove, and a player who
- * stays is sent fresh text (so a per-viewer line, a countdown or a balance stays current). When nobody is in
- * range no packet is written at all: the hologram simply is not there.
+ * stays is asked for their lines again and sent the ones that changed (so a per-viewer line, a countdown, a
+ * balance or a language they just picked stays current, and a line that did not change costs nothing). When
+ * nobody is in range no packet is written at all: the hologram simply is not there.
  *
  * <h2>Threading</h2>
  *
@@ -173,7 +174,7 @@ public final class PacketHologram {
         }
         removed = true;
         for (Shown viewer : shown.values()) {
-            despawn(viewer.player(), viewer.lines());
+            despawn(viewer.player(), viewer.lines().size());
         }
         shown.clear();
         TaskHandle task = refresh;
@@ -199,29 +200,33 @@ public final class PacketHologram {
     }
 
     /**
-     * A viewer whose line count has not changed is sent fresh metadata, so animated or per-viewer text
-     * re-applies every frame. A newcomer, or a viewer whose line count changed, is sent the whole spawn
-     * frame: the client has to be told about an entity id before it can be painted.
+     * A viewer whose line count has not changed is sent the lines that differ from what their client holds,
+     * and nothing when none does, so a frame costs a packet only where something changed. A new appearance
+     * differs on every line. A newcomer, or a viewer whose line count changed, is sent the whole spawn frame:
+     * the client has to be told about an entity id before it can be painted.
      */
     private void reconcile(UUID id, Player player) {
         List<Component> lines = linesFor(player);
         Shown current = shown.get(id);
-        if (current != null && current.lines() == lines.size()) {
-            repaint(player, lines);
-            shown.put(id, new Shown(player, lines.size()));
+        if (current != null && current.lines().size() == lines.size()) {
+            repaint(player, current, lines);
+            shown.put(id, new Shown(player, List.copyOf(lines), appearance));
             return;
         }
         if (current != null) {
-            despawn(player, current.lines());
+            despawn(player, current.lines().size());
         }
         spawn(player, lines);
-        shown.put(id, new Shown(player, lines.size()));
+        shown.put(id, new Shown(player, List.copyOf(lines), appearance));
     }
 
-    /** Re-send each line's metadata to a viewer whose stack height has not changed. */
-    private void repaint(Player player, List<Component> lines) {
+    /** Re-send the metadata of each line the viewer's client holds differently, to a stack of the same height. */
+    private void repaint(Player player, Shown held, List<Component> lines) {
+        boolean restyled = !held.appearance().equals(appearance);
         for (int i = 0; i < lines.size(); i++) {
-            packets.send(player, metadata(lineId(i), lines.get(i), i, lines.size()));
+            if (restyled || !held.lines().get(i).equals(lines.get(i))) {
+                packets.send(player, metadata(lineId(i), lines.get(i), i, lines.size()));
+            }
         }
     }
 
@@ -242,7 +247,7 @@ public final class PacketHologram {
             if (!stillNear.contains(id)) {
                 Shown gone = shown.remove(id);
                 if (gone != null) {
-                    despawn(gone.player(), gone.lines());
+                    despawn(gone.player(), gone.lines().size());
                 }
             }
         }
@@ -286,6 +291,6 @@ public final class PacketHologram {
         return lines;
     }
 
-    /** One viewer being shown the hologram: who they are, and how many lines their client is holding. */
-    private record Shown(Player player, int lines) {}
+    /** One viewer being shown the hologram: who they are, and the lines and look their client is holding. */
+    private record Shown(Player player, List<Component> lines, HologramAppearance appearance) {}
 }

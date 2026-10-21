@@ -174,19 +174,72 @@ class PacketHologramTest {
     }
 
     @Test
-    @DisplayName("a viewer who stays is repainted rather than respawned, and keeps the same entity ids")
+    @DisplayName("a viewer who stays and whose text changed is repainted rather than respawned, on the same ids")
     void aStayingViewerIsRepainted() {
         Player alice = playerAt("Alice", 1, 64, 1);
-        show(viewer -> List.of(Component.text("shop")));
+        PacketHologram hologram = show(viewer -> List.of(Component.text("shop")));
         scheduler.firstFrame();
         int allocated = packets.allocations();
         packets.forget();
 
+        hologram.setText(viewer -> List.of(Component.text("closed")));
         scheduler.tick();
 
         assertThat(packets.packetsFor(alice)).hasSize(1);
-        assertThat(packets.packetsFor(alice).get(0)).isInstanceOf(FakeHologramPackets.Metadata.class);
+        FakeHologramPackets.Metadata repaint =
+                (FakeHologramPackets.Metadata) packets.packetsFor(alice).get(0);
+        assertThat(repaint.text()).isEqualTo(Component.text("closed"));
         assertThat(packets.allocations()).isEqualTo(allocated);
+    }
+
+    @Test
+    @DisplayName("a viewer whose text is unchanged is sent nothing")
+    void aViewerWhoseTextIsUnchangedIsSentNothing() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        show(viewer -> List.of(Component.text("shop"), Component.text("open")));
+        scheduler.firstFrame();
+        packets.forget();
+
+        scheduler.tick();
+
+        assertThat(packets.packetsFor(alice)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("only the line that changed is repainted")
+    void onlyTheLineThatChangedIsRepainted() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        PacketHologram hologram =
+                show(viewer -> List.of(Component.text("a"), Component.text("b"), Component.text("c")));
+        scheduler.firstFrame();
+        FakeHologramPackets.Bundle frame =
+                (FakeHologramPackets.Bundle) packets.packetsFor(alice).get(0);
+        int middleId = ((FakeHologramPackets.Spawn) frame.packets().get(2)).entityId();
+        packets.forget();
+
+        hologram.setText(viewer -> List.of(Component.text("a"), Component.text("B"), Component.text("c")));
+        scheduler.tick();
+
+        assertThat(packets.packetsFor(alice)).hasSize(1);
+        FakeHologramPackets.Metadata repaint =
+                (FakeHologramPackets.Metadata) packets.packetsFor(alice).get(0);
+        assertThat(repaint.entityId()).isEqualTo(middleId);
+        assertThat(repaint.text()).isEqualTo(Component.text("B"));
+    }
+
+    @Test
+    @DisplayName("a new appearance repaints every line")
+    void aNewAppearanceRepaintsEveryLine() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        PacketHologram hologram = show(viewer -> List.of(Component.text("a"), Component.text("b")));
+        scheduler.firstFrame();
+        packets.forget();
+
+        hologram.setAppearance(HologramAppearance.defaults().withTextShadow(true));
+        scheduler.tick();
+
+        assertThat(packets.packetsFor(alice)).hasSize(2);
+        assertThat(packets.packetsFor(alice)).allMatch(packet -> packet instanceof FakeHologramPackets.Metadata);
     }
 
     @Test
