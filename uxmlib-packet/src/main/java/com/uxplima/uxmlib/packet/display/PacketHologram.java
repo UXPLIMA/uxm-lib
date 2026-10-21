@@ -219,6 +219,15 @@ public final class PacketHologram {
      * on every client on the next frame.
      */
     public void setClickBox(float width, float height) {
+        setClickBox(width, height, 0f);
+    }
+
+    /**
+     * The same box, starting {@code below} blocks under the anchor. Text rises from its anchor, so a box for text
+     * stands on it; an item or a block is drawn centred on its anchor, and a box for one starts half its height
+     * below so a click on the lower half of the model lands too.
+     */
+    public void setClickBox(float width, float height, float below) {
         if (width <= 0 || height <= 0) {
             this.box = null;
             return;
@@ -226,7 +235,7 @@ public final class PacketHologram {
         if (boxId == NO_BOX) {
             boxId = packets.allocateEntityId();
         }
-        this.box = new ClickBox(width, height);
+        this.box = new ClickBox(width, height, below);
     }
 
     /** Whether {@code entityId} is this hologram's click box, as a click names it. */
@@ -364,7 +373,13 @@ public final class PacketHologram {
         }
         if (sent != null) {
             frame.add(packets.spawnPacket(
-                    boxId, "interaction", anchor.getX(), anchor.getY(), anchor.getZ(), anchor.getYaw(), 0.0f));
+                    boxId,
+                    "interaction",
+                    anchor.getX(),
+                    anchor.getY() - sent.below(),
+                    anchor.getZ(),
+                    anchor.getYaw(),
+                    0.0f));
             frame.add(packets.interactionSize(boxId, sent.width(), sent.height()));
         }
         packets.send(player, packets.bundle(frame));
@@ -448,5 +463,5 @@ public final class PacketHologram {
             @Nullable ClickBox box) {}
 
     /** The size of a click box, in blocks. */
-    private record ClickBox(float width, float height) {}
+    private record ClickBox(float width, float height, float below) {}
 }

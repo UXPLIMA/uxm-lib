@@ -498,6 +498,31 @@ class PacketHologramTest {
         assertThat(hologram.owns(box.entityId() + 1000)).isFalse();
     }
 
+    /**
+     * A box may start below the anchor. An item or a block is drawn centred on its point, so a box that only stood on
+     * the anchor covered the top half of the model and a click on its lower half went nowhere.
+     */
+    @Test
+    @DisplayName("a click box can start below the anchor, so it covers a model drawn centred on it")
+    void aClickBoxCanStartBelowTheAnchor() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        PacketHologram hologram = show(viewer -> List.of(Component.text("click me")));
+        hologram.setClickBox(1.2f, 1.2f, 0.6f);
+
+        scheduler.firstFrame();
+
+        FakeHologramPackets.Bundle frame =
+                (FakeHologramPackets.Bundle) packets.packetsFor(alice).get(0);
+        FakeHologramPackets.Spawn box = frame.packets().stream()
+                .filter(packet -> packet instanceof FakeHologramPackets.Spawn spawn
+                        && spawn.entityTypeKey().equals("interaction"))
+                .map(FakeHologramPackets.Spawn.class::cast)
+                .findFirst()
+                .orElseThrow();
+        assertThat(box.y()).isEqualTo(anchor.getY() - 0.6, org.assertj.core.data.Offset.offset(1.0e-6));
+        assertThat(frame.packets()).contains(new FakeHologramPackets.InteractionSize(box.entityId(), 1.2f, 1.2f));
+    }
+
     @Test
     @DisplayName("a click box set after the stack is up rebuilds the stack with the box")
     void aClickBoxSetLaterRebuildsTheStack() {
