@@ -13,6 +13,10 @@ import com.uxplima.uxmlib.text.message.CatalogLine;
  * <p>A key a line names, {@code @menu.title}, is left as written: it is a reference to a catalogue entry, whose own
  * words are converted where that catalogue is, and a converted reference names nothing.
  *
+ * <p>Placeholders keep their spelling, because what fills them reads them after this pass: a {@code {name}} a caller
+ * substitutes as text, and a {@code %placeholder%} another plugin answers. In small capitals either named nothing and
+ * the player read the token. A per cent sign in prose ({@code 50% off}) opens no placeholder and is text.
+ *
  * <p>Two kinds of text are left alone. Everything inside angle brackets is a tag or a placeholder, so a
  * colour name, a click action and the {@code <player>} a value arrives through are copied through untouched.
  * Everything inside {@code <plain>…</plain>} is text that must stay in ordinary letters: a version number, a
@@ -55,6 +59,12 @@ public final class Typography {
                 index = end;
                 continue;
             }
+            int placeholder = endOfPlaceholder(template, index);
+            if (placeholder > 0) {
+                out.append(template, index, placeholder);
+                index = placeholder;
+                continue;
+            }
             if (current != '<') {
                 out.append(smallCaps && plainDepth == 0 ? SmallCaps.of(current) : String.valueOf(current));
                 index++;
@@ -84,6 +94,47 @@ public final class Typography {
             index = end + 1;
         }
         return out.toString();
+    }
+
+    /**
+     * The index just past the placeholder opening at {@code start}, or -1 when none opens there: a {@code {name}}
+     * closed on the same word, or a {@code %name%} of the characters a PlaceholderAPI token is written in.
+     */
+    private static int endOfPlaceholder(String template, int start) {
+        char open = template.charAt(start);
+        if (open == '{') {
+            for (int index = start + 1; index < template.length(); index++) {
+                char current = template.charAt(index);
+                if (current == '}') {
+                    return index > start + 1 ? index + 1 : -1;
+                }
+                if (!isNameCharacter(current)) {
+                    return -1;
+                }
+            }
+            return -1;
+        }
+        if (open != '%') {
+            return -1;
+        }
+        for (int index = start + 1; index < template.length(); index++) {
+            char current = template.charAt(index);
+            if (current == '%') {
+                return index > start + 1 ? index + 1 : -1;
+            }
+            if (!isNameCharacter(current) && current != '{' && current != '}') {
+                return -1;
+            }
+        }
+        return -1;
+    }
+
+    private static boolean isNameCharacter(char current) {
+        return Character.isLetterOrDigit(current)
+                || current == '_'
+                || current == '-'
+                || current == '.'
+                || current == ':';
     }
 
     /** The index just past the word starting at {@code start}: the next space, or the end. */

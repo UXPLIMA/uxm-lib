@@ -74,4 +74,27 @@ class TypographyTest {
                 .isEqualTo("@state.title | @state.subtitle 0.1 1.2 0.3");
         assertThat(Typography.apply("hi @everyone", true)).isEqualTo("ʜɪ @everyone");
     }
+
+    /**
+     * A {@code {name}} placeholder is filled by text substitution after this pass, so it keeps its spelling: in small
+     * capitals it named nothing, and the player read the braces.
+     */
+    @Test
+    void aBracePlaceholderKeepsItsSpelling() {
+        assertThat(Typography.apply("Hello {player}, you have {count} homes", true))
+                .isEqualTo("ʜᴇʟʟᴏ {player}, ʏᴏᴜ ʜᴀᴠᴇ {count} ʜᴏᴍᴇꜱ");
+    }
+
+    /** A PlaceholderAPI token is read by another plugin after this pass, so it keeps its spelling too. */
+    @Test
+    void aPlaceholderApiTokenKeepsItsSpelling() {
+        assertThat(Typography.apply("Online %server_online% now", true)).isEqualTo("ᴏɴʟɪɴᴇ %server_online% ɴᴏᴡ");
+        assertThat(Typography.apply("Players %bungee_{server}%", true)).isEqualTo("ᴘʟᴀʏᴇʀꜱ %bungee_{server}%");
+    }
+
+    /** A per cent sign in prose is followed by a space and opens no placeholder, so the words after it convert. */
+    @Test
+    void aPerCentSignInProseIsText() {
+        assertThat(Typography.apply("50% off today", true)).isEqualTo("50% ᴏꜰꜰ ᴛᴏᴅᴀʏ");
+    }
 }
