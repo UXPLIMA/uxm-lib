@@ -21,8 +21,8 @@ import com.uxplima.uxmlib.scheduler.Scheduler;
  * listener finds the hologram that owns that id. A client may name any id, so a click counts only from a
  * player whose client was sent that box and still holds it: one outside the audience or out of range is not
  * answered, and neither is a click on a hologram that was removed. The client sends one event per hand for a
- * single click, so only the main hand's is answered. The handler runs on the clicking player's own thread, where running a
- * command or opening a menu for them is safe.
+ * single click, so only the main hand's is answered. The handler runs on the clicking player's own thread,
+ * where running a command or opening a menu for them is safe.
  *
  * <p>Register it as a listener once: {@code server.getPluginManager().registerEvents(clicks, plugin)}.
  */
