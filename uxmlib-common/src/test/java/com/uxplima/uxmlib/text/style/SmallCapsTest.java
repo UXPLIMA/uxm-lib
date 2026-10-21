@@ -43,4 +43,11 @@ class SmallCapsTest {
         assertThat(SmallCaps.of("DİL ÇOK ĞÖŞÜ")).isEqualTo("ᴅɪʟ çᴏᴋ ğöşü");
         assertThat(SmallCaps.of("Çevrimiçi")).isEqualTo("çᴇᴠʀɪᴍɪçɪ");
     }
+
+    /** Only a Latin capital is written in lower case. A script with no small capitals at all is left as written. */
+    @Test
+    void aCapitalOfAnotherScriptIsLeftAsWritten() {
+        assertThat(SmallCaps.of("Ваш скин")).isEqualTo("Ваш скин");
+        assertThat(SmallCaps.of("Ωμέγα")).isEqualTo("Ωμέγα");
+    }
 }

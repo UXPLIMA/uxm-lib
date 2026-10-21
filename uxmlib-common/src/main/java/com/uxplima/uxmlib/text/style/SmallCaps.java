@@ -10,7 +10,7 @@ import java.util.Objects;
  * special: {@code x} has no small capital in Unicode and stays as it is, and {@code q} becomes {@code ǫ},
  * which is the shape the Unicode block offers.
  *
- * <p>A capital with no small-capital form is written in lower case, which stands at the height of a small
+ * <p>A Latin capital with no small-capital form is written in lower case, which stands at the height of a small
  * capital, so {@code Ç} becomes {@code ç} rather than a tall letter among small ones. A capital whose lower case
  * is a Latin letter takes that letter's small capital: {@code İ} becomes {@code ɪ}.
  *
@@ -43,10 +43,16 @@ public final class SmallCaps {
      * is.
      */
     public static String of(char character) {
-        char letter =
-                Character.isUpperCase(character) && !isAscii(character) ? Character.toLowerCase(character) : character;
+        char letter = Character.isUpperCase(character) && !isAscii(character) && isLatin(character)
+                ? Character.toLowerCase(character)
+                : character;
         int index = ASCII.indexOf(Character.toLowerCase(letter));
         return index >= 0 && isAscii(letter) ? SMALL[index] : String.valueOf(letter);
+    }
+
+    /** A script with no small capitals at all, Cyrillic or Greek, keeps its capitals. */
+    private static boolean isLatin(char character) {
+        return Character.UnicodeScript.of(character) == Character.UnicodeScript.LATIN;
     }
 
     private static boolean isAscii(char character) {
