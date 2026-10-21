@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
 import org.bukkit.Location;
@@ -73,6 +74,7 @@ public final class PacketHologram {
 
     private Function<Player, List<PacketLine>> lines;
     private HologramAppearance appearance;
+    private Predicate<Player> audience = viewer -> true;
     private @Nullable TaskHandle refresh;
     private boolean removed;
 
@@ -189,6 +191,15 @@ public final class PacketHologram {
         this.lines = Objects.requireNonNull(next, "next");
     }
 
+    /**
+     * Narrow who may see the hologram, on top of the view distance: a permission, a list of chosen players. A
+     * player who leaves the audience is sent a remove on the next frame and one who joins it the whole stack.
+     * Asked on the anchor's region thread for every player in range, every frame, so it must be cheap.
+     */
+    public void setAudience(Predicate<Player> mayView) {
+        this.audience = Objects.requireNonNull(mayView, "mayView");
+    }
+
     /** Replace the look. It takes effect on the next {@link #update()}. */
     public void setAppearance(HologramAppearance next) {
         this.appearance = Objects.requireNonNull(next, "next");
@@ -220,7 +231,7 @@ public final class PacketHologram {
         }
     }
 
-    /** The online players inside the view distance of the anchor, keyed by id. */
+    /** The online players inside the view distance of the anchor and inside the audience, keyed by id. */
     private Map<UUID, Player> nearby() {
         World world = anchor.getWorld();
         if (world == null) {
@@ -229,7 +240,7 @@ public final class PacketHologram {
         Map<UUID, Player> near = new HashMap<>();
         for (Player player : world.getPlayers()) {
             @Nullable Location at = player.getLocation();
-            if (at != null && at.distanceSquared(anchor) <= viewDistanceSquared) {
+            if (at != null && at.distanceSquared(anchor) <= viewDistanceSquared && audience.test(player)) {
                 near.put(player.getUniqueId(), player);
             }
         }

@@ -433,6 +433,49 @@ class PacketHologramTest {
         assertThat(spawn.pitch()).isEqualTo(10f);
     }
 
+    @Test
+    @DisplayName("a player in range but outside the audience is sent nothing")
+    void aPlayerOutsideTheAudienceIsSentNothing() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        Player bob = playerAt("Bob", 2, 64, 2);
+        PacketHologram hologram = show(viewer -> List.of(Component.text("staff only")));
+        hologram.setAudience(viewer -> viewer.getName().equals("Alice"));
+
+        scheduler.firstFrame();
+
+        assertThat(packets.packetsFor(alice)).hasSize(1);
+        assertThat(packets.packetsFor(bob)).isEmpty();
+    }
+
+    @Test
+    @DisplayName("a player left out of the audience later loses the hologram on the next frame")
+    void aPlayerLeftOutLaterLosesIt() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        PacketHologram hologram = show(viewer -> List.of(Component.text("staff only")));
+        scheduler.firstFrame();
+        packets.forget();
+
+        hologram.setAudience(viewer -> false);
+        scheduler.tick();
+
+        assertThat(packets.packetsFor(alice)).singleElement().isInstanceOf(FakeHologramPackets.Remove.class);
+        assertThat(hologram.viewerCount()).isZero();
+    }
+
+    @Test
+    @DisplayName("a player let into the audience later is sent the hologram on the next frame")
+    void aPlayerLetInLaterGetsIt() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        PacketHologram hologram = show(viewer -> List.of(Component.text("staff only")));
+        hologram.setAudience(viewer -> false);
+        scheduler.firstFrame();
+
+        hologram.setAudience(viewer -> true);
+        scheduler.tick();
+
+        assertThat(packets.packetsFor(alice)).singleElement().isInstanceOf(FakeHologramPackets.Bundle.class);
+    }
+
     private PacketHologram showLines(java.util.function.Function<Player, List<PacketLine>> lines) {
         return PacketHologram.showLines(packets, scheduler, anchor, HologramAppearance.defaults(), lines);
     }
