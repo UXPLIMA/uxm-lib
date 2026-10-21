@@ -71,6 +71,32 @@ class StyleTokensTest {
         assertThat(StyleTokens.expand("<h:'REWARDS'>", theme, true)).isEqualTo("<b><color:#55ffff>ʀᴇᴡᴀʀᴅꜱ</color></b>");
     }
 
+    /**
+     * A theme may put every label in small capitals, in a language not written in them too, where each letter of the
+     * label has one. A label half converted reads worse than one left alone, so one with a letter that has none keeps
+     * its letters.
+     */
+    @Test
+    void aThemeMayWriteEveryWholeLabelInSmallCapitals() throws ConfigurateException {
+        ConfigurationNode node = CommentedConfigurationNode.root();
+        node.node("label-small-caps").set("whole");
+        Theme whole = Theme.from(node);
+
+        assertThat(StyleTokens.expand("<h:'Warps'>", whole, false)).isEqualTo("<b><color:#55ffff>ᴡᴀʀᴘꜱ</color></b>");
+        assertThat(StyleTokens.expand("<h:'Größe'>", whole, false)).isEqualTo("<b><color:#55ffff>Größe</color></b>");
+        assertThat(StyleTokens.expand("<tag:'Bank'>", whole, false)).startsWith("<b><color:#55ffff>ʙᴀɴᴋ</color></b>");
+        assertThat(StyleTokens.expand("<h:'Warps'>", theme, false)).isEqualTo("<b><color:#55ffff>Warps</color></b>");
+    }
+
+    /** A placeholder in a heading keeps its spelling, so the value it is filled with still finds it. */
+    @Test
+    void aPlaceholderInAHeaderKeepsItsSpelling() {
+        assertThat(StyleTokens.expand("<h:'{owner} home'>", theme, true))
+                .isEqualTo("<b><color:#55ffff>{owner} ʜᴏᴍᴇ</color></b>");
+        assertThat(StyleTokens.expand("<h:'%player_name%'>", theme, true))
+                .isEqualTo("<b><color:#55ffff>%player_name%</color></b>");
+    }
+
     /** A theme that names a header gradient paints the header across it; nothing else changes. */
     @Test
     void aHeaderTakesTheThemesGradientWhenThereIsOne() throws ConfigurateException {

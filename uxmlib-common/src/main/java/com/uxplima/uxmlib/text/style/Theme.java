@@ -108,6 +108,7 @@ public final class Theme {
     private final Map<String, String> categories;
     private final Set<String> smallCapsLanguages;
     private final TitleAlignment titleAlignment;
+    private final boolean wholeLabels;
 
     private Theme(
             Map<String, TextColor> roles,
@@ -116,7 +117,8 @@ public final class Theme {
             Map<String, String> glyphs,
             Map<String, String> categories,
             Set<String> smallCapsLanguages,
-            TitleAlignment titleAlignment) {
+            TitleAlignment titleAlignment,
+            boolean wholeLabels) {
         this.roles = Map.copyOf(roles);
         this.wheel = List.copyOf(wheel);
         this.gradients = Map.copyOf(gradients);
@@ -124,6 +126,7 @@ public final class Theme {
         this.categories = Map.copyOf(categories);
         this.smallCapsLanguages = Set.copyOf(smallCapsLanguages);
         this.titleAlignment = titleAlignment;
+        this.wholeLabels = wholeLabels;
     }
 
     /**
@@ -138,7 +141,8 @@ public final class Theme {
                 DEFAULT_GLYPHS,
                 DEFAULT_CATEGORIES,
                 DEFAULT_SMALL_CAPS,
-                TitleAlignment.CENTRE);
+                TitleAlignment.CENTRE,
+                false);
     }
 
     /**
@@ -157,7 +161,8 @@ public final class Theme {
                 glyphs(node),
                 categories(node),
                 smallCaps(node.node("small-caps").childrenMap()),
-                titleAlignment(node.node("menu-titles")));
+                titleAlignment(node.node("menu-titles")),
+                wholeLabels(node.node("label-small-caps")));
     }
 
     /** The colour of {@code role}, or the body colour when this theme does not know the role. */
@@ -241,6 +246,15 @@ public final class Theme {
     /** Where a window title sits. */
     public TitleAlignment titleAlignment() {
         return titleAlignment;
+    }
+
+    /**
+     * Whether a label (a heading, the word a category prefix opens with) is written in small capitals in a language
+     * that is not, wherever every letter of it has one. A label half converted reads worse than one left alone, so a
+     * label with a letter that has none keeps its letters either way.
+     */
+    public boolean wholeLabels() {
+        return wholeLabels;
     }
 
     /** Whether {@code locale} is written in small capitals. */
@@ -357,6 +371,21 @@ public final class Theme {
             }
         }
         return categories;
+    }
+
+    /**
+     * {@code label-small-caps}: {@code whole} writes every label that converts whole in small capitals, and
+     * {@code language}, the default, leaves a label to follow its language.
+     *
+     * @throws IllegalArgumentException for any other word, which an operator has to see at load
+     */
+    private static boolean wholeLabels(ConfigurationNode node) {
+        String value = node.getString("language").strip().toLowerCase(Locale.ROOT);
+        return switch (value) {
+            case "whole" -> true;
+            case "language" -> false;
+            default -> throw new IllegalArgumentException("label-small-caps is whole or language, not '" + value + "'");
+        };
     }
 
     /** The alignment the file names, or centred when it names none. */

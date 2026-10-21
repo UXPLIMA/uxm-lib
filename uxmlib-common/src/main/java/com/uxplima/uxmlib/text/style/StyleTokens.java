@@ -159,7 +159,7 @@ public final class StyleTokens {
 
     private static String expanded(
             String token, String label, @Nullable String gradient, Theme theme, boolean smallCaps) {
-        String text = smallCaps ? capsOutsideTags(label) : label;
+        String text = smallCaps ? capsOutsideTags(label) : theme.wholeLabels() ? capsWhole(label) : label;
         return switch (token) {
             case "tag" -> prefix(text, theme.hex(theme.categoryRole(label)), theme);
             case "etag" -> prefix(text, theme.hex("bad"), theme);
@@ -169,24 +169,41 @@ public final class StyleTokens {
     }
 
     /**
-     * The label in small capitals, every {@code <…>} tag in it copied as written. A label may hold a placeholder,
-     * {@code <h:'<contest>'>}, or a colour a name carries. Put into small capitals whole, the tag became
-     * {@code <ᴄᴏɴᴛᴇꜱᴛ>}, which is no longer a tag, and the player read the word in angle brackets.
+     * The label in small capitals through the same letters pass as the prose, so every {@code <…>} tag in it is
+     * copied as written and a placeholder keeps its spelling. A label may hold a placeholder,
+     * {@code <h:'<contest>'>} or {@code <h:'{owner}'>}, or a colour a name carries; put into small capitals whole,
+     * the tag became {@code <ᴄᴏɴᴛᴇꜱᴛ>}, which is no longer a tag, and the player read the word in angle brackets.
      */
     private static String capsOutsideTags(String label) {
-        StringBuilder out = new StringBuilder(label.length());
-        int from = 0;
-        while (from < label.length()) {
-            int open = label.indexOf('<', from);
-            int close = open < 0 ? -1 : label.indexOf('>', open);
-            if (close < 0) {
-                out.append(SmallCaps.of(label.substring(from)));
-                break;
-            }
-            out.append(SmallCaps.of(label.substring(from, open))).append(label, open, close + 1);
-            from = close + 1;
+        return Typography.apply(label, true);
+    }
+
+    /**
+     * The label in small capitals when every letter of it has one, otherwise as written. In a language that keeps its
+     * letters, {@code Warps} reads {@code ᴡᴀʀᴘꜱ} and {@code Größe} stays {@code Größe}: a label half converted reads
+     * worse than one left alone. An ASCII letter that small capitals draw plainly ({@code x}) is not a letter left
+     * out; one beyond ASCII that kept its form is, and that keeps the label as written.
+     */
+    private static String capsWhole(String label) {
+        String converted = capsOutsideTags(label);
+        int[] before = label.codePoints().toArray();
+        int[] after = converted.codePoints().toArray();
+        if (before.length != after.length) {
+            return converted;
         }
-        return out.toString();
+        boolean changed = false;
+        boolean kept = false;
+        for (int index = 0; index < before.length; index++) {
+            if (!Character.isLetter(before[index])) {
+                continue;
+            }
+            if (before[index] == after[index]) {
+                kept |= before[index] > 0x7F;
+            } else {
+                changed = true;
+            }
+        }
+        return changed && kept ? label : converted;
     }
 
     /**
