@@ -60,9 +60,6 @@ import com.uxplima.uxmlib.menu.property.ConfirmOpener;
 import com.uxplima.uxmlib.menu.property.EditableProperty;
 import com.uxplima.uxmlib.menu.property.PropertyClick;
 import com.uxplima.uxmlib.menu.property.SelectorOpener;
-import com.uxplima.uxmlib.menu.providers.ContentClick;
-import com.uxplima.uxmlib.menu.providers.ContentProvider;
-import com.uxplima.uxmlib.menu.providers.OwnRowsClick;
 import com.uxplima.uxmlib.menu.render.EditorRenderer;
 import com.uxplima.uxmlib.menu.render.GridRenderer;
 import com.uxplima.uxmlib.menu.render.ListViewRenderer;
@@ -72,7 +69,6 @@ import com.uxplima.uxmlib.menu.render.RenderedSlot;
 import com.uxplima.uxmlib.menu.spec.ClickBranch;
 import com.uxplima.uxmlib.menu.spec.ClickKind;
 import com.uxplima.uxmlib.menu.spec.ClickSpec;
-import com.uxplima.uxmlib.menu.spec.ContentRegionSpec;
 import com.uxplima.uxmlib.menu.spec.Continuation;
 import com.uxplima.uxmlib.menu.spec.ItemDragSpec;
 import com.uxplima.uxmlib.menu.spec.ItemRuleSpec;
@@ -157,7 +153,7 @@ public final class MenuListener implements Listener {
      * test fixture) in which case a region refuses every click and hands nothing back on close, exactly what an
      * unregistered provider gets. Only production wiring, which holds the feature-populated registry, passes it.
      */
-    @Nullable private final ContentProviderRegistry contents;
+    private final ContentRegions contentRegions;
 
     /** Re-paints an entity list's page on a nav click; stateless, so one instance serves every list this routes. */
     private final ListViewRenderer listViewRenderer = new ListViewRenderer();
@@ -201,7 +197,7 @@ public final class MenuListener implements Listener {
         this.clock = builder.clock;
         this.pagedLists = builder.pagedLists;
         this.textPrompt = builder.textPrompt;
-        this.contents = builder.contents;
+        this.contentRegions = new ContentRegions(builder.contents);
         this.feedback = new MenuFeedback(builder.sounds, builder.speaksForItself);
     }
 
@@ -372,7 +368,7 @@ public final class MenuListener implements Listener {
             handleGridClick(holder, grid, slot, kindOf(event.getClick()));
             return;
         }
-        if (routeContentClick(holder, event)) {
+        if (contentRegions.routeClick(holder, event)) {
             return;
         }
         Player clicker = (Player) event.getWhoClicked();
@@ -398,241 +394,12 @@ public final class MenuListener implements Listener {
         }
         GridViewState grid = holder.gridView().orElse(null);
         if (grid == null || !captureEnabled(grid) || !(event.getWhoClicked() instanceof Player)) {
-            if (!dragAllowedInContent(holder, event)) {
+            if (!contentRegions.dragAllowed(holder, event)) {
                 event.setCancelled(true);
             }
             return;
         }
         handleCaptureGridDrag(holder, grid, event);
-    }
-
-    /**
-     * Route a click that lands on (or into) one of the menu's {@code content {}} regions, and report whether it was
-     * handled here. The event arrives already cancelled, so every path that simply returns leaves the region as
-     * untouchable as any chrome slot: that is the default for a region that is not editable, whose provider is not
-     * registered, or whose provider refuses this one movement. Only an editable region whose provider says yes has the
-     * cancel lifted, which is the single place an item may move inside a menu window.
-     *
-     * <p>A shift-click from the viewer's own inventory is handled rather than delegated, because vanilla would scatter
-     * the stack across whatever top slots happen to be free (chrome gaps included) instead of into the region. The
-     * engine therefore performs that insert itself, into the first free slot of a region that accepts it.
-     *
-     * <p>Two gestures are refused outright even in an editable region: a double-click, which vanilla resolves by
-     * gathering matching stacks from the <em>whole</em> window (chrome tiles are not real items, so gathering them
-     * would mint items), and a hotbar swap, whose source slot is outside the region the provider is answering about.
-     */
-    private boolean routeContentClick(MenuHolder holder, InventoryClickEvent event) {
-        if (holder.spec().contents().isEmpty()) {
-            return false;
-        }
-        int raw = event.getRawSlot();
-        int topSize = event.getView().getTopInventory().getSize();
-        if (raw >= 0 && raw < topSize) {
-            ContentRegionSpec region = holder.spec().regionAt(raw).orElse(null);
-            if (region == null) {
-                return false;
-            }
-            handleContentClick(holder, region, event, raw);
-            return true;
-        }
-        if (raw >= topSize && handOwnRowsClick(holder, event)) {
-            return true;
-        }
-        if (raw >= topSize && event.isShiftClick()) {
-            handleContentShiftInsert(holder, event, topSize);
-            return true;
-        }
-        if (raw >= topSize && letsOwnRowsMove(holder, event)) {
-            event.setCancelled(false);
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Put a click on a stack in the viewer's own rows to each region's provider, and report whether one took it as its
-     * own move. A gesture that reaches beyond the one slot is put to none of them.
-     */
-    private boolean handOwnRowsClick(MenuHolder holder, InventoryClickEvent event) {
-        ItemStack stack = emptyToNull(event.getCurrentItem());
-        if (stack == null || refusedGesture(event)) {
-            return false;
-        }
-        OwnRowsClick click = new OwnRowsClick(event.getSlot(), stack.clone(), kindOf(event.getClick()));
-        for (ContentRegionSpec region : holder.spec().contents().values()) {
-            ContentProvider provider = contentProvider(region);
-            if (provider != null && provider.ownRowsClicked(holder.ctx(), region, click)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Whether a plain click in the viewer's own rows may go through. In a window that holds items it must: a stack is
-     * picked up there and put down in the region, and a window that refused the pick up left a player only the shift
-     * click, so a vault page could not take half a stack. The click moves nothing in the window itself, and the put
-     * down that follows is a click on the region, asked of its provider like any other. A canvas over the viewer's
-     * own rows keeps the blanket cancel, because those rows are its tiles, and so does a gesture that reaches beyond
-     * the one slot.
-     */
-    private boolean letsOwnRowsMove(MenuHolder holder, InventoryClickEvent event) {
-        if (holder.spec().bottomInventory() || refusedGesture(event)) {
-            return false;
-        }
-        for (ContentRegionSpec region : holder.spec().contents().values()) {
-            if (region.editable() && contentProvider(region) != null) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
-     * Ask the region's provider about this one movement and lift the blanket cancel when it allows it, or hand the
-     * click of a read-only region to its provider, which carries it out on its own record.
-     */
-    private void handleContentClick(MenuHolder holder, ContentRegionSpec region, InventoryClickEvent event, int slot) {
-        ContentProvider provider = contentProvider(region);
-        if (provider == null || refusedGesture(event)) {
-            return;
-        }
-        ItemStack cursor = emptyToNull(event.getCursor());
-        ItemStack current = emptyToNull(event.getCurrentItem());
-        ContentClick.Kind kind;
-        if (event.isShiftClick() || cursor == null) {
-            kind = ContentClick.Kind.TAKE;
-        } else if (current == null) {
-            kind = ContentClick.Kind.INSERT;
-        } else {
-            kind = ContentClick.Kind.SWAP;
-        }
-        ContentClick click = new ContentClick(slot, region.indexOf(slot), kind, cursor, current);
-        if (!region.editable()) {
-            // A read-only region paints the feature's own record, so the click is a request it carries out there.
-            provider.clicked(holder.ctx(), region, click);
-            return;
-        }
-        if (provider.allows(holder.ctx(), region, click)) {
-            event.setCancelled(false);
-        }
-    }
-
-    /**
-     * Move a shift-clicked stack from the viewer's own inventory into the first free slot that accepts it, in the
-     * first editable region that has one. The event stays cancelled and the two inventories are written here instead,
-     * so the stack lands in the region rather than wherever vanilla would have spread it. When nothing accepts it,
-     * nothing moves.
-     *
-     * <p>A refusal skips that one slot rather than the whole region, because {@link ContentProvider#allows} is asked
-     * per movement everywhere else in this router: a provider that reserves its first slot and takes the rest is
-     * saying something the contract lets it say, and asking only once would silently turn it into a refusal of the
-     * region. The provider is asked at most once per free slot, which is bounded by the region's own size.
-     */
-    private void handleContentShiftInsert(MenuHolder holder, InventoryClickEvent event, int topSize) {
-        ItemStack moved = emptyToNull(event.getCurrentItem());
-        if (moved == null) {
-            return;
-        }
-        Inventory top = event.getView().getTopInventory();
-        for (ContentRegionSpec region : holder.spec().contents().values()) {
-            ContentProvider provider = contentProvider(region);
-            if (!region.editable() || provider == null) {
-                continue;
-            }
-            for (int index = 0; index < region.slots().slots().size(); index++) {
-                int slot = region.slots().slots().get(index);
-                if (slot >= topSize || emptyToNull(top.getItem(slot)) != null) {
-                    continue;
-                }
-                ContentClick click = new ContentClick(slot, index, ContentClick.Kind.INSERT, moved, null);
-                if (!provider.allows(holder.ctx(), region, click)) {
-                    continue;
-                }
-                top.setItem(slot, moved.clone());
-                event.setCurrentItem(null);
-                return;
-            }
-        }
-    }
-
-    /**
-     * Whether a drag may go through: every top slot it touches must lie in an editable region whose provider accepts
-     * the stack that would land there. A drag over anything else (chrome, a read-only region, a menu with no region
-     * at all) is refused by the caller, which is the behaviour every menu had before content regions existed.
-     */
-    private boolean dragAllowedInContent(MenuHolder holder, InventoryDragEvent event) {
-        if (holder.spec().contents().isEmpty() || !(event.getWhoClicked() instanceof Player)) {
-            return false;
-        }
-        int topSize = event.getView().getTopInventory().getSize();
-        for (Map.Entry<Integer, ItemStack> entry : event.getNewItems().entrySet()) {
-            int slot = entry.getKey();
-            if (slot >= topSize) {
-                continue;
-            }
-            ContentRegionSpec region = holder.spec().regionAt(slot).orElse(null);
-            ContentProvider provider = region == null ? null : contentProvider(region);
-            if (region == null || !region.editable() || provider == null) {
-                return false;
-            }
-            ContentClick click = new ContentClick(
-                    slot,
-                    region.indexOf(slot),
-                    ContentClick.Kind.INSERT,
-                    entry.getValue(),
-                    emptyToNull(event.getView().getTopInventory().getItem(slot)));
-            if (!provider.allows(holder.ctx(), region, click)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Hand each region's final contents back to its provider as the window closes, in the region's declared slot
-     * order. This is the feature's one chance to return or persist what is left in a region it let the viewer fill;
-     * the window is discarded right after. A menu with no region, or one whose providers are not registered, does
-     * nothing here.
-     */
-    private void readBackContent(MenuHolder holder, Inventory inventory) {
-        if (holder.spec().contents().isEmpty()) {
-            return;
-        }
-        for (ContentRegionSpec region : holder.spec().contents().values()) {
-            ContentProvider provider = contentProvider(region);
-            if (provider == null) {
-                continue;
-            }
-            List<@Nullable ItemStack> stacks = new ArrayList<>();
-            for (int slot : region.slots().slots()) {
-                stacks.add(slot < inventory.getSize() ? emptyToNull(inventory.getItem(slot)) : null);
-            }
-            provider.readBack(holder.ctx(), region, stacks);
-        }
-    }
-
-    /** The provider registered for {@code region}, or null when the engine has none (a spec-only test engine). */
-    @Nullable private ContentProvider contentProvider(ContentRegionSpec region) {
-        return contents == null ? null : contents.get(region.id()).orElse(null);
-    }
-
-    /**
-     * Whether the gesture reaches beyond the one slot the provider is being asked about, and so can never be let
-     * through: a double-click gathers matching stacks from the whole window, and a hotbar swap or an off-hand swap
-     * pulls from a slot outside the region.
-     */
-    private static boolean refusedGesture(InventoryClickEvent event) {
-        return event.getClick() == ClickType.DOUBLE_CLICK
-                || event.getClick() == ClickType.NUMBER_KEY
-                || event.getClick() == ClickType.SWAP_OFFHAND
-                || event.getAction() == InventoryAction.COLLECT_TO_CURSOR
-                || event.getAction() == InventoryAction.UNKNOWN;
-    }
-
-    /** {@code null} for an absent or air stack, so "empty" is one condition everywhere in the content routing. */
-    @Nullable private static ItemStack emptyToNull(@Nullable ItemStack stack) {
-        return stack == null || stack.getType() == Material.AIR ? null : stack;
     }
 
     /**
@@ -1903,7 +1670,7 @@ public final class MenuListener implements Listener {
     @EventHandler
     public void onClose(InventoryCloseEvent event) {
         if (event.getInventory().getHolder() instanceof MenuHolder holder) {
-            readBackContent(holder, event.getInventory());
+            contentRegions.readBack(holder, event.getInventory());
             closeMenu(holder);
             restoreBottom(holder, event.getPlayer());
             // A preview window carries a close hook that steps the operator back to the grid editor; the reopen it runs
@@ -1917,7 +1684,7 @@ public final class MenuListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         Inventory top = event.getPlayer().getOpenInventory().getTopInventory();
         if (top != null && top.getHolder() instanceof MenuHolder holder) {
-            readBackContent(holder, top);
+            contentRegions.readBack(holder, top);
             closeMenu(holder);
             restoreBottomNow(holder, event.getPlayer());
         }
@@ -2004,7 +1771,7 @@ public final class MenuListener implements Listener {
         }
     }
 
-    private static ClickKind kindOf(ClickType click) {
+    static ClickKind kindOf(ClickType click) {
         return switch (click) {
             case LEFT -> ClickKind.LEFT;
             case RIGHT -> ClickKind.RIGHT;
