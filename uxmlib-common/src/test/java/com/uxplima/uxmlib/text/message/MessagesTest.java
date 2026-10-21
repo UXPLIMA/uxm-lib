@@ -5,8 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import net.kyori.adventure.audience.Audience;
+import net.kyori.adventure.pointer.Pointer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.tag.Tag;
@@ -288,6 +290,28 @@ class MessagesTest {
         assertThat(Text.plain(german)).isEqualTo("Servus Alex, Ayse");
         assertThat(paintedWith(german, NamedTextColor.BLUE)).isTrue();
         assertThat(Text.plain(nameless)).startsWith("Welcome Alex, ");
+    }
+
+    /**
+     * A player whose pointers answer null, as a mocked one does, still reads the line, and {@code <player>} names
+     * them: the name comes from the player when the pointer gives none.
+     */
+    @Test
+    void aPlayerWhosePointersAnswerNothingIsStillNamed() {
+        PlayerMock silent = new PlayerMock(server, "Silent") {
+            @Override
+            @SuppressWarnings("NullAway") // a mocked player's pointers answer null, which is the case under test
+            public <T> Optional<T> get(Pointer<T> pointer) {
+                return null;
+            }
+        };
+        MessageCatalog catalog = new MessageCatalog(
+                Map.of(Locale.ENGLISH, Map.of("join.welcome", "Welcome <name>, <player>")), Locale.ENGLISH);
+        Messages messages = new Messages(catalog, LocaleSource.ofDefault(Locale.ENGLISH));
+
+        Component line = messages.render(silent, WELCOME, Text.placeholder("name", "Alex"));
+
+        assertThat(Text.plain(line)).isEqualTo("Welcome Alex, Silent");
     }
 
     @Test

@@ -378,9 +378,12 @@ public final class Messages {
         return Text.mini(template, TagResolver.resolver(all));
     }
 
-    /** The viewer's name: the audience's own when it carries one, else the player's, else none. */
+    /**
+     * The viewer's name: the audience's own when it carries one, else the player's, else none. A pointer that
+     * answers null, as a mocked player's does, is read as no name.
+     */
     private static Optional<String> nameOf(Audience viewer) {
-        Optional<String> named = viewer.get(Identity.NAME);
+        Optional<String> named = Objects.requireNonNullElse(viewer.get(Identity.NAME), Optional.empty());
         if (named.isPresent()) {
             return named;
         }
