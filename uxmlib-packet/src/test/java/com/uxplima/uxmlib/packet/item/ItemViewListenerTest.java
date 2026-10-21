@@ -32,6 +32,8 @@ class ItemViewListenerTest {
 
     private static final UUID VIEWER = UUID.fromString("00000000-0000-0000-0000-0000000000aa");
 
+    private static final org.bukkit.NamespacedKey KEY = new org.bukkit.NamespacedKey("host", "shown-from");
+
     private final FakeItemPackets packets = new FakeItemPackets();
 
     @BeforeEach
@@ -47,7 +49,7 @@ class ItemViewListenerTest {
     @Test
     @DisplayName("a packet that carries no item is never decoded")
     void aPacketWithoutAnItemPasses() {
-        ItemViewListener listener = new ItemViewListener(packets, (viewer, real) -> real);
+        ItemViewListener listener = new ItemViewListener(packets, KEY, (viewer, real) -> real);
 
         PacketVerdict verdict = listener.onSendVerdict(VIEWER, "a packet with no item in it");
 
@@ -60,7 +62,7 @@ class ItemViewListenerTest {
     @DisplayName("before login there is no viewer, so the view is never asked")
     void beforeLoginTheViewIsNotAsked() {
         List<UUID> seen = new ArrayList<>();
-        ItemViewListener listener = new ItemViewListener(packets, (viewer, real) -> {
+        ItemViewListener listener = new ItemViewListener(packets, KEY, (viewer, real) -> {
             seen.add(viewer);
             return real;
         });
@@ -75,7 +77,7 @@ class ItemViewListenerTest {
     @Test
     @DisplayName("an item the view leaves alone forwards the original packet, not a copy")
     void anUntouchedItemPasses() {
-        ItemViewListener listener = new ItemViewListener(packets, (viewer, real) -> real);
+        ItemViewListener listener = new ItemViewListener(packets, KEY, (viewer, real) -> real);
         FakeItemPackets.Slot packet = new FakeItemPackets.Slot(sword());
 
         PacketVerdict verdict = listener.onSendVerdict(VIEWER, packet);
@@ -88,7 +90,7 @@ class ItemViewListenerTest {
     @Test
     @DisplayName("an item the view changed comes back as a rewrite carrying the new packet")
     void aChangedItemIsRewritten() {
-        ItemViewListener listener = new ItemViewListener(packets, (viewer, real) -> decorated(real));
+        ItemViewListener listener = new ItemViewListener(packets, KEY, (viewer, real) -> decorated(real));
         FakeItemPackets.Slot packet = new FakeItemPackets.Slot(sword());
 
         PacketVerdict verdict = listener.onSendVerdict(VIEWER, packet);
@@ -107,7 +109,7 @@ class ItemViewListenerTest {
     @DisplayName("the view is told which viewer the packet is on its way to")
     void theViewerReachesTheView() {
         List<UUID> seen = new ArrayList<>();
-        ItemViewListener listener = new ItemViewListener(packets, (viewer, real) -> {
+        ItemViewListener listener = new ItemViewListener(packets, KEY, (viewer, real) -> {
             seen.add(viewer);
             return real;
         });
@@ -120,7 +122,7 @@ class ItemViewListenerTest {
     @Test
     @DisplayName("the pass and cancel half of the seam never cancels")
     void thePassCancelHalfAlwaysPasses() {
-        ItemViewListener listener = new ItemViewListener(packets, (viewer, real) -> decorated(real));
+        ItemViewListener listener = new ItemViewListener(packets, KEY, (viewer, real) -> decorated(real));
 
         assertThat(listener.onSend(VIEWER, new FakeItemPackets.Slot(sword()))).isEqualTo(PacketAction.PASS);
     }
@@ -129,7 +131,7 @@ class ItemViewListenerTest {
     @DisplayName("a view that throws leaves the packet alone and hands the fault to the caller")
     void aBrokenViewFailsOpen() {
         PacketListenerRegistry registry = new PacketListenerRegistry();
-        registry.register(new ItemViewListener(packets, (viewer, real) -> {
+        registry.register(new ItemViewListener(packets, KEY, (viewer, real) -> {
             throw new IllegalStateException("the view is broken");
         }));
 
@@ -145,7 +147,7 @@ class ItemViewListenerTest {
     @DisplayName("a rewrite folds through the registry the interceptor actually reads")
     void aRewriteFoldsThroughTheRegistry() {
         PacketListenerRegistry registry = new PacketListenerRegistry();
-        registry.register(new ItemViewListener(packets, (viewer, real) -> decorated(real)));
+        registry.register(new ItemViewListener(packets, KEY, (viewer, real) -> decorated(real)));
 
         PacketListenerRegistry.Dispatch dispatch =
                 registry.dispatch(PacketDirection.OUTBOUND, VIEWER, new FakeItemPackets.Slot(sword()));

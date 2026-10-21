@@ -31,4 +31,22 @@ public interface ItemPackets {
      * @return the replacement packet, or {@code null} when every item was left alone
      */
     @Nullable Object withItems(Object packet, UnaryOperator<ItemStack> shown);
+
+    /**
+     * Whether a packet the client sent carries a whole item of its own choosing: the creative slot, where the
+     * client hands back the item exactly as it was shown it.
+     */
+    boolean carriesClientItem(Object packet);
+
+    /**
+     * That packet built again with its item replaced by {@code restored}, or {@code null} when it returned the
+     * item unchanged.
+     */
+    @Nullable Object withClientItem(Object packet, UnaryOperator<ItemStack> restored);
+
+    /** {@code item} as bytes a drawn copy can carry. */
+    byte[] bytesOf(ItemStack item);
+
+    /** The item {@link #bytesOf} wrote. */
+    ItemStack itemOf(byte[] bytes);
 }

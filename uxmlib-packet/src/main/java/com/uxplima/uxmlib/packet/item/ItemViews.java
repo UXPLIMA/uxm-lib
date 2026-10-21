@@ -9,6 +9,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -85,7 +86,7 @@ public final class ItemViews implements Listener {
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
         Objects.requireNonNull(packets, "packets");
         Objects.requireNonNull(view, "view");
-        this.registry.register(new ItemViewListener(packets, view));
+        this.registry.register(new ItemViewListener(packets, new NamespacedKey(plugin, "shown-from"), view));
         this.pipeline = new PacketPipeline(
                 new ChannelResolver(),
                 registry,

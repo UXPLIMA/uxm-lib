@@ -13,6 +13,7 @@ import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.network.protocol.game.ClientboundMerchantOffersPacket;
 import net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket;
 import net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket;
+import net.minecraft.network.protocol.game.ServerboundSetCreativeModeSlotPacket;
 import net.minecraft.world.item.ItemInstance;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.trading.MerchantOffer;
@@ -174,6 +175,33 @@ public final class NmsItemPackets implements ItemPackets {
         drawn.setSpecialPriceDiff(offer.getSpecialPriceDiff());
         drawn.ignoreDiscounts = offer.ignoreDiscounts;
         return drawn;
+    }
+
+    @Override
+    public boolean carriesClientItem(Object packet) {
+        Objects.requireNonNull(packet, "packet");
+        return packet instanceof ServerboundSetCreativeModeSlotPacket;
+    }
+
+    @Override
+    public @Nullable Object withClientItem(Object packet, UnaryOperator<org.bukkit.inventory.ItemStack> restored) {
+        Objects.requireNonNull(packet, "packet");
+        Objects.requireNonNull(restored, "restored");
+        if (!(packet instanceof ServerboundSetCreativeModeSlotPacket creative)) {
+            return null;
+        }
+        @Nullable ItemStack item = shown(creative.itemStack(), restored);
+        return item == null ? null : new ServerboundSetCreativeModeSlotPacket(creative.slotNum(), item);
+    }
+
+    @Override
+    public byte[] bytesOf(org.bukkit.inventory.ItemStack item) {
+        return item.serializeAsBytes();
+    }
+
+    @Override
+    public org.bukkit.inventory.ItemStack itemOf(byte[] bytes) {
+        return org.bukkit.inventory.ItemStack.deserializeBytes(bytes);
     }
 
     /**
