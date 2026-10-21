@@ -29,11 +29,6 @@ public interface HologramPackets {
      */
     int allocateEntityId();
 
-    /** Build the add-entity packet that spawns a text display with {@code entityId} at the given position. */
-    default Object spawnPacket(int entityId, double x, double y, double z) {
-        return spawnPacket(entityId, "text_display", x, y, z, 0.0f, 0.0f);
-    }
-
     /**
      * Build the add-entity packet that spawns an entity of {@code entityTypeKey} (a registry key such as
      * {@code item_display} or {@code villager}) with {@code entityId} at the given position, facing

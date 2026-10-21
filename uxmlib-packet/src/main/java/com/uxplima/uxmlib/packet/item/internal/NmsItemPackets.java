@@ -13,6 +13,7 @@ import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
 import net.minecraft.network.protocol.game.ClientboundMerchantOffersPacket;
 import net.minecraft.network.protocol.game.ClientboundSetCursorItemPacket;
 import net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket;
+import net.minecraft.world.item.ItemInstance;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.trading.MerchantOffer;
 import net.minecraft.world.item.trading.MerchantOffers;
@@ -183,7 +184,9 @@ public final class NmsItemPackets implements ItemPackets {
         if (carried.isEmpty()) {
             return null;
         }
-        org.bukkit.inventory.ItemStack real = CraftItemStack.asBukkitCopy(carried);
+        // Through ItemInstance: the overload taking a vanilla ItemStack is gone from the server line this runs on,
+        // and a call bound to it fails at link time on the first item a client is sent.
+        org.bukkit.inventory.ItemStack real = CraftItemStack.asBukkitCopy((ItemInstance) carried);
         org.bukkit.inventory.ItemStack view = Objects.requireNonNull(shown.apply(real), "view");
         return view.equals(real) ? null : CraftItemStack.asNMSCopy(view);
     }
