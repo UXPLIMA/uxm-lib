@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import net.kyori.adventure.text.Component;
 
@@ -17,11 +19,17 @@ import org.joml.Vector3f;
  */
 public final class FakeHologramPackets implements HologramPackets {
 
-    /** A packet that adds an entity at a position. */
-    public record Spawn(int entityId, double x, double y, double z) {}
+    /** A packet that adds an entity of a type at a position, facing a way. */
+    public record Spawn(int entityId, String entityTypeKey, double x, double y, double z, float yaw, float pitch) {}
 
     /** A packet that paints one line; carries the text so a test can match viewer to content. */
     public record Metadata(int entityId, Component text, HologramAppearance appearance, Vector3f translation) {}
+
+    /** A packet that paints an item display. */
+    public record ItemMetadata(int entityId, ItemStack item, HologramAppearance appearance, Vector3f translation) {}
+
+    /** A packet that paints a block display. */
+    public record BlockMetadata(int entityId, BlockData block, HologramAppearance appearance, Vector3f translation) {}
 
     /** A packet that removes entities. */
     public record Remove(List<Integer> entityIds) {}
@@ -41,8 +49,19 @@ public final class FakeHologramPackets implements HologramPackets {
     }
 
     @Override
-    public Object spawnPacket(int entityId, double x, double y, double z) {
-        return new Spawn(entityId, x, y, z);
+    public Object spawnPacket(
+            int entityId, String entityTypeKey, double x, double y, double z, float yaw, float pitch) {
+        return new Spawn(entityId, entityTypeKey, x, y, z, yaw, pitch);
+    }
+
+    @Override
+    public Object itemMetadata(int entityId, ItemStack item, HologramAppearance appearance, Vector3f translation) {
+        return new ItemMetadata(entityId, item.clone(), appearance, new Vector3f(translation));
+    }
+
+    @Override
+    public Object blockMetadata(int entityId, BlockData block, HologramAppearance appearance, Vector3f translation) {
+        return new BlockMetadata(entityId, block.clone(), appearance, new Vector3f(translation));
     }
 
     @Override

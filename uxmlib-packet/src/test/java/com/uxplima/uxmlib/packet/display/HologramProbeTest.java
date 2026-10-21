@@ -57,7 +57,8 @@ class HologramProbeTest {
         hologram.setText(viewer -> List.of(Component.text("new top"), Component.text("bottom")));
         scheduler.tick();
 
-        assertThat(probe.heldBy(alice)).containsExactly(Component.text("new top"), Component.text("bottom"));
+        assertThat(probe.heldBy(alice))
+                .containsExactly(PacketLine.text(Component.text("new top")), PacketLine.text(Component.text("bottom")));
     }
 
     @Test

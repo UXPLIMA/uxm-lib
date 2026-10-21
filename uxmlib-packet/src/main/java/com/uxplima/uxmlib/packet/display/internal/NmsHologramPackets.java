@@ -5,9 +5,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.bukkit.block.data.BlockData;
+import org.bukkit.craftbukkit.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.TextDisplay;
+import org.bukkit.inventory.ItemStack;
 
 import net.kyori.adventure.text.Component;
 
@@ -57,16 +61,15 @@ public final class NmsHologramPackets implements HologramPackets {
     private final EntityDataAccessor<Float> shadowRadiusAccessor;
     private final EntityDataAccessor<Float> shadowStrengthAccessor;
     private final EntityDataAccessor<Byte> sharedFlagsAccessor;
+    private final EntityDataAccessor<net.minecraft.world.item.ItemStack> itemAccessor;
+    private final EntityDataAccessor<net.minecraft.world.level.block.state.BlockState> blockAccessor;
     /** The shared-flag bit that makes an entity glow, read off the class rather than written as 0x40. */
     private final int glowingFlag;
-    /** The registry's own text-display type, read once rather than named as a constant. */
-    private final EntityType<?> textDisplayType;
 
     public NmsHologramPackets(PacketSender sender) {
         this.sender = Objects.requireNonNull(sender, "sender");
         // Off the registry, not off a constant: the class the entity-type constants live on has been renamed
         // across Minecraft lines, while the registry key has not.
-        this.textDisplayType = VanillaEntityTypes.of("text_display");
         // Read each accessor once here and hold it in a final field, keeping the reflection off every send.
         this.textAccessor = Reflect.accessor(net.minecraft.world.entity.Display.TextDisplay.class, "DATA_TEXT_ID");
         this.billboardAccessor =
@@ -90,6 +93,10 @@ public final class NmsHologramPackets implements HologramPackets {
                 Reflect.accessor(net.minecraft.world.entity.Display.class, "DATA_SHADOW_STRENGTH_ID");
         this.sharedFlagsAccessor = Reflect.accessor(net.minecraft.world.entity.Entity.class, "DATA_SHARED_FLAGS_ID");
         this.glowingFlag = Reflect.intConstant(net.minecraft.world.entity.Entity.class, "FLAG_GLOWING");
+        this.itemAccessor =
+                Reflect.accessor(net.minecraft.world.entity.Display.ItemDisplay.class, "DATA_ITEM_STACK_ID");
+        this.blockAccessor =
+                Reflect.accessor(net.minecraft.world.entity.Display.BlockDisplay.class, "DATA_BLOCK_STATE_ID");
     }
 
     @Override
@@ -98,9 +105,13 @@ public final class NmsHologramPackets implements HologramPackets {
     }
 
     @Override
-    public Object spawnPacket(int entityId, double x, double y, double z) {
+    public Object spawnPacket(
+            int entityId, String entityTypeKey, double x, double y, double z, float yaw, float pitch) {
+        Objects.requireNonNull(entityTypeKey, "entityTypeKey");
+        // Off the registry, so a type is named by its key and an unknown key fails here rather than on a client.
+        EntityType<?> type = VanillaEntityTypes.of(entityTypeKey);
         return new ClientboundAddEntityPacket(
-                entityId, new UUID(0L, entityId), x, y, z, 0.0f, 0.0f, textDisplayType, 0, Vec3.ZERO, 0.0);
+                entityId, new UUID(0L, entityId), x, y, z, pitch, yaw, type, 0, Vec3.ZERO, yaw);
     }
 
     @Override
@@ -109,6 +120,35 @@ public final class NmsHologramPackets implements HologramPackets {
         Objects.requireNonNull(appearance, "appearance");
         Objects.requireNonNull(translation, "translation");
         return new ClientboundSetEntityDataPacket(entityId, dataValues(text, appearance, translation));
+    }
+
+    @Override
+    public Object itemMetadata(int entityId, ItemStack item, HologramAppearance appearance, Vector3f translation) {
+        Objects.requireNonNull(item, "item");
+        List<SynchedEntityData.DataValue<?>> values = displayValues(appearance, translation);
+        values.add(SynchedEntityData.DataValue.create(itemAccessor, CraftItemStack.asNMSCopy(item)));
+        return new ClientboundSetEntityDataPacket(entityId, values);
+    }
+
+    @Override
+    public Object blockMetadata(int entityId, BlockData block, HologramAppearance appearance, Vector3f translation) {
+        Objects.requireNonNull(block, "block");
+        List<SynchedEntityData.DataValue<?>> values = displayValues(appearance, translation);
+        values.add(SynchedEntityData.DataValue.create(blockAccessor, ((CraftBlockData) block).getState()));
+        return new ClientboundSetEntityDataPacket(entityId, values);
+    }
+
+    /** What every display has, text or not: the turn, the reach, the place and size, and the optional looks. */
+    private List<SynchedEntityData.DataValue<?>> displayValues(HologramAppearance appearance, Vector3f translation) {
+        Objects.requireNonNull(appearance, "appearance");
+        Objects.requireNonNull(translation, "translation");
+        List<SynchedEntityData.DataValue<?>> values = new ArrayList<>(10);
+        values.add(SynchedEntityData.DataValue.create(billboardAccessor, billboardId(appearance.billboard())));
+        values.add(SynchedEntityData.DataValue.create(viewRangeAccessor, appearance.viewRange()));
+        values.add(SynchedEntityData.DataValue.create(translationAccessor, new Vector3f(translation)));
+        values.add(SynchedEntityData.DataValue.create(scaleAccessor, appearance.scale()));
+        addOptional(values, appearance);
+        return values;
     }
 
     private List<SynchedEntityData.DataValue<?>> dataValues(

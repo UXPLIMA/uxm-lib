@@ -2,7 +2,9 @@ package com.uxplima.uxmlib.packet.display;
 
 import java.util.List;
 
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import net.kyori.adventure.text.Component;
 
@@ -28,13 +30,31 @@ public interface HologramPackets {
     int allocateEntityId();
 
     /** Build the add-entity packet that spawns a text display with {@code entityId} at the given position. */
-    Object spawnPacket(int entityId, double x, double y, double z);
+    default Object spawnPacket(int entityId, double x, double y, double z) {
+        return spawnPacket(entityId, "text_display", x, y, z, 0.0f, 0.0f);
+    }
+
+    /**
+     * Build the add-entity packet that spawns an entity of {@code entityTypeKey} (a registry key such as
+     * {@code item_display} or {@code villager}) with {@code entityId} at the given position, facing
+     * {@code yaw} and {@code pitch}.
+     */
+    Object spawnPacket(int entityId, String entityTypeKey, double x, double y, double z, float yaw, float pitch);
 
     /**
      * Build the set-entity-data packet that paints {@code entityId} with one line of text, the shared
      * {@link HologramAppearance}, and that line's own offset within the stack.
      */
     Object metadataPacket(int entityId, Component text, HologramAppearance appearance, Vector3f translation);
+
+    /**
+     * Build the set-entity-data packet that paints the item display {@code entityId} with {@code item}, the shared
+     * {@link HologramAppearance} as far as an item display has it, and that line's own offset within the stack.
+     */
+    Object itemMetadata(int entityId, ItemStack item, HologramAppearance appearance, Vector3f translation);
+
+    /** The same for the block display {@code entityId} showing {@code block}. */
+    Object blockMetadata(int entityId, BlockData block, HologramAppearance appearance, Vector3f translation);
 
     /** Build the remove-entities packet that despawns {@code entityIds} for one viewer. */
     Object removePacket(int[] entityIds);

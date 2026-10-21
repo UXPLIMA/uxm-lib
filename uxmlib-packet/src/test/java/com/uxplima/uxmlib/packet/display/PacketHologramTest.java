@@ -346,6 +346,97 @@ class PacketHologramTest {
                 .isCloseTo(1.0f, org.assertj.core.api.Assertions.within(1e-6f));
     }
 
+    @Test
+    @DisplayName("an item line is an item display carrying that item")
+    void anItemLineIsAnItemDisplay() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        org.bukkit.inventory.ItemStack diamond = new org.bukkit.inventory.ItemStack(org.bukkit.Material.DIAMOND);
+
+        showLines(viewer -> List.of(PacketLine.item(diamond)));
+        scheduler.firstFrame();
+
+        FakeHologramPackets.Bundle frame =
+                (FakeHologramPackets.Bundle) packets.packetsFor(alice).get(0);
+        assertThat(((FakeHologramPackets.Spawn) frame.packets().get(0)).entityTypeKey())
+                .isEqualTo("item_display");
+        assertThat(((FakeHologramPackets.ItemMetadata) frame.packets().get(1)).item())
+                .isEqualTo(diamond);
+    }
+
+    @Test
+    @DisplayName("a block line is a block display carrying that block")
+    void aBlockLineIsABlockDisplay() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        org.bukkit.block.data.BlockData stone = server.createBlockData(org.bukkit.Material.STONE);
+
+        showLines(viewer -> List.of(PacketLine.block(stone)));
+        scheduler.firstFrame();
+
+        FakeHologramPackets.Bundle frame =
+                (FakeHologramPackets.Bundle) packets.packetsFor(alice).get(0);
+        assertThat(((FakeHologramPackets.Spawn) frame.packets().get(0)).entityTypeKey())
+                .isEqualTo("block_display");
+        assertThat(((FakeHologramPackets.BlockMetadata) frame.packets().get(1)).block())
+                .isEqualTo(stone);
+    }
+
+    @Test
+    @DisplayName("a mob line spawns that mob and nothing else")
+    void aMobLineSpawnsThatMob() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+
+        showLines(viewer -> List.of(PacketLine.mob("villager")));
+        scheduler.firstFrame();
+
+        FakeHologramPackets.Bundle frame =
+                (FakeHologramPackets.Bundle) packets.packetsFor(alice).get(0);
+        assertThat(frame.packets()).hasSize(1);
+        assertThat(((FakeHologramPackets.Spawn) frame.packets().get(0)).entityTypeKey())
+                .isEqualTo("villager");
+    }
+
+    @Test
+    @DisplayName("a line that changes kind is rebuilt, never painted over an entity of another type")
+    void aLineThatChangesKindIsRebuilt() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        PacketHologram hologram = showLines(viewer -> List.of(PacketLine.text(Component.text("crate"))));
+        scheduler.firstFrame();
+        packets.forget();
+
+        hologram.setLines(
+                viewer -> List.of(PacketLine.item(new org.bukkit.inventory.ItemStack(org.bukkit.Material.CHEST))));
+        scheduler.tick();
+
+        List<Object> sent = packets.packetsFor(alice);
+        assertThat(sent).hasSize(2);
+        assertThat(sent.get(0)).isInstanceOf(FakeHologramPackets.Remove.class);
+        FakeHologramPackets.Bundle frame = (FakeHologramPackets.Bundle) sent.get(1);
+        assertThat(((FakeHologramPackets.Spawn) frame.packets().get(0)).entityTypeKey())
+                .isEqualTo("item_display");
+    }
+
+    @Test
+    @DisplayName("the anchor's facing is the facing every line is spawned with")
+    void theAnchorsFacingIsTheSpawnsFacing() {
+        Player alice = playerAt("Alice", 1, 64, 1);
+        anchor.setYaw(90f);
+        anchor.setPitch(10f);
+
+        show(viewer -> List.of(Component.text("sign")));
+        scheduler.firstFrame();
+
+        FakeHologramPackets.Bundle frame =
+                (FakeHologramPackets.Bundle) packets.packetsFor(alice).get(0);
+        FakeHologramPackets.Spawn spawn =
+                (FakeHologramPackets.Spawn) frame.packets().get(0);
+        assertThat(spawn.yaw()).isEqualTo(90f);
+        assertThat(spawn.pitch()).isEqualTo(10f);
+    }
+
+    private PacketHologram showLines(java.util.function.Function<Player, List<PacketLine>> lines) {
+        return PacketHologram.showLines(packets, scheduler, anchor, HologramAppearance.defaults(), lines);
+    }
+
     private PacketHologram show(java.util.function.Function<Player, List<Component>> text) {
         return PacketHologram.show(packets, scheduler, anchor, HologramAppearance.defaults(), text);
     }

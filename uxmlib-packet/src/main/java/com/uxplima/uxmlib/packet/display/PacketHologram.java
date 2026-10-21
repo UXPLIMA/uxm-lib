@@ -10,6 +10,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.stream.IntStream;
 
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -70,7 +71,7 @@ public final class PacketHologram {
     /** Everyone currently being shown the hologram, and how many lines each of them has. */
     private final Map<UUID, Shown> shown = new HashMap<>();
 
-    private Function<Player, List<Component>> text;
+    private Function<Player, List<PacketLine>> lines;
     private HologramAppearance appearance;
     private @Nullable TaskHandle refresh;
     private boolean removed;
@@ -79,16 +80,16 @@ public final class PacketHologram {
             HologramPackets packets,
             Location anchor,
             HologramAppearance appearance,
-            Function<Player, List<Component>> text,
+            Function<Player, List<PacketLine>> lines,
             double viewDistance) {
         this.packets = packets;
         this.anchor = anchor;
         this.appearance = appearance;
-        this.text = text;
+        this.lines = lines;
         this.viewDistanceSquared = viewDistance * viewDistance;
     }
 
-    /** Show a packet hologram at {@code anchor} with the default view distance and refresh period. */
+    /** Show a packet hologram of text at {@code anchor} with the default view distance and refresh period. */
     public static PacketHologram show(
             HologramPackets packets,
             Scheduler scheduler,
@@ -99,7 +100,7 @@ public final class PacketHologram {
     }
 
     /**
-     * Show a packet hologram at {@code anchor} and start its refresh loop.
+     * Show a packet hologram of text at {@code anchor} and start its refresh loop.
      *
      * <p>{@code text} is asked for one viewer's lines at a time, on the anchor's region thread, on every
      * frame, so it must be cheap and free of side effects. It must return at least one line.
@@ -115,17 +116,48 @@ public final class PacketHologram {
             Function<Player, List<Component>> text,
             double viewDistance,
             Duration period) {
+        return showLines(packets, scheduler, anchor, appearance, texts(text), viewDistance, period);
+    }
+
+    /** Show a packet hologram of any kind of line at {@code anchor} with the default distance and period. */
+    public static PacketHologram showLines(
+            HologramPackets packets,
+            Scheduler scheduler,
+            Location anchor,
+            HologramAppearance appearance,
+            Function<Player, List<PacketLine>> lines) {
+        return showLines(packets, scheduler, anchor, appearance, lines, DEFAULT_VIEW_DISTANCE, DEFAULT_REFRESH_PERIOD);
+    }
+
+    /**
+     * Show a packet hologram of any kind of line at {@code anchor} and start its refresh loop. Every line is
+     * spawned facing the anchor's yaw and pitch, which is what a fixed billboard shows.
+     *
+     * <p>{@code lines} is asked for one viewer's lines at a time, on the anchor's region thread, on every
+     * frame, so it must be cheap and free of side effects. It must return at least one line.
+     *
+     * @param viewDistance how far a viewer may stand from the anchor and still be sent the hologram
+     * @param period how often the audience and the lines are recomputed
+     */
+    public static PacketHologram showLines(
+            HologramPackets packets,
+            Scheduler scheduler,
+            Location anchor,
+            HologramAppearance appearance,
+            Function<Player, List<PacketLine>> lines,
+            double viewDistance,
+            Duration period) {
         Objects.requireNonNull(packets, "packets");
         Objects.requireNonNull(scheduler, "scheduler");
         Objects.requireNonNull(anchor, "anchor");
         Objects.requireNonNull(appearance, "appearance");
-        Objects.requireNonNull(text, "text");
+        Objects.requireNonNull(lines, "lines");
         Objects.requireNonNull(period, "period");
         Objects.requireNonNull(anchor.getWorld(), "anchor world");
         if (viewDistance <= 0) {
             throw new IllegalArgumentException("viewDistance must be > 0, was " + viewDistance);
         }
-        PacketHologram hologram = new PacketHologram(packets, anchor.clone(), appearance, text, viewDistance);
+        PacketHologram hologram = new PacketHologram(packets, anchor.clone(), appearance, lines, viewDistance);
         // The first frame is scheduled rather than run inline, so show() is safe to call from any thread.
         scheduler.region(anchor, hologram::update);
         hologram.refresh = scheduler.regionTimer(anchor, period, period, handle -> hologram.update());
@@ -149,7 +181,12 @@ public final class PacketHologram {
 
     /** Replace the per-viewer text. It takes effect on the next {@link #update()}. */
     public void setText(Function<Player, List<Component>> next) {
-        this.text = Objects.requireNonNull(next, "next");
+        this.lines = texts(Objects.requireNonNull(next, "next"));
+    }
+
+    /** Replace the per-viewer lines, of any kind. It takes effect on the next {@link #update()}. */
+    public void setLines(Function<Player, List<PacketLine>> next) {
+        this.lines = Objects.requireNonNull(next, "next");
     }
 
     /** Replace the look. It takes effect on the next {@link #update()}. */
@@ -200,43 +237,68 @@ public final class PacketHologram {
     }
 
     /**
-     * A viewer whose line count has not changed is sent the lines that differ from what their client holds,
-     * and nothing when none does, so a frame costs a packet only where something changed. A new appearance
-     * differs on every line. A newcomer, or a viewer whose line count changed, is sent the whole spawn frame:
-     * the client has to be told about an entity id before it can be painted.
+     * A viewer whose client holds a stack of the same height and the same kinds of entity is sent the lines that
+     * differ from what it holds, and nothing when none does, so a frame costs a packet only where something
+     * changed. A new appearance differs on every line. A newcomer, or a viewer whose stack changed height or
+     * kind, is sent the whole spawn frame: the client has to be told about an entity, of the right type, before
+     * it can be painted.
      */
     private void reconcile(UUID id, Player player) {
-        List<Component> lines = linesFor(player);
+        List<PacketLine> next = linesFor(player);
         Shown current = shown.get(id);
-        if (current != null && current.lines().size() == lines.size()) {
-            repaint(player, current, lines);
-            shown.put(id, new Shown(player, List.copyOf(lines), appearance));
+        if (current != null && sameEntities(current.lines(), next)) {
+            repaint(player, current, next);
+            shown.put(id, new Shown(player, List.copyOf(next), appearance));
             return;
         }
         if (current != null) {
             despawn(player, current.lines().size());
         }
-        spawn(player, lines);
-        shown.put(id, new Shown(player, List.copyOf(lines), appearance));
+        spawn(player, next);
+        shown.put(id, new Shown(player, List.copyOf(next), appearance));
     }
 
-    /** Re-send the metadata of each line the viewer's client holds differently, to a stack of the same height. */
-    private void repaint(Player player, Shown held, List<Component> lines) {
+    /** Whether two stacks are the same entities on the client: as many lines, each of the same entity type. */
+    private static boolean sameEntities(List<PacketLine> held, List<PacketLine> next) {
+        return held.size() == next.size()
+                && IntStream.range(0, next.size())
+                        .allMatch(i ->
+                                held.get(i).entityTypeKey().equals(next.get(i).entityTypeKey()));
+    }
+
+    /** Re-send the metadata of each line the viewer's client holds differently, to a stack of the same entities. */
+    private void repaint(Player player, Shown held, List<PacketLine> next) {
         boolean restyled = !held.appearance().equals(appearance);
-        for (int i = 0; i < lines.size(); i++) {
-            if (restyled || !held.lines().get(i).equals(lines.get(i))) {
-                packets.send(player, metadata(lineId(i), lines.get(i), i, lines.size()));
+        for (int i = 0; i < next.size(); i++) {
+            if (restyled || !held.lines().get(i).equals(next.get(i))) {
+                @Nullable Object metadata = metadata(lineId(i), next.get(i), i, next.size());
+                if (metadata != null) {
+                    packets.send(player, metadata);
+                }
             }
         }
     }
 
     /** Send one viewer the whole stack: a spawn and a metadata packet per line, as a single frame. */
-    private void spawn(Player player, List<Component> lines) {
-        List<Object> frame = new ArrayList<>(lines.size() * 2);
-        for (int i = 0; i < lines.size(); i++) {
+    private void spawn(Player player, List<PacketLine> next) {
+        List<Object> frame = new ArrayList<>(next.size() * 2);
+        for (int i = 0; i < next.size(); i++) {
             int id = lineId(i);
-            frame.add(packets.spawnPacket(id, anchor.getX(), anchor.getY(), anchor.getZ()));
-            frame.add(metadata(id, lines.get(i), i, lines.size()));
+            PacketLine line = next.get(i);
+            // A display carries its offset in its own data; a mob has none, so it is spawned at its place.
+            Vector3f at = line instanceof PacketLine.Mob ? translationForLine(i, next.size()) : new Vector3f();
+            frame.add(packets.spawnPacket(
+                    id,
+                    line.entityTypeKey(),
+                    anchor.getX() + at.x(),
+                    anchor.getY() + at.y(),
+                    anchor.getZ() + at.z(),
+                    anchor.getYaw(),
+                    anchor.getPitch()));
+            @Nullable Object metadata = metadata(id, line, i, next.size());
+            if (metadata != null) {
+                frame.add(metadata);
+            }
         }
         packets.send(player, packets.bundle(frame));
     }
@@ -265,9 +327,15 @@ public final class PacketHologram {
         packets.send(player, packets.removePacket(ids));
     }
 
-    /** The metadata packet for one line: its component and its own offset within the stack. */
-    private Object metadata(int id, Component line, int index, int lineCount) {
-        return packets.metadataPacket(id, line, appearance, translationForLine(index, lineCount));
+    /** The metadata packet for one line and its own offset within the stack, or none for a mob. */
+    private @Nullable Object metadata(int id, PacketLine line, int index, int lineCount) {
+        Vector3f translation = translationForLine(index, lineCount);
+        return switch (line) {
+            case PacketLine.Text text -> packets.metadataPacket(id, text.text(), appearance, translation);
+            case PacketLine.Item item -> packets.itemMetadata(id, item.item(), appearance, translation);
+            case PacketLine.Block block -> packets.blockMetadata(id, block.block(), appearance, translation);
+            case PacketLine.Mob mob -> null;
+        };
     }
 
     /** Offset a line within the stack: line 0 is the top, so an earlier index sits higher. */
@@ -283,14 +351,24 @@ public final class PacketHologram {
         return lineIds.get(index);
     }
 
-    private List<Component> linesFor(Player player) {
-        List<Component> lines = text.apply(player);
-        if (lines == null || lines.isEmpty()) {
+    private List<PacketLine> linesFor(Player player) {
+        List<PacketLine> next = lines.apply(player);
+        if (next == null || next.isEmpty()) {
             throw new IllegalStateException("the hologram text returned no lines for " + player.getName());
         }
-        return lines;
+        return next;
+    }
+
+    /** Text lines as lines of the text kind, for the callers that only ever show text. */
+    private static Function<Player, List<PacketLine>> texts(Function<Player, List<Component>> text) {
+        return viewer -> {
+            List<Component> components = text.apply(viewer);
+            return components == null
+                    ? List.of()
+                    : components.stream().map(PacketLine::text).toList();
+        };
     }
 
     /** One viewer being shown the hologram: who they are, and the lines and look their client is holding. */
-    private record Shown(Player player, List<Component> lines, HologramAppearance appearance) {}
+    private record Shown(Player player, List<PacketLine> lines, HologramAppearance appearance) {}
 }
