@@ -34,6 +34,9 @@ public final class Typography {
     private static final String PLAIN_OPEN = "<plain>";
     private static final String PLAIN_CLOSE = "</plain>";
 
+    /** A hover that shows text: the text is read by the player, so it is prose like the line around it. */
+    private static final String HOVER_TEXT = "<hover:show_text:";
+
     private static final String CAPS_OPEN = "<" + SmallCapsTag.NAME + ">";
     private static final String CAPS_CLOSE = "</" + SmallCapsTag.NAME + ">";
 
@@ -88,12 +91,32 @@ public final class Typography {
                 if (smallCaps && plainDepth == 0) {
                     out.append(tag);
                 }
+            } else if (smallCaps && plainDepth == 0 && tag.startsWith(HOVER_TEXT)) {
+                out.append(hover(tag));
             } else {
                 out.append(tag);
             }
             index = end + 1;
         }
         return out.toString();
+    }
+
+    /**
+     * A {@code show_text} hover with the text inside its quotes through the same pass, so the words a player reads in
+     * it follow the line. A hover written without quotes is copied as written, because where its text ends is not
+     * certain.
+     */
+    private static String hover(String tag) {
+        int open = HOVER_TEXT.length();
+        if (open >= tag.length()) {
+            return tag;
+        }
+        char quote = tag.charAt(open);
+        int close = tag.lastIndexOf(quote);
+        if ((quote != '\'' && quote != '"') || close <= open) {
+            return tag;
+        }
+        return tag.substring(0, open + 1) + apply(tag.substring(open + 1, close), true) + tag.substring(close);
     }
 
     /**

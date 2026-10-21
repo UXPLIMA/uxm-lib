@@ -48,7 +48,8 @@ class TypographyTest {
 
     @Test
     void aBracketInsideAQuotedArgumentDoesNotEndTheTag() {
-        assertThat(Typography.apply("<hover:show_text:'a > b'>go", true)).isEqualTo("<hover:show_text:'a > b'>ɢᴏ");
+        assertThat(Typography.apply("<click:suggest_command:'a > b'>go", true))
+                .isEqualTo("<click:suggest_command:'a > b'>ɢᴏ");
     }
 
     @Test
@@ -73,6 +74,17 @@ class TypographyTest {
         assertThat(Typography.apply("@state.title | @state.subtitle 0.1 1.2 0.3", true))
                 .isEqualTo("@state.title | @state.subtitle 0.1 1.2 0.3");
         assertThat(Typography.apply("hi @everyone", true)).isEqualTo("ʜɪ @everyone");
+    }
+
+    /**
+     * The text a hover shows is read by the player, so its letters follow the line's; the rest of the tag, and every
+     * tag and placeholder inside the hover, is copied as written.
+     */
+    @Test
+    void theTextAHoverShowsFollowsTheLine() {
+        assertThat(Typography.apply("<hover:show_text:'<muted>click to copy {uri}</muted>'>{uri}</hover>", true))
+                .isEqualTo("<hover:show_text:'<muted>ᴄʟɪᴄᴋ ᴛᴏ ᴄᴏᴘʏ {uri}</muted>'>{uri}</hover>");
+        assertThat(Typography.apply("<hover:show_text:'click'>go", false)).isEqualTo("<hover:show_text:'click'>go");
     }
 
     /**
