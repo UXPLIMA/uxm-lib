@@ -59,8 +59,8 @@ public interface PacketListener {
     }
 
     /**
-     * Inspect an inbound packet and decide pass or cancel. Rewrite is an outbound-only mechanism, so an inbound
-     * {@link PacketVerdict#rewrite(Object)} is honoured as a pass; the default delegates to {@link #onReceive}.
+     * Inspect an inbound packet and decide pass, cancel, or rewrite: a {@link PacketVerdict#rewrite(Object)} hands
+     * the server the replacement in place of what the client sent. The default delegates to {@link #onReceive}.
      *
      * @param player the channel owner's unique id, or {@code null} before login
      * @param packet the raw packet object; never {@code null}

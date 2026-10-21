@@ -71,6 +71,27 @@ class PacketPipelineVanillaShapeTest {
         assertThat(wire.toString(StandardCharsets.UTF_8)).isEqualTo("drawn_set_slot");
     }
 
+    @Test
+    void anInboundRewriteIsWhatTheServerReads() {
+        EmbeddedChannel channel = injected();
+        registry.register(new PacketListener() {
+            @Override
+            public PacketAction onSend(@Nullable UUID player, Object packet) {
+                return PacketAction.PASS;
+            }
+
+            @Override
+            public PacketVerdict onReceiveVerdict(@Nullable UUID player, Object packet) {
+                return PacketVerdict.rewrite("restored_" + packet);
+            }
+        });
+
+        channel.writeInbound(Unpooled.copiedBuffer("creative_slot", StandardCharsets.UTF_8));
+
+        Object read = channel.readInbound();
+        assertThat(read).isEqualTo("restored_creative_slot");
+    }
+
     private final PacketListenerRegistry registry = new PacketListenerRegistry();
 
     private EmbeddedChannel injected() {

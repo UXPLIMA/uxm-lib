@@ -74,18 +74,18 @@ public final class PacketInterceptor extends ChannelDuplexHandler {
 
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (passes(PacketDirection.INBOUND, msg)) {
-            super.channelRead(ctx, msg);
-        }
-        // else: cancelled: drop the inbound packet by not forwarding it (rewrite is outbound-only, ignored here).
-    }
-
-    /** Dispatch and fold; report faults to the sink. Returns whether the packet should be forwarded. */
-    private boolean passes(PacketDirection direction, Object msg) {
         if (registry.isEmpty()) {
-            return true;
+            super.channelRead(ctx, msg);
+            return;
         }
-        return !report(registry.dispatch(direction, ownerId.get(), msg)).cancelled();
+        PacketListenerRegistry.Dispatch dispatch =
+                report(registry.dispatch(PacketDirection.INBOUND, ownerId.get(), msg));
+        if (dispatch.cancelled()) {
+            return; // cancelled: drop the inbound packet by not forwarding it.
+        }
+        // A rewrite hands the server the replacement in place of what the client sent.
+        Object replacement = dispatch.replacement();
+        super.channelRead(ctx, replacement != null ? replacement : msg);
     }
 
     /** Route any collected faults to the sink (off-thread logging) and return the dispatch unchanged. */

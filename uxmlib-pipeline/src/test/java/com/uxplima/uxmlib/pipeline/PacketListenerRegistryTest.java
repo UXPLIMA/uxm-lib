@@ -155,7 +155,7 @@ class PacketListenerRegistryTest {
     }
 
     @Test
-    void anInboundRewriteIsTreatedAsAPass() {
+    void anInboundRewriteCarriesItsReplacement() {
         PacketListenerRegistry registry = new PacketListenerRegistry();
         registry.register(new PacketListener() {
             @Override
@@ -171,7 +171,7 @@ class PacketListenerRegistryTest {
 
         PacketListenerRegistry.Dispatch dispatch = registry.dispatch(PacketDirection.INBOUND, PLAYER, new Object());
 
-        // Rewrite is outbound-only; an inbound rewrite must not cancel, and the interceptor ignores any replacement.
+        // An inbound rewrite does not cancel; it carries the replacement the interceptor hands the server.
         assertThat(dispatch.cancelled()).isFalse();
         assertThat(dispatch.replacement()).isNotNull();
     }
