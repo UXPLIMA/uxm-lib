@@ -1,5 +1,6 @@
 package com.uxplima.uxmlib.pipeline;
 
+import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -8,9 +9,11 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.bukkit.entity.Player;
@@ -35,6 +38,12 @@ import org.jspecify.annotations.Nullable;
  * <p>Why so much reflection: Paper exposes no public handle to the connection's Netty channel, and a
  * from-scratch (MIT) packet layer cannot use PacketEvents (GPL) to get it. Isolating it in this one class
  * keeps the rest of the module free of NMS. Every {@code setAccessible}/read is guarded and fails closed.
+ *
+ * <p>The walk runs once per player handle. It reads thousands of fields and collection elements, several
+ * milliseconds of the calling thread, and a packet sender asks for the channel on every send. The channel a
+ * handle led to is kept, held weakly on both sides, and a handle whose channel has closed answers empty at once:
+ * a connection is never reopened, and walking again would only search everything behind the player for a channel
+ * that is gone.
  */
 public final class ChannelResolver {
 
@@ -42,6 +51,10 @@ public final class ChannelResolver {
     private static final int MAX_DEPTH = 4;
 
     private final String anchorName;
+
+    /** The channel each handle led to. Weak keys let a handle go when its player does; weak values keep the
+     * channel, which leads back to the handle, from holding its own key. */
+    private final Map<Object, WeakReference<Channel>> found = Collections.synchronizedMap(new WeakHashMap<>());
 
     /** Resolve preferring a channel whose pipeline carries the default {@code "encoder"} anchor. */
     public ChannelResolver() {
@@ -68,7 +81,21 @@ public final class ChannelResolver {
         if (handle == null) {
             return Optional.empty();
         }
-        return Optional.ofNullable(findChannel(handle));
+        return resolveHandle(handle);
+    }
+
+    /** The channel behind a player's server handle. Package-private so a test can hand it a synthetic handle. */
+    Optional<Channel> resolveHandle(Object handle) {
+        @Nullable WeakReference<Channel> kept = found.get(handle);
+        if (kept != null) {
+            @Nullable Channel channel = kept.get();
+            return channel != null && channel.isOpen() ? Optional.of(channel) : Optional.empty();
+        }
+        @Nullable Channel channel = findChannel(handle);
+        if (channel != null) {
+            found.put(handle, new WeakReference<>(channel));
+        }
+        return Optional.ofNullable(channel);
     }
 
     /**

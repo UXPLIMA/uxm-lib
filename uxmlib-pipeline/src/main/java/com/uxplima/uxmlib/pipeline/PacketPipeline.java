@@ -1,10 +1,12 @@
 package com.uxplima.uxmlib.pipeline;
 
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.bukkit.entity.Player;
@@ -31,6 +33,11 @@ import org.jspecify.annotations.Nullable;
  * the caller (via the library {@code Scheduler}), keeping this class a pure pipeline mutator that is easy to
  * reason about. It never throws on a missing channel: a player whose channel cannot be resolved (e.g. a mock
  * player under test) simply yields {@code false} from {@link #inject} / {@link #isInjected}.
+ *
+ * <p>The channel a handler went into is remembered per player, and {@link #eject}, {@link #isInjected} and
+ * {@link #reorder} act on that channel rather than resolving the player again. A player who quits usually
+ * has a closed connection already, and a walk that meets no open channel searches everything reachable from
+ * the player before it gives up; on a live server that held the main thread past the watchdog.
  */
 public class PacketPipeline {
 
@@ -42,6 +49,7 @@ public class PacketPipeline {
     private final String handlerName;
     private final PipelineWatchdog watchdog;
     private final Consumer<Throwable> faultSink;
+    private final Map<UUID, Channel> injected = new ConcurrentHashMap<>();
 
     /**
      * @param resolver reaches the player's Netty channel
@@ -79,6 +87,7 @@ public class PacketPipeline {
     boolean inject(Channel channel, UUID owner) {
         ChannelPipeline pipeline = channel.pipeline();
         if (pipeline.get(handlerName) != null) {
+            injected.put(owner, channel);
             return true; // already injected; idempotent
         }
         if (pipeline.get(DEFAULT_ANCHOR) == null) {
@@ -86,14 +95,18 @@ public class PacketPipeline {
         }
         PacketInterceptor interceptor = new PacketInterceptor(registry, () -> owner, faultSink);
         pipeline.addAfter(DEFAULT_ANCHOR, handlerName, interceptor);
+        injected.put(owner, channel);
         return true;
     }
 
-    /** Remove our interceptor from {@code player}'s pipeline. Idempotent and {@link NoSuchElementException}-safe. */
+    /**
+     * Remove our interceptor from the channel it was injected into, and forget that channel. Idempotent and
+     * {@link NoSuchElementException}-safe. A closed channel has nothing to remove: Netty empties its pipeline.
+     */
     public boolean eject(Player player) {
         Objects.requireNonNull(player, "player");
-        Optional<Channel> channel = resolver.resolve(player);
-        return channel.isPresent() && eject(channel.orElseThrow());
+        @Nullable Channel channel = injected.remove(player.getUniqueId());
+        return channel != null && channel.isOpen() && eject(channel);
     }
 
     boolean eject(Channel channel) {
@@ -112,9 +125,23 @@ public class PacketPipeline {
     /** {@code true} if our interceptor is currently present in {@code player}'s pipeline. */
     public boolean isInjected(Player player) {
         Objects.requireNonNull(player, "player");
-        return resolver.resolve(player)
+        return remembered(player)
                 .map(channel -> channel.pipeline().get(handlerName) != null)
                 .orElse(false);
+    }
+
+    /** The open channel our handler was injected into for {@code player}; a closed one is forgotten. */
+    private Optional<Channel> remembered(Player player) {
+        UUID owner = player.getUniqueId();
+        @Nullable Channel channel = injected.get(owner);
+        if (channel == null) {
+            return Optional.empty();
+        }
+        if (!channel.isOpen()) {
+            injected.remove(owner, channel);
+            return Optional.empty();
+        }
+        return Optional.of(channel);
     }
 
     /**
@@ -124,8 +151,7 @@ public class PacketPipeline {
      */
     public PipelineWatchdog.Decision reorder(Player player) {
         Objects.requireNonNull(player, "player");
-        Optional<Channel> channel = resolver.resolve(player);
-        return channel.map(this::reorder).orElse(PipelineWatchdog.Decision.MISSING);
+        return remembered(player).map(this::reorder).orElse(PipelineWatchdog.Decision.MISSING);
     }
 
     PipelineWatchdog.Decision reorder(Channel channel) {
