@@ -809,7 +809,8 @@ public final class MenuSpecLoader {
                 parseClickEntry(entry.getValue(), kind, actions, requirements, orElse);
             }
         }
-        // v1 keeps per-gesture conditions empty; visibility is gated by the item-level `view` list instead.
+        // A gesture carries no conditions of its own: visibility is gated by the item's `view` list, and a gesture's
+        // own gate is its requirement block.
         return new ClickSpec(actions, Map.of(), requirements, orElse, names);
     }
 

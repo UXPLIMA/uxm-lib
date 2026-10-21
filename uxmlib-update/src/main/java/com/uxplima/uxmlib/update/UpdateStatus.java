@@ -1,8 +1,7 @@
 package com.uxplima.uxmlib.update;
 
 /**
- * The outcome of a single update check. Mirrors the small status enum the established checkers expose, so a
- * caller can log or branch without re-deriving the comparison.
+ * The outcome of a single update check, so a caller can log or branch without re-deriving the comparison.
  */
 public enum UpdateStatus {
 

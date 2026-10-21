@@ -37,8 +37,8 @@ import org.jspecify.annotations.Nullable;
  *       Scheduler} so a command never runs on the wrong thread.
  * </ul>
  *
- * <p>v1 keeps the subject bases minimal: a {@code Player} is enough. The generic actor is an {@code Object}
- * escape hatch so a non-player condition source can ride along without expanding the subject hierarchy yet.
+ * <p>The subject is a {@code Player}. The generic actor is an {@code Object}, so a non-player condition source can
+ * ride along without a subject hierarchy of its own.
  */
 public final class ConditionRequest {
 

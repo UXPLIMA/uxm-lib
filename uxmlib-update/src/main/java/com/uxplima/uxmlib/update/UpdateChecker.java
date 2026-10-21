@@ -13,10 +13,10 @@ import org.jspecify.annotations.Nullable;
 /**
  * Compares the running build against an {@link UpdateProvider}'s latest release and remembers the result. The
  * provider's fetch is dispatched through {@link Scheduler#async} so the network call never touches a server
- * thread; the comparison is pure. {@link #checkAndAnnounce} guarantees the announce callback fires at most once
- * (the announce-once dedupe the established checkers use) so the console is not spammed by the recurring timer.
+ * thread; the comparison is pure. {@link #checkAndAnnounce} guarantees the announce callback fires at most once,
+ * so the console is not spammed by the recurring timer.
  *
- * <p>This type holds no Bukkit state and never self-downloads: v1 is notify-only. The clickable on-join
+ * <p>This type holds no Bukkit state and never self-downloads: it only notifies. The clickable on-join
  * surface is layered on top by {@link UpdateNotifier}/{@link UpdateJoinListener}, which read {@link #lastOutcome}.
  */
 public final class UpdateChecker {

@@ -16,7 +16,7 @@ import org.jspecify.annotations.Nullable;
  * Wires a notify-only update check into a running plugin: it polls an {@link UpdateProvider} on a recurring
  * {@link Scheduler#asyncTimer} (off-thread, never a server thread), logs the result to the console via the
  * {@code checkAndAnnounce} dedupe (once per distinct newer release, not once per process), and registers a
- * permission-gated on-join notice. It never self-downloads: v1 is notify only.
+ * permission-gated on-join notice. It never self-downloads: it only notifies.
  *
  * <p>It decides when to speak and never what is said: the sentence is the {@link UpdateAnnouncement} the
  * consumer supplies, so the wording, the colours and the link belong to the plugin rather than to this jar.

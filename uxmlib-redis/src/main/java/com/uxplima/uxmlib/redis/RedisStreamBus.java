@@ -5,7 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Enterprise Redis Streams abstraction providing real XADD, XREADGROUP, XACK, and XAUTOCLAIM operations.
+ * A Redis stream: append an entry, read as a consumer group, acknowledge what was handled and reclaim what a dead
+ * consumer left pending ({@code XADD}, {@code XREADGROUP}, {@code XACK}, {@code XAUTOCLAIM}).
  */
 public interface RedisStreamBus extends AutoCloseable {
 

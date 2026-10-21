@@ -14,12 +14,11 @@ import org.bukkit.plugin.Plugin;
 import com.uxplima.uxmlib.scheduler.Scheduler;
 
 /**
- * Pops transient advancement toasts. The trick (mirrored from CMILib's {@code CMIAdvancement}, re-built on
- * the native Bukkit API) is to register a one-criterion synthetic advancement through the data-pack loader,
- * award that criterion to make the client animate the toast, then revoke and unregister it a couple of ticks
- * later so it never lingers in the player's advancement screen. No packets and no NMS: just
- * {@link org.bukkit.UnsafeValues#loadAdvancement} / {@link org.bukkit.UnsafeValues#removeAdvancement} and
- * {@link org.bukkit.advancement.AdvancementProgress}.
+ * Pops transient advancement toasts. The trick is to register a one-criterion synthetic advancement through the
+ * data-pack loader, award that criterion to make the client animate the toast, then revoke and unregister it a couple
+ * of ticks later so it never lingers in the player's advancement screen. No packets and no NMS: just {@link
+ * org.bukkit.UnsafeValues#loadAdvancement} / {@link org.bukkit.UnsafeValues#removeAdvancement} and {@link
+ * org.bukkit.advancement.AdvancementProgress}.
  *
  * <p>Constructor-injected with the owning {@link Plugin} (its name namespaces the synthetic keys) and the
  * library {@link Scheduler}. The player-touching revoke runs on the player's own region thread; the global

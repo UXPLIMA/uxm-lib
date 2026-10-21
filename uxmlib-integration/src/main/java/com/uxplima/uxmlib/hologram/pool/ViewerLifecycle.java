@@ -7,8 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 
 /**
- * The two-set per-viewer visibility lifecycle from NPCLib ({@code NPCBase}, MIT pattern), applied to native
- * holograms. It separates <em>intent</em> (the viewers a consumer asked to see the hologram) from
+ * A two-set per-viewer visibility lifecycle for native holograms. It separates <em>intent</em> (the viewers a consumer
+ * asked to see the hologram) from
  * <em>visibility</em> (the viewers actually rendered after a distance/world/FOV gate). {@code show}/
  * {@code hide} change only intent; an idempotent {@link #reconcile} recomputes visibility from intent plus a
  * gate predicate and emits only the show/hide that changed, so repeated reconciles: from a move event, a

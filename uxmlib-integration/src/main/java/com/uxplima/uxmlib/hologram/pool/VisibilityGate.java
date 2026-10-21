@@ -16,7 +16,7 @@ import org.jspecify.annotations.Nullable;
  * optional field-of-view cone and an optional line-of-sight check, so a hologram only shows when the viewer
  * is within reach, looking at it, and not occluded by terrain.
  *
- * <p>The cone test is the dot-product technique from NPCLib ({@code NPCBase#inViewOf}, MIT): the cosine of
+ * <p>The cone test is a dot product: the cosine of
  * the angle between the viewer's eye direction and the direction to the hologram equals the dot of those two
  * unit vectors, so {@code dot >= cos(halfAngle)} is a branch-free "is it inside the cone" test.
  *
@@ -50,7 +50,7 @@ public final class VisibilityGate {
 
     /**
      * A gate that also requires the hologram to fall inside the viewer's field-of-view cone, where
-     * {@code fovDegrees} is the full cone angle (NPCLib's default is 60). A wider angle shows it from a
+     * {@code fovDegrees} is the full cone angle (60 is a natural field of view). A wider angle shows it from a
      * larger arc of head directions; {@code 360} would disable the cone.
      */
     public static VisibilityGate rangeAndFov(double radius, double fovDegrees) {

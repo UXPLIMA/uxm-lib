@@ -14,7 +14,7 @@ import com.uxplima.uxmlib.scheduler.Scheduler;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The declarative + async click pipeline (item 38) gated by the anti-desync re-check (item 39). Given a
+ * The declarative and async click pipeline, gated by the anti-desync re-check ({@link ClickRecheck}). Given a
  * {@link GuiAction.Responding} action and the click event, it:
  *
  * <ol>
