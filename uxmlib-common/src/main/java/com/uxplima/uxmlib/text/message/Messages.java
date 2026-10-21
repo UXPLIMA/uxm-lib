@@ -379,15 +379,15 @@ public final class Messages {
     }
 
     /**
-     * The viewer's name: the audience's own when it carries one, else the player's, else none. A pointer that
-     * answers null, as a mocked player's does, is read as no name.
+     * The viewer's name: the audience's own when it carries one, else the player's, else none. A pointer or a name
+     * that answers null, as a mocked player's does, is read as no name.
      */
     private static Optional<String> nameOf(Audience viewer) {
         Optional<String> named = Objects.requireNonNullElse(viewer.get(Identity.NAME), Optional.empty());
         if (named.isPresent()) {
             return named;
         }
-        return viewer instanceof Player player ? Optional.of(player.getName()) : Optional.empty();
+        return viewer instanceof Player player ? Optional.ofNullable(player.getName()) : Optional.empty();
     }
 
     private static Message channel(Content snapshot, MessageKey key) {

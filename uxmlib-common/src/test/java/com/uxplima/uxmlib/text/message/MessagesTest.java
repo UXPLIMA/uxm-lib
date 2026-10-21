@@ -314,6 +314,31 @@ class MessagesTest {
         assertThat(Text.plain(line)).isEqualTo("Welcome Alex, Silent");
     }
 
+    /** A mocked player answers null for its name as well: the line renders, and {@code <player>} names nobody. */
+    @Test
+    void aPlayerWithNoNameAtAllStillReadsTheLine() {
+        PlayerMock nameless = new PlayerMock(server, "Nameless") {
+            @Override
+            @SuppressWarnings("NullAway") // a mocked player's pointers answer null, which is the case under test
+            public <T> Optional<T> get(Pointer<T> pointer) {
+                return null;
+            }
+
+            @Override
+            @SuppressWarnings("NullAway") // and so does its name
+            public String getName() {
+                return null;
+            }
+        };
+        MessageCatalog catalog =
+                new MessageCatalog(Map.of(Locale.ENGLISH, Map.of("join.welcome", "Welcome <name>.")), Locale.ENGLISH);
+        Messages messages = new Messages(catalog, LocaleSource.ofDefault(Locale.ENGLISH));
+
+        Component line = messages.render(nameless, WELCOME, Text.placeholder("name", "Alex"));
+
+        assertThat(Text.plain(line)).isEqualTo("Welcome Alex.");
+    }
+
     @Test
     void reloadingSwapsTheWordsForAnInstanceThatIsAlreadyInjectedEverywhere() {
         PlayerMock player = server.addPlayer();
