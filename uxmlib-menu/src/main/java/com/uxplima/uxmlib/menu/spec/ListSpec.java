@@ -24,13 +24,4 @@ public record ListSpec(Ref source, MenuItemSpec template, int pageSize, List<Str
         }
         sorts = List.copyOf(Objects.requireNonNull(sorts, "sorts"));
     }
-
-    /**
-     * The historic two-argument shape, kept so a caller that does not page (the loader's default branch and the test
-     * fixtures) reads plainly. It delegates with a {@code 0} page size (derive from slots) and no sorts, so such a
-     * list behaves exactly as it did before those knobs existed.
-     */
-    public ListSpec(Ref source, MenuItemSpec template) {
-        this(source, template, 0, List.of());
-    }
 }

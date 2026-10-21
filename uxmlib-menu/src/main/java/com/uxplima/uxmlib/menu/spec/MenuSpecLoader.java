@@ -384,9 +384,9 @@ public final class MenuSpecLoader {
 
     /**
      * Add the {@code fill-item}, a background icon painted into every slot no item occupies, once every real item's
-     * slots are known. It is an ordinary static item (it may carry a name, lore, decor) built at the lowest priority and
-     * stored under {@link #FILL_ITEM_ID}, so even were an empty slot to overlap a real item the real item would still
-     * win. An absent {@code fill-item} node adds nothing, so a menu without one parses exactly as before.
+     * slots are known. It is an ordinary static item (it may carry a name, lore, decor) built at the lowest priority
+     * and stored under {@link #FILL_ITEM_ID}, so even were an empty slot to overlap a real item the real item would
+     * still win. An absent {@code fill-item} node adds nothing, so a menu without one parses exactly as before.
      */
     private void addFillItem(
             ConfigurationNode node,
@@ -432,7 +432,8 @@ public final class MenuSpecLoader {
                 parsed.update(),
                 parsed.list(),
                 parsed.type(),
-                parsed.itemDrag());
+                parsed.itemDrag(),
+                0);
     }
 
     private MenuItemSpec parseItem(ConfigurationNode node, int slotCeiling, Map<String, Pattern> patterns) {
@@ -741,9 +742,9 @@ public final class MenuSpecLoader {
      * view ANDs cleanly with the shorthand. An item declaring neither key returns the view unchanged, byte-identical to
      * before this seam.
      *
-     * <p>Edge case: a view with a positive {@code minimum} (an OR / N-of-M block) folds the appended shorthand into that
-     * same pool rather than nesting an outer AND, so for such a view an operator should place the permission inside the
-     * {@code view} block instead. The shorthand is designed for the common no-view / AND-view case.
+     * <p>Edge case: a view with a positive {@code minimum} (an OR / N-of-M block) folds the appended shorthand into
+     * that same pool rather than nesting an outer AND, so for such a view an operator should place the permission
+     * inside the {@code view} block instead. The shorthand is designed for the common no-view / AND-view case.
      */
     private RequirementSpec applyViewShorthands(RequirementSpec view, ConfigurationNode item) {
         String permission = item.node("permission").getString();
@@ -768,7 +769,7 @@ public final class MenuSpecLoader {
 
     /**
      * Parse the {@code click} block. Each gesture key ({@code left}, {@code shift-right}, {@code any}, …) maps to
-     * either a bare action list, the historic form, unchanged, or a map that adds a requirement block:
+     * either a bare action list, the short form, or a map that adds a requirement block:
      * {@code { click|actions|do = [...], requirements = ["has-money:100", "!has-empty-slots:1"], minimum = 1,
      * deny = ["message:no"], stop-at-success = false }}. The actions come from whichever of {@code click}/
      * {@code actions}/{@code do} is present; a requirements entry is either a token with an optional leading {@code !}
@@ -779,9 +780,9 @@ public final class MenuSpecLoader {
      *
      * <p>A gesture map may also carry an {@code else} block: a fallback branch tried when the main requirement fails:
      * {@code else = { requirements = [...], click|actions|do = [...], minimum, stop-at-success, deny = [...], else = {
-     * ... } }}. Its requirements gate it exactly like the main block, its actions run when that gate passes, and its own
-     * nested {@code else} is the next branch tried if it fails: an if / else-if / else ladder. A terminal {@code else}
-     * with no {@code requirements} always passes, so it is the unconditional "otherwise" arm.
+     * ... } }}. Its requirements gate it exactly like the main block, its actions run when that gate passes, and its
+     * own nested {@code else} is the next branch tried if it fails: an if / else-if / else ladder. A terminal {@code
+     * else} with no {@code requirements} always passes, so it is the unconditional "otherwise" arm.
      */
     private ClickSpec parseClick(ConfigurationNode node) {
         Map<ClickKind, List<Ref>> actions = new EnumMap<>(ClickKind.class);
@@ -924,7 +925,7 @@ public final class MenuSpecLoader {
 
     /**
      * Parse the {@code requirements} entries into a requirement list. An entry is either a compact string token (the
-     * historic form: an optional leading {@code !} negates the rest) or a map that adds per-requirement structure:
+     * short form: an optional leading {@code !} negates the rest) or a map that adds per-requirement structure:
      * {@code { require|requirement = "<token>", optional = bool, success = [...], deny = [...] }}. Blank or
      * {@code require}-less entries are skipped, mirroring the map-without-action skip on the action path.
      */
@@ -954,9 +955,9 @@ public final class MenuSpecLoader {
 
     /**
      * A map-form requirement: {@code require} (or its {@code requirement} alias) is the condition token (a leading
-     * {@code !} negates it, as in the string form), {@code optional} marks it non-blocking, and {@code success}/
-     * {@code deny} are the per-requirement action lists run on its own pass or failure. An entry with no condition token
-     * is a config mistake: logged and skipped so one bad requirement does not abort the menu.
+     * {@code !} negates it, as in the string form), {@code optional} marks it non-blocking, and {@code success}/{@code
+     * deny} are the per-requirement action lists run on its own pass or failure. An entry with no condition token is a
+     * config mistake: logged and skipped so one bad requirement does not abort the menu.
      */
     private Optional<Requirement> mapRequirement(ConfigurationNode entry) {
         String token = requireToken(entry);
@@ -1143,9 +1144,9 @@ public final class MenuSpecLoader {
     }
 
     /**
-     * A ref list, where every entry is either a compact scalar token (the historic form, unchanged) or a map
-     * carrying an action token plus per-action modifiers. A list of scalars round-trips exactly as before; a map
-     * entry reads its {@code do}/{@code action} token and layers {@code delay}/{@code chance}/{@code deny} on top.
+     * A ref list, where every entry is either a compact scalar token (the short form) or a map carrying an action token
+     * plus per-action modifiers. A list of scalars round-trips as written; a map entry reads its {@code do}/{@code
+     * action} token and layers {@code delay}/{@code chance}/{@code deny} on top.
      */
     private List<Ref> refs(ConfigurationNode node) {
         if (node.virtual() || node.isNull()) {

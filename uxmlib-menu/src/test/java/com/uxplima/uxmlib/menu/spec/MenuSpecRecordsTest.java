@@ -182,7 +182,8 @@ class MenuSpecRecordsTest {
                 plain.update(),
                 plain.list(),
                 plain.type(),
-                plain.itemDrag());
+                plain.itemDrag(),
+                0);
     }
 
     /** A list-backed item drawing into exactly two slots, {@code first} and {@code last}. */
@@ -198,7 +199,7 @@ class MenuSpecRecordsTest {
                 List.<Ref>of(),
                 new ClickSpec(Map.of(), Map.of()),
                 false,
-                Optional.of(new ListSpec(Ref.parse("src"), template)),
+                Optional.of(new ListSpec(Ref.parse("src"), template, 0, List.of())),
                 ItemType.NONE);
     }
 
@@ -231,7 +232,10 @@ class MenuSpecRecordsTest {
                 Optional.empty(),
                 Map.of(),
                 0L,
-                true);
+                true,
+                false,
+                Optional.empty(),
+                Map.of());
     }
 
     /** A six-row plain chest carrying {@code items}: its slot-fit bound is 54. */
@@ -251,7 +255,11 @@ class MenuSpecRecordsTest {
                         Map.of(),
                         java.util.Optional.empty(),
                         Map.of(),
-                        -1L))
+                        -1L,
+                        false,
+                        false,
+                        Optional.empty(),
+                        Map.of()))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 }

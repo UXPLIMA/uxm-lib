@@ -18,8 +18,8 @@ import java.util.Optional;
  *
  * <p>The {@code itemDrag} component, when present, makes the item a drag target: a click on its slot while the
  * viewer holds a matching item on their cursor runs its own actions instead of the ordinary click, and optionally
- * consumes the item. It is empty for an ordinary item, which is the common case, so the delegating constructors
- * default it to {@link Optional#empty()} and every existing call site keeps compiling unchanged.
+ * consumes the item. It is empty for an ordinary item, which is the common case, and the short form leaves it
+ * empty.
  *
  * <p>The {@code toPage} component is the page a {@link ItemType#JUMP} goes to, one-based as the page indicator counts
  * it, and zero for every other item. The loader refuses a jump without one and a page on anything else, so a jump is
@@ -59,89 +59,9 @@ public record MenuItemSpec(
     }
 
     /**
-     * The thirteen-argument form, with no page to jump to, retained so every call site from before a jump named its
-     * page keeps compiling unchanged.
-     */
-    public MenuItemSpec(
-            SlotSet slots,
-            int priority,
-            String material,
-            String name,
-            List<String> lore,
-            ItemDecor decor,
-            LoreMode loreMode,
-            RequirementSpec view,
-            ClickSpec click,
-            boolean update,
-            Optional<ListSpec> list,
-            ItemType type,
-            Optional<ItemDragSpec> itemDrag) {
-        this(slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, itemDrag, 0);
-    }
-
-    /**
-     * The twelve-argument form that takes a {@link RequirementSpec} view but no item-drag binding, retained so a call
-     * site that only wanted the richer view block keeps compiling unchanged: item-drag defaults to
-     * {@link Optional#empty()}. Only the loader reaches for the canonical thirteen-argument form, and only when a spec
-     * declares an {@code item-drag} block.
-     */
-    public MenuItemSpec(
-            SlotSet slots,
-            int priority,
-            String material,
-            String name,
-            List<String> lore,
-            ItemDecor decor,
-            LoreMode loreMode,
-            RequirementSpec view,
-            ClickSpec click,
-            boolean update,
-            Optional<ListSpec> list,
-            ItemType type) {
-        this(slots, priority, material, name, lore, decor, loreMode, view, click, update, list, type, Optional.empty());
-    }
-
-    /**
-     * The twelve-argument form that takes a flat {@code List<Ref>} view, retained so a call site holding a plain
-     * condition list keeps compiling unchanged: the list is lifted into an all-mandatory AND {@link RequirementSpec}
-     * via {@link RequirementSpec#allOf(List)}, the historic view meaning, and item-drag defaults to
-     * {@link Optional#empty()}. Only the loader reaches for the canonical form, and only to build a view block that
-     * carries a minimum or inversion, or an item-drag binding.
-     */
-    public MenuItemSpec(
-            SlotSet slots,
-            int priority,
-            String material,
-            String name,
-            List<String> lore,
-            ItemDecor decor,
-            LoreMode loreMode,
-            List<Ref> view,
-            ClickSpec click,
-            boolean update,
-            Optional<ListSpec> list,
-            ItemType type) {
-        this(
-                slots,
-                priority,
-                material,
-                name,
-                lore,
-                decor,
-                loreMode,
-                RequirementSpec.allOf(view),
-                click,
-                update,
-                list,
-                type,
-                Optional.empty());
-    }
-
-    /**
-     * The original eleven-argument form, retained so every existing call site keeps compiling unchanged: it uses
-     * {@link LoreMode#REPLACE}, the historic behaviour where the spec lore is the whole lore, and lifts its flat
-     * {@code List<Ref>} view into an all-mandatory block via {@link RequirementSpec#allOf(List)}. Only the loader
-     * builds the canonical form, and only when a spec declares a {@code lore-mode} or a richer view block.
+     * An item with a flat view list, whose lore is the spec's whole lore ({@link LoreMode#REPLACE}): the item most code
+     * builds. The view list becomes an all-mandatory block through {@link RequirementSpec#allOf(List)}, and the item
+     * takes no drag and the default order.
      */
     public MenuItemSpec(
             SlotSet slots,
@@ -168,7 +88,8 @@ public record MenuItemSpec(
                 update,
                 list,
                 type,
-                Optional.empty());
+                Optional.empty(),
+                0);
     }
 
     // --- immutable field-copy helpers (the in-game item editor rebuilds one field at a time) ---

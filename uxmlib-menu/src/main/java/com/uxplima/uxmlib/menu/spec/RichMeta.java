@@ -13,12 +13,12 @@ import java.util.Optional;
  * that does not resolve (an unknown enchant, an unsupported colour, a registry the runtime cannot model), exactly
  * the way the flag tokens already degrade rather than abort a render.
  *
- * <p>Token grammars an operator writes: an enchantment is {@code name:level}; a potion effect is
- * {@code effect:amplifier:durationTicks}; a banner pattern is {@code pattern:dyecolor}; a colour is a
- * {@code #RRGGBB} hex, an {@code r,g,b} triple, or a named dye colour. {@code dynamicAmount}/{@code dynamicModelData}
- * carry a {@code %token%} the renderer resolves to a number on each draw, overriding the static
- * {@link ItemDecor#amount()}/{@link ItemDecor#modelData()}; {@code dynamicGlow} is the same idea for the enchant
- * glow, resolved to a boolean so one list template can glint only the entry that is currently selected. The {@link DataComponents} block carries the common
+ * <p>Token grammars an operator writes: an enchantment is {@code name:level}; a potion effect is {@code
+ * effect:amplifier:durationTicks}; a banner pattern is {@code pattern:dyecolor}; a colour is a {@code #RRGGBB} hex, an
+ * {@code r,g,b} triple, or a named dye colour. {@code dynamicAmount}/{@code dynamicModelData} carry a {@code %token%}
+ * the renderer resolves to a number on each draw, overriding the static {@link ItemDecor#amount()}/{@link
+ * ItemDecor#modelData()}; {@code dynamicGlow} is the same idea for the enchant glow, resolved to a boolean so one list
+ * template can glint only the entry that is currently selected. The {@link DataComponents} block carries the common
  * native data-components (rarity, tooltip-style, the hide-tooltip/enchant-glint toggles, enchantability, attribute
  * modifiers, food, tool) the same fail-soft way.
  */
@@ -68,39 +68,6 @@ public record RichMeta(
         Objects.requireNonNull(dynamicGlow, "dynamicGlow");
     }
 
-    /**
-     * The twelve-argument form, retained so every existing call site keeps compiling unchanged: it carries no
-     * dynamic glow token. Only the loader builds the canonical form, when a spec's {@code glow} is a placeholder.
-     */
-    public RichMeta(
-            boolean unbreakable,
-            List<String> enchantments,
-            List<String> storedEnchantments,
-            Optional<String> leatherColor,
-            PotionSpec potion,
-            List<String> bannerPatterns,
-            Optional<TrimSpec> trim,
-            Optional<Integer> damage,
-            Optional<String> dynamicAmount,
-            Optional<String> dynamicModelData,
-            Optional<String> itemModel,
-            DataComponents components) {
-        this(
-                unbreakable,
-                enchantments,
-                storedEnchantments,
-                leatherColor,
-                potion,
-                bannerPatterns,
-                trim,
-                damage,
-                dynamicAmount,
-                dynamicModelData,
-                itemModel,
-                components,
-                Optional.empty());
-    }
-
     /** A copy carrying new native data-components, every other value unchanged. */
     public RichMeta withComponents(DataComponents components) {
         return new RichMeta(
@@ -117,38 +84,6 @@ public record RichMeta(
                 itemModel,
                 components,
                 dynamicGlow);
-    }
-
-    /**
-     * The original eleven-argument form, retained so every existing call site keeps compiling unchanged: it carries
-     * no data-components ({@link DataComponents#NONE}). Only the loader builds the twelve-argument canonical form
-     * when a spec's {@code decor} block declares any of them.
-     */
-    public RichMeta(
-            boolean unbreakable,
-            List<String> enchantments,
-            List<String> storedEnchantments,
-            Optional<String> leatherColor,
-            PotionSpec potion,
-            List<String> bannerPatterns,
-            Optional<TrimSpec> trim,
-            Optional<Integer> damage,
-            Optional<String> dynamicAmount,
-            Optional<String> dynamicModelData,
-            Optional<String> itemModel) {
-        this(
-                unbreakable,
-                enchantments,
-                storedEnchantments,
-                leatherColor,
-                potion,
-                bannerPatterns,
-                trim,
-                damage,
-                dynamicAmount,
-                dynamicModelData,
-                itemModel,
-                DataComponents.NONE);
     }
 
     /**

@@ -100,7 +100,7 @@ class SpecRefsTest {
         Requirement gate = new Requirement(
                 ref("shop:can-aford"), false, false, List.of(ref("shop:thank")), List.of(ref("shop:sorry")));
         RequirementSpec block = new RequirementSpec(List.of(gate), 1, List.of(ref("shop:deny")));
-        ClickSpec click = new ClickSpec(Map.of(), Map.of(), Map.of(ClickKind.LEFT, block));
+        ClickSpec click = new ClickSpec(Map.of(), Map.of(), Map.of(ClickKind.LEFT, block), Map.of(), Map.of());
         MenuSpec spec = only(itemWithClick(click));
 
         assertThat(SpecRefs.unknownConditions(spec, id -> false)).containsExactly("shop:can-aford");
@@ -116,7 +116,7 @@ class SpecRefsTest {
                 List.of(ref("deep:act")),
                 Optional.empty());
         ClickBranch first = new ClickBranch(RequirementSpec.NONE, List.of(ref("near:act")), Optional.of(last));
-        ClickSpec click = new ClickSpec(Map.of(), Map.of(), Map.of(), Map.of(ClickKind.LEFT, first));
+        ClickSpec click = new ClickSpec(Map.of(), Map.of(), Map.of(), Map.of(ClickKind.LEFT, first), Map.of());
         MenuSpec spec = only(itemWithClick(click));
 
         assertThat(SpecRefs.unknownConditions(spec, id -> false)).containsExactly("deep:cond");
@@ -252,6 +252,7 @@ class SpecRefsTest {
                 false,
                 Optional.empty(),
                 ItemType.NONE,
-                Optional.empty());
+                Optional.empty(),
+                0);
     }
 }

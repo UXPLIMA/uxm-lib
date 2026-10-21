@@ -779,7 +779,9 @@ class MenuSpecWriterTest {
                 click,
                 false,
                 Optional.empty(),
-                ItemType.NONE);
+                ItemType.NONE,
+                Optional.empty(),
+                0);
         MenuSpec spec =
                 new MenuSpec("", 1, new RefreshSpec(false, 0), List.of(), List.of(), List.of(), Map.of("a", item));
 

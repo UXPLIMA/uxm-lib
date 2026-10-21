@@ -138,42 +138,6 @@ public record MenuSpec(
         return lowest;
     }
 
-    /**
-     * The thirteen-argument shape that carries a Bedrock block but no content region, kept so every existing
-     * {@code new MenuSpec(...)} call site compiles unchanged. It delegates to the canonical constructor with no
-     * regions, i.e. a menu the engine draws and routes entirely from its own items.
-     */
-    public MenuSpec(
-            String title,
-            int rows,
-            RefreshSpec refresh,
-            List<Ref> openRequirement,
-            List<Ref> openActions,
-            List<Ref> closeActions,
-            Map<String, MenuItemSpec> items,
-            Optional<String> inventoryType,
-            Map<String, String> placeholders,
-            long clickCooldownMs,
-            boolean bottomInventory,
-            boolean chestOnly,
-            Optional<BedrockFormSpec> bedrock) {
-        this(
-                title,
-                rows,
-                refresh,
-                openRequirement,
-                openActions,
-                closeActions,
-                items,
-                inventoryType,
-                placeholders,
-                clickCooldownMs,
-                bottomInventory,
-                chestOnly,
-                bedrock,
-                Map.of());
-    }
-
     /** The content region covering {@code slot}, or empty when the slot is ordinary chrome. */
     public Optional<ContentRegionSpec> regionAt(int slot) {
         for (ContentRegionSpec region : contents.values()) {
@@ -185,143 +149,8 @@ public record MenuSpec(
     }
 
     /**
-     * The twelve-argument shape that carries a chest-only routing hint but no {@code bedrock {}} block, kept so every
-     * existing {@code new MenuSpec(...)} call site compiles unchanged. It delegates to the canonical constructor with
-     * an empty Bedrock block, so a Bedrock viewer of such a menu gets the automatic SimpleForm degradation exactly as
-     * before this block existed.
-     */
-    public MenuSpec(
-            String title,
-            int rows,
-            RefreshSpec refresh,
-            List<Ref> openRequirement,
-            List<Ref> openActions,
-            List<Ref> closeActions,
-            Map<String, MenuItemSpec> items,
-            Optional<String> inventoryType,
-            Map<String, String> placeholders,
-            long clickCooldownMs,
-            boolean bottomInventory,
-            boolean chestOnly) {
-        this(
-                title,
-                rows,
-                refresh,
-                openRequirement,
-                openActions,
-                closeActions,
-                items,
-                inventoryType,
-                placeholders,
-                clickCooldownMs,
-                bottomInventory,
-                chestOnly,
-                Optional.empty());
-    }
-
-    /**
-     * The eleven-argument shape that carries a bottom-inventory flag but no chest-only routing hint, kept so every
-     * existing {@code new MenuSpec(...)} call site, the loader's older path and the record test fixtures, compiles
-     * unchanged. It delegates to the twelve-argument constructor with the chest-only flag off, so the menu is a form
-     * candidate for a Bedrock viewer exactly as before this hint existed.
-     */
-    public MenuSpec(
-            String title,
-            int rows,
-            RefreshSpec refresh,
-            List<Ref> openRequirement,
-            List<Ref> openActions,
-            List<Ref> closeActions,
-            Map<String, MenuItemSpec> items,
-            Optional<String> inventoryType,
-            Map<String, String> placeholders,
-            long clickCooldownMs,
-            boolean bottomInventory) {
-        this(
-                title,
-                rows,
-                refresh,
-                openRequirement,
-                openActions,
-                closeActions,
-                items,
-                inventoryType,
-                placeholders,
-                clickCooldownMs,
-                bottomInventory,
-                false);
-    }
-
-    /**
-     * The ten-argument shape that carries a click cooldown but paints only the chest top, kept so every existing
-     * {@code new MenuSpec(...)} call site compiles unchanged. It delegates to the canonical constructor with the
-     * bottom-inventory flag off: an ordinary chest menu that never touches the player inventory.
-     */
-    public MenuSpec(
-            String title,
-            int rows,
-            RefreshSpec refresh,
-            List<Ref> openRequirement,
-            List<Ref> openActions,
-            List<Ref> closeActions,
-            Map<String, MenuItemSpec> items,
-            Optional<String> inventoryType,
-            Map<String, String> placeholders,
-            long clickCooldownMs) {
-        this(
-                title,
-                rows,
-                refresh,
-                openRequirement,
-                openActions,
-                closeActions,
-                items,
-                inventoryType,
-                placeholders,
-                clickCooldownMs,
-                false);
-    }
-
-    /**
-     * The nine-argument shape that carries local placeholders but no click cooldown, kept so the loader and any other
-     * with-placeholders caller compiles unchanged. It delegates to the ten-argument constructor with a zero cooldown:
-     * a menu that defers its anti-spam window to the server-wide default.
-     */
-    public MenuSpec(
-            String title,
-            int rows,
-            RefreshSpec refresh,
-            List<Ref> openRequirement,
-            List<Ref> openActions,
-            List<Ref> closeActions,
-            Map<String, MenuItemSpec> items,
-            Optional<String> inventoryType,
-            Map<String, String> placeholders) {
-        this(title, rows, refresh, openRequirement, openActions, closeActions, items, inventoryType, placeholders, 0L);
-    }
-
-    /**
-     * The eight-argument shape that carries an inventory type but no local placeholders, kept so the loader's
-     * inventory-type call and any other with-inventory-type caller compiles unchanged. It delegates to the canonical
-     * constructor with an empty local placeholder map: a menu without its own {@code placeholders {}} block.
-     */
-    public MenuSpec(
-            String title,
-            int rows,
-            RefreshSpec refresh,
-            List<Ref> openRequirement,
-            List<Ref> openActions,
-            List<Ref> closeActions,
-            Map<String, MenuItemSpec> items,
-            Optional<String> inventoryType) {
-        this(title, rows, refresh, openRequirement, openActions, closeActions, items, inventoryType, Map.of());
-    }
-
-    /**
-     * The historic seven-argument shape, kept so every existing {@code new MenuSpec(...)} call-site: the loader's
-     * chest path and the engine's list/confirm/selector/editor holder specs: compiles unchanged. It delegates to the
-     * eight-argument constructor with no inventory type, i.e. the default {@code rows}-based chest, and so on to the
-     * canonical constructor with an empty local placeholder map.
+     * A plain chest window: its title, rows, refresh, open gate, open and close actions and items, with nothing else
+     * set. This is the window the engine draws for its own lists, confirms, selectors and editors.
      */
     public MenuSpec(
             String title,
@@ -331,7 +160,21 @@ public record MenuSpec(
             List<Ref> openActions,
             List<Ref> closeActions,
             Map<String, MenuItemSpec> items) {
-        this(title, rows, refresh, openRequirement, openActions, closeActions, items, Optional.empty());
+        this(
+                title,
+                rows,
+                refresh,
+                openRequirement,
+                openActions,
+                closeActions,
+                items,
+                Optional.empty(),
+                Map.of(),
+                0L,
+                false,
+                false,
+                Optional.empty(),
+                Map.of());
     }
 
     /**

@@ -40,9 +40,8 @@ public record RequirementSpec(List<Requirement> requirements, int minimum, List<
     public static final RequirementSpec NONE = new RequirementSpec(List.of(), 0, List.of());
 
     /**
-     * The historic three-argument form. It forwards to the canonical constructor with {@code stopAtSuccess} off, so
-     * every existing {@code new RequirementSpec(requirements, minimum, deny)} call-site keeps compiling unchanged:
-     * only the loader reaches for the four-argument form to opt a block into short-circuit evaluation.
+     * A block that evaluates every requirement: {@code stopAtSuccess} is off. A file opts a block into stopping early
+     * with {@code stop-at-success}.
      */
     public RequirementSpec(List<Requirement> requirements, int minimum, List<Ref> deny) {
         this(requirements, minimum, deny, false);

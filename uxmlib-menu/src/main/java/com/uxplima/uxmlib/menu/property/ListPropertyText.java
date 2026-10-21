@@ -36,11 +36,10 @@ public record ListPropertyText(
         String actionLine) {
 
     /**
-     * The eight keys a list editor needed before it had a word for an empty list or a click line of its own.
+     * The eight keys every list editor needs, with no word for an empty list and no click line of its own.
      *
-     * <p>Kept so every caller that names them compiles unchanged and keeps the button it had: the count, and
-     * the editor's own click line. A caller that wants the button to read as a value rather than as a number
-     * names the two extra keys.
+     * <p>The button then shows the count and the editor's own click line. A caller that wants the button to read
+     * as a value rather than as a number names the two extra keys.
      */
     public ListPropertyText(
             String title,

@@ -23,10 +23,8 @@ import java.util.Objects;
 public record Requirement(Ref condition, boolean inverted, boolean optional, List<Ref> success, List<Ref> deny) {
 
     /**
-     * The historic two-argument form. It forwards to the canonical constructor as a mandatory requirement with no
-     * per-requirement actions, so every existing {@code new Requirement(condition, inverted)} call-site keeps
-     * compiling unchanged, only the loader's map form reaches for the {@code optional}/{@code success}/{@code deny}
-     * fields.
+     * A mandatory requirement with no actions of its own: a condition, and whether it is inverted. A file's map form
+     * is what adds {@code optional}, {@code success} and {@code deny}.
      */
     public Requirement(Ref condition, boolean inverted) {
         this(condition, inverted, false, List.of(), List.of());

@@ -18,8 +18,8 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>Two shapes are wired at the composition root. {@link #defaults()} carries only the providers that need no external
  * plugin (the raw-entry stack provider, skull sources and viewer equipment) and is what the plain {@code
- * ItemRenderer(GuiText, PlaceholderRegistry)} constructor uses, so every existing call site gains those for free.
- * {@link #withHeadDatabase(HeadQuery)} additionally chains the HeadDatabase provider, built from the Phase-0 {@link
+ * ItemRenderer(GuiText, PlaceholderRegistry)} constructor uses, so a renderer built that way has them without asking.
+ * {@link #withHeadDatabase(HeadQuery)} additionally chains the HeadDatabase provider, built from the {@link
  * HeadQuery} hook; bootstrap uses it so {@code hdb:<id>} resolves when HeadDatabase is installed and degrades to a
  * plain head (the material fallback) when it is not. {@link #full(Server, Log, HeadQuery)} is the composition root's
  * full chain: those same providers plus the six custom-item integrations (ItemsAdder, Oraxen, Nexo, CraftEngine,

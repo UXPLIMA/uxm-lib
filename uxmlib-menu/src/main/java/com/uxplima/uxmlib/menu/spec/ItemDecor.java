@@ -19,9 +19,8 @@ public record ItemDecor(int amount, Optional<Integer> modelData, boolean glow, L
     }
 
     /**
-     * The original four-argument form, retained so every existing call site keeps compiling unchanged: it carries
-     * no rich meta ({@link RichMeta#NONE}). Only the loader builds the five-argument canonical form when a spec's
-     * {@code decor} block declares native metadata.
+     * Decor with no rich meta ({@link RichMeta#NONE}): an amount, a model, a glint and flags, which is all most items
+     * carry. A {@code decor} block that declares native metadata builds the full form.
      */
     public ItemDecor(int amount, Optional<Integer> modelData, boolean glow, List<String> flagTokens) {
         this(amount, modelData, glow, flagTokens, RichMeta.NONE);

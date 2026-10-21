@@ -31,36 +31,11 @@ public record ClickSpec(
         Map<ClickKind, String> names) {
 
     /**
-     * The historic two-argument form. It forwards to the canonical constructor with no requirement blocks and no
-     * else-chains, so every existing {@code new ClickSpec(actions, conditions)} call-site keeps compiling unchanged:
-     * only the loader reaches for the longer forms to attach a gesture's requirements and fallbacks.
+     * A gesture's actions and conditions with no requirement block, no else chain and no names: what a button that
+     * just does a thing needs.
      */
     public ClickSpec(Map<ClickKind, List<Ref>> actions, Map<ClickKind, List<Ref>> conditions) {
-        this(actions, conditions, Map.of());
-    }
-
-    /**
-     * The three-argument form (actions, conditions, requirement blocks). It forwards to the canonical constructor with
-     * no else-chains, so every existing {@code new ClickSpec(actions, conditions, requirements)} call-site keeps
-     * compiling unchanged, only the loader reaches for the four-argument form to attach a gesture's else-chain.
-     */
-    public ClickSpec(
-            Map<ClickKind, List<Ref>> actions,
-            Map<ClickKind, List<Ref>> conditions,
-            Map<ClickKind, RequirementSpec> requirements) {
-        this(actions, conditions, requirements, Map.of());
-    }
-
-    /**
-     * The four-argument form (actions, conditions, requirement blocks, else-chains), with no gesture named, so every
-     * call site from before gestures had names keeps compiling unchanged.
-     */
-    public ClickSpec(
-            Map<ClickKind, List<Ref>> actions,
-            Map<ClickKind, List<Ref>> conditions,
-            Map<ClickKind, RequirementSpec> requirements,
-            Map<ClickKind, ClickBranch> orElse) {
-        this(actions, conditions, requirements, orElse, Map.of());
+        this(actions, conditions, Map.of(), Map.of(), Map.of());
     }
 
     public ClickSpec {

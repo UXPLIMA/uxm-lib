@@ -40,7 +40,8 @@ class MenuItemSpecTest {
                 true,
                 Optional.empty(),
                 ItemType.NEXT,
-                Optional.of(new ItemDragSpec(new ItemRuleSpec(List.of("PAPER"), 1, "warp"), true, List.of())));
+                Optional.of(new ItemDragSpec(new ItemRuleSpec(List.of("PAPER"), 1, "warp"), true, List.of())),
+                0);
     }
 
     @Test
@@ -169,7 +170,9 @@ class MenuItemSpecTest {
                 CLICK,
                 false,
                 Optional.empty(),
-                ItemType.NONE);
+                ItemType.NONE,
+                Optional.empty(),
+                0);
 
         assertThat(item.itemDrag()).isEmpty();
     }
@@ -183,7 +186,6 @@ class MenuItemSpecTest {
                 "",
                 List.of(),
                 DECOR,
-                LoreMode.REPLACE,
                 List.of(Ref.parse("permission"), Ref.parse("money")),
                 CLICK,
                 false,
