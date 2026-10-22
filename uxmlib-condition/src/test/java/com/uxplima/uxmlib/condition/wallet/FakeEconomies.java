@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.bukkit.OfflinePlayer;
+
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -274,6 +276,90 @@ final class FakeEconomies {
 
         public static @Nullable NotStarted getInstance() {
             return null;
+        }
+    }
+
+    /**
+     * Vault as it really is: every call has a second form that takes the player's name. A wallet that handed
+     * the player object to the name form failed every payment, depending only on which form reflection listed
+     * first.
+     */
+    public static class NamedToo {
+
+        private double balance;
+
+        NamedToo(double balance) {
+            this.balance = balance;
+        }
+
+        double balance() {
+            return balance;
+        }
+
+        public double getBalance(String name) {
+            return -1;
+        }
+
+        public double getBalance(OfflinePlayer player) {
+            return balance;
+        }
+
+        public Response withdrawPlayer(String name, double amount) {
+            return new Response(false);
+        }
+
+        public Response withdrawPlayer(OfflinePlayer player, double amount) {
+            balance -= amount;
+            return new Response(true);
+        }
+
+        public Response depositPlayer(String name, double amount) {
+            return new Response(false);
+        }
+
+        public Response depositPlayer(OfflinePlayer player, double amount) {
+            balance += amount;
+            return new Response(true);
+        }
+    }
+
+    /** The same economy with every pair written the other way round, so the order reflection lists is beside the point. */
+    public static final class NamedTooReversed {
+
+        private double balance;
+
+        NamedTooReversed(double balance) {
+            this.balance = balance;
+        }
+
+        double balance() {
+            return balance;
+        }
+
+        public double getBalance(OfflinePlayer player) {
+            return balance;
+        }
+
+        public double getBalance(String name) {
+            return -1;
+        }
+
+        public Response withdrawPlayer(OfflinePlayer player, double amount) {
+            balance -= amount;
+            return new Response(true);
+        }
+
+        public Response withdrawPlayer(String name, double amount) {
+            return new Response(false);
+        }
+
+        public Response depositPlayer(OfflinePlayer player, double amount) {
+            balance += amount;
+            return new Response(true);
+        }
+
+        public Response depositPlayer(String name, double amount) {
+            return new Response(false);
         }
     }
 }

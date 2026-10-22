@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
 
 import com.uxplima.uxmlib.condition.Wallet;
@@ -395,7 +396,7 @@ public final class BridgedWallet implements Wallet {
             if (!candidate.getName().equals(name) || candidate.getParameterCount() != wanted) {
                 continue;
             }
-            Optional<Call> fitted = fit(candidate, withAmount, pool, naming.orElse(null));
+            Optional<Call> fitted = fit(candidate, withAmount, pool, naming.orElse(null), holds(binding.argument()));
             if (fitted.isPresent()) {
                 return fitted;
             }
@@ -411,10 +412,16 @@ public final class BridgedWallet implements Wallet {
      * a number. The currency takes the last parameter it can go in, which is what separates a currency name
      * from a player name when both are text. The name the caller goes by takes the first text parameter
      * that is left, because an economy that asks who is moving the money asks it first. The player takes
-     * what is left. A signature the values do not fit is not this method.
+     * what is left, if it can hold the shape the binding hands over. Vault writes every call twice, once for
+     * the player and once for the player's name, and a player handed to the name form failed the payment.
+     * A signature the values do not fit is not this method.
      */
     private static Optional<Call> fit(
-            Method candidate, boolean withAmount, @Nullable Object pool, @Nullable String naming) {
+            Method candidate,
+            boolean withAmount,
+            @Nullable Object pool,
+            @Nullable String naming,
+            Predicate<Class<?>> holdsPlayer) {
         Class<?>[] parameters = candidate.getParameterTypes();
         boolean[] taken = new boolean[parameters.length];
 
@@ -445,11 +452,22 @@ public final class BridgedWallet implements Wallet {
             taken[namingAt] = true;
         }
 
-        int playerAt = first(parameters, taken, type -> true);
+        int playerAt = first(parameters, taken, holdsPlayer);
         if (playerAt < 0) {
             return Optional.empty();
         }
         return Optional.of(new Call(candidate, playerAt, amountAt, poolAt, pool, namingAt, naming));
+    }
+
+    /** Whether a parameter of a type can take the player in the shape {@code shape} hands it over. */
+    private static Predicate<Class<?>> holds(EconomyBinding.Argument shape) {
+        Class<?> handed =
+                switch (shape) {
+                    case OFFLINE_PLAYER -> OfflinePlayer.class;
+                    case PLAYER_ID -> UUID.class;
+                    case PLAYER_NAME -> String.class;
+                };
+        return type -> type.isAssignableFrom(handed);
     }
 
     private static int first(Class<?>[] parameters, boolean[] taken, Predicate<Class<?>> wanted) {

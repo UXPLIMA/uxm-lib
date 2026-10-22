@@ -49,6 +49,22 @@ class BridgedWalletTest {
     }
 
     @Test
+    @DisplayName("Vault's name form of a call is never handed the player object")
+    void picksTheFormThatTakesThePlayer() {
+        FakeEconomies.NamedToo vault = new FakeEconomies.NamedToo(100);
+        FakeEconomies.NamedTooReversed reversed = new FakeEconomies.NamedTooReversed(100);
+        BridgedWallet one = wallet(Economies.vault(), vault);
+        BridgedWallet other = wallet(Economies.vault(), reversed);
+
+        assertThat(one.deposit(ada, "", 25)).isTrue();
+        assertThat(other.deposit(ada, "", 25)).isTrue();
+        assertThat(one.withdraw(ada, "", 5)).isTrue();
+        assertThat(other.withdraw(ada, "", 5)).isTrue();
+        assertThat(one.balance(ada, "")).isEqualTo(120);
+        assertThat(other.balance(ada, "")).isEqualTo(120);
+    }
+
+    @Test
     @DisplayName("a take the economy refuses is read as refused, and nothing is taken")
     void readsARefusal() {
         FakeEconomies.VaultShaped vault = new FakeEconomies.VaultShaped(10);
