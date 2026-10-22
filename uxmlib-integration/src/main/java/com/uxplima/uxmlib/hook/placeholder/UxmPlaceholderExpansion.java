@@ -3,8 +3,10 @@ package com.uxplima.uxmlib.hook.placeholder;
 import java.util.Objects;
 
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 
 import me.clip.placeholderapi.expansion.PlaceholderExpansion;
+import me.clip.placeholderapi.expansion.Relational;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -16,7 +18,7 @@ import org.jspecify.annotations.Nullable;
  * <p>{@link #persist()} is {@code true} so the expansion survives {@code /papi reload} and keeps serving the
  * consumer's providers without re-registration.
  */
-final class UxmPlaceholderExpansion extends PlaceholderExpansion {
+final class UxmPlaceholderExpansion extends PlaceholderExpansion implements Relational {
 
     private final String identifier;
     private final String author;
@@ -56,5 +58,14 @@ final class UxmPlaceholderExpansion extends PlaceholderExpansion {
         // The requester is handed on as it came: a provider that needs the live player narrows it itself,
         // and one that answers from stored data can serve a player who is not on the server.
         return registry.resolve(requester, params);
+    }
+
+    @Override
+    public @Nullable String onPlaceholderRequest(@Nullable Player viewer, @Nullable Player target, String params) {
+        // PlaceholderAPI hands the relational form one player for each side; without both there is no relation.
+        if (viewer == null || target == null) {
+            return null;
+        }
+        return registry.resolveRelational(viewer, target, params);
     }
 }

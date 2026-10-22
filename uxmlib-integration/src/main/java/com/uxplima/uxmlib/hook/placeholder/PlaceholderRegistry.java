@@ -5,6 +5,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 
 import org.jspecify.annotations.Nullable;
 
@@ -21,6 +22,7 @@ public final class PlaceholderRegistry {
 
     private final Map<String, PlaceholderProvider> providers = new ConcurrentHashMap<>();
     private volatile @Nullable PlaceholderProvider fallback;
+    private volatile @Nullable RelationalPlaceholderProvider relational;
 
     /**
      * Register {@code provider} under {@code prefix} (the {@code <prefix>} in {@code %uxm_<prefix>_...%}).
@@ -55,15 +57,46 @@ public final class PlaceholderRegistry {
         return this;
     }
 
+    /**
+     * Register {@code provider} as the answer to every relational request, {@code %rel_<identifier>_...%},
+     * replacing any earlier one. Returns this for chaining.
+     */
+    public PlaceholderRegistry relational(RelationalPlaceholderProvider provider) {
+        Objects.requireNonNull(provider, "provider");
+        this.relational = provider;
+        return this;
+    }
+
     /** Remove the provider registered under {@code prefix}; returns whether one was present. */
     public boolean unregister(String prefix) {
         Objects.requireNonNull(prefix, "prefix");
         return providers.remove(prefix) != null;
     }
 
-    /** Whether any provider is registered, fallback included. */
+    /** Whether any provider is registered, fallback and relational included. */
     public boolean isEmpty() {
-        return providers.isEmpty() && fallback == null;
+        return providers.isEmpty() && fallback == null && relational == null;
+    }
+
+    /**
+     * Resolve the part of a {@code %rel_<identifier>_...%} placeholder after the identifier, for {@code viewer}
+     * reading about {@code target}. Returns {@code null} when no relational provider is registered or it does not
+     * know the request, so PlaceholderAPI leaves the text as written; a provider that throws yields an empty value.
+     */
+    public @Nullable String resolveRelational(Player viewer, Player target, String identifier) {
+        Objects.requireNonNull(viewer, "viewer");
+        Objects.requireNonNull(target, "target");
+        Objects.requireNonNull(identifier, "identifier");
+        RelationalPlaceholderProvider provider = relational;
+        if (provider == null) {
+            return null;
+        }
+        try {
+            return provider.onRequest(viewer, target, identifier);
+        } catch (RuntimeException failure) {
+            // A throwing provider must never break PlaceholderAPI's whole render; swallow to empty.
+            return "";
+        }
     }
 
     /**

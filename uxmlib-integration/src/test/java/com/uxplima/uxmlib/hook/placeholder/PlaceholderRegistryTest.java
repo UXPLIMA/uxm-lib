@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import java.util.UUID;
 
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 
 import org.junit.jupiter.api.Test;
 
@@ -133,6 +134,40 @@ class PlaceholderRegistryTest {
         registry.fallback((player, params) -> "");
 
         assertThat(registry.isEmpty()).isFalse();
+    }
+
+    @Test
+    void aRelationalRequestReachesTheProviderWithTheViewerAndThePlayerItIsAbout() {
+        PlaceholderRegistry registry = new PlaceholderRegistry();
+        Player viewer = player("Viewer");
+        Player target = player("Target");
+        registry.relational((reader, about, params) -> reader.getName() + " reads " + about.getName() + ":" + params);
+
+        assertThat(registry.resolveRelational(viewer, target, "tag")).isEqualTo("Viewer reads Target:tag");
+        assertThat(registry.isEmpty()).isFalse();
+    }
+
+    @Test
+    void aRelationalRequestNobodyAnswersStaysAsWrittenAndAThrowingOneIsBlank() {
+        PlaceholderRegistry registry = new PlaceholderRegistry();
+        Player viewer = player("Viewer");
+        Player target = player("Target");
+
+        assertThat(registry.resolveRelational(viewer, target, "tag")).isNull();
+
+        registry.relational((reader, about, params) -> params.equals("tag") ? "x" : null);
+        assertThat(registry.resolveRelational(viewer, target, "typo")).isNull();
+
+        registry.relational((reader, about, params) -> {
+            throw new IllegalStateException("provider blew up");
+        });
+        assertThat(registry.resolveRelational(viewer, target, "tag")).isEmpty();
+    }
+
+    private static Player player(String name) {
+        Player player = mock(Player.class);
+        when(player.getName()).thenReturn(name);
+        return player;
     }
 
     @Test
