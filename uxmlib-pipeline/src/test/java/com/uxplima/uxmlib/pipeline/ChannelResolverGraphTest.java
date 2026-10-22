@@ -79,6 +79,43 @@ class ChannelResolverGraphTest {
         assertThat(resolver.findChannel(handle)).isSameAs(channel);
     }
 
+    @Test
+    void aPlayerWithAFakeConnectionNeverResolvesToAnotherPlayersChannelOnTheServersRoster() {
+        // A bot or an NPC holds a channel of its own that carries no encoder, and through its server it reaches
+        // the set of every client's channel. The walk took the first encoder-bearing channel in that set, so a
+        // sidebar drawn for a bot reached a real player, who then saw the same objective created twice and was
+        // disconnected.
+        EmbeddedChannel own = new EmbeddedChannel();
+        EmbeddedChannel someoneElse = withAnchor();
+        Object handle = new FakePlayerHandle(own, new ServerHandle(new java.util.HashSet<>(List.of(someoneElse))));
+
+        assertThat(resolver.findChannel(handle)).isSameAs(own);
+    }
+
+    /** Shaped as a player whose connection is fake: its own channel first, then the server it can reach. */
+    private static final class FakePlayerHandle {
+        @SuppressWarnings("unused")
+        private final Connection connection;
+
+        @SuppressWarnings("unused")
+        private final ServerHandle server;
+
+        FakePlayerHandle(Channel own, ServerHandle server) {
+            this.connection = new Connection(own);
+            this.server = server;
+        }
+    }
+
+    /** The server holds every client's channel in one set, as the connection listener does. */
+    private static final class ServerHandle {
+        @SuppressWarnings("unused")
+        private final java.util.Set<Channel> injectedClients;
+
+        ServerHandle(java.util.Set<Channel> injectedClients) {
+            this.injectedClients = injectedClients;
+        }
+    }
+
     private static final class TwoChannelHandle {
         @SuppressWarnings("unused")
         private final Channel first;

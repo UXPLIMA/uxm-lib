@@ -99,9 +99,14 @@ public final class ChannelResolver {
     }
 
     /**
-     * Breadth-first search for an open {@link Channel} reachable from {@code root}. A channel whose pipeline
-     * holds the {@code anchor} handler is returned the moment it is found; any other open channel is kept only
-     * as a fallback and returned if the walk finds no anchor-bearing channel.
+     * Breadth-first search for an open {@link Channel} reachable from {@code root}. A channel held in a field and
+     * whose pipeline holds the {@code anchor} handler is returned the moment it is found; any other open channel
+     * is kept only as a fallback and returned if the walk finds no anchor-bearing one.
+     *
+     * <p>A channel picked out of a collection is a roster entry rather than the player's own: a server keeps every
+     * client's channel in one set, and a player whose connection is fake (a bot, an NPC) reaches that set through
+     * its server. Such a channel is taken only when the walk finds no channel held in a field at all, or the
+     * player's packets would reach somebody else.
      *
      * <p>Package-private so the object-graph walk can be exercised directly with a synthetic handle, since
      * MockBukkit cannot give us a {@code CraftPlayer.getHandle()} chain to walk.
@@ -111,24 +116,47 @@ public final class ChannelResolver {
         Set<Object> seen = Collections.newSetFromMap(new IdentityHashMap<>());
         queue.add(new Node(root, MAX_DEPTH));
         seen.add(root);
-        @Nullable Channel fallback = null;
+        Candidates held = new Candidates();
+        Candidates listed = new Candidates();
         while (!queue.isEmpty()) {
             Node node = queue.removeFirst();
             for (Field field : declaredFields(node.value.getClass())) {
-                @Nullable Object value = unwrap(read(field, node.value));
+                @Nullable Object raw = read(field, node.value);
+                @Nullable Object value = unwrap(raw);
                 if (value instanceof Channel channel) {
-                    if (channel.isOpen() && hasAnchor(channel)) {
+                    if (!(raw instanceof Collection<?>) && channel.isOpen() && hasAnchor(channel)) {
                         return channel;
                     }
-                    if (fallback == null && channel.isOpen()) {
-                        fallback = channel;
-                    }
+                    (raw instanceof Collection<?> ? listed : held).offer(channel, hasAnchor(channel));
                 } else if (value != null && node.depth > 0 && shouldDescend(field) && seen.add(value)) {
                     queue.add(new Node(value, node.depth - 1));
                 }
             }
         }
-        return fallback;
+        @Nullable Channel own = held.best();
+        return own != null ? own : listed.best();
+    }
+
+    /** The first open channel a walk met, and the first that carried the anchor. */
+    private static final class Candidates {
+        private @Nullable Channel anchored;
+        private @Nullable Channel any;
+
+        void offer(Channel channel, boolean anchor) {
+            if (!channel.isOpen()) {
+                return;
+            }
+            if (anchor && anchored == null) {
+                anchored = channel;
+            }
+            if (any == null) {
+                any = channel;
+            }
+        }
+
+        @Nullable Channel best() {
+            return anchored != null ? anchored : any;
+        }
     }
 
     private boolean hasAnchor(Channel channel) {
