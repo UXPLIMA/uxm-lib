@@ -41,4 +41,6 @@ dependencies {
     testImplementation(libs.h2)
     // Lettuce on the test runtime so RedisDataSynchronizer links and a smoke/integration test can construct it.
     testImplementation(libs.lettuce.core)
+    // The SQL synchronizer is proved on every backend, on servers started in containers.
+    testImplementation(project(":uxmlib-storage-testing"))
 }
