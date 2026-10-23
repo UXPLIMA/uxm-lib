@@ -2,6 +2,7 @@ package com.uxplima.uxmlib.pipeline;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.netty.channel.Channel;
@@ -47,15 +48,24 @@ class ChannelResolverStaysBoundedTest {
     }
 
     @Test
-    void aHandleWithNoChannelIsWalkedOnceAndThenAnswersAtOnce() {
+    void aHandleWithNoChannelIsNotWalkedAgainUntilItsRetryIsDue() {
+        // A fake connection never gains a channel, so asking on every send would walk on every send. A miss is
+        // remembered for a while and then tried again, so a real player whose walk once came back empty is not
+        // left without packets for the rest of their session.
         AtomicReference<@Nullable Channel> held = new AtomicReference<>();
         Object handle = new Holder(held);
-        ChannelResolver resolver = new ChannelResolver();
+        AtomicLong now = new AtomicLong();
+        ChannelResolver resolver = new ChannelResolver(PacketPipeline.DEFAULT_ANCHOR, 100, now::get);
 
         assertThat(resolver.resolveHandle(handle)).isEmpty();
-        held.set(withAnchor()); // a second walk would find this one
+        EmbeddedChannel channel = withAnchor();
+        held.set(channel); // a second walk would find this one
 
+        now.addAndGet(ChannelResolver.MISS_RETRY.toNanos() - 1);
         assertThat(resolver.resolveHandle(handle)).isEmpty();
+
+        now.addAndGet(1);
+        assertThat(resolver.resolveHandle(handle)).containsSame(channel);
     }
 
     @SuppressWarnings("unused") // read reflectively by the walk

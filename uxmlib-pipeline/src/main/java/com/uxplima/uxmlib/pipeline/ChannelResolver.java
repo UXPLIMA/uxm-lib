@@ -41,9 +41,10 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>The walk runs once per player handle. It reads thousands of fields and collection elements, several
  * milliseconds of the calling thread, and a packet sender asks for the channel on every send. The answer a
- * handle led to is kept, held weakly on both sides, and that includes no answer: a handle whose walk found no
- * channel, or whose channel has closed, answers empty at once. A connection is never reopened and a fake one
- * never gains a channel, so walking again would only search everything behind the player for nothing.
+ * handle led to is kept, held weakly on both sides, and a handle whose channel has closed answers empty at once:
+ * a connection is never reopened. A walk that found nothing is remembered too, but only for {@link #MISS_RETRY}:
+ * a fake connection never gains a channel, so asking on every send would walk on every send, while a real player
+ * whose walk once came back empty must not stay without packets for the rest of their session.
  *
  * <p>The walk is bounded three ways, because it runs on the thread that lets a player in and every plugin
  * that carries this library walks for itself. A player whose connection is fake, a bot or an NPC, holds a
@@ -63,8 +64,8 @@ public final class ChannelResolver {
      */
     private static final int MAX_OBJECTS = 20_000;
 
-    /** What a handle that led to no channel is remembered as: a reference to nothing. */
-    private static final WeakReference<Channel> NO_CHANNEL = new WeakReference<>(null);
+    /** How long a handle whose walk found no channel answers empty before it is walked again. */
+    static final java.time.Duration MISS_RETRY = java.time.Duration.ofSeconds(30);
 
     /**
      * The readable fields of each class, its superclasses' included, worked out once. Asking the class again for
@@ -80,9 +81,11 @@ public final class ChannelResolver {
     private final String anchorName;
     private final int maxObjects;
 
-    /** The channel each handle led to. Weak keys let a handle go when its player does; weak values keep the
-     * channel, which leads back to the handle, from holding its own key. */
-    private final Map<Object, WeakReference<Channel>> found = Collections.synchronizedMap(new WeakHashMap<>());
+    /** What each handle's walk answered. Weak keys let a handle go when its player does; a found channel is held
+     * weakly, because it leads back to the handle and would otherwise hold its own key. */
+    private final Map<Object, Answer> found = Collections.synchronizedMap(new WeakHashMap<>());
+
+    private final java.util.function.LongSupplier nanoClock;
 
     /** Resolve preferring a channel whose pipeline carries the default {@code "encoder"} anchor. */
     public ChannelResolver() {
@@ -99,11 +102,17 @@ public final class ChannelResolver {
 
     /** Package-private so a test can show the cap ending a walk without building a graph of twenty thousand. */
     ChannelResolver(String anchorName, int maxObjects) {
+        this(anchorName, maxObjects, System::nanoTime);
+    }
+
+    /** Package-private so a test can move time past a remembered miss. */
+    ChannelResolver(String anchorName, int maxObjects, java.util.function.LongSupplier nanoClock) {
         this.anchorName = Objects.requireNonNull(anchorName, "anchorName");
         if (maxObjects < 1) {
             throw new IllegalArgumentException("maxObjects must be at least 1, got: " + maxObjects);
         }
         this.maxObjects = maxObjects;
+        this.nanoClock = Objects.requireNonNull(nanoClock, "nanoClock");
     }
 
     /**
@@ -123,13 +132,17 @@ public final class ChannelResolver {
 
     /** The channel behind a player's server handle. Package-private so a test can hand it a synthetic handle. */
     Optional<Channel> resolveHandle(Object handle) {
-        @Nullable WeakReference<Channel> kept = found.get(handle);
-        if (kept != null) {
-            @Nullable Channel channel = kept.get();
+        @Nullable Answer kept = found.get(handle);
+        if (kept instanceof Found(WeakReference<Channel> reference)) {
+            @Nullable Channel channel = reference.get();
             return channel != null && channel.isOpen() ? Optional.of(channel) : Optional.empty();
         }
+        long now = nanoClock.getAsLong();
+        if (kept instanceof Missed(long at) && now - at < MISS_RETRY.toNanos()) {
+            return Optional.empty();
+        }
         @Nullable Channel channel = findChannel(handle);
-        found.put(handle, channel == null ? NO_CHANNEL : new WeakReference<>(channel));
+        found.put(handle, channel == null ? new Missed(now) : new Found(new WeakReference<>(channel)));
         return Optional.ofNullable(channel);
     }
 
@@ -323,4 +336,11 @@ public final class ChannelResolver {
 
     /** A graph node paired with the remaining descent budget. */
     private record Node(Object value, int depth) {}
+
+    /** What a handle's walk answered: a channel, or nothing as of a moment on the nano clock. */
+    private sealed interface Answer permits Found, Missed {}
+
+    private record Found(WeakReference<Channel> channel) implements Answer {}
+
+    private record Missed(long at) implements Answer {}
 }
