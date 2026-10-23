@@ -1,10 +1,13 @@
 package com.uxplima.uxmlib.storage.sql;
 
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
 import com.uxplima.uxmlib.config.HoconConfig;
+import com.uxplima.uxmlib.storage.migration.Migration;
+import com.uxplima.uxmlib.storage.migration.MigrationRunner;
 
 /**
  * Where a schema keeps its rows, read from one block of a configuration file.
@@ -129,6 +132,30 @@ public record StorageSettings(
                 .password(password)
                 .maxPoolSize(poolSize)
                 .build();
+    }
+
+    /** These settings under another table prefix. */
+    public StorageSettings withTablePrefix(String prefix) {
+        return new StorageSettings(backend, file, host, port, database, username, password, prefix, poolSize);
+    }
+
+    /**
+     * Bring the schema in {@code database} up to date: every migration with {@code {prefix}} written in, recorded
+     * in {@link #historyTable()}, after carrying over what the shared default history kept for it.
+     *
+     * @param firstTable a table, without the prefix, that only this schema creates; it is how the shared history
+     *     is known to be this schema's (see {@link MigrationRunner#carryOver})
+     * @return how many migrations ran
+     */
+    public int migrate(Database database, List<Migration> migrations, String firstTable) {
+        Objects.requireNonNull(database, "database");
+        Objects.requireNonNull(migrations, "migrations");
+        Objects.requireNonNull(firstTable, "firstTable");
+        MigrationRunner runner = new MigrationRunner(database, historyTable());
+        runner.carryOver(MigrationRunner.DEFAULT_HISTORY_TABLE, table(firstTable));
+        return runner.apply(migrations.stream()
+                .map(migration -> migration.withTablePrefix(tablePrefix))
+                .toList());
     }
 
     /** The password stays out of a log line or a dump. */

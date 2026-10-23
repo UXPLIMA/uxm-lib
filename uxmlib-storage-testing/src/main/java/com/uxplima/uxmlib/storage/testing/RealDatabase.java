@@ -27,19 +27,7 @@ public record RealDatabase(StorageSettings settings, Path dataFolder) {
 
     /** The same database under another table prefix. */
     public RealDatabase withTablePrefix(String tablePrefix) {
-        StorageSettings s = settings;
-        return new RealDatabase(
-                new StorageSettings(
-                        s.backend(),
-                        s.file(),
-                        s.host(),
-                        s.port(),
-                        s.database(),
-                        s.username(),
-                        s.password(),
-                        tablePrefix,
-                        s.poolSize()),
-                dataFolder);
+        return new RealDatabase(settings.withTablePrefix(tablePrefix), dataFolder);
     }
 
     /** Open a pool on it, as a plugin would. The caller closes it. */

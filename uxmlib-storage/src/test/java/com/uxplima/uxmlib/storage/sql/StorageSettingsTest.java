@@ -7,8 +7,11 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import com.uxplima.uxmlib.config.HoconConfig;
+import com.uxplima.uxmlib.storage.migration.Migration;
+import com.uxplima.uxmlib.storage.migration.MigrationRunner;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -97,5 +100,27 @@ class StorageSettingsTest {
             assertThat(database.ping()).isTrue();
         }
         assertThat(folder.resolve("x.db")).exists();
+    }
+
+    @Test
+    @DisplayName(
+            "migrating builds the schema under the prefix, in a history of its own, carried over from the shared one")
+    void migratingBuildsUnderThePrefix() throws IOException {
+        StorageSettings settings = StorageSettings.read(config(""), "storage", "x.db", "x_");
+        List<Migration> schema = List.of(new Migration(1, "rows", "CREATE TABLE {prefix}rows (id INTEGER)"));
+
+        try (Database database = settings.open(folder, "storage-settings-test")) {
+            new MigrationRunner(database).apply(List.of(new Migration(1, "rows", "CREATE TABLE x_rows (id INTEGER)")));
+
+            assertThat(settings.migrate(database, schema, "rows")).isZero();
+            assertThat(new MigrationRunner(database, "x_schema_history").currentVersion())
+                    .isEqualTo(1);
+        }
+        try (Database fresh = settings.withTablePrefix("y_").open(folder, "storage-settings-test")) {
+            assertThat(settings.withTablePrefix("y_").migrate(fresh, schema, "rows"))
+                    .isEqualTo(1);
+            assertThat(new Sql(fresh).queryFirst("SELECT COUNT(*) FROM y_rows", ps -> {}, r -> r.getInt(1)))
+                    .contains(0);
+        }
     }
 }

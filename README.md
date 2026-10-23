@@ -989,13 +989,10 @@ URL and driver class:
 StorageSettings storage = StorageSettings.read(config, "storage", "data.db", "myplugin_");
 Database db = storage.open(dataFolder, "myplugin");
 
-// One history per prefix, so two schemas can share a database. A schema that used the shared
-// default history before carries its versions over instead of running them twice.
-MigrationRunner runner = new MigrationRunner(db, storage.historyTable());
-runner.carryOver(MigrationRunner.DEFAULT_HISTORY_TABLE, storage.table("warps"));
-runner.apply(MigrationResources.loadRequired(loader, "db/migration").stream()
-        .map(migration -> migration.withTablePrefix(storage.tablePrefix()))   // {prefix}warps
-        .toList());
+// {prefix}warps in a file becomes myplugin_warps. The versions go in a history of this prefix's
+// own, so two schemas can share a database, and a schema that used the shared default history
+// before carries its versions over instead of running them twice. "warps" is a table only it has.
+storage.migrate(db, MigrationResources.loadRequired(loader, "db/migration"), "warps");
 ```
 
 A server carries the SQLite and MySQL drivers and no other. `StorageDrivers.coordinates()` names the MariaDB
