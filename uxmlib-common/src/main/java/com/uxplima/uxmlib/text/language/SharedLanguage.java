@@ -1,11 +1,11 @@
 package com.uxplima.uxmlib.text.language;
 
+import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.WeakHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
@@ -51,7 +51,12 @@ public final class SharedLanguage {
 
     private final BiConsumer<Player, Runnable> onOwner;
 
-    private final Map<UUID, Mark> seen = new ConcurrentHashMap<>();
+    /**
+     * The answer each player's data last gave, for a read off the player's thread. Held for as long as the player
+     * object lives, so a player who left is let go with it: keyed by id, it kept one entry for every player who
+     * ever joined. A server's player is equal to another only within one session, so a rejoin starts afresh.
+     */
+    private final Map<Player, Mark> seen = Collections.synchronizedMap(new WeakHashMap<>());
 
     /** What the player's data holds: a language, or {@code null} for a choice that was cleared. */
     public record Mark(@Nullable Locale locale) {}
@@ -83,18 +88,17 @@ public final class SharedLanguage {
 
     /** What the player's data says, or empty when nothing was ever written there. */
     public Optional<Mark> read(Player player) {
-        UUID id = player.getUniqueId();
         if (!owned.test(player)) {
-            return Optional.ofNullable(seen.get(id));
+            return Optional.ofNullable(seen.get(player));
         }
         Optional<Mark> mark = markOn(player);
-        mark.ifPresentOrElse(value -> seen.put(id, value), () -> seen.remove(id));
+        mark.ifPresentOrElse(value -> seen.put(player, value), () -> seen.remove(player));
         return mark;
     }
 
     /** Write a choice, or clear it with {@code null}. */
     public void write(Player player, @Nullable Locale locale) {
-        seen.put(player.getUniqueId(), new Mark(locale));
+        seen.put(player, new Mark(locale));
         String tag = locale == null ? CLEARED : locale.toLanguageTag();
         Runnable work = () -> {
             PersistentDataContainer data = player.getPersistentDataContainer();
