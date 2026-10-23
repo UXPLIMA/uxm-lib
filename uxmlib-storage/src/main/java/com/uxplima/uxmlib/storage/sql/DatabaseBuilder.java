@@ -25,6 +25,7 @@ public final class DatabaseBuilder {
     private @Nullable String jdbcUrl;
     private @Nullable String username;
     private @Nullable String password;
+    private @Nullable String driverClassName;
     private int maxPoolSize = 10;
     private long connectionTimeoutMs = 5_000L;
     private int busyTimeoutMs = DEFAULT_BUSY_TIMEOUT_MS;
@@ -175,6 +176,16 @@ public final class DatabaseBuilder {
         return this;
     }
 
+    /**
+     * Name the driver class the pool loads. Without it the pool asks {@link java.sql.DriverManager}, which only
+     * knows drivers on the server's own class path: a driver a plugin fetched for itself is never registered
+     * there until something loads its class.
+     */
+    public DatabaseBuilder driverClassName(String className) {
+        this.driverClassName = Objects.requireNonNull(className, "className");
+        return this;
+    }
+
     /** Validate the configuration and open the connection pool. */
     public Database build() {
         String url = jdbcUrl;
@@ -192,6 +203,9 @@ public final class DatabaseBuilder {
         config.setJdbcUrl(url);
         config.setPoolName(poolName);
         config.setConnectionTimeout(connectionTimeoutMs);
+        if (driverClassName != null) {
+            config.setDriverClassName(driverClassName);
+        }
         if (username != null) {
             config.setUsername(username);
         }

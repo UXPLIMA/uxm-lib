@@ -112,7 +112,8 @@ what you use. Modules marked **experimental** are previews with unstable APIs (s
 | `uxmlib-bedrock` | Native Bedrock forms for a server that lets Bedrock clients in through Geyser or Floodgate: a `BedrockDetector` that answers whether a viewer is a Bedrock player, and a `BedrockScreen` that sends them a simple, modal, input, or custom form. The vocabulary a caller builds a form out of (`BedrockButton`, `BedrockWidget`, `BedrockImage`, `BedrockIcons`) names no SDK type, so a form is built and tested with nothing on the classpath. Each interface has a `NONE` constant and a `forServer` factory, so a Java-only server loads no Geyser or Floodgate class at all and a caller never guards the call itself. |
 | `uxmlib-menu` | The data-driven menu engine: a menu is a file, and this module reads one and runs it. A HOCON spec parses into an immutable, platform-free model, which a renderer draws and a runtime clicks through. It carries paged and scrolling lists with a query and a sort, a requirement and an action on each of the four click sides, an expression language for slots and computed numbers, a property editor (text, number, toggle, enum, colour, list) over the unified text input, confirm and selector windows, and an icon provider registry that reads a head, a serialized stack, or an item from ItemsAdder, Oraxen, Nexo, CraftEngine, MMOItems, ExecutableItems, HeadDatabase and EntryStack past a plugin-present guard. A Bedrock viewer is handed the same menu as a native form. It names no colour and no wording of its own: a consumer registers what its menus may say and do through `MenuBindings`. |
 | `uxmlib-command` | A thin facade over Paper's Brigadier (`Cmd`/`Args`/`Sender`/`CommandRegistrar`) **and** an annotation DSL on top of it: `@Command`/`@Subcommand`/`@Arg`, permissions, `@Range`/`@Length`, `@Cooldown`, flags and switches, async execution, help pagination, and resolver/validator/condition SPIs. |
-| `uxmlib-storage` | Plain-JDBC persistence: a HikariCP-pooled `Database` (SQLite default; MySQL/MariaDB, PostgreSQL, H2 opt-in), an injection-safe `SelectBuilder`, parameterised `Sql`/`TxSql`, versioned migrations, a Caffeine-backed write-through / write-behind cache, a two-tier player-profile cache, and cross-server row sync. |
+| `uxmlib-storage` | Plain-JDBC persistence: a HikariCP-pooled `Database` opened from a named backend (SQLite, MySQL, MariaDB, PostgreSQL; H2 opt-in), an injection-safe `SelectBuilder`, parameterised `Sql`/`TxSql`, versioned migrations, a Caffeine-backed write-through / write-behind cache, a two-tier player-profile cache, and cross-server row sync. |
+| `uxmlib-storage-testing` | A test dependency: `@EveryBackend` runs a storage test on SQLite and on MySQL, MariaDB and PostgreSQL in containers. |
 | `uxmlib-redis` | A low-level binary (`byte[]`) Redis pub/sub bus for fanning an opaque frame across the server nodes sharing one Redis (fail-degraded publish, per-subscription auto-reconnect), with no relational dependencies (Lettuce is a compile-only soft-dependency). |
 | `uxmlib-integration` | Soft-dependency hooks reached only past a present-guard: PlaceholderAPI (read **and** expansion registration), Vault and VaultUnlocked economy, Vault permissions, LuckPerms, WorldGuard/Towny region queries, a transient advancement-toast API, an online-data lifecycle manager, a dependency-free Discord webhook, and native-`Display` [holograms](#holograms). |
 | `uxmlib-hud` | Adventure-native HUD overlays, all through the public player API: a flicker-free diffing sidebar, title/subtitle, a sticky action bar, boss bars with a mode enum (permanent/filling/countdown/dynamic), tablist header/footer, per-tick text animators, and a nametag registry that composes several plugins' prefixes, suffixes and colours onto the one team a player may belong to. |
@@ -978,12 +979,44 @@ Query top = SelectBuilder.from("players")
 List<String> leaders = sql.query(top, row -> row.getString("uuid"));
 ```
 
-Switch to a network backend by giving the builder a JDBC URL and credentials (`jdbcUrl(...)`,
-`username(...)`, `password(...)`) and adding the matching driver: MariaDB/MySQL, PostgreSQL, and H2 are
-opt-in. The URL decides the backend: hand `jdbcUrl(...)` a `jdbc:sqlite:` file and you get the same
-single-writer pool, WAL journal and lock timeout `sqlite(...)` gives you, so exposing one `jdbc-url` setting
-to your operators is safe whichever backend they point it at. Higher-level helpers add a write-through / write-behind cache, a two-tier player-profile cache, and
-cross-server row sync.
+An operator names a backend rather than writing a URL. `StorageSettings` reads one block of a HOCON file
+(`type` is `sqlite`, `mysql`, `mariadb` or `postgresql`; then `file`, `host`, `port`, `database`,
+`username`, `password`, `table-prefix`, `pool-size`, every key optional) and opens the pool with the right
+URL and driver class:
+
+```java
+StorageSettings storage = StorageSettings.read(config, "storage", "data.db", "myplugin_");
+Database db = storage.open(dataFolder, "myplugin");
+
+// One history per prefix, so two schemas can share a database. A schema that used the shared
+// default history before carries its versions over instead of running them twice.
+MigrationRunner runner = new MigrationRunner(db, storage.historyTable());
+runner.carryOver(MigrationRunner.DEFAULT_HISTORY_TABLE, storage.table("warps"));
+runner.apply(MigrationResources.loadRequired(loader, "db/migration").stream()
+        .map(migration -> migration.withTablePrefix(storage.tablePrefix()))   // {prefix}warps
+        .toList());
+```
+
+A server carries the SQLite and MySQL drivers and no other. `StorageDrivers.coordinates()` names the MariaDB
+and PostgreSQL drivers as Maven coordinates for a Paper plugin loader, so a plugin fetches them rather than
+shading a copy each. Write a migration once for all four backends: no `DOUBLE` (use `DOUBLE PRECISION`), no
+`TINYINT`, no `IF NOT EXISTS` on an index, no default on a `TEXT` column.
+
+`uxmlib-storage-testing` is a test dependency that proves it. A test marked `@EveryBackend` runs once on
+SQLite and once each on MySQL, MariaDB and PostgreSQL servers it starts in containers, every time on an
+empty database of its own:
+
+```java
+@EveryBackend
+void aRowSurvivesARestart(RealDatabase real) {
+    try (Database db = real.open()) {
+        // build the schema under real.settings().tablePrefix(), write, read back
+    }
+}
+```
+
+The tests carry the tag `real-database`, so a build can run them in a task of their own. Higher-level
+helpers add a write-through / write-behind cache, a two-tier player-profile cache, and cross-server row sync.
 
 ### Integrations
 

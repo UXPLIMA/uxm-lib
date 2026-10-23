@@ -9,11 +9,23 @@ import java.util.Objects;
  */
 public record Migration(int version, String description, String sql) {
 
+    /** The mark {@link #withTablePrefix(String)} replaces. */
+    public static final String PREFIX_MARK = "{prefix}";
+
     public Migration {
         Objects.requireNonNull(description, "description");
         Objects.requireNonNull(sql, "sql");
         if (version < 1) {
             throw new IllegalArgumentException("version must be >= 1");
         }
+    }
+
+    /**
+     * This migration with every {@code {prefix}} in its SQL replaced by {@code tablePrefix}, so one file
+     * builds the schema under whatever prefix an operator chose.
+     */
+    public Migration withTablePrefix(String tablePrefix) {
+        Objects.requireNonNull(tablePrefix, "tablePrefix");
+        return new Migration(version, description, sql.replace(PREFIX_MARK, tablePrefix));
     }
 }

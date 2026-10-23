@@ -30,6 +30,8 @@ brigadier   = "1.3.10"   # com.mojang:brigadier: bundled by Paper at runtime; co
 sqlite-jdbc  = "3.49.1.0"   # org.xerial:sqlite-jdbc
 mariadb-jdbc = "3.5.3"      # org.mariadb.jdbc:mariadb-java-client (also speaks the MySQL wire protocol)
 postgresql   = "42.7.4"     # org.postgresql:postgresql
+mysql-connector = "9.2.0"   # com.mysql:mysql-connector-j, the driver a Paper server carries
+testcontainers  = "1.21.4"
 h2           = "2.3.232"    # com.h2database:h2: pure-Java embedded backend; EPL/MPL, infra-only opt-in
 
 # soft-depend integrations (compileOnly; reached only past a plugin-present guard)
@@ -131,6 +133,12 @@ lettuce-core      = { module = "io.lettuce:lettuce-core",              version.r
 
 junit-bom         = { module = "org.junit:junit-bom",                   version.ref = "junit" }
 junit-jupiter     = { module = "org.junit.jupiter:junit-jupiter" }
+junit-params      = { module = "org.junit.jupiter:junit-jupiter-params" }
+mysql-connector   = { module = "com.mysql:mysql-connector-j", version.ref = "mysql-connector" }
+testcontainers            = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
+testcontainers-mysql      = { module = "org.testcontainers:mysql",          version.ref = "testcontainers" }
+testcontainers-mariadb    = { module = "org.testcontainers:mariadb",        version.ref = "testcontainers" }
+testcontainers-postgresql = { module = "org.testcontainers:postgresql",     version.ref = "testcontainers" }
 assertj           = { module = "org.assertj:assertj-core",             version.ref = "assertj" }
 mockito-core      = { module = "org.mockito:mockito-core",             version.ref = "mockito" }
 mockito-jupiter   = { module = "org.mockito:mockito-junit-jupiter",    version.ref = "mockito" }

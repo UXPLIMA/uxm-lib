@@ -19,6 +19,7 @@ include(
     ":uxmlib-gui",
     ":uxmlib-bedrock",
     ":uxmlib-storage",
+    ":uxmlib-storage-testing",
     ":uxmlib-redis",
     ":uxmlib-integration",
     ":uxmlib-hud",

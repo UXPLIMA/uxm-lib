@@ -1,13 +1,16 @@
 package com.uxplima.uxmlib.storage.migration;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
@@ -81,6 +84,60 @@ public final class MigrationRunner {
         } catch (SQLException failure) {
             throw new StorageException("migration failed", failure);
         }
+    }
+
+    /**
+     * Start this runner's history from the versions {@code formerHistory} recorded, when those versions were
+     * this schema's.
+     *
+     * <p>A schema that once kept its versions in the shared {@link #DEFAULT_HISTORY_TABLE} and now keeps a
+     * history of its own would otherwise run every migration again over the tables it already built. Nothing
+     * is carried unless this history is empty and {@code ownedTable}, a table only this schema creates, is
+     * already there: a shared history on a database where this schema never ran holds somebody else's
+     * versions, and reading them as ours would build nothing.
+     *
+     * @return the version carried over, or 0 when nothing was
+     */
+    public int carryOver(String formerHistory, String ownedTable) {
+        Objects.requireNonNull(formerHistory, "formerHistory");
+        Objects.requireNonNull(ownedTable, "ownedTable");
+        if (!TABLE_NAME.matcher(formerHistory).matches()) {
+            throw new IllegalArgumentException("formerHistory must be a simple SQL identifier");
+        }
+        try (Connection conn = database.connection()) {
+            ensureHistoryTable(conn);
+            if (currentVersion(conn) > 0 || !exists(conn, ownedTable) || !exists(conn, formerHistory)) {
+                return 0;
+            }
+            int carried;
+            try (Statement statement = conn.createStatement();
+                    ResultSet rows = statement.executeQuery("SELECT COALESCE(MAX(version), 0) FROM " + formerHistory)) {
+                carried = rows.next() ? rows.getInt(1) : 0;
+            }
+            if (carried > 0) {
+                recordApplied(conn, new Migration(carried, "carried over from " + formerHistory, ""));
+                if (!conn.getAutoCommit()) {
+                    conn.commit();
+                }
+            }
+            return carried;
+        } catch (SQLException failure) {
+            throw new StorageException("could not carry the history over", failure);
+        }
+    }
+
+    private static boolean exists(Connection conn, String table) throws SQLException {
+        DatabaseMetaData about = conn.getMetaData();
+        // A backend folds an unquoted name to one case: Postgres to lower, H2 to upper.
+        for (String name :
+                new LinkedHashSet<>(List.of(table, table.toLowerCase(Locale.ROOT), table.toUpperCase(Locale.ROOT)))) {
+            try (ResultSet found = about.getTables(null, null, name, null)) {
+                if (found.next()) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** The highest applied migration version, or 0 when none have run. */
