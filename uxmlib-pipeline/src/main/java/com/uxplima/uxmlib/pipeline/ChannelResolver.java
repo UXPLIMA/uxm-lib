@@ -40,17 +40,45 @@ import org.jspecify.annotations.Nullable;
  * keeps the rest of the module free of NMS. Every {@code setAccessible}/read is guarded and fails closed.
  *
  * <p>The walk runs once per player handle. It reads thousands of fields and collection elements, several
- * milliseconds of the calling thread, and a packet sender asks for the channel on every send. The channel a
- * handle led to is kept, held weakly on both sides, and a handle whose channel has closed answers empty at once:
- * a connection is never reopened, and walking again would only search everything behind the player for a channel
- * that is gone.
+ * milliseconds of the calling thread, and a packet sender asks for the channel on every send. The answer a
+ * handle led to is kept, held weakly on both sides, and that includes no answer: a handle whose walk found no
+ * channel, or whose channel has closed, answers empty at once. A connection is never reopened and a fake one
+ * never gains a channel, so walking again would only search everything behind the player for nothing.
+ *
+ * <p>The walk is bounded three ways, because it runs on the thread that lets a player in and every plugin
+ * that carries this library walks for itself. A player whose connection is fake, a bot or an NPC, holds a
+ * channel with no anchor, and an unbounded walk then searched everything its server could reach for one that
+ * had, long enough for the watchdog to stop the server. So the first channel found ends the search one level
+ * past it, the objects a walk may read are capped, and the fields of a class are read once and kept.
  */
 public final class ChannelResolver {
 
     /** How deep into nested connection objects we search for a Channel field before giving up. */
     private static final int MAX_DEPTH = 4;
 
+    /**
+     * How many objects one walk may read before it gives up. A real player's channel is two references from the
+     * player and is met within the first few thousand; the cap is there for a graph nobody foresaw, so that the
+     * worst a walk can cost is bounded rather than whatever the server happens to hold.
+     */
+    private static final int MAX_OBJECTS = 20_000;
+
+    /** What a handle that led to no channel is remembered as: a reference to nothing. */
+    private static final WeakReference<Channel> NO_CHANNEL = new WeakReference<>(null);
+
+    /**
+     * The readable fields of each class, its superclasses' included, worked out once. Asking the class again for
+     * every object it walked copied the arrays each time, and that copy was most of what a long walk cost.
+     */
+    private static final ClassValue<Field[]> FIELDS = new ClassValue<>() {
+        @Override
+        protected Field[] computeValue(Class<?> type) {
+            return readableFields(type);
+        }
+    };
+
     private final String anchorName;
+    private final int maxObjects;
 
     /** The channel each handle led to. Weak keys let a handle go when its player does; weak values keep the
      * channel, which leads back to the handle, from holding its own key. */
@@ -66,7 +94,16 @@ public final class ChannelResolver {
      *     open channel reachable in the object graph (e.g. {@code "encoder"})
      */
     public ChannelResolver(String anchorName) {
+        this(anchorName, MAX_OBJECTS);
+    }
+
+    /** Package-private so a test can show the cap ending a walk without building a graph of twenty thousand. */
+    ChannelResolver(String anchorName, int maxObjects) {
         this.anchorName = Objects.requireNonNull(anchorName, "anchorName");
+        if (maxObjects < 1) {
+            throw new IllegalArgumentException("maxObjects must be at least 1, got: " + maxObjects);
+        }
+        this.maxObjects = maxObjects;
     }
 
     /**
@@ -92,9 +129,7 @@ public final class ChannelResolver {
             return channel != null && channel.isOpen() ? Optional.of(channel) : Optional.empty();
         }
         @Nullable Channel channel = findChannel(handle);
-        if (channel != null) {
-            found.put(handle, new WeakReference<>(channel));
-        }
+        found.put(handle, channel == null ? NO_CHANNEL : new WeakReference<>(channel));
         return Optional.ofNullable(channel);
     }
 
@@ -108,6 +143,12 @@ public final class ChannelResolver {
      * its server. Such a channel is taken only when the walk finds no channel held in a field at all, or the
      * player's packets would reach somebody else.
      *
+     * <p>A channel held in a field ends the search one level past the object that held it: the objects at that
+     * level are still read, because the player's own connection may sit beside the first channel met, but nothing
+     * deeper is opened. A fake player's own channel is met two references in, and another client's connection
+     * only ever lies further out. A walk that reaches its cap of objects stops where it is and answers what a
+     * field held so far, never a roster entry, because a roster entry is somebody else's.
+     *
      * <p>Package-private so the object-graph walk can be exercised directly with a synthetic handle, since
      * MockBukkit cannot give us a {@code CraftPlayer.getHandle()} chain to walk.
      */
@@ -118,17 +159,27 @@ public final class ChannelResolver {
         seen.add(root);
         Candidates held = new Candidates();
         Candidates listed = new Candidates();
+        int heldAt = -1;
+        int walked = 0;
         while (!queue.isEmpty()) {
+            if (++walked > maxObjects) {
+                return held.best();
+            }
             Node node = queue.removeFirst();
-            for (Field field : declaredFields(node.value.getClass())) {
+            boolean descend = node.depth > 0 && node.depth >= heldAt;
+            for (Field field : FIELDS.get(node.value.getClass())) {
                 @Nullable Object raw = read(field, node.value);
                 @Nullable Object value = unwrap(raw);
                 if (value instanceof Channel channel) {
-                    if (!(raw instanceof Collection<?>) && channel.isOpen() && hasAnchor(channel)) {
+                    boolean inField = !(raw instanceof Collection<?>);
+                    if (inField && channel.isOpen() && hasAnchor(channel)) {
                         return channel;
                     }
-                    (raw instanceof Collection<?> ? listed : held).offer(channel, hasAnchor(channel));
-                } else if (value != null && node.depth > 0 && shouldDescend(field) && seen.add(value)) {
+                    (inField ? held : listed).offer(channel, hasAnchor(channel));
+                    if (inField && heldAt < 0) {
+                        heldAt = node.depth;
+                    }
+                } else if (value != null && descend && shouldDescend(field) && seen.add(value)) {
                     queue.add(new Node(value, node.depth - 1));
                 }
             }
@@ -214,12 +265,19 @@ public final class ChannelResolver {
      * since 1.20.2 the {@code Connection} that holds the channel is reached through the {@code connection} field
      * declared on {@code ServerCommonPacketListenerImpl}, a superclass of the game packet listener, so a
      * declared-fields-only walk stops at the listener and never reaches the channel.
+     *
+     * <p>Only instance fields the walk can open are kept. A connection is never held in a static field, and a
+     * static field leads to state the whole server shares, which is where an unbounded walk spent its time.
      */
-    private static Field[] declaredFields(Class<?> type) {
+    private static Field[] readableFields(Class<?> type) {
         java.util.List<Field> fields = new java.util.ArrayList<>();
         for (Class<?> c = type; c != null && c != Object.class; c = c.getSuperclass()) {
             try {
-                Collections.addAll(fields, c.getDeclaredFields());
+                for (Field field : c.getDeclaredFields()) {
+                    if (!java.lang.reflect.Modifier.isStatic(field.getModifiers()) && field.trySetAccessible()) {
+                        fields.add(field);
+                    }
+                }
             } catch (SecurityException ignored) {
                 // Skip an unreadable level and keep walking up; a missing level just narrows the search.
             }
@@ -229,7 +287,6 @@ public final class ChannelResolver {
 
     private static @Nullable Object read(Field field, Object owner) {
         try {
-            field.setAccessible(true);
             return field.get(owner);
         } catch (ReflectiveOperationException | RuntimeException ignored) {
             // RuntimeException covers SecurityException/InaccessibleObjectException; on any of them we fail
