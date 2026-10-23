@@ -43,6 +43,7 @@ public final class RealDatabases implements ArgumentsProvider {
     public static final String TABLE_PREFIX = "t_";
 
     private static final String ROOT_PASSWORD = "root";
+    private static final int STARTUP_ATTEMPTS = 3;
     private static final AtomicInteger NEXT = new AtomicInteger();
     private static final Map<Backend, JdbcDatabaseContainer<?>> SERVERS = new EnumMap<>(Backend.class);
 
@@ -88,7 +89,9 @@ public final class RealDatabases implements ArgumentsProvider {
 
     private static synchronized JdbcDatabaseContainer<?> server(Backend backend) {
         return SERVERS.computeIfAbsent(backend, wanted -> {
-            JdbcDatabaseContainer<?> started = container(wanted);
+            // A busy host can hand Docker a port that another process takes before the container binds it.
+            // That start fails and the next one does not, so a start is tried more than once.
+            JdbcDatabaseContainer<?> started = container(wanted).withStartupAttempts(STARTUP_ATTEMPTS);
             started.start();
             return started;
         });
