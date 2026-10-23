@@ -981,7 +981,8 @@ List<String> leaders = sql.query(top, row -> row.getString("uuid"));
 
 An operator names a backend rather than writing a URL. `StorageSettings` reads one block of a HOCON file
 (`type` is `sqlite`, `mysql`, `mariadb` or `postgresql`; then `file`, `host`, `port`, `database`,
-`username`, `password`, `table-prefix`, `pool-size`, every key optional) and opens the pool with the right
+`username`, `password`, `table-prefix`, `pool-size`, every key optional, a `port` of 0 meaning the
+backend's own) and opens the pool with the right
 URL and driver class:
 
 ```java

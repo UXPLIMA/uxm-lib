@@ -17,7 +17,7 @@ import com.uxplima.uxmlib.config.HoconConfig;
  *   type = sqlite            # sqlite, mysql, mariadb or postgresql
  *   file = "rows.db"         # sqlite only, inside the data folder
  *   host = localhost
- *   port = 3306              # 5432 for postgresql
+ *   port = 0                 # 0 is the backend's own: 3306, or 5432 for postgresql
  *   database = minecraft
  *   username = minecraft
  *   password = ""
@@ -82,11 +82,14 @@ public record StorageSettings(
         Objects.requireNonNull(defaultFile, "defaultFile");
         Objects.requireNonNull(defaultPrefix, "defaultPrefix");
         Backend backend = Backend.named(config.getString(path + ".type", Backend.SQLITE.id()));
+        // A shipped file cannot know which server an operator will name, so 0 stands for that server's own port
+        // and changing the type alone is enough.
+        int port = config.getInt(path + ".port", 0);
         return new StorageSettings(
                 backend,
                 config.getString(path + ".file", defaultFile),
                 config.getString(path + ".host", "localhost"),
-                config.getInt(path + ".port", backend.defaultPort()),
+                port == 0 ? backend.defaultPort() : port,
                 config.getString(path + ".database", DEFAULT_DATABASE),
                 config.getString(path + ".username", DEFAULT_DATABASE),
                 config.getString(path + ".password", ""),

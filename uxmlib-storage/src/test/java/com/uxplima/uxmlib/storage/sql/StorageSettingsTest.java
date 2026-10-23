@@ -43,11 +43,15 @@ class StorageSettingsTest {
                 config("storage { type = postgresql, host = db.local, database = network }"), "storage", "x.db", "x_");
         StorageSettings maria =
                 StorageSettings.read(config("storage { type = MariaDB, port = 3307 }"), "storage", "x.db", "x_");
-        StorageSettings mysql = StorageSettings.read(config("storage { type = mysql }"), "storage", "x.db", "x_");
+        StorageSettings mysql =
+                StorageSettings.read(config("storage { type = mysql, port = 0 }"), "storage", "x.db", "x_");
+        StorageSettings postgresOnZero =
+                StorageSettings.read(config("storage { type = postgresql, port = 0 }"), "storage", "x.db", "x_");
 
         assertThat(postgres.jdbcUrl(folder)).isEqualTo("jdbc:postgresql://db.local:5432/network");
         assertThat(maria.jdbcUrl(folder)).isEqualTo("jdbc:mariadb://localhost:3307/minecraft");
         assertThat(mysql.jdbcUrl(folder)).isEqualTo("jdbc:mysql://localhost:3306/minecraft");
+        assertThat(postgresOnZero.port()).isEqualTo(5432);
     }
 
     @Test
