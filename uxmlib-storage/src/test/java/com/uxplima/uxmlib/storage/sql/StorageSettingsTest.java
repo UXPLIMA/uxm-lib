@@ -91,6 +91,19 @@ class StorageSettingsTest {
     }
 
     @Test
+    @DisplayName("copy-from-file is read off the block, is off when left out, and a file never copies into itself")
+    void copyFromFileIsRead() throws IOException {
+        StorageSettings asked = StorageSettings.read(
+                config("storage { type = postgresql, copy-from-file = true }"), "storage", "x.db", "x_");
+        StorageSettings left = StorageSettings.read(config("storage { type = postgresql }"), "storage", "x.db", "x_");
+
+        assertThat(asked.copyFromFile()).isTrue();
+        assertThat(left.copyFromFile()).isFalse();
+        assertThat(asked.localFile().copyFromFile()).isFalse();
+        assertThat(asked.withTablePrefix("y_").copyFromFile()).isTrue();
+    }
+
+    @Test
     @DisplayName("local-only off leaves the named backend alone")
     void localOnlyOffLeavesTheBackend() throws IOException {
         StorageSettings settings = StorageSettings.read(

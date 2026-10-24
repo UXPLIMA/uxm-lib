@@ -247,6 +247,49 @@ final class StorageCopyTest {
         assertThat(empty).isEmptyDirectory();
     }
 
+    @EveryBackend
+    @DisplayName("at start a block that asks copies its file, and one that does not leaves the target alone")
+    void atStartCopiesOnlyWhenAsked(RealDatabase real) {
+        Database target = open(real);
+        StorageSettings settings = real.settings();
+        if (settings.backend().isFile()) {
+            assertThat(StorageCopy.atStart(
+                            settings.withCopyFromFile(true), real.dataFolder(), StorageCopyTest::names, target))
+                    .isEmpty();
+            return;
+        }
+        homes(target);
+        names(target);
+        try (Database file = settings.localFile().open(real.dataFolder(), "file")) {
+            homes(file);
+            new Sql(file)
+                    .update(
+                            "INSERT INTO t_homes (id, owner, hidden) VALUES (1, 'a', ?)",
+                            binder -> binder.setBoolean(1, true));
+        }
+
+        assertThat(StorageCopy.atStart(settings, real.dataFolder(), StorageCopyTest::names, target))
+                .isEmpty();
+        assertThat(count(target, "t_homes")).isZero();
+
+        assertThat(StorageCopy.atStart(
+                        settings.withCopyFromFile(true), real.dataFolder(), StorageCopyTest::names, target))
+                .hasValueSatisfying(copied -> assertThat(copied.total()).isEqualTo(1));
+        assertThat(count(target, "t_homes")).isEqualTo(1);
+    }
+
+    @EveryBackend
+    @DisplayName("at start a refused copy is told in the log, the start goes on, and the target keeps its rows")
+    void atStartARefusalLetsTheStartGoOn(RealDatabase real) {
+        Database target = open(real);
+        StorageSettings settings = real.settings().withCopyFromFile(true);
+        java.nio.file.Path empty = real.dataFolder().resolve("empty");
+
+        assertThat(StorageCopy.atStart(settings, empty, StorageCopyTest::names, target))
+                .isEmpty();
+        assertThat(empty).doesNotExist();
+    }
+
     private static void names(Database database) {
         new Sql(database).update("CREATE TABLE IF NOT EXISTS t_names (id BIGINT PRIMARY KEY)", StatementBinder.NONE);
     }

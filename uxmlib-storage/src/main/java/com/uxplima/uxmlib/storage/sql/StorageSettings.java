@@ -27,12 +27,17 @@ import com.uxplima.uxmlib.storage.migration.MigrationRunner;
  *   table-prefix = "rows_"
  *   pool-size = 4
  *   local-only = false       # true keeps this one server on its sqlite file
+ *   copy-from-file = false   # true copies the file's rows into an empty network database at start
  * }
  * </pre>
  *
  * <p>{@code local-only} is for a network whose servers all carry the same block: the one server that must keep
  * rows of its own sets it, and nothing else in its file differs from the others. It then reads the block as a
  * SQLite file under the same name and prefix.
+ *
+ * <p>{@code copy-from-file} is for the move from the file to a network database: the start after the type changes
+ * carries the file's rows across with {@link StorageCopy#atStart}, and fills empty tables only, so leaving it on
+ * copies nothing twice.
  *
  * <p>Every key may be left out. The table prefix is written into every table name and into the history of the
  * migrations, so two schemas, or two copies of one under different prefixes, can share a database.
@@ -49,7 +54,8 @@ public record StorageSettings(
         String username,
         String password,
         String tablePrefix,
-        int poolSize) {
+        int poolSize,
+        boolean copyFromFile) {
 
     private static final Pattern PREFIX = Pattern.compile("[A-Za-z0-9_]*");
     private static final String DEFAULT_DATABASE = "minecraft";
@@ -102,18 +108,19 @@ public record StorageSettings(
                 config.getString(path + ".username", DEFAULT_DATABASE),
                 config.getString(path + ".password", ""),
                 config.getString(path + ".table-prefix", defaultPrefix),
-                config.getInt(path + ".pool-size", DEFAULT_POOL_SIZE));
+                config.getInt(path + ".pool-size", DEFAULT_POOL_SIZE),
+                config.getBoolean(path + ".copy-from-file", false));
         return config.getBoolean(path + ".local-only", false) ? named.localFile() : named;
     }
 
     /**
      * The SQLite file this block names, under the same prefix: where its rows were kept before it named a network
-     * database, and where a {@code local-only} server keeps them.
+     * database, and where a {@code local-only} server keeps them. A file is never asked to copy into itself.
      */
     public StorageSettings localFile() {
         // A file has one writer, so a pool of more connections would only wait on each other.
         return new StorageSettings(
-                Backend.SQLITE, file, "localhost", 0, DEFAULT_DATABASE, DEFAULT_DATABASE, "", tablePrefix, 1);
+                Backend.SQLITE, file, "localhost", 0, DEFAULT_DATABASE, DEFAULT_DATABASE, "", tablePrefix, 1, false);
     }
 
     /** The URL the driver reads. A file is resolved against {@code dataFolder}. */
@@ -152,7 +159,14 @@ public record StorageSettings(
 
     /** These settings under another table prefix. */
     public StorageSettings withTablePrefix(String prefix) {
-        return new StorageSettings(backend, file, host, port, database, username, password, prefix, poolSize);
+        return new StorageSettings(
+                backend, file, host, port, database, username, password, prefix, poolSize, copyFromFile);
+    }
+
+    /** These settings, asking or not asking for the file's rows at start. */
+    public StorageSettings withCopyFromFile(boolean copy) {
+        return new StorageSettings(
+                backend, file, host, port, database, username, password, tablePrefix, poolSize, copy);
     }
 
     /**
@@ -178,6 +192,6 @@ public record StorageSettings(
     @Override
     public String toString() {
         return "StorageSettings[" + backend.id() + ", " + (backend.isFile() ? file : host + ":" + port + "/" + database)
-                + ", prefix '" + tablePrefix + "', pool " + poolSize + "]";
+                + ", prefix '" + tablePrefix + "', pool " + poolSize + (copyFromFile ? ", copy from file" : "") + "]";
     }
 }

@@ -981,7 +981,7 @@ List<String> leaders = sql.query(top, row -> row.getString("uuid"));
 
 An operator names a backend rather than writing a URL. `StorageSettings` reads one block of a HOCON file
 (`type` is `sqlite`, `mysql`, `mariadb` or `postgresql`; then `file`, `host`, `port`, `database`,
-`username`, `password`, `table-prefix`, `pool-size`, every key optional, a `port` of 0 meaning the
+`username`, `password`, `table-prefix`, `pool-size`, `local-only`, `copy-from-file`, every key optional, a `port` of 0 meaning the
 backend's own) and opens the pool with the right
 URL and driver class:
 
@@ -1000,7 +1000,10 @@ A store that kept its rows in its SQLite file moves them when its block names a 
 under the prefix into the target, in one transaction, parents before the tables that point at them. It
 fills empty tables only and refuses with a reason otherwise, so it never merges two sets of rows. The
 migration history and the notices table stay behind. `local-only = true` in the block keeps one server on
-that file while the others share the network database.
+that file while the others share the network database. `copy-from-file = true` in the block asks for the
+copy at start: call `StorageCopy.atStart` with the same arguments right after the migration, and the start
+that follows the change of type carries the rows across. Left on, it copies nothing twice, since the
+tables are no longer empty.
 
 ```java
 try {

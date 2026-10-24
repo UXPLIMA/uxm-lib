@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
@@ -36,6 +37,7 @@ import com.uxplima.uxmlib.storage.StorageException;
  */
 public final class StorageCopy {
 
+    private static final System.Logger LOG = System.getLogger(StorageCopy.class.getName());
     private static final int BATCH = 500;
 
     private StorageCopy() {}
@@ -66,6 +68,37 @@ public final class StorageCopy {
         try (Database source = file.open(dataFolder, "copy-" + file.file())) {
             migrate.accept(source);
             return copy(source, target, settings.tablePrefix());
+        }
+    }
+
+    /**
+     * At start, after {@code target} is migrated: when the block sets {@code copy-from-file}, copy the file's rows
+     * into it with {@link #fromFile} and say in the log what happened.
+     *
+     * <p>A refusal is told in the log and the start goes on: the target is as it was, and the most common one is a
+     * later start finding the rows already there.
+     *
+     * @return what was copied; empty when the block did not ask or the copy was refused
+     * @throws StorageException when the databases fail; the target is rolled back
+     */
+    public static Optional<Copied> atStart(
+            StorageSettings settings, Path dataFolder, Consumer<Database> migrate, Database target) {
+        Objects.requireNonNull(settings, "settings");
+        if (!settings.copyFromFile()) {
+            return Optional.empty();
+        }
+        try {
+            Copied copied = fromFile(settings, dataFolder, migrate, target);
+            LOG.log(
+                    System.Logger.Level.INFO,
+                    "Copied " + copied.total() + " rows from " + settings.file() + " under '" + settings.tablePrefix()
+                            + "': " + copied.rows() + ". Set copy-from-file = false.");
+            return Optional.of(copied);
+        } catch (Refused refused) {
+            LOG.log(
+                    System.Logger.Level.WARNING,
+                    "copy-from-file copied nothing from " + settings.file() + ": " + refused.getMessage());
+            return Optional.empty();
         }
     }
 
