@@ -28,7 +28,7 @@ import org.spongepowered.configurate.serialize.TypeSerializerCollection;
  * {@link #get(Class)} / {@link #getNode(String, Class, Object)}. A missing file loads empty.
  *
  * <p>A read never writes. Configurate copies a default into the tree as it hands it back, and this turns that
- * off: see {@link #loader}. {@link #mergeDefaults(ConfigurationNode)} is how a default is put into a file, and
+ * off: see {@link #loader}. {@link #mergeDefaults(ConfigurationNode, String...)} is how a default is put into a file, and
  * it is the only way.
  */
 public final class HoconConfig {
@@ -161,9 +161,27 @@ public final class HoconConfig {
      *
      * <p>A run that adds something keeps the file as it was, beside it, as {@code <name>.bak}. A run that
      * adds nothing writes nothing and leaves nothing behind.
+     *
+     * <p>A catalogue is a map whose entries are the operator's whole, such as a list of tags or of colour
+     * presets: an entry they deleted is one they do not want. Each dotted path in {@code catalogues} is merged
+     * only when the file has nothing at that path, so a shipped entry is written on the first run and never
+     * back into a catalogue the operator keeps. Every other key still fills in as above.
      */
-    public synchronized boolean mergeDefaults(ConfigurationNode defaults) {
+    public synchronized boolean mergeDefaults(ConfigurationNode defaults, String... catalogues) {
         Objects.requireNonNull(defaults, "defaults");
+        Objects.requireNonNull(catalogues, "catalogues");
+        ConfigurationNode wanted = defaults;
+        for (String catalogue : catalogues) {
+            Object[] path = Objects.requireNonNull(catalogue, "catalogue").split("\\.");
+            if (!currentRoot().node(path).virtual()) {
+                wanted = wanted == defaults ? defaults.copy() : wanted;
+                wanted.node(path).raw(null);
+            }
+        }
+        return mergeShipped(wanted);
+    }
+
+    private boolean mergeShipped(ConfigurationNode defaults) {
         // Named before the merge fills the gap, because afterwards the shipped key is there and the near miss
         // beside it looks like a key of the operator's own.
         for (String suspect : ConfigTypos.suspects(currentRoot(), defaults)) {
@@ -189,9 +207,12 @@ public final class HoconConfig {
         }
     }
 
-    /** Deep-merge defaults from a bundled classpath resource. Returns whether anything was written. */
-    public boolean mergeDefaults(String resource, ClassLoader classLoader) {
-        return mergeDefaults(ConfigDefaults.parseResource(resource, classLoader));
+    /**
+     * Deep-merge defaults from a bundled classpath resource, leaving each catalogue the file keeps as it is (see
+     * {@link #mergeDefaults(ConfigurationNode, String...)}). Returns whether anything was written.
+     */
+    public boolean mergeDefaults(String resource, ClassLoader classLoader, String... catalogues) {
+        return mergeDefaults(ConfigDefaults.parseResource(resource, classLoader), catalogues);
     }
 
     /**

@@ -46,6 +46,45 @@ class ConfigDefaultsTest {
         assertThat(config.getInt("limit", 0)).isEqualTo(99); // user's value kept, default not applied
     }
 
+    /**
+     * A catalogue is the operator's whole: a map of entries such as tags or colour presets, where an entry they deleted
+     * is an entry they do not want. A shipped entry merged back into it returned on every start.
+     */
+    @Test
+    void aCatalogueTheOperatorKeepsGetsNoShippedEntryBack(@TempDir Path dir) throws Exception {
+        Path target = dir.resolve("config.conf");
+        Files.writeString(target, "tags { mine { display = \"x\" } }\n");
+        HoconConfig config = HoconConfig.load(target);
+
+        config.mergeDefaults(hocon("limit = 5\ntags { shipped { display = \"y\" } }\n"), "tags");
+
+        assertThat(config.keys("tags")).containsExactly("mine");
+        assertThat(config.getInt("limit", 0)).isEqualTo(5);
+    }
+
+    @Test
+    void aCatalogueTheFileDoesNotHaveIsWrittenWhole(@TempDir Path dir) throws Exception {
+        Path target = dir.resolve("config.conf");
+        Files.writeString(target, "limit = 1\n");
+        HoconConfig config = HoconConfig.load(target);
+
+        config.mergeDefaults(hocon("tags { shipped { display = \"y\" } }\n"), "tags");
+
+        assertThat(config.keys("tags")).containsExactly("shipped");
+    }
+
+    @Test
+    void aCataloguePathMayBeNested(@TempDir Path dir) throws Exception {
+        Path target = dir.resolve("config.conf");
+        Files.writeString(target, "shop { items { mine = 1 } }\n");
+        HoconConfig config = HoconConfig.load(target);
+
+        config.mergeDefaults(hocon("shop { items { shipped = 2 }, size = 3 }\n"), "shop.items");
+
+        assertThat(config.keys("shop.items")).containsExactly("mine");
+        assertThat(config.getInt("shop.size", 0)).isEqualTo(3);
+    }
+
     @Test
     void mergeDefaultsAddsMissingKeysButKeepsUserValues(@TempDir Path dir) throws Exception {
         Path target = dir.resolve("config.conf");
