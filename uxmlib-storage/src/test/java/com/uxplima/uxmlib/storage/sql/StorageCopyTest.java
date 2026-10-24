@@ -248,46 +248,102 @@ final class StorageCopyTest {
     }
 
     @EveryBackend
-    @DisplayName("at start a block that asks copies its file, and one that does not leaves the target alone")
-    void atStartCopiesOnlyWhenAsked(RealDatabase real) {
+    @DisplayName("at start a block that does not ask has its target migrated and nothing copied")
+    void atStartMigratesWhenNotAsked(RealDatabase real) {
         Database target = open(real);
         StorageSettings settings = real.settings();
-        if (settings.backend().isFile()) {
-            assertThat(StorageCopy.atStart(
-                            settings.withCopyFromFile(true), real.dataFolder(), StorageCopyTest::names, target))
-                    .isEmpty();
-            return;
-        }
-        homes(target);
-        names(target);
         try (Database file = settings.localFile().open(real.dataFolder(), "file")) {
-            homes(file);
-            new Sql(file)
-                    .update(
-                            "INSERT INTO t_homes (id, owner, hidden) VALUES (1, 'a', ?)",
-                            binder -> binder.setBoolean(1, true));
+            schema(file);
+            new Sql(file).update("INSERT INTO t_names (id) VALUES (3)", StatementBinder.NONE);
         }
 
-        assertThat(StorageCopy.atStart(settings, real.dataFolder(), StorageCopyTest::names, target))
+        assertThat(StorageCopy.atStart(settings, real.dataFolder(), StorageCopyTest::schema, target))
                 .isEmpty();
-        assertThat(count(target, "t_homes")).isZero();
 
-        assertThat(StorageCopy.atStart(
-                        settings.withCopyFromFile(true), real.dataFolder(), StorageCopyTest::names, target))
-                .hasValueSatisfying(copied -> assertThat(copied.total()).isEqualTo(1));
-        assertThat(count(target, "t_homes")).isEqualTo(1);
+        assertThat(enabled(target)).hasValue(0);
+        if (!settings.backend().isFile()) {
+            assertThat(count(target, "t_names")).isZero();
+        }
     }
 
     @EveryBackend
-    @DisplayName("at start a refused copy is told in the log, the start goes on, and the target keeps its rows")
-    void atStartARefusalLetsTheStartGoOn(RealDatabase real) {
+    @DisplayName("at start a fresh network database takes the file's rows, the file's own over what the schema seeds")
+    void atStartFillsAFreshTarget(RealDatabase real) {
+        Database target = open(real);
+        StorageSettings settings = real.settings();
+        try (Database file = settings.localFile().open(real.dataFolder(), "file")) {
+            schema(file);
+            new Sql(file).update("UPDATE t_settings SET enabled = 1 WHERE id = 0", StatementBinder.NONE);
+            new Sql(file).update("INSERT INTO t_names (id) VALUES (3)", StatementBinder.NONE);
+        }
+
+        java.util.Optional<StorageCopy.Copied> copied = StorageCopy.atStart(
+                settings.withCopyFromFile(true), real.dataFolder(), StorageCopyTest::schema, target);
+
+        if (settings.backend().isFile()) {
+            assertThat(copied).isEmpty();
+        } else {
+            assertThat(copied)
+                    .hasValueSatisfying(rows -> assertThat(rows.total()).isEqualTo(2));
+        }
+        assertThat(enabled(target)).hasValue(1);
+        assertThat(count(target, "t_names")).isEqualTo(1);
+        assertThat(count(target, "t_settings")).isEqualTo(1);
+    }
+
+    @EveryBackend
+    @DisplayName("at start a network database that held the schema before copies nothing, whatever its rows")
+    void atStartLeavesATargetThatWasThere(RealDatabase real) {
+        Database target = open(real);
+        StorageSettings settings = real.settings();
+        if (settings.backend().isFile()) {
+            return;
+        }
+        schema(target);
+        new Sql(target).update("INSERT INTO t_names (id) VALUES (8)", StatementBinder.NONE);
+        try (Database file = settings.localFile().open(real.dataFolder(), "file")) {
+            schema(file);
+            new Sql(file).update("INSERT INTO t_names (id) VALUES (3)", StatementBinder.NONE);
+        }
+
+        assertThat(StorageCopy.atStart(
+                        settings.withCopyFromFile(true), real.dataFolder(), StorageCopyTest::schema, target))
+                .isEmpty();
+
+        assertThat(new Sql(target).query("SELECT id FROM t_names", StatementBinder.NONE, row -> row.getLong(1)))
+                .containsExactly(8L);
+    }
+
+    @EveryBackend
+    @DisplayName("at start a block that asks with no file beside it is migrated, and no empty file is left behind")
+    void atStartWithNoFileGoesOn(RealDatabase real) {
         Database target = open(real);
         StorageSettings settings = real.settings().withCopyFromFile(true);
         java.nio.file.Path empty = real.dataFolder().resolve("empty");
 
-        assertThat(StorageCopy.atStart(settings, empty, StorageCopyTest::names, target))
+        assertThat(StorageCopy.atStart(settings, empty, StorageCopyTest::schema, target))
                 .isEmpty();
+
         assertThat(empty).doesNotExist();
+        assertThat(enabled(target)).hasValue(0);
+    }
+
+    // A schema as a plugin's migrations would leave it: a table of names, and a settings table that the
+    // migration seeds with one row, the way a schema with a single settings row ships its default.
+    private static void schema(Database database) {
+        Sql sql = new Sql(database);
+        sql.update("CREATE TABLE IF NOT EXISTS t_names (id BIGINT PRIMARY KEY)", StatementBinder.NONE);
+        sql.update(
+                "CREATE TABLE IF NOT EXISTS t_settings (id BIGINT PRIMARY KEY, enabled INTEGER NOT NULL)",
+                StatementBinder.NONE);
+        if (count(database, "t_settings") == 0) {
+            sql.update("INSERT INTO t_settings (id, enabled) VALUES (0, 0)", StatementBinder.NONE);
+        }
+    }
+
+    private static java.util.Optional<Integer> enabled(Database database) {
+        return new Sql(database)
+                .queryFirst("SELECT enabled FROM t_settings WHERE id = 0", StatementBinder.NONE, row -> row.getInt(1));
     }
 
     private static void names(Database database) {

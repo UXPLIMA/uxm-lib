@@ -72,34 +72,88 @@ public final class StorageCopy {
     }
 
     /**
-     * At start, after {@code target} is migrated: when the block sets {@code copy-from-file}, copy the file's rows
-     * into it with {@link #fromFile} and say in the log what happened.
+     * At start, in place of running {@code migrate} on {@code target}: migrate it, and when the block sets
+     * {@code copy-from-file} and this start is the one that built the schema there, fill it from the file.
      *
-     * <p>A refusal is told in the log and the start goes on: the target is as it was, and the most common one is a
-     * later start finding the rows already there.
+     * <p>The target counts as fresh when none of the file's tables existed in it before this start. Its tables then
+     * hold nothing but what the migrations seeded, so they are emptied and filled from the file with
+     * {@link #refill}. A target that had the schema already is somebody's data and is left alone, which is also
+     * why a block that keeps the key on copies nothing twice. Every outcome is told in the log and the start goes
+     * on.
      *
-     * @return what was copied; empty when the block did not ask or the copy was refused
+     * @param migrate runs the schema's migrations on the database it is handed: the file, then the target
+     * @return what was copied; empty when the block did not ask or nothing was copied
      * @throws StorageException when the databases fail; the target is rolled back
      */
     public static Optional<Copied> atStart(
             StorageSettings settings, Path dataFolder, Consumer<Database> migrate, Database target) {
         Objects.requireNonNull(settings, "settings");
-        if (!settings.copyFromFile()) {
+        Objects.requireNonNull(dataFolder, "dataFolder");
+        Objects.requireNonNull(migrate, "migrate");
+        Objects.requireNonNull(target, "target");
+        if (!settings.copyFromFile() || settings.backend().isFile()) {
+            migrate.accept(target);
             return Optional.empty();
         }
-        try {
-            Copied copied = fromFile(settings, dataFolder, migrate, target);
+        StorageSettings local = settings.localFile();
+        // Opening a SQLite pool creates the file, and an empty one left behind would read as rows that vanished.
+        if (!Files.isRegularFile(dataFolder.resolve(local.file()))) {
+            migrate.accept(target);
+            LOG.log(System.Logger.Level.WARNING, "copy-from-file found no " + local.file() + " to copy from");
+            return Optional.empty();
+        }
+        try (Database file = local.open(dataFolder, "copy-" + local.file())) {
+            migrate.accept(file);
+            boolean fresh = Collections.disjoint(
+                    tablesUnder(file, settings.tablePrefix()), tablesUnder(target, settings.tablePrefix()));
+            migrate.accept(target);
+            if (!fresh) {
+                LOG.log(
+                        System.Logger.Level.INFO,
+                        "copy-from-file copied nothing: the tables under '" + settings.tablePrefix()
+                                + "' were in the database before this start. Set copy-from-file = false.");
+                return Optional.empty();
+            }
+            Copied copied = refill(file, target, settings.tablePrefix());
             LOG.log(
                     System.Logger.Level.INFO,
-                    "Copied " + copied.total() + " rows from " + settings.file() + " under '" + settings.tablePrefix()
+                    "Copied " + copied.total() + " rows from " + local.file() + " under '" + settings.tablePrefix()
                             + "': " + copied.rows() + ". Set copy-from-file = false.");
             return Optional.of(copied);
         } catch (Refused refused) {
             LOG.log(
                     System.Logger.Level.WARNING,
-                    "copy-from-file copied nothing from " + settings.file() + ": " + refused.getMessage());
+                    "copy-from-file copied nothing from " + local.file() + ": " + refused.getMessage());
             return Optional.empty();
         }
+    }
+
+    /**
+     * The tables under {@code tablePrefix} a copy would carry, by their names in lower case: the migration history,
+     * the notices between servers and SQLite's own tables are left out.
+     */
+    public static Set<String> tablesUnder(Database database, String tablePrefix) {
+        Objects.requireNonNull(database, "database");
+        Objects.requireNonNull(tablePrefix, "tablePrefix");
+        try (Connection connection = database.connection()) {
+            return Set.copyOf(tables(connection, tablePrefix).keySet());
+        } catch (SQLException failure) {
+            throw new StorageException("could not list the tables under '" + tablePrefix + "'", failure);
+        }
+    }
+
+    /**
+     * Empty every table under {@code tablePrefix} in {@code to} and fill it from {@code from}, in one transaction.
+     *
+     * <p>For a target whose schema was built moments ago and holds only what its migrations seeded: a settings row
+     * the migration writes is replaced by the one the source kept. Anything else in the target is lost, so a caller
+     * that cannot say the target is that new wants {@link #copy}.
+     *
+     * @throws Refused when a table or a column of the source is not in the target; nothing is written then
+     * @throws StorageException when the databases fail; the target is rolled back
+     */
+    public static Copied refill(Database from, Database to, String tablePrefix) {
+        return copy(from, to, tablePrefix, true);
     }
 
     /**
@@ -111,6 +165,10 @@ public final class StorageCopy {
      * @throws StorageException when the databases fail; the target is rolled back
      */
     public static Copied copy(Database from, Database to, String tablePrefix) {
+        return copy(from, to, tablePrefix, false);
+    }
+
+    private static Copied copy(Database from, Database to, String tablePrefix, boolean emptyFirst) {
         Objects.requireNonNull(from, "from");
         Objects.requireNonNull(to, "to");
         Objects.requireNonNull(tablePrefix, "tablePrefix");
@@ -118,24 +176,33 @@ public final class StorageCopy {
                 Connection target = to.connection()) {
             List<Table> tables = plan(source, target, tablePrefix);
             for (Table table : tables) {
-                if (holdsRows(target, table.target())) {
+                if (!emptyFirst && holdsRows(target, table.target())) {
                     throw new Refused(
                             Reason.TARGET_HOLDS_ROWS,
                             table.target(),
                             table.target() + " already holds rows in the target; the copy fills empty tables only");
                 }
             }
-            return fill(source, target, inParentOrder(target, tables), to.dialect() == Dialect.POSTGRES);
+            return fill(source, target, inParentOrder(target, tables), to.dialect() == Dialect.POSTGRES, emptyFirst);
         } catch (SQLException failure) {
             throw new StorageException("could not copy the rows under '" + tablePrefix + "'", failure);
         }
     }
 
-    private static Copied fill(Connection source, Connection target, List<Table> tables, boolean postgres)
+    private static Copied fill(
+            Connection source, Connection target, List<Table> tables, boolean postgres, boolean emptyFirst)
             throws SQLException {
         boolean autoCommit = target.getAutoCommit();
         target.setAutoCommit(false);
         try {
+            if (emptyFirst) {
+                // A table that points at another is emptied before it, so the foreign keys hold at every step.
+                for (Table table : tables.reversed()) {
+                    try (Statement empty = target.createStatement()) {
+                        empty.executeUpdate("DELETE FROM " + table.target());
+                    }
+                }
+            }
             Map<String, Integer> rows = new LinkedHashMap<>();
             for (Table table : tables) {
                 rows.put(table.target(), fill(source, target, table, postgres));

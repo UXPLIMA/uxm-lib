@@ -1001,9 +1001,10 @@ under the prefix into the target, in one transaction, parents before the tables 
 fills empty tables only and refuses with a reason otherwise, so it never merges two sets of rows. The
 migration history and the notices table stay behind. `local-only = true` in the block keeps one server on
 that file while the others share the network database. `copy-from-file = true` in the block asks for the
-copy at start: call `StorageCopy.atStart` with the same arguments right after the migration, and the start
-that follows the change of type carries the rows across. Left on, it copies nothing twice, since the
-tables are no longer empty.
+copy at start: call `StorageCopy.atStart` in place of the migration, with the same arguments. It migrates
+the target, and when the schema was built there by this very start, it empties what the migrations seeded
+and fills every table from the file. A database that held the schema before is left alone, so the key
+left on copies nothing twice. `StorageCopy.refill` is that fill on its own.
 
 ```java
 try {
