@@ -19,11 +19,11 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** The synchronizer a store gets: the shared database when there is one to share, the process otherwise. */
+/** The synchronizer a store gets: the shared database when there is one to share, nobody otherwise. */
 final class DataSynchronizersTest {
 
     @EveryBackend
-    @DisplayName("a file stays in the process, a database server carries the notices, and zero turns them off")
+    @DisplayName("a file tells nobody, a database server carries the notices, and zero turns them off")
     void theStoreDecides(RealDatabase real) {
         List<Duration> scheduled = new ArrayList<>();
         RowSyncService.RepeatingTimer scheduler = (period, tick) -> {
@@ -44,13 +44,13 @@ final class DataSynchronizersTest {
             DataSynchronizer off = DataSynchronizers.forStore(real.settings(), database, scheduler, Duration.ZERO);
 
             if (real.backend().isFile()) {
-                assertThat(chosen).isInstanceOf(LocalDataSynchronizer.class);
+                assertThat(echoes(chosen)).isEmpty();
                 assertThat(scheduled).isEmpty();
             } else {
                 assertThat(chosen).isInstanceOf(SqlDataSynchronizer.class);
                 assertThat(scheduled).containsExactly(Duration.ofSeconds(2));
             }
-            assertThat(off).isInstanceOf(LocalDataSynchronizer.class);
+            assertThat(echoes(off)).isEmpty();
             chosen.close();
             off.close();
         }
@@ -66,6 +66,22 @@ final class DataSynchronizersTest {
                 .isZero();
         assertThat(DataSynchronizers.every(config(folder, "storage { sync-seconds = -3 }"), "storage"))
                 .isZero();
+    }
+
+    @Test
+    @DisplayName("a store alone tells nobody: not even its own handler hears what it said")
+    void aStoreAloneHearsNothingBack() {
+        try (DataSynchronizer alone = DataSynchronizers.none()) {
+            assertThat(echoes(alone)).isEmpty();
+        }
+    }
+
+    // A store that hears its own notice reads back a row it wrote a moment ago, over a newer value it holds.
+    private static List<String> echoes(DataSynchronizer synchronizer) {
+        List<String> heard = new ArrayList<>();
+        synchronizer.subscribe("store", heard::add);
+        synchronizer.publish("store", "00000000-0000-0000-0000-0000000000a1");
+        return heard;
     }
 
     private static HoconConfig config(Path folder, String text) throws IOException {

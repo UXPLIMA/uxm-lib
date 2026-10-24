@@ -3,6 +3,7 @@ package com.uxplima.uxmlib.storage.sync;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import com.uxplima.uxmlib.config.HoconConfig;
 import com.uxplima.uxmlib.scheduler.Scheduler;
@@ -21,6 +22,15 @@ public final class DataSynchronizers {
     private DataSynchronizers() {}
 
     /**
+     * A synchronizer for a store that is alone: a publish reaches nobody, the publisher's own handlers
+     * included. A store that heard its own notice would read back the row it had just written, over a newer
+     * value it already held in memory.
+     */
+    public static DataSynchronizer none() {
+        return new Alone();
+    }
+
+    /**
      * How often to read the other nodes' notices: {@code <path>.sync-seconds} of {@code config}, two seconds when
      * it is not written, and zero, which turns them off, for zero or less. One key, so every plugin's storage
      * block says it the same way.
@@ -35,7 +45,7 @@ public final class DataSynchronizers {
     /**
      * A synchronizer for the nodes that share {@code storage}, polling every {@code every}.
      *
-     * <p>A SQLite file is one server's, so it gets the in-process bus and no timer. A database server may be
+     * <p>A SQLite file is one server's, so it gets {@link #none()} and no timer. A database server may be
      * shared, so it gets {@link SqlDataSynchronizer} on {@code <prefix>sync}, started on the scheduler's async
      * timer, under a node id of its own for this start. A zero interval turns the notices off.
      */
@@ -54,11 +64,38 @@ public final class DataSynchronizers {
         Objects.requireNonNull(timer, "timer");
         Objects.requireNonNull(every, "every");
         if (storage.backend().isFile() || every.isZero() || every.isNegative()) {
-            return new LocalDataSynchronizer();
+            return none();
         }
         SqlDataSynchronizer shared = new SqlDataSynchronizer(
                 database, storage.table("sync"), UUID.randomUUID().toString(), KEEP_FOR);
         shared.start(timer, every);
         return shared;
+    }
+
+    /** No other node, so nothing to say and nothing to hear. */
+    private static final class Alone implements DataSynchronizer {
+
+        private volatile boolean closed;
+
+        @Override
+        public void publish(String channel, String message) {
+            Objects.requireNonNull(channel, "channel");
+            Objects.requireNonNull(message, "message");
+        }
+
+        @Override
+        public Subscription subscribe(String channel, Consumer<String> handler) {
+            Objects.requireNonNull(channel, "channel");
+            Objects.requireNonNull(handler, "handler");
+            if (closed) {
+                throw new IllegalStateException("synchronizer is closed");
+            }
+            return () -> {};
+        }
+
+        @Override
+        public void close() {
+            closed = true;
+        }
     }
 }
