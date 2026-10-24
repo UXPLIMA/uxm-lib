@@ -6,8 +6,10 @@ import java.util.Objects;
 import java.util.regex.Pattern;
 
 import com.uxplima.uxmlib.config.HoconConfig;
+import com.uxplima.uxmlib.storage.StorageException;
 import com.uxplima.uxmlib.storage.migration.Migration;
 import com.uxplima.uxmlib.storage.migration.MigrationRunner;
+import com.uxplima.uxmlib.storage.migration.SchemaIntrospector;
 
 /**
  * Where a schema keeps its rows, read from one block of a configuration file.
@@ -186,6 +188,35 @@ public record StorageSettings(
         return runner.apply(migrations.stream()
                 .map(migration -> migration.withTablePrefix(tablePrefix))
                 .toList());
+    }
+
+    /**
+     * What a health check says of this store: the backend, where it is, the prefix and the version its migrations
+     * reached, for example {@code postgresql at db:5432/minecraft, prefix rows_, schema v4}. It only reads: a store
+     * nothing has migrated says so and is given no history table for the asking. The password is never in it.
+     */
+    public String describe(Database opened) {
+        Objects.requireNonNull(opened, "opened");
+        String where = backend.isFile()
+                ? backend.id() + " file " + file
+                : backend.id() + " at " + host + ":" + port + "/" + database;
+        return where + ", " + (tablePrefix.isEmpty() ? "no prefix" : "prefix " + tablePrefix) + ", " + schema(opened);
+    }
+
+    private String schema(Database opened) {
+        String history = SqlIdentifiers.identifier(historyTable(), "history table");
+        try {
+            if (!new SchemaIntrospector(opened).tableExists(history)) {
+                return "no schema recorded";
+            }
+            return new Sql(opened)
+                    .queryFirst("SELECT MAX(version) FROM " + history, StatementBinder.NONE, row -> row.getInt(1))
+                    .filter(version -> version > 0)
+                    .map(version -> "schema v" + version)
+                    .orElse("no schema recorded");
+        } catch (StorageException unreadable) {
+            return "schema unreadable";
+        }
     }
 
     /** The password stays out of a log line or a dump. */

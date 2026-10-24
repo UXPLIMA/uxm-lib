@@ -1015,6 +1015,10 @@ try {
 }
 ```
 
+`storage.describe(db)` is the line a health check prints: the backend, where it is, the prefix and the
+schema version, as in `postgresql at db:5432/minecraft, prefix myplugin_, schema v4`. It only reads, so
+asking a store nothing has migrated leaves it as it was, and the password is never in the line.
+
 A server carries the SQLite and MySQL drivers and no other. `StorageDrivers.coordinates()` names the MariaDB
 and PostgreSQL drivers as Maven coordinates for a Paper plugin loader, so a plugin fetches them rather than
 shading a copy each. Write a migration once for all four backends: no `DOUBLE` (use `DOUBLE PRECISION`), no
