@@ -58,6 +58,31 @@ class StorageSettingsTest {
     }
 
     @Test
+    @DisplayName("local-only keeps this server on its SQLite file whatever the block names, under the same prefix")
+    void localOnlyKeepsTheServerOnItsFile() throws IOException {
+        StorageSettings settings = StorageSettings.read(
+                config("storage { type = postgresql, host = db.local, file = \"own.db\", table-prefix = \"p_\","
+                        + " pool-size = 9, local-only = true }"),
+                "storage",
+                "x.db",
+                "x_");
+
+        assertThat(settings.backend()).isEqualTo(Backend.SQLITE);
+        assertThat(settings.jdbcUrl(folder)).isEqualTo("jdbc:sqlite:" + folder.resolve("own.db"));
+        assertThat(settings.tablePrefix()).isEqualTo("p_");
+        assertThat(settings.poolSize()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("local-only off leaves the named backend alone")
+    void localOnlyOffLeavesTheBackend() throws IOException {
+        StorageSettings settings = StorageSettings.read(
+                config("storage { type = postgresql, local-only = false }"), "storage", "x.db", "x_");
+
+        assertThat(settings.backend()).isEqualTo(Backend.POSTGRESQL);
+    }
+
+    @Test
     @DisplayName("postgres is read as postgresql, and a name nobody ships is refused rather than read as SQLite")
     void anUnknownTypeIsRefused() throws IOException {
         assertThat(Backend.named("postgres")).isEqualTo(Backend.POSTGRESQL);

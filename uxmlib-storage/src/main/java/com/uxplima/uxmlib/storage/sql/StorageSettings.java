@@ -26,8 +26,13 @@ import com.uxplima.uxmlib.storage.migration.MigrationRunner;
  *   password = ""
  *   table-prefix = "rows_"
  *   pool-size = 4
+ *   local-only = false       # true keeps this one server on its sqlite file
  * }
  * </pre>
+ *
+ * <p>{@code local-only} is for a network whose servers all carry the same block: the one server that must keep
+ * rows of its own sets it, and nothing else in its file differs from the others. It then reads the block as a
+ * SQLite file under the same name and prefix.
  *
  * <p>Every key may be left out. The table prefix is written into every table name and into the history of the
  * migrations, so two schemas, or two copies of one under different prefixes, can share a database.
@@ -88,6 +93,19 @@ public record StorageSettings(
         // A shipped file cannot know which server an operator will name, so 0 stands for that server's own port
         // and changing the type alone is enough.
         int port = config.getInt(path + ".port", 0);
+        if (config.getBoolean(path + ".local-only", false)) {
+            // A file has one writer, so a pool of more connections would only wait on each other.
+            return new StorageSettings(
+                    Backend.SQLITE,
+                    config.getString(path + ".file", defaultFile),
+                    "localhost",
+                    0,
+                    DEFAULT_DATABASE,
+                    DEFAULT_DATABASE,
+                    "",
+                    config.getString(path + ".table-prefix", defaultPrefix),
+                    1);
+        }
         return new StorageSettings(
                 backend,
                 config.getString(path + ".file", defaultFile),
