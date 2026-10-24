@@ -1247,7 +1247,9 @@ its `DataSynchronizer` on the same idea: a `LocalDataSynchronizer` single-node d
 `RedisDataSynchronizer` bridges across nodes when Redis is configured. `SqlDataSynchronizer` does the same
 over a table in the database the nodes already share, for a network with no Redis: `publish` writes a row,
 `poll` (or the timer `start` sets up) reads what the other nodes wrote, and old rows are swept as it goes.
-A message is a hint to read again, never the only copy of a change.
+A message is a hint to read again, never the only copy of a change. `DataSynchronizers.forStore(storage,
+database, scheduler, every)` picks for a configured store: the in-process bus for a SQLite file or a zero
+interval, a started `SqlDataSynchronizer` on `<prefix>sync` for a database server.
 
 ```java
 bus.subscribe("party-updates", frame -> applyUpdate(frame));   // RedisBus: opaque byte[] frames

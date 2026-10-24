@@ -171,8 +171,14 @@ public final class SqlDataSynchronizer implements DataSynchronizer {
      *
      * @throws IllegalStateException if already started or closed
      */
-    public synchronized void start(Scheduler scheduler, Duration every) {
+    public void start(Scheduler scheduler, Duration every) {
         Objects.requireNonNull(scheduler, "scheduler");
+        start((period, tick) -> scheduler.asyncTimer(period, period, handle -> tick.run()), every);
+    }
+
+    // The seam the storage tests drive, since they run no server to back a real Scheduler.
+    synchronized void start(RowSyncService.RepeatingTimer repeating, Duration every) {
+        Objects.requireNonNull(repeating, "repeating");
         Objects.requireNonNull(every, "every");
         if (every.isZero() || every.isNegative()) {
             throw new IllegalArgumentException("every must be positive, got: " + every);
@@ -180,7 +186,7 @@ public final class SqlDataSynchronizer implements DataSynchronizer {
         if (closed || timer != null) {
             throw new IllegalStateException("synchronizer is already started or closed");
         }
-        timer = scheduler.asyncTimer(every, every, handle -> pollQuietly());
+        timer = repeating.schedule(every, this::pollQuietly);
     }
 
     /** Stop the timer and drop every subscription. Idempotent. */
