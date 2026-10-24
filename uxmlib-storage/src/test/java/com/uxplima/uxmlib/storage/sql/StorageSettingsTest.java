@@ -74,6 +74,23 @@ class StorageSettingsTest {
     }
 
     @Test
+    @DisplayName("a network block's own file is the SQLite file it names, under the same prefix, with one connection")
+    void aNetworkBlockNamesItsOwnFile() throws IOException {
+        StorageSettings settings = StorageSettings.read(
+                config("storage { type = postgresql, file = \"own.db\", table-prefix = \"p_\", pool-size = 9 }"),
+                "storage",
+                "x.db",
+                "x_");
+
+        StorageSettings file = settings.localFile();
+
+        assertThat(file.backend()).isEqualTo(Backend.SQLITE);
+        assertThat(file.jdbcUrl(folder)).isEqualTo("jdbc:sqlite:" + folder.resolve("own.db"));
+        assertThat(file.tablePrefix()).isEqualTo("p_");
+        assertThat(file.poolSize()).isEqualTo(1);
+    }
+
+    @Test
     @DisplayName("local-only off leaves the named backend alone")
     void localOnlyOffLeavesTheBackend() throws IOException {
         StorageSettings settings = StorageSettings.read(

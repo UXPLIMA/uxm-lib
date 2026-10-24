@@ -93,20 +93,7 @@ public record StorageSettings(
         // A shipped file cannot know which server an operator will name, so 0 stands for that server's own port
         // and changing the type alone is enough.
         int port = config.getInt(path + ".port", 0);
-        if (config.getBoolean(path + ".local-only", false)) {
-            // A file has one writer, so a pool of more connections would only wait on each other.
-            return new StorageSettings(
-                    Backend.SQLITE,
-                    config.getString(path + ".file", defaultFile),
-                    "localhost",
-                    0,
-                    DEFAULT_DATABASE,
-                    DEFAULT_DATABASE,
-                    "",
-                    config.getString(path + ".table-prefix", defaultPrefix),
-                    1);
-        }
-        return new StorageSettings(
+        StorageSettings named = new StorageSettings(
                 backend,
                 config.getString(path + ".file", defaultFile),
                 config.getString(path + ".host", "localhost"),
@@ -116,6 +103,17 @@ public record StorageSettings(
                 config.getString(path + ".password", ""),
                 config.getString(path + ".table-prefix", defaultPrefix),
                 config.getInt(path + ".pool-size", DEFAULT_POOL_SIZE));
+        return config.getBoolean(path + ".local-only", false) ? named.localFile() : named;
+    }
+
+    /**
+     * The SQLite file this block names, under the same prefix: where its rows were kept before it named a network
+     * database, and where a {@code local-only} server keeps them.
+     */
+    public StorageSettings localFile() {
+        // A file has one writer, so a pool of more connections would only wait on each other.
+        return new StorageSettings(
+                Backend.SQLITE, file, "localhost", 0, DEFAULT_DATABASE, DEFAULT_DATABASE, "", tablePrefix, 1);
     }
 
     /** The URL the driver reads. A file is resolved against {@code dataFolder}. */

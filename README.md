@@ -995,6 +995,22 @@ Database db = storage.open(dataFolder, "myplugin");
 storage.migrate(db, MigrationResources.loadRequired(loader, "db/migration"), "warps");
 ```
 
+A store that kept its rows in its SQLite file moves them when its block names a network database.
+`StorageCopy.fromFile` opens the file the block names, brings it up to date, and copies every table
+under the prefix into the target, in one transaction, parents before the tables that point at them. It
+fills empty tables only and refuses with a reason otherwise, so it never merges two sets of rows. The
+migration history and the notices table stay behind. `local-only = true` in the block keeps one server on
+that file while the others share the network database.
+
+```java
+try {
+    StorageCopy.Copied copied = StorageCopy.fromFile(storage, dataFolder, file -> storage.migrate(file, migrations, "warps"), db);
+    log.info("copied " + copied.total() + " rows");
+} catch (StorageCopy.Refused refused) {
+    // refused.reason(): ALREADY_ON_FILE, NO_FILE, TABLE_MISSING, COLUMN_MISSING or TARGET_HOLDS_ROWS
+}
+```
+
 A server carries the SQLite and MySQL drivers and no other. `StorageDrivers.coordinates()` names the MariaDB
 and PostgreSQL drivers as Maven coordinates for a Paper plugin loader, so a plugin fetches them rather than
 shading a copy each. Write a migration once for all four backends: no `DOUBLE` (use `DOUBLE PRECISION`), no
