@@ -32,7 +32,8 @@ import org.testcontainers.utility.DockerImageName;
  *
  * <p>A server starts once for the whole test run and every test gets a database of its own on it, so tests
  * never see each other's rows and a run pays for three containers, not three per test. The containers go when
- * the run ends.
+ * the run ends. The folder each database is handed is deleted when its test is over, since JUnit closes an
+ * argument that can be closed.
  */
 public final class RealDatabases implements ArgumentsProvider {
 

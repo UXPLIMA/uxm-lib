@@ -1,7 +1,12 @@
 package com.uxplima.uxmlib.storage.testing;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.Objects;
+import java.util.stream.Stream;
 
 import com.uxplima.uxmlib.storage.sql.Backend;
 import com.uxplima.uxmlib.storage.sql.Database;
@@ -13,7 +18,7 @@ import com.uxplima.uxmlib.storage.sql.StorageSettings;
  * @param settings where it is, with the table prefix the test asked for
  * @param dataFolder the folder a SQLite file is resolved against
  */
-public record RealDatabase(StorageSettings settings, Path dataFolder) {
+public record RealDatabase(StorageSettings settings, Path dataFolder) implements AutoCloseable {
 
     public RealDatabase {
         Objects.requireNonNull(settings, "settings");
@@ -38,5 +43,24 @@ public record RealDatabase(StorageSettings settings, Path dataFolder) {
     @Override
     public String toString() {
         return settings.backend().id();
+    }
+
+    /**
+     * Delete the folder it was handed, with whatever file it holds. A test run closes the database it handed
+     * an {@link EveryBackend} test once the test is over; a test that asked {@link RealDatabases#fresh} itself
+     * closes it.
+     */
+    @Override
+    public void close() {
+        if (!Files.exists(dataFolder)) {
+            return;
+        }
+        try (Stream<Path> inside = Files.walk(dataFolder)) {
+            for (Path path : inside.sorted(Comparator.reverseOrder()).toList()) {
+                Files.deleteIfExists(path);
+            }
+        } catch (IOException failure) {
+            throw new UncheckedIOException("could not delete " + dataFolder, failure);
+        }
     }
 }
