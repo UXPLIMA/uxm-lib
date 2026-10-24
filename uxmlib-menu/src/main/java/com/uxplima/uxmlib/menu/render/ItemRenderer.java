@@ -274,6 +274,10 @@ public final class ItemRenderer {
         Objects.requireNonNull(ctx, "ctx");
         String materialSpec = resolveMaterialSpec(item.material(), ctx);
         Optional<ItemStack> base = iconProviders.resolve(materialSpec, ctx);
+        if (base.isEmpty() && isAir(materialSpec)) {
+            // A file writes air on a slot it wants left empty; an empty stack is that, and the fill leaves it alone.
+            return ItemStack.empty();
+        }
         Component name = resolveText(item.name(), ctx);
         List<Component> lore = combineLore(item, base, ctx);
         // A tile writes its title on the first lore line under a blank name; a lore-less button keeps
@@ -410,6 +414,12 @@ public final class ItemRenderer {
             return ItemBuilder.of(material);
         }
         return ItemBuilder.of(Tooltips.CARRIER).itemModel(material.getKey());
+    }
+
+    /** Whether {@code name} is one of the air materials, which no stack can carry a name or a lore on. */
+    private static boolean isAir(String name) {
+        Material material = name.isBlank() ? null : Material.matchMaterial(name);
+        return material != null && material.isAir();
     }
 
     /**

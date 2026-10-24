@@ -2,9 +2,11 @@ package com.uxplima.uxmlib.menu.render;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.BiConsumer;
 
@@ -26,7 +28,9 @@ import com.uxplima.uxmlib.menu.providers.ContentProvider;
 import com.uxplima.uxmlib.menu.runtime.ActionArguments;
 import com.uxplima.uxmlib.menu.runtime.MenuContext;
 import com.uxplima.uxmlib.menu.runtime.PagedListView;
+import com.uxplima.uxmlib.menu.spec.ClickSpec;
 import com.uxplima.uxmlib.menu.spec.ContentRegionSpec;
+import com.uxplima.uxmlib.menu.spec.ItemType;
 import com.uxplima.uxmlib.menu.spec.ListSpec;
 import com.uxplima.uxmlib.menu.spec.MenuItemSpec;
 import com.uxplima.uxmlib.menu.spec.MenuSpec;
@@ -231,11 +235,47 @@ public final class MenuRenderer {
         MenuContext staticCtx = pagedAwareStaticCtx(ctx, spec, resolvedLists);
         Map<Integer, MenuItemSpec> placed = populateStatic(
                 inv, staticItems, staticCtx, clickSink, spec.pagedListItem().isPresent());
+        Set<Integer> drawn = new HashSet<>(placed.keySet());
         for (MenuItemSpec listItem : listItems) {
-            populateList(inv, listItem, ctx, staticCtx, placed, clickSink, resolvedLists);
+            drawn.addAll(populateList(inv, listItem, ctx, staticCtx, placed, clickSink, resolvedLists));
         }
+        for (ContentRegionSpec region : spec.contents().values()) {
+            drawn.addAll(region.slots().slots());
+        }
+        fillTheRest(inv, spec, staticCtx, drawn, clickSink);
         populateContent(inv, spec, ctx, initialPaint);
         held.forEach(inv::setItem);
+    }
+
+    /**
+     * Paint the window's fill into every slot nothing else drew. The loader gives the fill the slots no item names,
+     * but a slot an item names can still be left empty when the window is drawn: the item's view hides it, or a list
+     * runs short and the file layered nothing under it. Without this pass those slots were holes. A content region is
+     * the viewer's to fill and is never painted, and an item the file wrote as air counts as drawn, which is how a
+     * file keeps one slot empty on purpose. A window with no {@code fill-item} keeps its empty slots empty.
+     */
+    private void fillTheRest(
+            Inventory inv,
+            MenuSpec spec,
+            MenuContext ctx,
+            Set<Integer> drawn,
+            BiConsumer<Integer, RenderedSlot> clickSink) {
+        MenuItemSpec fill = spec.items().get(MenuSpec.FILL_ITEM_ID);
+        if (fill == null) {
+            return;
+        }
+        int top = Math.min(inv.getSize(), spec.rows() * SLOTS_PER_ROW);
+        @Nullable ItemStack painted = null;
+        for (int slot = 0; slot < top; slot++) {
+            if (drawn.contains(slot)) {
+                continue;
+            }
+            if (painted == null) {
+                painted = itemRenderer.render(fill, ctx);
+            }
+            inv.setItem(slot, painted.clone());
+            clickSink.accept(slot, new RenderedSlot(fill, null));
+        }
     }
 
     /**
@@ -330,8 +370,7 @@ public final class MenuRenderer {
         }
         MenuContext staticCtx = pagedAwareStaticCtx(ctx, spec, resolvedLists);
         boolean paged = spec.pagedListItem().isPresent();
-        Map<Integer, MenuItemSpec> placed = PriorityLayering.resolve(
-                staticItems, it -> viewPasses(it, staticCtx) && turnsAPage(it, staticCtx, paged));
+        Map<Integer, MenuItemSpec> placed = PriorityLayering.resolve(staticItems, it -> viewPasses(it, staticCtx));
         for (Map.Entry<Integer, MenuItemSpec> entry : placed.entrySet()) {
             int rawSlot = entry.getKey();
             if (rawSlot < topSize || rawSlot >= topSize + BottomSlots.PLAYER_SLOTS) {
@@ -339,7 +378,7 @@ public final class MenuRenderer {
             }
             MenuItemSpec item = entry.getValue();
             playerInv.setItem(BottomSlots.rawToPlayerSlot(rawSlot, topSize), itemRenderer.render(item, staticCtx));
-            clickSink.accept(rawSlot, new RenderedSlot(item, null));
+            clickSink.accept(rawSlot, new RenderedSlot(routedAs(item, staticCtx, paged), null));
         }
     }
 
@@ -446,8 +485,7 @@ public final class MenuRenderer {
             MenuContext ctx,
             BiConsumer<Integer, RenderedSlot> clickSink,
             boolean paged) {
-        Map<Integer, MenuItemSpec> placed =
-                PriorityLayering.resolve(staticItems, it -> viewPasses(it, ctx) && turnsAPage(it, ctx, paged));
+        Map<Integer, MenuItemSpec> placed = PriorityLayering.resolve(staticItems, it -> viewPasses(it, ctx));
         for (Map.Entry<Integer, MenuItemSpec> entry : placed.entrySet()) {
             int slot = entry.getKey();
             if (!fits(inv, slot)) {
@@ -455,13 +493,22 @@ public final class MenuRenderer {
             }
             MenuItemSpec item = entry.getValue();
             inv.setItem(slot, itemRenderer.render(item, ctx));
-            clickSink.accept(slot, new RenderedSlot(item, null));
+            clickSink.accept(slot, new RenderedSlot(routedAs(item, ctx, paged), null));
         }
         return placed;
     }
 
-    /** Page one list item's pre-resolved entries across its content slots, stamping the template once per entry. */
-    private void populateList(
+    /**
+     * Page one list item's pre-resolved entries across its content slots, stamping the template once per entry, and
+     * return the slots it drew something into.
+     *
+     * <p>A cell the page leaves without an entry shows, in this order: a decoration the file layered above the base
+     * (priority above zero), the list's {@code empty} item, the base item the file put under the list, and otherwise
+     * nothing, which the window's fill then covers. A cell that shows nothing is cleared, so a reused window (a page
+     * flip to a shorter page, a refresh that dropped entries) leaves no stale list tile behind. A restored decoration
+     * keeps the click record {@link #populateStatic} already stamped for it.
+     */
+    private Set<Integer> populateList(
             Inventory inv,
             MenuItemSpec item,
             MenuContext ctx,
@@ -475,36 +522,54 @@ public final class MenuRenderer {
         // A paged source's rows are already the page the query returned, so they are laid out at local page zero;
         // slicing them again at the viewer's page index would show page zero of an already-paged later page. Pinned
         // rows are still among the entries, so the PinnedEntry path fixes them to their claimed slot as before.
-        int renderPage = ctx.pagedViews().containsKey(listSpec.source().id()) ? 0 : ctx.page();
+        PagedListView pagedView = ctx.pagedViews().get(listSpec.source().id());
+        int renderPage = pagedView != null ? 0 : ctx.page();
         @SuppressWarnings("unchecked") // a list source's element type is opaque to the engine; entries flow as Object
         Pagination.Page<Object> page = Pagination.paginate((List<Object>) entries, contentSlots, renderPage);
-        // Clear every content slot this page does not fill, so a reused window (a page flip to a shorter page, a
-        // refresh that dropped entries) leaves no stale list tile behind. A slot backed by a deliberately layered
-        // decoration (a frame the author placed over the base backdrop, priority > 0) clears back to that decoration
-        // rather than to a bare hole, so the frame shows through where the list runs short. The base backdrop itself
-        // (priority 0) is what a list is meant to replace, so those slots still clear to empty, keeping the convention
-        // that an engine list leaves its unfilled cells bare. The click record stays the static item's, already
-        // stamped by populateStatic, so a click on a restored slot routes to it.
-        for (int slot : contentSlots) {
-            if (fits(inv, slot)) {
-                MenuItemSpec beneath = staticPlacement.get(slot);
-                if (beneath != null && beneath.priority() > 0) {
-                    inv.setItem(slot, itemRenderer.render(beneath, staticCtx));
-                } else {
-                    inv.setItem(slot, null);
-                }
-            }
+        List<Map.Entry<Integer, Object>> placements =
+                ListLayout.arrange(listSpec.align(), page.placements(), contentSlots);
+        int pageIndex = pagedView != null ? pagedView.page() : page.page();
+        int pageSize = pagedView != null ? pagedView.size() : contentSlots.size();
+        int firstPlace = pageIndex * pageSize + 1;
+        Set<Integer> drawn = new HashSet<>();
+        Map<Integer, Object> bySlot = new HashMap<>();
+        for (Map.Entry<Integer, Object> placement : placements) {
+            bySlot.put(placement.getKey(), placement.getValue());
         }
-        MenuItemSpec template = listSpec.template();
-        for (Map.Entry<Integer, Object> placement : page.placements()) {
+        int nextEmptyPlace = firstPlace + placements.size();
+        for (int slot : contentSlots) {
+            if (!fits(inv, slot) || bySlot.containsKey(slot)) {
+                continue;
+            }
+            MenuItemSpec beneath = staticPlacement.get(slot);
+            MenuItemSpec cell;
+            if (beneath != null && beneath.priority() > 0) {
+                cell = beneath;
+            } else if (listSpec.empty().isPresent()) {
+                cell = ListLayout.atPosition(listSpec.empty().get(), nextEmptyPlace++);
+                clickSink.accept(slot, new RenderedSlot(cell, null));
+            } else if (beneath != null) {
+                cell = beneath;
+            } else {
+                inv.setItem(slot, null);
+                continue;
+            }
+            inv.setItem(slot, itemRenderer.render(cell, staticCtx));
+            drawn.add(slot);
+        }
+        int place = firstPlace;
+        for (Map.Entry<Integer, Object> placement : placements) {
             int slot = placement.getKey();
             if (!fits(inv, slot)) {
                 continue;
             }
+            MenuItemSpec template = ListLayout.atPosition(listSpec.template(), place++);
             MenuContext entryCtx = ctx.withEntry(placement.getValue());
             inv.setItem(slot, itemRenderer.render(template, entryCtx));
             clickSink.accept(slot, new RenderedSlot(template, placement.getValue()));
+            drawn.add(slot);
         }
+        return drawn;
     }
 
     /**
@@ -517,10 +582,22 @@ public final class MenuRenderer {
     }
 
     /**
-     * Whether a page arrow has a page to turn to, and a jump a page to land on, so one that has none is not drawn and
-     * whatever the file layered under it shows. Only a window with a paged list is asked: its page count is the list's, and the arrows turn that
-     * list. A window with no list may page something the engine does not count, so its arrows are always drawn. Every
-     * item that is not an arrow passes.
+     * The item a click on {@code item}'s slot is routed to. An arrow is drawn whether or not it has a page to turn to,
+     * and one that has none is routed without its page role and without its click, so pressing it does nothing; a
+     * window that wants it hidden gates it on {@code has-next}, {@code has-previous} or {@code has-page}. Every other
+     * item is routed as it is.
+     */
+    private static MenuItemSpec routedAs(MenuItemSpec item, MenuContext ctx, boolean paged) {
+        if (item.type() == ItemType.NONE || turnsAPage(item, ctx, paged)) {
+            return item;
+        }
+        return item.withType(ItemType.NONE).withClick(new ClickSpec(Map.of(), Map.of()));
+    }
+
+    /**
+     * Whether a page arrow has a page to turn to, and a jump a page to land on. Only a window with a paged list is
+     * asked: its page count is the list's, and the arrows turn that list. A window with no list may page something the
+     * engine does not count, so its arrows always turn.
      */
     private static boolean turnsAPage(MenuItemSpec item, MenuContext ctx, boolean paged) {
         if (!paged) {

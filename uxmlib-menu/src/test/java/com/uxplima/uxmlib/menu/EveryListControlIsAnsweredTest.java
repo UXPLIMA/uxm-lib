@@ -22,8 +22,8 @@ import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 
 /**
- * A window may write {@code list-sort}, {@code list-filter}, {@code list-search}, {@code has-next} and
- * {@code has-previous} in any plugin, and {@link MenuBasics} answers them.
+ * A window may write {@code list-sort}, {@code list-filter}, {@code list-search}, {@code has-next},
+ * {@code has-previous} and {@code has-page} in any plugin, and {@link MenuBasics} answers them.
  *
  * <p>The window syntax had them and the engine carried them out, but nothing registered them. uxm-plots found every
  * sort, filter, search and tab button a dead click and 32 warnings at startup. A plugin that registered its own page
@@ -83,6 +83,21 @@ class EveryListControlIsAnsweredTest {
     }
 
     @Test
+    @DisplayName("a jump's condition reads whether the page it names exists")
+    void theJumpConditionReadsWhetherItsPageExists() {
+        MenuContext threePages = MenuContext.of(viewer, null, 0).withPageCount(3);
+
+        assertThat(holdsWith("has-page", "3", threePages)).isTrue();
+        assertThat(holdsWith("has-page", "4", threePages)).isFalse();
+        assertThat(holdsWith("has-page", "0", threePages))
+                .as("pages count from one")
+                .isFalse();
+        assertThat(holdsWith("has-page", "two", threePages))
+                .as("a page that is not a number")
+                .isFalse();
+    }
+
+    @Test
     @DisplayName("a plugin's own condition registered afterwards replaces the shared one and does not stop the enable")
     void aPluginsOwnConditionReplacesTheSharedOne() {
         bindings.condition("has-next", (ctx, args) -> true);
@@ -103,6 +118,10 @@ class EveryListControlIsAnsweredTest {
 
     private boolean holds(String condition, MenuContext ctx) {
         return bindings.condition(condition).orElseThrow().test(ctx, Map.of());
+    }
+
+    private boolean holdsWith(String condition, String value, MenuContext ctx) {
+        return bindings.condition(condition).orElseThrow().test(ctx, Map.of("value", value));
     }
 
     private static MenuControl recording(List<String> seen) {

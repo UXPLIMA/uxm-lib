@@ -178,6 +178,12 @@ public record MenuSpec(
     }
 
     /**
+     * The id the {@code fill-item} block is stored under, in a file the loader read and in one the in-game editor
+     * wrote back. The renderer paints this item into every slot of the window nothing else drew.
+     */
+    public static final String FILL_ITEM_ID = "__fill__";
+
+    /**
      * The count of the viewer's own inventory slots a bottom-inventory menu may additionally paint into: the 27
      * main slots plus the 9 hotbar slots shown below the chest top.
      */

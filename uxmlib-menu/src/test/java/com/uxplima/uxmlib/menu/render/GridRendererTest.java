@@ -119,28 +119,37 @@ class GridRendererTest {
     }
 
     /**
-     * The arrows are conditional: there is no page before the first and none after the last, so each column holds the
-     * control row's backdrop instead. Without this, a renderer that painted both arrows on every page would pass the
-     * two tests above.
+     * The arrows are drawn on every page, so the control row has no hole where a page is missing; one with no page to
+     * reach is not recorded as an arrow, so pressing it turns nothing. Without the second half, a renderer that
+     * recorded both arrows on every page would pass the two tests above.
      */
     @Test
-    void anArrowWithNoPageToReachIsNotPaintedAtAll() {
-        Inventory first = draw(paginating(), new GridViewState("spec", "handlers"), 0);
-        assertThat(first.getItem(45)).isEqualTo(blocker());
+    void anArrowWithNoPageToReachIsPaintedButTurnsNothing() {
+        GridViewState onFirst = new GridViewState("spec", "handlers");
+        Inventory first = draw(paginating(), onFirst, 0);
+        assertThat(first.getItem(45)).isEqualTo(prev());
+        assertThat(onFirst.isPrev(45)).isFalse();
+        assertThat(onFirst.isNext(53)).isTrue();
 
-        Inventory last = draw(paginating(), new GridViewState("spec", "handlers"), 1);
-        assertThat(last.getItem(53)).isEqualTo(blocker());
+        GridViewState onLast = new GridViewState("spec", "handlers");
+        Inventory last = draw(paginating(), onLast, 1);
+        assertThat(last.getItem(53)).isEqualTo(next());
+        assertThat(onLast.isNext(53)).isFalse();
+        assertThat(onLast.isPrev(45)).isTrue();
     }
 
-    /** A canvas that fits in one page turns no page, so neither column carries an arrow. */
+    /** A canvas that fits in one page still shows both arrows, and neither turns a page. */
     @Test
-    void aCanvasThatDoesNotPaginateCarriesNoArrows() {
+    void aCanvasThatDoesNotPaginateShowsArrowsThatTurnNothing() {
         GridSpec spec = new GridSpec(
                 Component.text("grid"), 3, Map::of, empty(), blocker(), prev(), next(), java.util.List.of());
-        Inventory inv = draw(spec, new GridViewState("spec", "handlers"), 0);
+        GridViewState state = new GridViewState("spec", "handlers");
+        Inventory inv = draw(spec, state, 0);
 
-        assertThat(inv.getItem(27)).isEqualTo(blocker());
-        assertThat(inv.getItem(35)).isEqualTo(blocker());
+        assertThat(inv.getItem(27)).isEqualTo(prev());
+        assertThat(inv.getItem(35)).isEqualTo(next());
+        assertThat(state.isPrev(27)).isFalse();
+        assertThat(state.isNext(35)).isFalse();
     }
 
     /** A caller's control is drawn in its own column of the same row, offset by that row's base slot. */

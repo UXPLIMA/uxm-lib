@@ -28,6 +28,7 @@ import com.uxplima.uxmlib.menu.providers.ContentProvider;
 import com.uxplima.uxmlib.menu.runtime.MenuContext;
 import com.uxplima.uxmlib.menu.runtime.PagedListView;
 import com.uxplima.uxmlib.menu.spec.ContentRegionSpec;
+import com.uxplima.uxmlib.menu.spec.ItemType;
 import com.uxplima.uxmlib.menu.spec.MenuItemSpec;
 import com.uxplima.uxmlib.menu.spec.MenuSpec;
 import com.uxplima.uxmlib.menu.spec.MenuSpecLoader;
@@ -100,7 +101,9 @@ class MenuRendererTest {
     void setUp() {
         MockBukkit.mock();
         viewer = MockBukkit.getMock().addPlayer();
-        ItemRenderer items = new ItemRenderer(new PlainText(), Theme::defaults, new PlaceholderRegistry());
+        PlaceholderRegistry tokens = new PlaceholderRegistry();
+        tokens.register("entry", ctx -> ctx.entry().map(String::valueOf).orElse(""));
+        ItemRenderer items = new ItemRenderer(new PlainText(), Theme::defaults, tokens);
         renderer = new MenuRenderer(items, conditions, contents);
     }
 
@@ -197,18 +200,74 @@ class MenuRendererTest {
             """;
 
     /**
-     * An arrow with no page to turn to is not drawn, and what lies under it shows. On 2026-09-23 a live sweep opened
-     * the kits and the warps windows of a server with none of either and read a previous and a next arrow on the one
-     * empty page. Thirty seven shipped windows drew their arrows that way and one gated them itself.
+     * An arrow is drawn whether or not it has a page to turn to. From 2026-09-23 the engine hid one with no page, and
+     * the window showed a hole where it stood; a window that wants an arrow only when it turns a page now says so
+     * with a view condition, see {@link #anArrowGatedOnHasNextGivesWayToWhatTheFileLayeredUnderIt}.
      */
     @Test
-    void anArrowWithNoPageToTurnToIsNotDrawn() {
+    void anArrowWithNoPageToTurnToIsStillDrawn() {
         Inventory inv = inv(18);
 
         populate(inv, spec(ARROWS), Map.of("warps", List.of("spawn")));
 
-        assertThat(materialAt(inv, 16)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
-        assertThat(materialAt(inv, 17)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+        assertThat(materialAt(inv, 16)).isEqualTo(Material.ARROW);
+        assertThat(materialAt(inv, 17)).isEqualTo(Material.ARROW);
+    }
+
+    /**
+     * A click on an arrow with no page to turn to does nothing: the slot is routed to the arrow without its page role
+     * and without its click, so neither a page flip nor the arrow's own sound runs.
+     */
+    @Test
+    void anArrowWithNoPageToTurnToIsRoutedAsAnInertItem() {
+        MenuSpec spec = spec("""
+                rows = 2
+                items {
+                  grid { slots = [0, 1], list { source = warps, template { material = PAPER } } }
+                  next {
+                    slot = 17, type = NEXT, material = ARROW, name = "next"
+                    click { left = ["sound:ui.button.click 1 1"] }
+                  }
+                }
+                """);
+
+        populate(inv(18), spec, Map.of("warps", List.of("spawn")));
+
+        RenderedSlot next = Objects.requireNonNull(routed.get(17));
+        assertThat(next.item().type()).isEqualTo(ItemType.NONE);
+        assertThat(next.item().click().hasAnyAction()).isFalse();
+    }
+
+    /** An arrow that has a page to turn to keeps its role and its click. */
+    @Test
+    void anArrowWithAPageToTurnToIsRoutedAsAnArrow() {
+        populate(inv(18), spec(ARROWS), Map.of("warps", List.of("a", "b", "c")));
+
+        assertThat(Objects.requireNonNull(routed.get(17)).item().type()).isEqualTo(ItemType.NEXT);
+    }
+
+    /**
+     * A window that wants its arrow only when there is a page writes {@code has-next} on it, and puts whatever it
+     * likes under it for the other case: here a grey dye gated on {@code !has-next}.
+     */
+    @Test
+    void anArrowGatedOnHasNextGivesWayToWhatTheFileLayeredUnderIt() {
+        conditions.register("has-next", (ctx, args) -> ctx.page() + 1 < ctx.pageCount());
+        MenuSpec spec = spec("""
+                rows = 2
+                items {
+                  grid { slots = [0, 1], list { source = warps, template { material = PAPER } } }
+                  next { slot = 17, type = NEXT, material = ARROW, name = "next", priority = 10, view = ["has-next"] }
+                  no-next { slot = 17, material = GRAY_DYE, name = "no next page", priority = 9, view = ["!has-next"] }
+                }
+                """);
+        Inventory last = inv(18);
+        populate(last, spec, Map.of("warps", List.of("spawn")));
+        Inventory first = inv(18);
+        populate(first, spec, Map.of("warps", List.of("a", "b", "c")));
+
+        assertThat(materialAt(last, 17)).isEqualTo(Material.GRAY_DYE);
+        assertThat(materialAt(first, 17)).isEqualTo(Material.ARROW);
     }
 
     /** Between the first and the last page both arrows turn a page, so both are drawn. */
@@ -258,12 +317,14 @@ class MenuRendererTest {
                 .isEqualTo(Material.PAPER);
         assertThat(materialAt(last, 10)).isNull();
         assertThat(materialAt(last, 0)).as("the one shelf stays").isEqualTo(Material.CHEST);
-        assertThat(materialAt(last, 17)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+        assertThat(Objects.requireNonNull(routed.get(17)).item().type())
+                .as("the last page of the longer list has no next page")
+                .isEqualTo(ItemType.NONE);
     }
 
-    /** On the last page the previous arrow is drawn and the next is not. */
+    /** On the last page both arrows are drawn, and only the previous one turns a page. */
     @Test
-    void theLastPageDrawsOnlyThePreviousArrow() {
+    void theLastPageDrawsBothArrowsAndOnlyThePreviousTurns() {
         Inventory inv = inv(18);
 
         renderer.populate(
@@ -274,12 +335,14 @@ class MenuRendererTest {
                 Map.of("warps", List.of("a", "b", "c")));
 
         assertThat(materialAt(inv, 16)).isEqualTo(Material.ARROW);
-        assertThat(materialAt(inv, 17)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+        assertThat(materialAt(inv, 17)).isEqualTo(Material.ARROW);
+        assertThat(Objects.requireNonNull(routed.get(16)).item().type()).isEqualTo(ItemType.PREVIOUS);
+        assertThat(Objects.requireNonNull(routed.get(17)).item().type()).isEqualTo(ItemType.NONE);
     }
 
-    /** A jump is drawn when the page it names exists, and not when it does not. */
+    /** A jump is drawn whether or not the page it names exists, and only turns to one that does. */
     @Test
-    void aJumpIsDrawnOnlyWhenItsPageExists() {
+    void aJumpIsDrawnAlwaysAndOnlyJumpsToAPageThatExists() {
         Inventory inv = inv(18);
         MenuSpec spec = spec("""
                 rows = 2
@@ -293,7 +356,9 @@ class MenuRendererTest {
         populate(inv, spec, Map.of("warps", List.of("a", "b", "c")));
 
         assertThat(materialAt(inv, 12)).isEqualTo(Material.MAP);
-        assertThat(materialAt(inv, 13)).isNull();
+        assertThat(materialAt(inv, 13)).isEqualTo(Material.MAP);
+        assertThat(Objects.requireNonNull(routed.get(12)).item().type()).isEqualTo(ItemType.JUMP);
+        assertThat(Objects.requireNonNull(routed.get(13)).item().type()).isEqualTo(ItemType.NONE);
     }
 
     /** A window with no list of its own may page something the engine does not count, so its arrows stay. */
@@ -483,12 +548,11 @@ class MenuRendererTest {
     }
 
     /**
-     * A frame an author deliberately layered over the backdrop shows through where the list runs short, and the plain
-     * backdrop does not. The rule is priority: an item placed above the base layer is decoration the author asked for,
-     * and the base layer is what a list exists to replace.
+     * Where a list runs short, what the file put under it shows: a frame layered above the base, and the base backdrop
+     * too. Until 2026-10-24 the base backdrop cleared to a bare slot, and the window showed a hole.
      */
     @Test
-    void aLayeredDecorationShowsThroughAShortListAndTheBaseBackdropDoesNot() {
+    void whatTheFileLayeredUnderAShortListShowsThroughIt() {
         Inventory inv = inv(27);
         MenuSpec spec = spec("""
                 rows = 3
@@ -503,8 +567,8 @@ class MenuRendererTest {
 
         assertThat(materialAt(inv, 0)).isEqualTo(Material.PAPER);
         assertThat(materialAt(inv, 1))
-                .as("the base backdrop is what the list replaces")
-                .isNull();
+                .as("the base backdrop shows in the gap")
+                .isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
         assertThat(materialAt(inv, 2))
                 .as("a frame the author layered above the backdrop survives the gap")
                 .isEqualTo(Material.BLUE_STAINED_GLASS_PANE);
@@ -623,6 +687,225 @@ class MenuRendererTest {
         populate(inv, spec, Map.of("warps:all", List.of("spawn", "shop", "mine")));
 
         assertThat(routed.values()).extracting(RenderedSlot::entry).containsExactly("spawn", "shop", "mine");
+    }
+
+    // -- the fill and the empty list cells ---------------------------------------------------------------------
+
+    private static final String FILLED_LIST = """
+            rows = 2
+            items {
+              grid { slots = [0, 1, 2], list { source = warps, template { material = PAPER, name = "%entry%" } } }
+            }
+            fill-item { material = GRAY_STAINED_GLASS_PANE }
+            """;
+
+    /** The fill paints a list cell the page leaves empty, so a short list leaves no hole in the window. */
+    @Test
+    void theFillPaintsAListCellThePageLeavesEmpty() {
+        Inventory inv = inv(18);
+
+        populate(inv, spec(FILLED_LIST), Map.of("warps", List.of("spawn")));
+
+        assertThat(materialAt(inv, 0)).isEqualTo(Material.PAPER);
+        assertThat(materialAt(inv, 1)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+        assertThat(materialAt(inv, 2)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+        assertThat(materialAt(inv, 17))
+                .as("the slots no item names, as before")
+                .isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+    }
+
+    /** The fill paints the slot of an item its view hides, which the file read as taken. */
+    @Test
+    void theFillPaintsTheSlotOfAnItemItsViewHides() {
+        conditions.register("never", (ctx, args) -> false);
+        Inventory inv = inv(9);
+
+        populate(inv, spec("""
+                rows = 1
+                items { secret { slot = 4, material = DIAMOND, name = "secret", view = ["never"] } }
+                fill-item { material = GRAY_STAINED_GLASS_PANE }
+                """), Map.of());
+
+        assertThat(materialAt(inv, 4)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+    }
+
+    /** A slot the file wants empty holds an item of air, and the fill leaves it alone. */
+    @Test
+    void anItemOfAirKeepsItsSlotEmptyUnderTheFill() {
+        Inventory inv = inv(9);
+
+        populate(inv, spec("""
+                rows = 1
+                items { hole { slot = 4, material = AIR } }
+                fill-item { material = GRAY_STAINED_GLASS_PANE }
+                """), Map.of());
+
+        ItemStack hole = inv.getItem(4);
+        assertThat(hole == null || hole.isEmpty()).as("slot 4 holds nothing").isTrue();
+        assertThat(materialAt(inv, 3)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+    }
+
+    /** A content region is the viewer's to fill, so the fill never paints it. */
+    @Test
+    void theFillLeavesAContentRegionEmpty() {
+        Inventory inv = inv(9);
+
+        populate(inv, spec("""
+                rows = 1
+                content { deposit { slots = [4] } }
+                fill-item { material = GRAY_STAINED_GLASS_PANE }
+                """), Map.of());
+
+        assertThat(materialAt(inv, 4)).isNull();
+        assertThat(materialAt(inv, 3)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+    }
+
+    /** A window with no fill block keeps its empty slots empty: the fill is the file's choice. */
+    @Test
+    void aWindowWithNoFillKeepsItsEmptyListCellsEmpty() {
+        Inventory inv = inv(9);
+
+        populate(inv, spec("""
+                rows = 1
+                items { grid { slots = [0, 1], list { source = warps, template { material = PAPER } } } }
+                """), Map.of("warps", List.of("spawn")));
+
+        assertThat(materialAt(inv, 1)).isNull();
+    }
+
+    private static final String EMPTY_PLACES = """
+            rows = 1
+            items {
+              board {
+                slots = [0, 1, 2, 3]
+                list {
+                  source = warps
+                  template { material = PAPER, name = "#%position% %entry%" }
+                  empty { material = SKELETON_SKULL, name = "#%position% nobody yet" }
+                }
+              }
+            }
+            fill-item { material = GRAY_STAINED_GLASS_PANE }
+            """;
+
+    /** A list's empty item fills every cell the page leaves without an entry, numbered by its place in the list. */
+    @Test
+    void aListsEmptyItemFillsEveryCellWithoutAnEntry() {
+        Inventory inv = inv(9);
+
+        populate(inv, spec(EMPTY_PLACES), Map.of("warps", List.of("spawn")));
+
+        assertThat(nameAt(inv, 0)).isEqualTo("#1 spawn");
+        assertThat(materialAt(inv, 1)).isEqualTo(Material.SKELETON_SKULL);
+        assertThat(nameAt(inv, 1)).isEqualTo("#2 nobody yet");
+        assertThat(nameAt(inv, 3)).isEqualTo("#4 nobody yet");
+    }
+
+    /** The place counts across pages, so the empty cells of the second page carry on from the first. */
+    @Test
+    void thePlaceOfAnEmptyCellCountsAcrossPages() {
+        Inventory inv = inv(9);
+
+        renderer.populate(
+                inv,
+                spec(EMPTY_PLACES),
+                MenuContext.of(viewer, null, 1),
+                routed::put,
+                Map.of("warps", List.of("a", "b", "c", "d", "e")));
+
+        assertThat(nameAt(inv, 0)).isEqualTo("#5 e");
+        assertThat(nameAt(inv, 1)).isEqualTo("#6 nobody yet");
+    }
+
+    /** A list with every cell empty still draws its empty item in each, so a board with nobody on it is not blank. */
+    @Test
+    void aListWithNoEntriesDrawsItsEmptyItemInEveryCell() {
+        Inventory inv = inv(9);
+
+        populate(inv, spec(EMPTY_PLACES), Map.of("warps", List.of()));
+
+        assertThat(nameAt(inv, 0)).isEqualTo("#1 nobody yet");
+        assertThat(materialAt(inv, 4)).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+    }
+
+    /** A decoration the file layered over a list cell wins over the empty item, as it wins over the fill. */
+    @Test
+    void aLayeredDecorationWinsOverTheEmptyItem() {
+        Inventory inv = inv(9);
+
+        populate(inv, spec("""
+                rows = 1
+                items {
+                  nobody { slot = 0, material = BARRIER, name = "nobody", priority = 7 }
+                  board {
+                    slots = [0, 1]
+                    list { source = warps, template { material = PAPER }, empty { material = SKELETON_SKULL } }
+                  }
+                }
+                """), Map.of("warps", List.of()));
+
+        assertThat(materialAt(inv, 0)).isEqualTo(Material.BARRIER);
+        assertThat(materialAt(inv, 1)).isEqualTo(Material.SKELETON_SKULL);
+    }
+
+    private static final String CENTRED = """
+            rows = 3
+            items {
+              types {
+                slots = ["10-16"]
+                list { source = types, align = center, template { material = PAPER, name = "%entry%" } }
+              }
+            }
+            """;
+
+    /** A centred list that does not fill its row sits in the middle of it. */
+    @Test
+    void aCentredListThatDoesNotFillItsRowSitsInTheMiddle() {
+        Inventory inv = inv(27);
+
+        populate(inv, spec(CENTRED), Map.of("types", List.of("a", "b", "c")));
+
+        assertThat(materialAt(inv, 10)).isNull();
+        assertThat(materialAt(inv, 11)).isNull();
+        assertThat(nameAt(inv, 12)).isEqualTo("a");
+        assertThat(nameAt(inv, 13)).isEqualTo("b");
+        assertThat(nameAt(inv, 14)).isEqualTo("c");
+        assertThat(materialAt(inv, 15)).isNull();
+    }
+
+    /** Only the last, short row of a centred list moves; the full rows above it stay as they are. */
+    @Test
+    void aCentredListMovesOnlyItsShortLastRow() {
+        Inventory inv = inv(36);
+        MenuSpec spec = spec("""
+                rows = 4
+                items {
+                  types {
+                    slots = ["10-16", "19-25"]
+                    list { source = types, align = center, template { material = PAPER, name = "%entry%" } }
+                  }
+                }
+                """);
+
+        populate(inv, spec, Map.of("types", List.of("1", "2", "3", "4", "5", "6", "7", "8", "9")));
+
+        assertThat(nameAt(inv, 10)).isEqualTo("1");
+        assertThat(nameAt(inv, 16)).isEqualTo("7");
+        assertThat(materialAt(inv, 19)).isNull();
+        assertThat(nameAt(inv, 21)).isEqualTo("8");
+        assertThat(nameAt(inv, 22)).isEqualTo("9");
+        assertThat(materialAt(inv, 23)).isNull();
+    }
+
+    /** A list with no align fills from its first slot, as every list always has. */
+    @Test
+    void aListWithNoAlignFillsFromItsFirstSlot() {
+        Inventory inv = inv(27);
+
+        populate(inv, spec(CENTRED.replace("align = center, ", "")), Map.of("types", List.of("a", "b", "c")));
+
+        assertThat(nameAt(inv, 10)).isEqualTo("a");
+        assertThat(materialAt(inv, 13)).isNull();
     }
 
     // -- the content regions ----------------------------------------------------------------------------------

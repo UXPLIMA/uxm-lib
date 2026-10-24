@@ -49,7 +49,8 @@ public final class MenuBasics {
     /**
      * Register the four verbs that need nothing but the viewer: {@code close}, {@code command},
      * {@code message} and {@code sound}, the {@code perm} condition, and the list verbs and page conditions
-     * ({@code list-sort}, {@code list-filter}, {@code list-search}, {@code has-next}, {@code has-previous}).
+     * ({@code list-sort}, {@code list-filter}, {@code list-search}, {@code has-next}, {@code has-previous},
+     * {@code has-page}).
      *
      * <p>{@code open} is not among them, because opening a menu needs the engine that holds the menus. A
      * plugin with more than one window uses {@link #register(MenuBindings, Menus)} instead.
@@ -69,7 +70,8 @@ public final class MenuBasics {
      * {@code list-filter} and {@code list-search} ({@link ListControlSyntax}) and the engine carries them out through
      * {@link com.uxplima.uxmlib.menu.runtime.MenuControl}, so a plugin that does not write its own still has working
      * sort, filter, search and tab buttons. {@code has-next} and {@code has-previous} (and the shorter
-     * {@code has-prev}) read the page the window is on.
+     * {@code has-prev}) read the page the window is on, and {@code has-page:<n>} whether page n exists. The engine
+     * draws every arrow and jump; a window that wants one only when it turns a page gates it on these.
      * A line that does not parse does nothing, as an unknown list does.
      */
     private static void registerListControls(MenuBindings bindings) {
@@ -88,6 +90,20 @@ public final class MenuBasics {
         bindings.defaultCondition("has-next", (ctx, args) -> ctx.page() + 1 < ctx.pageCount());
         bindings.defaultCondition("has-previous", (ctx, args) -> ctx.page() > 0);
         bindings.defaultCondition("has-prev", (ctx, args) -> ctx.page() > 0);
+        bindings.defaultCondition("has-page", MenuBasics::hasPage);
+    }
+
+    /**
+     * Whether the page {@code has-page:<n>} names exists, counted from one as a jump counts it. A value that is not a
+     * whole number names no page.
+     */
+    private static boolean hasPage(MenuContext ctx, Map<String, String> args) {
+        try {
+            int page = Integer.parseInt(args.getOrDefault("value", "").strip());
+            return page >= 1 && page <= ctx.pageCount();
+        } catch (NumberFormatException notANumber) {
+            return false;
+        }
     }
 
     /** Whether the viewer holds the node the line names. A blank node is held by nobody, operators included. */

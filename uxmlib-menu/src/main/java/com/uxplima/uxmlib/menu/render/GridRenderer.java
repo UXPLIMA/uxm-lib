@@ -84,7 +84,11 @@ public final class GridRenderer {
         }
     }
 
-    /** Paint the control row: a blocker backdrop, the conditional prev/next buttons, then the caller's controls. */
+    /**
+     * Paint the control row: a blocker backdrop, both arrows, then the caller's controls. Both arrows are painted on
+     * every page so the row has no hole where a page is missing; only an arrow with a page to reach is recorded as one,
+     * so pressing the other turns nothing.
+     */
     private void paintControls(
             Inventory inv, GridSpec spec, GridViewState state, int contentRows, int page, int pageCount) {
         int base = contentRows * GridSpec.COLUMNS;
@@ -93,13 +97,13 @@ public final class GridRenderer {
         }
         OptionalInt prev = OptionalInt.empty();
         OptionalInt next = OptionalInt.empty();
+        inv.setItem(base + GridSpec.PREV_COLUMN, spec.prevIcon());
+        inv.setItem(base + GridSpec.NEXT_COLUMN, spec.nextIcon());
         if (page > 0) {
             prev = OptionalInt.of(base + GridSpec.PREV_COLUMN);
-            inv.setItem(prev.getAsInt(), spec.prevIcon());
         }
         if (page < pageCount - 1) {
             next = OptionalInt.of(base + GridSpec.NEXT_COLUMN);
-            inv.setItem(next.getAsInt(), spec.nextIcon());
         }
         state.recordNav(prev, next);
         for (GridSpec.Control control : spec.controls()) {

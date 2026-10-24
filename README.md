@@ -736,8 +736,16 @@ What the engine adds over a plain layout reader:
   that remain close up and the page count follows them, and the Bedrock form reads the same two gates. An
   entry that implements `PageBreak` ends the page it meets rather than taking a slot on it, which is how a
   list of runs that belong together is drawn one run to a page. A `next` or `previous` arrow, and a `jump`
-  to the page its `to-page` names (counted from one), is drawn only when there is a page to go to, so the
-  one page of a short list shows no arrows and whatever the file layered under them shows instead.
+  to the page its `to-page` names (counted from one), is drawn on every page, and one with no page to go to
+  does nothing when pressed. A file that wants it only when it turns a page writes `view = ["has-next"]`,
+  `["has-previous"]` or `["has-page:3"]` on it, and may put anything under it for the other case, such as a
+  grey dye gated on `!has-next`. A list's `empty { }` item is drawn in each cell a page leaves without an
+  entry, and `%position%` in it, or in the template, is the place of that cell in the whole list, counted
+  from one: a leaderboard writes `#%position% nobody yet`. `align = center` puts the short last row of a
+  page in the middle of its row.
+- **A fill with no holes.** The `fill-item` is painted into every slot nothing else drew when the window
+  is drawn: a list cell with no entry and no `empty` item, an item its `view` hid. A content region is
+  the viewer's and is never painted. An item written `material = AIR` keeps its slot empty on purpose.
 - **An expression language.** Any rendered line may carry a `{math: ...}` block, evaluated after the
   placeholders in it are substituted: `{math: %price% * %amount%}`, `{math: min(%stock%, 45)}`. Seven
   functions are callable and nothing else (`min`, `max`, `abs`, `floor`, `ceil`, `round`, `sqrt`), and a

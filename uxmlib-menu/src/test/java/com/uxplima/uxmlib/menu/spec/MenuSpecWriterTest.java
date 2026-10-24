@@ -439,6 +439,24 @@ class MenuSpecWriterTest {
                 """);
     }
 
+    /** A list's empty item and its alignment are the file's, so a save from the in-game editor keeps both. */
+    @Test
+    void roundTripsAListWithAnEmptyItemAndAnAlignment() {
+        MenuSpec spec = assertRoundTrips("""
+                rows = 2
+                items { a { slots = ["0-8"], material = AIR, list {
+                  source = "shop:entries"
+                  align = center
+                  template { material = STONE, name = "#%position% %entry_name%" }
+                  empty { material = SKELETON_SKULL, name = "#%position% nobody yet" }
+                } } }
+                """);
+
+        ListSpec list = item(spec, "a").list().orElseThrow();
+        assertThat(list.align()).isEqualTo(ListAlign.CENTER);
+        assertThat(list.empty()).map(MenuItemSpec::material).contains("SKELETON_SKULL");
+    }
+
     @Test
     void roundTripsAListWithNeitherPageSizeNorSorts() {
         assertRoundTrips("""

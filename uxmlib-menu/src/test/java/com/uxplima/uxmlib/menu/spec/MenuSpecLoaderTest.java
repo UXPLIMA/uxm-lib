@@ -604,6 +604,28 @@ class MenuSpecLoaderTest {
                 .isEqualTo(6);
     }
 
+    /** A list with no align fills from its first slot and has no empty item, as every list before them did. */
+    @Test
+    void aListWithNoAlignOrEmptyItemStartsAtItsFirstSlotWithNoEmptyItem() {
+        MenuSpec spec = new MenuSpecLoader()
+                .parse("rows = 1\nitems { a { slots = [0, 1], list { source = s, template { material = STONE } } } }");
+        ListSpec list =
+                java.util.Objects.requireNonNull(spec.items().get("a")).list().orElseThrow();
+
+        assertThat(list.align()).isEqualTo(ListAlign.START);
+        assertThat(list.empty()).isEmpty();
+    }
+
+    /** An alignment the engine does not know is refused by name rather than read as the default. */
+    @Test
+    void anUnknownListAlignIsRefused() {
+        assertThatThrownBy(() -> new MenuSpecLoader()
+                        .parse("rows = 1\nitems { a { slots = [0], list { source = s, align = middle, "
+                                + "template { material = STONE } } } }"))
+                .isInstanceOf(MenuSpecException.class)
+                .hasMessageContaining("middle");
+    }
+
     @Test
     void aListTemplateSlotAlsoSizesTheChest() {
         MenuSpec spec = new MenuSpecLoader()

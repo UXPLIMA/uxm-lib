@@ -45,7 +45,7 @@ public final class MenuSpecLoader {
     private static final int BOTTOM_SLOTS = 36;
 
     /** The reserved id the auto-fill background item is stored under; an operator item of the same id is overwritten. */
-    private static final String FILL_ITEM_ID = "__fill__";
+    private static final String FILL_ITEM_ID = MenuSpec.FILL_ITEM_ID;
 
     /** The auto-fill background sits at the lowest possible priority, so any real item always wins a slot they share. */
     private static final int FILL_PRIORITY = Integer.MIN_VALUE;
@@ -1130,7 +1130,8 @@ public final class MenuSpecLoader {
      * Parse an item's optional {@code list { }} block. Beyond the {@code source} reference and the {@code template}
      * stamped once per entry it reads two optional paged-source knobs: {@code page-size} (absent → {@code 0} → derive
      * the page from the item's slot count, the historic behaviour) and {@code sorts} (absent → empty → the source's
-     * default order). A negative {@code page-size} is rejected by the {@link ListSpec} constructor, surfacing as a
+     * default order), and two choices about the cells a page leaves short: an {@code empty} item drawn in each, and
+     * {@code align} ({@code start} or {@code center}). A negative {@code page-size} is rejected by the {@link ListSpec} constructor, surfacing as a
      * {@link MenuSpecException} that names the item. An absent block yields {@link Optional#empty()}, so an item
      * without one parses exactly as before.
      */
@@ -1141,7 +1142,14 @@ public final class MenuSpecLoader {
         Ref source = Ref.parse(Objects.requireNonNull(node.node("source").getString(), "list.source"));
         MenuItemSpec template = parseItem(node.node("template"), slotCeiling, patterns);
         int pageSize = node.node("page-size").getInt(0);
-        return Optional.of(new ListSpec(source, template, pageSize, strings(node.node("sorts"))));
+        ConfigurationNode emptyNode = node.node("empty");
+        Optional<MenuItemSpec> empty = emptyNode.virtual() || emptyNode.isNull()
+                ? Optional.empty()
+                : Optional.of(parseItem(emptyNode, slotCeiling, patterns));
+        String alignName = node.node("align").getString("start");
+        ListAlign align = ListAlign.parse(alignName)
+                .orElseThrow(() -> new MenuSpecException("list.align is start or center, got: '" + alignName + "'"));
+        return Optional.of(new ListSpec(source, template, pageSize, strings(node.node("sorts")), empty, align));
     }
 
     /**

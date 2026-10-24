@@ -499,7 +499,13 @@ public final class MenuSpecWriter {
             node.node("page-size").set(list.pageSize());
         }
         writeStringsIfAny(node.node("sorts"), list.sorts());
+        if (list.align() != ListAlign.START) {
+            node.node("align").set(list.align().name().toLowerCase(Locale.ROOT));
+        }
         writeItem(node.node("template"), list.template());
+        if (list.empty().isPresent()) {
+            writeItem(node.node("empty"), list.empty().get());
+        }
     }
 
     private void writeItemDrag(CommentedConfigurationNode node, ItemDragSpec drag) throws SerializationException {
