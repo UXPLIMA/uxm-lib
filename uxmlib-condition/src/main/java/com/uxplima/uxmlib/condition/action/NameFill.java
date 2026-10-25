@@ -26,10 +26,11 @@ public final class NameFill {
     public static final List<String> TOKENS = List.of("%player%", "<player>", "{player}");
 
     /**
-     * What an account name holds: letters, digits and underscores, up to sixteen, after at most one of the marks a
-     * Bedrock bridge may put in front of a name.
+     * What an account name holds: letters, digits and underscores, up to sixteen, after at most one of the two marks a
+     * Bedrock bridge puts in front of a name, a dot by default and a star in its older versions. Other marks are not
+     * taken: a leading dash reads as a flag and a leading tilde as a relative coordinate in many commands.
      */
-    private static final Pattern ACCOUNT = Pattern.compile("[.*!~+\\-]?[A-Za-z0-9_]{1,16}");
+    private static final Pattern ACCOUNT = Pattern.compile("[.*]?[A-Za-z0-9_]{1,16}");
 
     private NameFill() {}
 

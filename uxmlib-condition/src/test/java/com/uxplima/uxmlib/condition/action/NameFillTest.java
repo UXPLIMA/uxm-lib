@@ -31,9 +31,14 @@ class NameFillTest {
                 "x'y",
                 "a{b}",
                 "a|b",
-                "x%player%"
+                "x%player%",
+                "-flag",
+                "~1",
+                "!not",
+                "+plus"
             })
-    @DisplayName("a name with a space, a bracket, a quote, a brace or too many letters is not")
+    @DisplayName("a name with a space, a bracket, a quote, a brace, a leading mark a command reads, or too many letters"
+            + " is not")
     void otherNames(String name) {
         assertThat(NameFill.isAccountName(name)).isFalse();
     }
