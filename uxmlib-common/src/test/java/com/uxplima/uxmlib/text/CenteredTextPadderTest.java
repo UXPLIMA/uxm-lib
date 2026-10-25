@@ -3,6 +3,9 @@ package com.uxplima.uxmlib.text;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNullPointerException;
 
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
+
 import org.junit.jupiter.api.Test;
 
 @org.jspecify.annotations.NullUnmarked
@@ -37,5 +40,34 @@ class CenteredTextPadderTest {
     @Test
     void rejects_null() {
         assertThatNullPointerException().isThrownBy(() -> CenteredTextPadder.pad(null, false));
+    }
+
+    @Test
+    void a_component_is_measured_run_by_run_with_its_own_boldness() {
+        // "Hi" in bold (7 + 3 = 10px) then " there" plain: the bold run is the only one that grows.
+        Component line = Component.text()
+                .append(Component.text("Hi").decorate(TextDecoration.BOLD))
+                .append(Component.text(" there"))
+                .build();
+        int width = 10 + GlyphWidthTable.widthOf(" there", false);
+        assertThat(CenteredTextPadder.pad(line)).isEqualTo(" ".repeat((320 - width) / 2 / 4));
+    }
+
+    @Test
+    void bold_is_inherited_by_children_and_can_be_turned_off_again() {
+        Component line = Component.text("A")
+                .decorate(TextDecoration.BOLD)
+                .append(Component.text("B"))
+                .append(Component.text("C").decoration(TextDecoration.BOLD, false));
+        int width = GlyphWidthTable.widthOf("AB", true) + GlyphWidthTable.widthOf("C", false);
+        assertThat(CenteredTextPadder.pad(line)).isEqualTo(" ".repeat((320 - width) / 2 / 4));
+    }
+
+    @Test
+    void a_centred_line_is_the_padding_then_the_line() {
+        Component line = Component.text("Hi");
+        assertThat(net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText()
+                        .serialize(CenteredTextPadder.centred(line)))
+                .isEqualTo(" ".repeat(39) + "Hi");
     }
 }
