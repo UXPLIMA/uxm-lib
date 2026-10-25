@@ -79,6 +79,17 @@ class PlaceholderWalletTest {
     }
 
     @Test
+    @DisplayName("a name no account could have is never written into a line, so nothing is taken or paid")
+    void refusesAstrangeName() {
+        ((org.mockbukkit.mockbukkit.entity.PlayerMock) ada).setName("a b");
+        PlaceholderWallet paying = new PlaceholderWallet(Map.of("", PAYING), this::read, this::run);
+
+        assertThat(paying.withdraw(ada, "", 40)).isFalse();
+        assertThat(paying.deposit(ada, "", 40)).isFalse();
+        assertThat(sent).isEmpty();
+    }
+
+    @Test
     @DisplayName("a take of more than the player has sends nothing at all")
     void refusesToTakeWhatIsNotThere() {
         assertThat(wallet().withdraw(ada, "", 140)).isFalse();

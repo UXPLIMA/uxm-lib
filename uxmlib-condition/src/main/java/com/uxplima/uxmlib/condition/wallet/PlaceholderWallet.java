@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.bukkit.entity.Player;
 
 import com.uxplima.uxmlib.condition.Wallet;
+import com.uxplima.uxmlib.condition.action.NameFill;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -145,7 +146,7 @@ public final class PlaceholderWallet implements Wallet {
         if (balance(player, currency) < amount) {
             return false;
         }
-        return console.run(line(pool.take(), player, amount));
+        return line(pool.take(), player, amount).map(console::run).orElse(false);
     }
 
     /**
@@ -166,7 +167,7 @@ public final class PlaceholderWallet implements Wallet {
         if (player == null || pool == null || pool.give() == null) {
             return false;
         }
-        return console.run(line(pool.give(), player, amount));
+        return line(pool.give(), player, amount).map(console::run).orElse(false);
     }
 
     /**
@@ -174,14 +175,17 @@ public final class PlaceholderWallet implements Wallet {
      *
      * <p>The amount goes in as plain digits with no grouping and no currency name, because what a number
      * looks like to a player is the plugin's business and what a command wants is a number.
+     *
+     * <p>Empty when the line names the player and the name is not one an account could have: a server told to check
+     * names less lets one hold a space, which would add an argument to the command. No line is then sent, and the
+     * take or the pay-out reads as refused.
      */
-    private static String line(String template, Player player, double amount) {
-        String name = player.getName();
-        return template.replace("{player}", name)
-                .replace("{uuid}", player.getUniqueId().toString())
-                .replace(
-                        "{amount}",
-                        BigDecimal.valueOf(amount).stripTrailingZeros().toPlainString());
+    private static Optional<String> line(String template, Player player, double amount) {
+        return NameFill.into(template, player.getName())
+                .map(named -> named.replace("{uuid}", player.getUniqueId().toString())
+                        .replace(
+                                "{amount}",
+                                BigDecimal.valueOf(amount).stripTrailingZeros().toPlainString()));
     }
 
     /** The number in the text a placeholder answered with, absent when there is none. */
