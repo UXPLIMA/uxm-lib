@@ -18,12 +18,16 @@ import java.util.regex.Pattern;
  * a name an account could not have is never filled in: the line that would carry it is not run. A name an account
  * could have holds none of those characters and is filled in as it is.
  *
- * <p>Every spelling a line may use is filled: {@code %player%}, {@code <player>} and {@code {player}}.
+ * <p>Every spelling a line may use is filled: {@code %player%}, {@code <player>}, {@code {player}} and
+ * {@code %player_name%}.
  */
 public final class NameFill {
 
-    /** The spellings of the player's name a line may use. */
-    public static final List<String> TOKENS = List.of("%player%", "<player>", "{player}");
+    /**
+     * The spellings of the player's name a line may use. {@code %player_name%} is PlaceholderAPI's, and it is filled
+     * here too because the engine would otherwise fill it later, as text, with no check at all.
+     */
+    public static final List<String> TOKENS = List.of("%player_name%", "%player%", "<player>", "{player}");
 
     /**
      * What an account name holds: letters, digits and underscores, up to sixteen, after at most one of the two marks a

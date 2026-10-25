@@ -1226,8 +1226,8 @@ A plugin that fills the player's name into a line itself, before the engine read
 `NameFill`. The server can be told to let a name hold a space, a bracket, a quote or a brace, and such a
 name would add an argument to a command, open a tag in a message, close a tag's argument or reach the
 `{delay=..}` grammar. No escape covers every place a name can land, so `NameFill` fills `%player%`,
-`<player>` and `{player}` only with a name an account could have, and returns nothing for a line that
-names any other:
+`<player>`, `{player}` and `%player_name%` only with a name an account could have, and returns nothing
+for a line that names any other:
 
 ```java
 for (String line : lines) {

@@ -49,6 +49,7 @@ class NameFillTest {
         assertThat(NameFill.into("[console] give %player% cake", "Alex")).contains("[console] give Alex cake");
         assertThat(NameFill.into("[message] hi <player> and {player}", "Alex")).contains("[message] hi Alex and Alex");
         assertThat(NameFill.into("give {player} cake", "Alex")).contains("give Alex cake");
+        assertThat(NameFill.into("give %player_name% cake", "Alex")).contains("give Alex cake");
     }
 
     @Test
@@ -58,6 +59,7 @@ class NameFillTest {
         assertThat(NameFill.into("  [PLAYER] {delay=20} spawn <player>", "x<red>"))
                 .isEmpty();
         assertThat(NameFill.into("give %player% cake", "a b")).isEmpty();
+        assertThat(NameFill.into("give %player_name% cake", "a b")).isEmpty();
     }
 
     @Test
