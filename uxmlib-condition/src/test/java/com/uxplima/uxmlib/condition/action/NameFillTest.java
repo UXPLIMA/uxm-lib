@@ -18,8 +18,22 @@ class NameFillTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "a b", "x<red>", "Seventeen_letters", "semi;colon", "quote\"d", "back\\slash", ".."})
-    @DisplayName("a name with a space, a bracket, a quote or too many letters is not")
+    @ValueSource(
+            strings = {
+                "",
+                "a b",
+                "x<red>",
+                "Seventeen_letters",
+                "semi;colon",
+                "quote\"d",
+                "back\\slash",
+                "..",
+                "x'y",
+                "a{b}",
+                "a|b",
+                "x%player%"
+            })
+    @DisplayName("a name with a space, a bracket, a quote, a brace or too many letters is not")
     void otherNames(String name) {
         assertThat(NameFill.isAccountName(name)).isFalse();
     }
@@ -27,39 +41,34 @@ class NameFillTest {
     @Test
     @DisplayName("every spelling of the name is filled, in a command and in a text")
     void everySpellingIsFilled() {
-        assertThat(NameFill.intoEffect("[console] give %player% cake", "Alex")).contains("[console] give Alex cake");
-        assertThat(NameFill.intoEffect("[message] hi <player> and {player}", "Alex"))
-                .contains("[message] hi Alex and Alex");
-        assertThat(NameFill.intoCommand("give {player} cake", "Alex")).contains("give Alex cake");
+        assertThat(NameFill.into("[console] give %player% cake", "Alex")).contains("[console] give Alex cake");
+        assertThat(NameFill.into("[message] hi <player> and {player}", "Alex")).contains("[message] hi Alex and Alex");
+        assertThat(NameFill.into("give {player} cake", "Alex")).contains("give Alex cake");
     }
 
     @Test
     @DisplayName("a name that is not an account's never reaches a command: the line is skipped")
     void aStrangeNameNeverReachesACommand() {
-        assertThat(NameFill.intoEffect("[console] give %player% cake", "a b")).isEmpty();
-        assertThat(NameFill.intoEffect("  [PLAYER] {delay=20} spawn <player>", "x<red>"))
+        assertThat(NameFill.into("[console] give %player% cake", "a b")).isEmpty();
+        assertThat(NameFill.into("  [PLAYER] {delay=20} spawn <player>", "x<red>"))
                 .isEmpty();
-        assertThat(NameFill.intoCommand("give %player% cake", "a b")).isEmpty();
+        assertThat(NameFill.into("give %player% cake", "a b")).isEmpty();
     }
 
     @Test
-    @DisplayName("a name that is not an account's reaches a text as text, never as markup")
-    void aStrangeNameIsTextInAText() {
-        assertThat(NameFill.intoEffect("[message] hi <player>", "x<red>")).contains("[message] hi x\\<red>");
-        assertThat(NameFill.intoEffect("[title] {player} | welcome", "x<red>")).contains("[title] x\\<red> | welcome");
+    @DisplayName("nor a text, where it could close a quoted tag argument or open a modifier: the line is skipped")
+    void aStrangeNameNeverReachesAText() {
+        assertThat(NameFill.into("[message] hi <player>", "x<red>")).isEmpty();
+        assertThat(NameFill.into("[message] <click:run_command:'/msg <player>'>reply", "x' y"))
+                .isEmpty();
+        assertThat(NameFill.into("[title] {player} | welcome", "a|b")).isEmpty();
+        assertThat(NameFill.into("hi <player>", "a{delay=1}")).isEmpty();
     }
 
     @Test
     @DisplayName("a line that does not name the player is left as it is, whatever the name")
     void aLineWithoutTheNameIsUnchanged() {
-        assertThat(NameFill.intoEffect("[console] say hello", "a b")).contains("[console] say hello");
-        assertThat(NameFill.intoCommand("say hello", "a b")).contains("say hello");
-    }
-
-    @Test
-    @DisplayName("a line the engine will refuse anyway is not a command, so the name reaches it escaped")
-    void anUnknownVerbIsNotACommand() {
-        assertThat(NameFill.intoEffect("[shout] <player>", "x<red>")).contains("[shout] x\\<red>");
-        assertThat(NameFill.intoEffect("hi <player>", "x<red>")).contains("hi x\\<red>");
+        assertThat(NameFill.into("[console] say hello", "a b")).contains("[console] say hello");
+        assertThat(NameFill.into("[message] hello", "x<red>")).contains("[message] hello");
     }
 }

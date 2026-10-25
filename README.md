@@ -1223,20 +1223,21 @@ ActionList.parse(List.of(
 ```
 
 A plugin that fills the player's name into a line itself, before the engine reads it, goes through
-`NameFill`. The server can be told to let a name hold a space or a bracket, and such a name would add an
-argument to a command or open a tag in a message. `NameFill` fills `%player%`, `<player>` and `{player}`,
-skips a `[console]` or `[player]` line rather than run it with a name an account could not have, and
-escapes that name in any other line:
+`NameFill`. The server can be told to let a name hold a space, a bracket, a quote or a brace, and such a
+name would add an argument to a command, open a tag in a message, close a tag's argument or reach the
+`{delay=..}` grammar. No escape covers every place a name can land, so `NameFill` fills `%player%`,
+`<player>` and `{player}` only with a name an account could have, and returns nothing for a line that
+names any other:
 
 ```java
 for (String line : lines) {
-    NameFill.intoEffect(line, player.getName())
+    NameFill.into(line, player.getName())
             .ifPresentOrElse(
                     filled -> ActionList.parse(List.of(filled)).run(context),
-                    () -> log.warn("skipped, the name cannot stand in a command: {}", line));
+                    () -> log.warn("skipped, the name is not one an account could have: {}", line));
 }
-// A plain command with no verb in front of it:
-NameFill.intoCommand("give %player% diamond", player.getName()).ifPresent(console::dispatch);
+// A plain command with no verb in front of it reads the same way:
+NameFill.into("give %player% diamond", player.getName()).ifPresent(console::dispatch);
 ```
 
 `MoneyCondition`, `[take-money]` and any plugin that owes a player money read through a `Wallet`, and
