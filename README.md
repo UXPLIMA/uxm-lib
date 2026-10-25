@@ -1222,6 +1222,23 @@ ActionList.parse(List.of(
         "[console] heal %player_name%")).run(context);
 ```
 
+A plugin that fills the player's name into a line itself, before the engine reads it, goes through
+`NameFill`. The server can be told to let a name hold a space or a bracket, and such a name would add an
+argument to a command or open a tag in a message. `NameFill` fills `%player%`, `<player>` and `{player}`,
+skips a `[console]` or `[player]` line rather than run it with a name an account could not have, and
+escapes that name in any other line:
+
+```java
+for (String line : lines) {
+    NameFill.intoEffect(line, player.getName())
+            .ifPresentOrElse(
+                    filled -> ActionList.parse(List.of(filled)).run(context),
+                    () -> log.warn("skipped, the name cannot stand in a command: {}", line));
+}
+// A plain command with no verb in front of it:
+NameFill.intoCommand("give %player% diamond", player.getName()).ifPresent(console::dispatch);
+```
+
 `MoneyCondition`, `[take-money]` and any plugin that owes a player money read through a `Wallet`, and
 `com.uxplima.uxmlib.condition.wallet`
 ships the backends. Each one is soft: the plugin manager is asked before any type of another plugin is
