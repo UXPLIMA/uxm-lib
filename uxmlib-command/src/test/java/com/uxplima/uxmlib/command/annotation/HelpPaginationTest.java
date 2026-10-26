@@ -120,6 +120,38 @@ class HelpPaginationTest {
         assertThat(hasHover(page, HoverEvent.showText(pageHint))).isTrue();
     }
 
+    /**
+     * The page buttons are worded by the messages too. They were the only part of the page written into the renderer,
+     * in English and in fixed colours, so a Turkish reader saw "« prev" and "next »" under a Turkish page.
+     */
+    @Test
+    void thePageButtonsAreWordedByTheMessagesItIsGiven() {
+        CommandMessages messages = new CommandMessages() {
+            @Override
+            public Component helpPrevious(Locale locale) {
+                return Component.text("« önceki");
+            }
+
+            @Override
+            public Component helpNext(Locale locale) {
+                return Component.text("sonraki »");
+            }
+        };
+
+        Component page =
+                HelpRenderer.render("town", many(20), 2, HelpRenderer.PER_PAGE, messages, Locale.forLanguageTag("tr"));
+
+        String text = PlainTextComponentSerializer.plainText().serialize(page);
+        assertThat(text)
+                .contains("« önceki")
+                .contains("sonraki »")
+                .doesNotContain("prev")
+                .doesNotContain("next");
+        assertThat(text.indexOf("« önceki")).isLessThan(text.indexOf("sonraki »"));
+        assertThat(hasClick(page, ClickEvent.runCommand("/town help 1"))).isTrue();
+        assertThat(hasClick(page, ClickEvent.runCommand("/town help 3"))).isTrue();
+    }
+
     @Test
     void aPageRenderedWithoutAMessageLayerKeepsTheEnglishChrome() {
         Component page = HelpRenderer.render("town", many(20), 1, HelpRenderer.PER_PAGE);

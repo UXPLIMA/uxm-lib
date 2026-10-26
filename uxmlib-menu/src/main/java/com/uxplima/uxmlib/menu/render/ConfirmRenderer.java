@@ -1,5 +1,7 @@
 package com.uxplima.uxmlib.menu.render;
 
+import java.util.Objects;
+
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -10,36 +12,29 @@ import com.uxplima.uxmlib.item.ItemBuilder;
 import org.jspecify.annotations.NullMarked;
 
 /**
- * Paints the engine's two-button confirm window, keeping the geometry of the confirm window {@code uxmlib-gui} used
- * to ship: a three-row inventory with a lime-wool yes button at slot 11 and a red-wool no button at slot 15, so a
- * migrated caller meets the same window it always did. The decision carried by each button (what yes and no run) is the {@code
- * ConfirmState} on the holder; this renderer only places the icons and reports the two slots it used, which the façade
- * records onto that state so the one listener can route a click back to the right decision.
+ * Paints the engine's two-button confirm window. The decision carried by each button (what yes and no run) is the
+ * {@code ConfirmState} on the holder; this renderer only places the two buttons where the {@link ConfirmLook} puts
+ * them, which the façade records onto that state so the one listener can route a click back to the right decision.
  *
- * <p>The window's meaning is the title the caller resolved from a {@code String}; the buttons themselves carry no
- * inline text (an empty name), so the confirm window adds no user-facing literal of its own.
+ * <p>Each button carries the word it is handed, which the façade reads from the viewer's catalogue. A button with an
+ * empty name is not wordless: the client fills the gap with the block's own English name.
  */
 @NullMarked
 public final class ConfirmRenderer {
 
-    /** The three-row geometry the uxmLib confirm window used, so a migrated caller meets an identical layout. */
-    public static final int ROWS = 3;
-
-    /** The yes (confirm) button slot, byte-for-byte the slot the removed {@code uxmlib-gui} window confirmed on. */
-    public static final int YES_SLOT = 11;
-
-    /** The no (cancel) button slot, byte-for-byte the slot the removed {@code uxmlib-gui} window cancelled on. */
-    public static final int NO_SLOT = 15;
-
     public ConfirmRenderer() {}
 
-    /** Place the lime yes button at {@link #YES_SLOT} and the red no button at {@link #NO_SLOT} in {@code inv}. */
-    public void populate(Inventory inv) {
-        inv.setItem(YES_SLOT, button(Material.LIME_WOOL));
-        inv.setItem(NO_SLOT, button(Material.RED_WOOL));
+    /** Place the yes and no buttons of {@code look} in {@code inv}, named {@code yes} and {@code no}. */
+    public void populate(Inventory inv, ConfirmLook look, Component yes, Component no) {
+        Objects.requireNonNull(inv, "inv");
+        Objects.requireNonNull(look, "look");
+        Objects.requireNonNull(yes, "yes");
+        Objects.requireNonNull(no, "no");
+        inv.setItem(look.yesSlot(), button(look.yesMaterial(), yes));
+        inv.setItem(look.noSlot(), button(look.noMaterial(), no));
     }
 
-    private static ItemStack button(Material material) {
-        return ItemBuilder.of(material).name(Component.empty()).build();
+    private static ItemStack button(Material material, Component name) {
+        return ItemBuilder.of(material).name(name).build();
     }
 }

@@ -44,6 +44,7 @@ import com.uxplima.uxmlib.menu.property.EditableProperty;
 import com.uxplima.uxmlib.menu.property.PropertyClick;
 import com.uxplima.uxmlib.menu.property.SelectorButton;
 import com.uxplima.uxmlib.menu.property.SelectorOpener;
+import com.uxplima.uxmlib.menu.render.ConfirmLook;
 import com.uxplima.uxmlib.menu.render.ConfirmRenderer;
 import com.uxplima.uxmlib.menu.render.EditorRenderer;
 import com.uxplima.uxmlib.menu.render.GridRenderer;
@@ -143,6 +144,9 @@ public final class Menus {
      */
     private final BedrockScreen bedrockScreen;
 
+    /** Where the confirm window puts its two buttons and which blocks they are: the host's look, or the standard. */
+    private final ConfirmLook confirmLook;
+
     /** Paints the two-button confirm window; stateless, so one instance serves every confirm open. */
     private final ConfirmRenderer confirmRenderer = new ConfirmRenderer();
 
@@ -189,6 +193,7 @@ public final class Menus {
         this.lastMenu = builder.lastMenu;
         this.bedrock = builder.bedrock;
         this.bedrockScreen = builder.bedrockScreen;
+        this.confirmLook = builder.confirmLook;
         this.pagedLists = builder.pagedLists;
         this.forms = new BedrockForms(
                 renderer,
@@ -219,6 +224,7 @@ public final class Menus {
         private @Nullable LastMenu lastMenu;
         private BedrockDetector bedrock = BedrockDetector.NONE;
         private BedrockScreen bedrockScreen = BedrockScreen.NONE;
+        private ConfirmLook confirmLook = ConfirmLook.STANDARD;
         private PagedListSourceRegistry pagedLists = new PagedListSourceRegistry();
 
         private Builder(MenuRenderer renderer, Scheduler scheduler, ListSourceRegistry lists) {
@@ -250,6 +256,12 @@ public final class Menus {
         public Builder bedrock(BedrockDetector detector, BedrockScreen screen) {
             this.bedrock = Objects.requireNonNull(detector, "detector");
             this.bedrockScreen = Objects.requireNonNull(screen, "screen");
+            return this;
+        }
+
+        /** How the confirm window looks; {@link ConfirmLook#STANDARD} when the host names none. */
+        public Builder confirmLook(ConfirmLook confirmLook) {
+            this.confirmLook = Objects.requireNonNull(confirmLook, "confirmLook");
             return this;
         }
 
@@ -689,9 +701,9 @@ public final class Menus {
     }
 
     /**
-     * Open a two-button confirm window for {@code viewer}: the engine's replacement for the confirm window
-     * {@code uxmlib-gui} used to ship.
-     * It builds the same {@link MenuHolder} every other menu uses, so the one listener routes its clicks and the one
+     * Open a two-button confirm window for {@code viewer}, laid out by the {@link ConfirmLook} the host set on the
+     * builder, with its buttons named from the catalogue under {@link MenuKeys#CONFIRM_YES} and {@link
+     * MenuKeys#CONFIRM_NO}. It builds the same {@link MenuHolder} every other menu uses, so the one listener routes its clicks and the one
      * {@code closeMenu} tears it down: clicking the yes button runs {@code onYes} exactly once, clicking no runs {@code
      * onNo} exactly once, and either click closes the window first. Closing the window (or quitting) without a click
      * runs neither. The window is shown on the viewer's entity thread, where touching the live inventory is legal; the
@@ -717,19 +729,24 @@ public final class Menus {
             return;
         }
         MenuContext ctx = MenuContext.of(viewer, null, 0);
-        MenuHolder holder = new MenuHolder("confirm", confirmMenuSpec(), ctx);
-        holder.attachConfirm(new ConfirmState(ConfirmRenderer.YES_SLOT, ConfirmRenderer.NO_SLOT, onYes, onNo));
-        Inventory inv = Bukkit.createInventory(
-                holder, ConfirmRenderer.ROWS * 9, MenuTitles.lay(title, renderer.titleAlignment()));
+        ConfirmLook look = confirmLook;
+        MenuHolder holder = new MenuHolder("confirm", confirmMenuSpec(look), ctx);
+        holder.attachConfirm(new ConfirmState(look.yesSlot(), look.noSlot(), onYes, onNo));
+        Inventory inv =
+                Bukkit.createInventory(holder, look.rows() * 9, MenuTitles.lay(title, renderer.titleAlignment()));
         holder.attach(inv);
-        confirmRenderer.populate(inv);
+        confirmRenderer.populate(
+                inv,
+                look,
+                renderer.message(viewer, MenuKeys.CONFIRM_YES),
+                renderer.message(viewer, MenuKeys.CONFIRM_NO));
         viewer.openInventory(inv);
     }
 
     /**
      * The Bedrock render of the confirm window: a native ModalForm (the caller's title plus a yes/no button pair)
-     * instead of the confirm chest, whose lime/red wool carries no text a form could show: so the button labels come
-     * from the shared {@link MenuKeys} catalog in the viewer's locale. A confirm is always safe to render as a form (it
+     * instead of the confirm chest, with the same two words the chest names its buttons with, from the shared {@link
+     * MenuKeys} catalog in the viewer's locale. A confirm is always safe to render as a form (it
      * is a plain two-choice prompt, not an item-display menu), so this redirect is unconditional for a Bedrock viewer
      * and never gated on {@code chestOnly}. Cumulus fires the response off the main thread, so each choice is wrapped
      * in a hop back to the viewer's entity thread before {@code onYes}/{@code onNo} runs.
@@ -899,10 +916,9 @@ public final class Menus {
                 : PlainTextComponentSerializer.plainText().serialize(name);
     }
 
-    /** The minimal {@link MenuSpec} a confirm holder carries: three rows, refresh off, no items: clicks ride state. */
-    private static MenuSpec confirmMenuSpec() {
-        return new MenuSpec(
-                "", ConfirmRenderer.ROWS, new RefreshSpec(false, 0), List.of(), List.of(), List.of(), Map.of());
+    /** The minimal {@link MenuSpec} a confirm holder carries: the look's rows, refresh off, no items: clicks ride state. */
+    private static MenuSpec confirmMenuSpec(ConfirmLook look) {
+        return new MenuSpec("", look.rows(), new RefreshSpec(false, 0), List.of(), List.of(), List.of(), Map.of());
     }
 
     /**

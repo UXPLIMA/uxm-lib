@@ -125,6 +125,16 @@ final class CatalogueCommandMessages implements CommandMessages {
         return line(CommandLine.HELP_PAGE_HINT, locale, Text.placeholder("page", String.valueOf(page)));
     }
 
+    @Override
+    public Component helpPrevious(Locale locale) {
+        return line(CommandLine.HELP_PREVIOUS, locale);
+    }
+
+    @Override
+    public Component helpNext(Locale locale) {
+        return line(CommandLine.HELP_NEXT, locale);
+    }
+
     /**
      * An argument's name in the reader's language: the catalog's {@code command.argument.<name>} where it has
      * one, the name the code declared otherwise. Without it a Turkish reader was told about a "kind".

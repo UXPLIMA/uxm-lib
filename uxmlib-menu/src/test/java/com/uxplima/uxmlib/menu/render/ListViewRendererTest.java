@@ -126,6 +126,18 @@ class ListViewRendererTest {
         assertThat(at(inv, 44)).isEqualTo(FILLER);
     }
 
+    /**
+     * The filler shows no tooltip at all. It carried an empty name, so hovering it still opened a box, and the house
+     * standard for a background pane is a hidden tooltip.
+     */
+    @Test
+    void theFillerHidesItsTooltip() {
+        Inventory inv = draw(list(List.of("a")).build(), new ListViewState("spec"), 0);
+
+        assertThat(inv.getItem(22)).isNotNull();
+        assertThat(inv.getItem(22).getItemMeta().isHideTooltip()).isTrue();
+    }
+
     @Test
     void bothNavButtonsArePaintedAtTheSlotsTheSpecNamed() {
         Inventory inv = draw(list(List.of("a")).build(), new ListViewState("spec"), 0);

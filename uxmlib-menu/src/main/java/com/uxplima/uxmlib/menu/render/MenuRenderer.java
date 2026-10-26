@@ -150,9 +150,16 @@ public final class MenuRenderer {
         return itemRenderer.plainText(raw, ctx);
     }
 
+    /** A shared catalogue line resolved for {@code viewer}: the word on a button the engine draws itself. */
+    public Component message(Player viewer, String key) {
+        Objects.requireNonNull(viewer, "viewer");
+        Objects.requireNonNull(key, "key");
+        return itemRenderer.message(viewer, key);
+    }
+
     /**
      * A shared {@link String} resolved for {@code viewer} and flattened to plain text: a label (a confirm window's
-     * yes/no) the hybrid form renderer needs as a flat string where the chest paints wordless wool. Delegates to the
+     * yes/no) the hybrid form renderer needs as a flat string where the chest names a block. Delegates to the
      * item renderer, which owns the catalog lookup, so the label honours the viewer's locale exactly as a menu title or
      * item name does.
      */

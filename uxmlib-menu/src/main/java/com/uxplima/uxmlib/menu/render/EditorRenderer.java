@@ -196,8 +196,7 @@ public final class EditorRenderer {
 
     /** Fill every slot with the layout's filler so no vanilla slot shows through behind the buttons. */
     private void fill(Inventory inv, EntityEditorLayout layout) {
-        ItemStack filler =
-                ItemBuilder.of(layout.filler()).name(Component.empty()).build();
+        ItemStack filler = ItemBuilder.of(layout.filler()).hideTooltip(true).build();
         for (int slot = 0; slot < layout.rows() * 9; slot++) {
             inv.setItem(slot, filler);
         }

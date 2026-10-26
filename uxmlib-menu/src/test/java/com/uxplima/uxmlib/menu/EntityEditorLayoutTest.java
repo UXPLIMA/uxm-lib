@@ -39,7 +39,14 @@ class EntityEditorLayoutTest {
                 .as("an editor for a non-deletable entity shows no delete button")
                 .isEmpty();
         assertThat(layout.backIcon()).isEqualTo(Material.ARROW);
-        assertThat(layout.filler()).isEqualTo(Material.BLACK_STAINED_GLASS_PANE);
+        assertThat(layout.filler()).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+    }
+
+    /** Both defaults fill with the grey pane every other menu fills with, so an editor does not stand out as black. */
+    @Test
+    void theDeletingDefaultFillsWithTheSameGreyPane() {
+        assertThat(EntityEditorLayout.withDelete(List.of(11), 22, 26).filler())
+                .isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
     }
 
     @Test

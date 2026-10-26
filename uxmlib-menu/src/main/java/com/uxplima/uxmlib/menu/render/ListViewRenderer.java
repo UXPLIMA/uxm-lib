@@ -119,7 +119,7 @@ public final class ListViewRenderer {
 
     /** Fill every slot with the spec's filler so no vanilla slot shows through behind the icons and buttons. */
     private void fill(Inventory inv, Material filler) {
-        ItemStack item = ItemBuilder.of(filler).name(Component.empty()).build();
+        ItemStack item = ItemBuilder.of(filler).hideTooltip(true).build();
         for (int slot = 0; slot < inv.getSize(); slot++) {
             inv.setItem(slot, item);
         }

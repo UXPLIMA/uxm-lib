@@ -16,6 +16,7 @@ import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -198,7 +199,8 @@ public final class MenuListener implements Listener {
         this.pagedLists = builder.pagedLists;
         this.textPrompt = builder.textPrompt;
         this.contentRegions = new ContentRegions(builder.contents);
-        this.feedback = new MenuFeedback(builder.sounds, builder.speaksForItself);
+        Supplier<MenuSounds> wired = builder.sounds;
+        this.feedback = wired == null ? MenuFeedback.SILENT : new MenuFeedback(wired, builder.speaksForItself);
     }
 
     /** A listener over the five parts every menu needs, with each optional part set on the builder. */
@@ -231,7 +233,7 @@ public final class MenuListener implements Listener {
         private PagedListSourceRegistry pagedLists = new PagedListSourceRegistry();
         private @Nullable MenuTextPrompt textPrompt;
         private @Nullable ContentProviderRegistry contents;
-        private MenuSounds sounds = MenuSounds.defaults();
+        private @Nullable Supplier<MenuSounds> sounds;
         private Predicate<List<Ref>> speaksForItself = MenuFeedback.SHIPPED;
 
         private Builder(
@@ -302,11 +304,23 @@ public final class MenuListener implements Listener {
          * The sounds a menu plays, and the rule that keeps the engine quiet when a gesture already speaks for itself.
          * The rule is asked of a gesture's own action list, because an action id belongs to the vocabulary the host
          * registered and only the host knows which of its ids already play a sound.
+         *
+         * <p>A listener given no sounds plays none. The sounds are asked for at each gesture, so a supplier that reads
+         * the host's file again on a reload, {@code MenuSoundsFile}, changes the next click.
          */
-        public Builder feedback(MenuSounds sounds, Predicate<List<Ref>> speaksForItself) {
+        public Builder feedback(Supplier<MenuSounds> sounds, Predicate<List<Ref>> speaksForItself) {
             this.sounds = Objects.requireNonNull(sounds, "sounds");
             this.speaksForItself = Objects.requireNonNull(speaksForItself, "speaksForItself");
             return this;
+        }
+
+        /**
+         * The sounds a menu plays, with the shipped rule: a gesture that runs the engine's own sound verb, written
+         * {@code sound:<key>} in a menu file, speaks for itself, so a button whose file writes a sound plays that sound
+         * alone.
+         */
+        public Builder feedback(Supplier<MenuSounds> sounds) {
+            return feedback(sounds, MenuFeedback.SHIPPED);
         }
 
         /** The listener, ready for {@link MenuListener#install}. */

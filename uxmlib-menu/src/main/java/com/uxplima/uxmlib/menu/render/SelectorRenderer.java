@@ -7,8 +7,6 @@ import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-import net.kyori.adventure.text.Component;
-
 import com.uxplima.uxmlib.item.ItemBuilder;
 import com.uxplima.uxmlib.menu.property.SelectorButton;
 import org.jspecify.annotations.NullMarked;
@@ -30,7 +28,7 @@ public final class SelectorRenderer {
         Objects.requireNonNull(inv, "inv");
         Objects.requireNonNull(filler, "filler");
         Objects.requireNonNull(buttons, "buttons");
-        ItemStack fillerItem = ItemBuilder.of(filler).name(Component.empty()).build();
+        ItemStack fillerItem = ItemBuilder.of(filler).hideTooltip(true).build();
         for (int slot = 0; slot < inv.getSize(); slot++) {
             inv.setItem(slot, fillerItem);
         }

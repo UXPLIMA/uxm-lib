@@ -73,7 +73,7 @@ class EditorRendererTest {
         public void onClick(PropertyClick click) {}
     }
 
-    private static final Material FILLER = Material.BLACK_STAINED_GLASS_PANE;
+    private static final Material FILLER = Material.GRAY_STAINED_GLASS_PANE;
 
     private final List<EditableProperty> properties = new ArrayList<>();
 
@@ -159,6 +159,18 @@ class EditorRendererTest {
 
         assertThat(at(inv, 0)).isEqualTo(FILLER);
         assertThat(at(inv, 13)).isEqualTo(FILLER);
+    }
+
+    /**
+     * The filler shows no tooltip at all. It carried an empty name, so hovering it still opened a box, and the house
+     * standard for a background pane is a hidden tooltip.
+     */
+    @Test
+    void theFillerHidesItsTooltip() {
+        Inventory inv = draw(editor(layout()).build(), new EditorState("spec", "subject"));
+
+        assertThat(inv.getItem(0)).isNotNull();
+        assertThat(inv.getItem(0).getItemMeta().isHideTooltip()).isTrue();
     }
 
     /**

@@ -67,7 +67,7 @@ class MenuFeedbackTest {
     }
 
     private MenuFeedback feedback(Predicate<List<Ref>> speaksForItself) {
-        return new MenuFeedback(sounds(), speaksForItself);
+        return new MenuFeedback(MenuFeedbackTest::sounds, speaksForItself);
     }
 
     private List<String> heard() {
@@ -185,6 +185,45 @@ class MenuFeedbackTest {
         feedback(MenuFeedback.SHIPPED).page(holder, List.of(Ref.parse("sound:item.book.page_turn 0.7 1")));
 
         assertThat(heard()).isEmpty();
+    }
+
+    // -- a host that gave no sounds ------------------------------------------------------------------------------
+
+    /**
+     * A listener the host gave no sounds plays none: not a click, not a page turn, not a refusal.
+     *
+     * <p>The engine used to fall back on tones of its own, so every menu of every host made the library's sounds,
+     * and no operator could change or silence them because no host had wired a file to them. A sound is a look, and a
+     * look is the host's to choose.
+     */
+    @Test
+    void aListenerGivenNoSoundsIsSilent() {
+        MenuFeedback silent = MenuFeedback.SILENT;
+
+        silent.click(holder, SOME_ACTIONS);
+        silent.page(holder, SOME_ACTIONS);
+        silent.deny(holder);
+
+        assertThat(heard()).isEmpty();
+    }
+
+    /** The sounds are asked for at each gesture, so a reload that changes the file changes the next click. */
+    @Test
+    void theSoundsAreReadAtEachGesture() {
+        Key[] click = {CLICK};
+        MenuFeedback live = new MenuFeedback(
+                () -> new MenuSounds(
+                        Sound.sound(Key.key("test", "open"), Sound.Source.MASTER, 1f, 1f),
+                        Sound.sound(click[0], Sound.Source.MASTER, 1f, 1f),
+                        Sound.sound(PAGE, Sound.Source.MASTER, 1f, 1f),
+                        Sound.sound(DENIED, Sound.Source.MASTER, 1f, 1f)),
+                MenuFeedback.SHIPPED);
+
+        live.click(holder, SOME_ACTIONS);
+        click[0] = Key.key("test", "reloaded");
+        live.click(holder, SOME_ACTIONS);
+
+        assertThat(heard()).containsExactly(CLICK.asString(), "test:reloaded");
     }
 
     /** A player who logged off between the click and the sound is skipped, not thrown into the click dispatch. */

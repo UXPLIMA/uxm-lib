@@ -24,7 +24,7 @@ import com.uxplima.uxmlib.menu.binding.ListSourceRegistry;
 import com.uxplima.uxmlib.menu.binding.PlaceholderRegistry;
 import com.uxplima.uxmlib.menu.property.EditableProperty;
 import com.uxplima.uxmlib.menu.property.PropertyClick;
-import com.uxplima.uxmlib.menu.render.ConfirmRenderer;
+import com.uxplima.uxmlib.menu.render.ConfirmLook;
 import com.uxplima.uxmlib.menu.render.EditorRenderer;
 import com.uxplima.uxmlib.menu.render.ItemRenderer;
 import com.uxplima.uxmlib.menu.render.MenuRenderer;
@@ -137,7 +137,7 @@ class EntityEditorViewDeleteTest {
                 .describedAs("a confirm window is what the button opens")
                 .isTrue();
 
-        click(ConfirmRenderer.YES_SLOT);
+        click(ConfirmLook.STANDARD.yesSlot());
 
         assertThat(deleted)
                 .describedAs("a second window here is a second identical question, which is the one nobody reads")
@@ -150,7 +150,7 @@ class EntityEditorViewDeleteTest {
         open();
 
         click(DELETE_SLOT);
-        click(ConfirmRenderer.NO_SLOT);
+        click(ConfirmLook.STANDARD.noSlot());
 
         assertThat(deleted).isEmpty();
         assertThat(backs).describedAs("cancelling a delete is not going back").isEmpty();

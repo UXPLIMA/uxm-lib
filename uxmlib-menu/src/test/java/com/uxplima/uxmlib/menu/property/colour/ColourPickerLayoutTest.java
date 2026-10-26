@@ -81,6 +81,12 @@ class ColourPickerLayoutTest {
         assertThat(layout.paletteIcons()).hasSize(ColourSwatch.palette().size());
     }
 
+    /** The background is the grey pane every other menu fills with. */
+    @Test
+    void theCodeDefaultFillsWithTheGreyPane() {
+        assertThat(ColourPickerLayout.codeDefault().filler()).isEqualTo(Material.GRAY_STAINED_GLASS_PANE);
+    }
+
     @Test
     void theCodeDefaultDrawsEachSwatchWithItsOwnPane() {
         assertThat(ColourPickerLayout.codeDefault().paletteIcons())

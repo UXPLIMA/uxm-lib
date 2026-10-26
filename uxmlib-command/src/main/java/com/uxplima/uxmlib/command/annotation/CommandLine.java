@@ -79,7 +79,13 @@ public enum CommandLine implements MessageKey {
     HELP_FILL_HINT("command.help-fill-hint", "Click to fill in this command"),
 
     /** The hover on a page button. */
-    HELP_PAGE_HINT("command.help-page-hint", "Page <page>");
+    HELP_PAGE_HINT("command.help-page-hint", "Page <page>"),
+
+    /** The button under a help page that goes back one page. */
+    HELP_PREVIOUS("command.help-previous", "<aqua>« prev"),
+
+    /** The button under a help page that goes on one page. */
+    HELP_NEXT("command.help-next", "<aqua>next »");
 
     private final String path;
     private final String defaultTemplate;

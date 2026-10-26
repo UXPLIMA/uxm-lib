@@ -28,7 +28,7 @@ import com.uxplima.uxmlib.menu.binding.PlaceholderRegistry;
 import com.uxplima.uxmlib.menu.property.EditableProperty;
 import com.uxplima.uxmlib.menu.property.PropertyClick;
 import com.uxplima.uxmlib.menu.property.SelectorButton;
-import com.uxplima.uxmlib.menu.render.ConfirmRenderer;
+import com.uxplima.uxmlib.menu.render.ConfirmLook;
 import com.uxplima.uxmlib.menu.render.EditorRenderer;
 import com.uxplima.uxmlib.menu.render.ItemRenderer;
 import com.uxplima.uxmlib.menu.render.MenuRenderer;
@@ -414,17 +414,66 @@ class MenusChildWindowsTest {
 
         MenuHolder holder = openHolder();
         assertThat(holder.confirm()).isPresent();
-        assertThat(top().getSize()).isEqualTo(ConfirmRenderer.ROWS * 9);
-        assertThat(top().getItem(ConfirmRenderer.YES_SLOT)).isNotNull();
-        assertThat(top().getItem(ConfirmRenderer.NO_SLOT)).isNotNull();
+        assertThat(top().getSize()).isEqualTo(ConfirmLook.STANDARD.rows() * 9);
+        assertThat(top().getItem(ConfirmLook.STANDARD.yesSlot())).isNotNull();
+        assertThat(top().getItem(ConfirmLook.STANDARD.noSlot())).isNotNull();
         assertThat(decided).isEmpty();
 
         holder.confirm()
                 .orElseThrow()
-                .decisionAt(ConfirmRenderer.YES_SLOT)
+                .decisionAt(ConfirmLook.STANDARD.yesSlot())
                 .orElseThrow()
                 .run();
         assertThat(decided).containsExactly("yes");
+    }
+
+    /**
+     * Each button says what it does, in the viewer's language. They carried an empty name, so the client printed the
+     * block's own name in its place, and a player was asked to choose between "Lime Wool" and "Red Wool".
+     */
+    @Test
+    void theConfirmButtonsAreNamedFromTheCatalogue() {
+        menus.confirm(viewer, Component.text("Sure?"), () -> {}, () -> {});
+
+        ItemStack yes = top().getItem(ConfirmLook.STANDARD.yesSlot());
+        ItemStack no = top().getItem(ConfirmLook.STANDARD.noSlot());
+        assertThat(yes).isNotNull();
+        assertThat(no).isNotNull();
+        assertThat(plain(yes.getItemMeta().displayName())).isEqualTo(MenuKeys.CONFIRM_YES);
+        assertThat(plain(no.getItemMeta().displayName())).isEqualTo(MenuKeys.CONFIRM_NO);
+    }
+
+    /** The window's rows, slots and blocks are the host's to choose, and a click follows the slot it moved to. */
+    @Test
+    void aHostGivenLookMovesTheConfirmButtons() {
+        ConfirmLook look = new ConfirmLook(1, 2, Material.GREEN_STAINED_GLASS_PANE, 6, Material.BARRIER);
+        Menus engine = Menus.builder(renderer(), scheduler, new ListSourceRegistry())
+                .confirmLook(look)
+                .build();
+        List<String> decided = new ArrayList<>();
+
+        engine.confirm(viewer, Component.text("Sure?"), () -> decided.add("yes"), () -> decided.add("no"));
+
+        assertThat(top().getSize()).isEqualTo(9);
+        ItemStack yes = top().getItem(2);
+        ItemStack no = top().getItem(6);
+        assertThat(yes).isNotNull();
+        assertThat(no).isNotNull();
+        assertThat(yes.getType()).isEqualTo(Material.GREEN_STAINED_GLASS_PANE);
+        assertThat(no.getType()).isEqualTo(Material.BARRIER);
+        openHolder().confirm().orElseThrow().decisionAt(6).orElseThrow().run();
+        assertThat(decided).containsExactly("no");
+    }
+
+    /** A look whose buttons fall outside its rows, or share one slot, is refused where it is written. */
+    @Test
+    void aConfirmLookThatCannotBeDrawnIsRefused() {
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new ConfirmLook(1, 2, Material.LIME_WOOL, 9, Material.RED_WOOL));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new ConfirmLook(3, 11, Material.LIME_WOOL, 11, Material.RED_WOOL));
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> new ConfirmLook(7, 11, Material.LIME_WOOL, 15, Material.RED_WOOL));
     }
 
     /** The opener a property is handed for a destructive step is this facade's own confirm. */

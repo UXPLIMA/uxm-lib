@@ -2,7 +2,9 @@ package com.uxplima.uxmlib.menu.runtime;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
 
@@ -10,6 +12,7 @@ import net.kyori.adventure.sound.Sound;
 
 import com.uxplima.uxmlib.gui.style.MenuSounds;
 import com.uxplima.uxmlib.menu.spec.Ref;
+import org.jspecify.annotations.Nullable;
 
 /**
  * The audible half of a menu click. A button that reacts silently reads as a button that did nothing, so the engine
@@ -43,12 +46,22 @@ final class MenuFeedback {
      */
     static final Predicate<List<Ref>> SHIPPED = actions -> actions.stream().anyMatch(ref -> SOUND.equals(ref.id()));
 
-    private final MenuSounds sounds;
+    /**
+     * The engine wired without sounds: it plays nothing, not a click, not a page turn, not a refusal.
+     *
+     * <p>It used to fall back on tones of its own, so every menu of every host played the library's sounds and no
+     * operator could change or silence them, because no host had wired a file to them. A sound is a look, and a look is
+     * the host's to choose: a host hands the listener its sounds through {@code MenuListener.Builder.feedback}, read
+     * from its own file by {@code MenuSoundsFile}.
+     */
+    static final MenuFeedback SILENT = new MenuFeedback(null, SUPPRESSES_NOTHING);
+
+    private final @Nullable Supplier<MenuSounds> sounds;
 
     private final Predicate<List<Ref>> speaksForItself;
 
-    MenuFeedback(MenuSounds sounds, Predicate<List<Ref>> speaksForItself) {
-        this.sounds = Objects.requireNonNull(sounds, "sounds");
+    MenuFeedback(@Nullable Supplier<MenuSounds> sounds, Predicate<List<Ref>> speaksForItself) {
+        this.sounds = sounds;
         this.speaksForItself = Objects.requireNonNull(speaksForItself, "speaksForItself");
     }
 
@@ -62,7 +75,7 @@ final class MenuFeedback {
         if (actions.isEmpty() || speaksForItself.test(actions)) {
             return;
         }
-        play(holder, sounds.click());
+        play(holder, MenuSounds::click);
     }
 
     /**
@@ -75,7 +88,7 @@ final class MenuFeedback {
         if (speaksForItself.test(actions)) {
             return;
         }
-        play(holder, sounds.page());
+        play(holder, MenuSounds::page);
     }
 
     /**
@@ -84,18 +97,22 @@ final class MenuFeedback {
      */
     void deny(MenuHolder holder) {
         Objects.requireNonNull(holder, "holder");
-        play(holder, sounds.denied());
+        play(holder, MenuSounds::denied);
     }
 
     /**
      * Play {@code sound} to the viewer at their own position. The viewer is resolved live, so a player who logged off
      * between the click and this call is simply skipped rather than throwing into the click dispatch.
      */
-    private static void play(MenuHolder holder, Sound sound) {
+    private void play(MenuHolder holder, Function<MenuSounds, Sound> which) {
+        Supplier<MenuSounds> wired = sounds;
+        if (wired == null) {
+            return;
+        }
         Player viewer = holder.ctx().viewer();
         if (!viewer.isOnline()) {
             return;
         }
-        viewer.playSound(sound);
+        viewer.playSound(which.apply(wired.get()));
     }
 }

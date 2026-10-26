@@ -9,7 +9,6 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
-import net.kyori.adventure.text.format.NamedTextColor;
 
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -160,23 +159,22 @@ final class HelpRenderer {
         if (pages <= 1) {
             return null;
         }
-        Component footer = Component.text("\n", NamedTextColor.DARK_GRAY);
+        Component footer = Component.newline();
         if (page > 1) {
-            footer = footer.append(pageButton(root, "« prev", page - 1, messages, locale));
+            footer = footer.append(pageButton(root, messages.helpPrevious(locale), page - 1, messages, locale));
         }
         if (page > 1 && page < pages) {
-            footer = footer.append(Component.text("  ", NamedTextColor.DARK_GRAY));
+            footer = footer.append(Component.text("  "));
         }
         if (page < pages) {
-            footer = footer.append(pageButton(root, "next »", page + 1, messages, locale));
+            footer = footer.append(pageButton(root, messages.helpNext(locale), page + 1, messages, locale));
         }
         return footer;
     }
 
     private static Component pageButton(
-            String root, String label, int target, CommandMessages messages, Locale locale) {
-        return Component.text(label, NamedTextColor.AQUA)
-                .clickEvent(ClickEvent.runCommand("/" + root + " help " + target))
+            String root, Component label, int target, CommandMessages messages, Locale locale) {
+        return label.clickEvent(ClickEvent.runCommand("/" + root + " help " + target))
                 .hoverEvent(HoverEvent.showText(messages.helpPageHint(locale, target)));
     }
 }

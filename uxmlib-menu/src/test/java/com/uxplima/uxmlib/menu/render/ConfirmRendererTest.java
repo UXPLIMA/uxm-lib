@@ -6,6 +6,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 
 import org.junit.jupiter.api.AfterEach;
@@ -14,12 +15,13 @@ import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 
 /**
- * The engine's own two-button window. It has no spec and no file behind it, so the geometry is in the code and the
- * three things worth pinning are the ones a reader cannot check against anything else: which slot is which decision,
- * that the two are told apart by colour and never swapped, and that neither button carries a word of its own.
+ * The engine's own two-button window. It has no spec and no file behind it: the host hands it a {@link ConfirmLook}
+ * and the two words, so the things worth pinning are which slot is which decision, that the two blocks are never
+ * swapped, and that each button carries the word it was handed.
  *
- * <p>The last one is the rule about inline literals in test form. A wool button that kept its default name would
- * show a player the English material name, which is the one thing a catalog-driven window must never do.
+ * <p>The last one is the rule about inline literals in test form. The buttons used to carry an empty name, and the
+ * client put the block's own English name in its place, which is the one thing a catalog-driven window must never
+ * show.
  */
 class ConfirmRendererTest {
 
@@ -28,7 +30,7 @@ class ConfirmRendererTest {
     @BeforeEach
     void setUp() {
         MockBukkit.mock();
-        inv = MockBukkit.getMock().createInventory(null, ConfirmRenderer.ROWS * 9);
+        inv = MockBukkit.getMock().createInventory(null, ConfirmLook.STANDARD.rows() * 9);
     }
 
     @AfterEach
@@ -38,38 +40,32 @@ class ConfirmRendererTest {
 
     @Test
     void theTwoDecisionsAreTheTwoColoursAndNotTheOtherWayRound() {
-        new ConfirmRenderer().populate(inv);
+        populate();
 
-        assertThat(inv.getItem(ConfirmRenderer.YES_SLOT)).isNotNull();
-        assertThat(inv.getItem(ConfirmRenderer.YES_SLOT).getType()).isEqualTo(Material.LIME_WOOL);
-        assertThat(inv.getItem(ConfirmRenderer.NO_SLOT)).isNotNull();
-        assertThat(inv.getItem(ConfirmRenderer.NO_SLOT).getType()).isEqualTo(Material.RED_WOOL);
+        assertThat(inv.getItem(ConfirmLook.STANDARD.yesSlot())).isNotNull();
+        assertThat(inv.getItem(ConfirmLook.STANDARD.yesSlot()).getType()).isEqualTo(Material.LIME_WOOL);
+        assertThat(inv.getItem(ConfirmLook.STANDARD.noSlot())).isNotNull();
+        assertThat(inv.getItem(ConfirmLook.STANDARD.noSlot()).getType()).isEqualTo(Material.RED_WOOL);
     }
 
-    /** Both slots sit inside the window the geometry claims, so the two constants and the row count agree. */
+    /** The standard's slots sit inside the window its rows ask for, and apart from each other. */
     @Test
     void bothButtonsFitTheWindowTheRowCountAsksFor() {
-        assertThat(ConfirmRenderer.YES_SLOT).isBetween(0, ConfirmRenderer.ROWS * 9 - 1);
-        assertThat(ConfirmRenderer.NO_SLOT).isBetween(0, ConfirmRenderer.ROWS * 9 - 1);
-        assertThat(ConfirmRenderer.YES_SLOT).isNotEqualTo(ConfirmRenderer.NO_SLOT);
+        ConfirmLook look = ConfirmLook.STANDARD;
+        assertThat(look.yesSlot()).isBetween(0, look.rows() * 9 - 1);
+        assertThat(look.noSlot()).isBetween(0, look.rows() * 9 - 1);
+        assertThat(look.yesSlot()).isNotEqualTo(look.noSlot());
     }
 
-    /**
-     * The buttons say nothing. The window's meaning is its title, which the caller resolved from the catalog, so a
-     * button that kept the material's own name would put an English word into a window nobody translated.
-     */
+    /** Each button is named with the word it was handed and nothing else, so no block name reaches the reader. */
     @Test
-    void neitherButtonCarriesAWordOfItsOwn() {
-        new ConfirmRenderer().populate(inv);
+    void eachButtonCarriesTheWordItWasHanded() {
+        populate();
 
-        for (int slot : new int[] {ConfirmRenderer.YES_SLOT, ConfirmRenderer.NO_SLOT}) {
-            ItemStack button = inv.getItem(slot);
-            assertThat(button.getItemMeta().displayName()).isNotNull();
-            assertThat(PlainTextComponentSerializer.plainText()
-                            .serialize(button.getItemMeta().displayName()))
-                    .isEmpty();
-            assertThat(button.getItemMeta().hasLore()).isFalse();
-        }
+        assertThat(nameAt(ConfirmLook.STANDARD.yesSlot())).isEqualTo("confirm");
+        assertThat(nameAt(ConfirmLook.STANDARD.noSlot())).isEqualTo("cancel");
+        assertThat(inv.getItem(ConfirmLook.STANDARD.yesSlot()).getItemMeta().hasLore())
+                .isFalse();
     }
 
     /** Only the two slots are written, so a caller that decorated the window keeps whatever else it put there. */
@@ -77,14 +73,26 @@ class ConfirmRendererTest {
     void nothingButTheTwoSlotsIsTouched() {
         inv.setItem(0, new ItemStack(Material.DIAMOND));
 
-        new ConfirmRenderer().populate(inv);
+        populate();
 
         assertThat(inv.getItem(0)).isNotNull();
         assertThat(inv.getItem(0).getType()).isEqualTo(Material.DIAMOND);
         for (int slot = 0; slot < inv.getSize(); slot++) {
-            if (slot != 0 && slot != ConfirmRenderer.YES_SLOT && slot != ConfirmRenderer.NO_SLOT) {
+            if (slot != 0 && slot != ConfirmLook.STANDARD.yesSlot() && slot != ConfirmLook.STANDARD.noSlot()) {
                 assertThat(inv.getItem(slot)).as("slot " + slot).isNull();
             }
         }
+    }
+
+    private void populate() {
+        new ConfirmRenderer().populate(inv, ConfirmLook.STANDARD, Component.text("confirm"), Component.text("cancel"));
+    }
+
+    private String nameAt(int slot) {
+        ItemStack button = inv.getItem(slot);
+        assertThat(button).isNotNull();
+        assertThat(button.getItemMeta().displayName()).isNotNull();
+        return PlainTextComponentSerializer.plainText()
+                .serialize(button.getItemMeta().displayName());
     }
 }

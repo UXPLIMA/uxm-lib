@@ -257,9 +257,16 @@ public final class ItemRenderer {
         return PlainTextComponentSerializer.plainText().serialize(resolveText(line, ctx));
     }
 
+    /** A shared catalogue line resolved for {@code viewer}, in the viewer's language, through {@link GuiText}. */
+    public Component message(Player viewer, String key) {
+        Objects.requireNonNull(viewer, "viewer");
+        Objects.requireNonNull(key, "key");
+        return guiText.text(viewer, key);
+    }
+
     /**
      * A shared {@link String} resolved for {@code viewer} and flattened to plain text: the label a Bedrock form needs
-     * where the chest paints a wordless icon (a confirm window's yes/no wool). Goes through the same {@link GuiText}
+     * where the chest names an icon (a confirm window's yes and no). Goes through the same {@link GuiText}
      * catalog path an item name takes, so the label honours the viewer's locale, then drops all formatting to a flat
      * string.
      */

@@ -164,6 +164,18 @@ public interface CommandMessages {
         return Component.text("Page " + page);
     }
 
+    /** The button under a help page that goes back one page. */
+    default Component helpPrevious(Locale locale) {
+        Objects.requireNonNull(locale, "locale");
+        return Component.text("« prev", NamedTextColor.AQUA);
+    }
+
+    /** The button under a help page that goes on one page. */
+    default Component helpNext(Locale locale) {
+        Objects.requireNonNull(locale, "locale");
+        return Component.text("next »", NamedTextColor.AQUA);
+    }
+
     private static Component red(String text) {
         return Component.text(text, NamedTextColor.RED);
     }

@@ -78,14 +78,18 @@ class SelectorRendererTest {
         assertThat(typeAt(4)).isEqualTo(Material.EMERALD);
     }
 
+    /**
+     * The filler shows no tooltip at all, so it never reads as a material. It carried an empty name instead, which
+     * still opened a box under the cursor; the house standard for a background pane is a hidden tooltip.
+     */
     @Test
-    void theFillerCarriesNoNameSoItReadsAsBlankRatherThanAsAMaterial() {
+    void theFillerHidesItsTooltipSoItNeverReadsAsAMaterial() {
         renderer.populate(inv, Material.GRAY_STAINED_GLASS_PANE, List.of());
 
         ItemStack filler = Objects.requireNonNull(inv.getItem(0));
         assertThat(filler.hasItemMeta()).isTrue();
-        assertThat(Objects.requireNonNull(filler.getItemMeta()).hasDisplayName())
-                .as("an unnamed pane would show its material name under the cursor")
+        assertThat(Objects.requireNonNull(filler.getItemMeta()).isHideTooltip())
+                .as("a pane with a tooltip would show its material name under the cursor")
                 .isTrue();
     }
 

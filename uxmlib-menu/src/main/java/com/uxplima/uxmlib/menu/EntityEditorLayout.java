@@ -73,7 +73,7 @@ public record EntityEditorLayout(
                 OptionalInt.empty(),
                 Material.ARROW,
                 Material.BARRIER,
-                Material.BLACK_STAINED_GLASS_PANE);
+                Material.GRAY_STAINED_GLASS_PANE);
     }
 
     /** A code default that includes a delete button at {@code deleteSlot}. */
@@ -85,6 +85,6 @@ public record EntityEditorLayout(
                 OptionalInt.of(deleteSlot),
                 Material.ARROW,
                 Material.BARRIER,
-                Material.BLACK_STAINED_GLASS_PANE);
+                Material.GRAY_STAINED_GLASS_PANE);
     }
 }

@@ -33,6 +33,15 @@ class CatalogueCommandMessagesTest {
     }
 
     @Test
+    void theHelpPageButtonsAreReadFromTheCatalogue() {
+        CommandMessages messages = messagesHolding(
+                Map.of(TR, Map.of("command.help-previous", "« önceki", "command.help-next", "sonraki »")));
+
+        assertThat(Text.plain(messages.helpPrevious(TR))).isEqualTo("« önceki");
+        assertThat(Text.plain(messages.helpNext(TR))).isEqualTo("sonraki »");
+    }
+
+    @Test
     void aLineTheFileDoesNotHoldFallsBackToTheKeyDefault() {
         CommandMessages messages = messagesHolding(Map.of());
 

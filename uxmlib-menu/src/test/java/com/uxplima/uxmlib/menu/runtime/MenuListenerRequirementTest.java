@@ -31,6 +31,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
+import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 /**
  * What a click does once its requirement block has an answer. The loader tests prove a file parses into the right
@@ -118,6 +119,21 @@ class MenuListenerRequirementTest {
     }
 
     // -- the block's own pass rule ----------------------------------------------------------------------------
+
+    /**
+     * A listener wired with no sounds plays none: not on a click, not on a refusal. It used to fall back on tones of
+     * its own, which no operator could change or silence because no file was behind them.
+     */
+    @Test
+    void aListenerWiredWithNoSoundsPlaysNone() {
+        openWithLeft("{ click = [\"main\"] }");
+        leftClick();
+        openWithLeft("{ click = [\"main\"], requirements = [\"no\"], deny = [\"blockDeny\"] }");
+        leftClick();
+
+        assertThat(fired).containsExactly("main", "blockDeny");
+        assertThat(((PlayerMock) viewer).getHeardSounds()).isEmpty();
+    }
 
     @Test
     void everyMandatoryRequirementMustPassBeforeTheActionsRun() {

@@ -454,7 +454,8 @@ Menus draw from the same theme: `MenuTitles.centre` pads a window title into the
 `Tiles` puts a tile's title on the first lore line under a blank name (a single space: an empty one makes
 the client fall back to the material's name) and paints it with a gradient the caller names, `LoreWrap` builds
 the tooltip in one fixed order and wraps a description at a width the caller may set, and
-`MenuSounds` reads the three menu sounds from config. Lore an operator wrote in a config file goes through
+`MenuSounds` reads the three menu sounds from config, and `MenuSoundsFile` keeps them read from one file and
+reads it again on a reload. Lore an operator wrote in a config file goes through
 `Lore.lines`, which reads every line as body text and gives it the same column, padding and closing air as
 lore built here, so a plugin that ships items never has to write that geometry down as a house rule of its
 own. A file that draws its own glyphs and its own margins goes through `Lore.verbatim` instead, which adds
@@ -659,7 +660,18 @@ bindings.pagedList("shop:archive", (ctx, page) -> archivePage(ctx.viewer(), page
 
 ItemRenderer items = new ItemRenderer(guiText, this::theme, bindings.placeholders());
 MenuRenderer renderer = new MenuRenderer(items, bindings.conditions(), bindings.contents());
-Menus menus = new Menus(renderer, scheduler, bindings.lists());
+// The confirm window's rows, slots and blocks are a look, so they are the plugin's to choose; with none set
+// it is three rows, lime wool at 11 and red wool at 15. Its buttons read gui.confirm.yes and gui.confirm.no.
+Menus menus = Menus.builder(renderer, scheduler, bindings.lists())
+        .confirmLook(new ConfirmLook(3, 11, Material.LIME_WOOL, 15, Material.RED_WOOL))
+        .build();
+
+// The click, page and refusal sounds the engine plays are the plugin's file's, read at each gesture.
+// A listener handed no sounds plays none: the library has no tones of its own.
+MenuSoundsFile sounds = MenuSoundsFile.read(dataFolder.resolve("config.conf"), "menu.sounds");
+MenuListener listener = MenuListener.builder(renderer, bindings.actions(), bindings.conditions(), scheduler, plugin)
+        .feedback(sounds)
+        .build();
 
 // close, open:<menu>, command:<line>, message:<line> and sound:<name> <volume> <pitch>: the five verbs
 // that mean the same thing in every menu of every plugin. They are a call and never automatic, so a

@@ -101,7 +101,7 @@ public record ColourPickerLayout(
                 Material.BARRIER,
                 49,
                 Material.ARROW,
-                Material.BLACK_STAINED_GLASS_PANE);
+                Material.GRAY_STAINED_GLASS_PANE);
     }
 
     /**
