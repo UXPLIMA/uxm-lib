@@ -232,7 +232,7 @@ public final class MenuListener implements Listener {
         private @Nullable MenuTextPrompt textPrompt;
         private @Nullable ContentProviderRegistry contents;
         private MenuSounds sounds = MenuSounds.defaults();
-        private Predicate<List<Ref>> speaksForItself = MenuFeedback.SUPPRESSES_NOTHING;
+        private Predicate<List<Ref>> speaksForItself = MenuFeedback.SHIPPED;
 
         private Builder(
                 MenuRenderer renderer,

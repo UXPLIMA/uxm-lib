@@ -147,14 +147,44 @@ class MenuFeedbackTest {
 
     // -- the shipped answer, and a viewer who left -----------------------------------------------------------
 
-    /**
-     * The default falls on the side that can be heard. A wrong suppression is inaudible and stays a mystery; a wrong
-     * doubling is audible and is fixed in one line.
-     */
+    /** A host that wants every gesture spoken over, its own sounds included, still has the answer that says so. */
     @Test
-    void theShippedAnswerSuppressesNothing() {
+    void theAnswerThatSuppressesNothingSuppressesNothing() {
         assertThat(MenuFeedback.SUPPRESSES_NOTHING.test(SOME_ACTIONS)).isFalse();
         assertThat(MenuFeedback.SUPPRESSES_NOTHING.test(List.of())).isFalse();
+    }
+
+    /**
+     * The shipped answer: a gesture that runs the engine's own {@code sound} verb speaks for itself.
+     *
+     * <p>The shipped answer used to be that nothing does, so a button written {@code ["open:x", "sound:..."]} played
+     * the click tone and then its own sound, one tick apart, and every menu of every host that wrote a sound on a
+     * button played two. No host ever wired the one line that would have fixed it. The verb is the engine's own, not a
+     * host's, so knowing it holds no copy of anybody's vocabulary.
+     */
+    @Test
+    void theShippedAnswerLetsAButtonWithItsOwnSoundSpeak() {
+        List<Ref> withSound = List.of(Ref.parse("open:shelf"), Ref.parse("sound:block.note_block.pling 0.6 1.5"));
+
+        feedback(MenuFeedback.SHIPPED).click(holder, withSound);
+
+        assertThat(heard()).isEmpty();
+    }
+
+    /** A button with no sound of its own still answers with the click tone, so it does not read as broken. */
+    @Test
+    void theShippedAnswerStillClicksForAButtonWithoutASound() {
+        feedback(MenuFeedback.SHIPPED).click(holder, SOME_ACTIONS);
+
+        assertThat(heard()).containsExactly(CLICK.asString());
+    }
+
+    /** A page button that writes its own sound gets that sound alone, the same rule as a click. */
+    @Test
+    void theShippedAnswerLetsAPageButtonWithItsOwnSoundSpeak() {
+        feedback(MenuFeedback.SHIPPED).page(holder, List.of(Ref.parse("sound:item.book.page_turn 0.7 1")));
+
+        assertThat(heard()).isEmpty();
     }
 
     /** A player who logged off between the click and the sound is skipped, not thrown into the click dispatch. */

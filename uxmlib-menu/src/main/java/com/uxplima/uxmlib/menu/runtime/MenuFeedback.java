@@ -24,13 +24,24 @@ import com.uxplima.uxmlib.menu.spec.Ref;
  * stays silent. A gesture whose own actions already play something should speak for itself rather than be spoken over,
  * but the engine cannot tell which actions those are: an action id belongs to the vocabulary the host registered, and
  * the library must not hold a copy of one consumer's action names. So the host answers that question through {@code
- * speaksForItself}, and the shipped answer is that nothing does. A wrong suppression is inaudible and stays a mystery;
- * a wrong doubling is audible and is fixed in one line, so the default falls on the side that can be heard.
+ * speaksForItself}. The shipped answer knows one verb, the engine's own {@code sound}: a button whose file writes a
+ * sound plays that sound alone. It used to know none, so every such button played the click tone and its own sound one
+ * tick apart, in every host, and the one line that would have fixed it was never written by any of them.
  */
 final class MenuFeedback {
 
     /** The engine wired without a host answer: nothing speaks for itself, so nothing is suppressed. */
     static final Predicate<List<Ref>> SUPPRESSES_NOTHING = actions -> false;
+
+    /** The verb the engine itself registers for a sound, and the one a menu file writes as {@code sound:<key>}. */
+    private static final String SOUND = "sound";
+
+    /**
+     * The shipped answer: a gesture that runs the engine's own {@code sound} verb speaks for itself. The verb belongs
+     * to the engine rather than to a host, so this holds no copy of anybody's vocabulary. A host whose own actions
+     * play sounds as well answers the wider question through {@code MenuListener.Builder.feedback}.
+     */
+    static final Predicate<List<Ref>> SHIPPED = actions -> actions.stream().anyMatch(ref -> SOUND.equals(ref.id()));
 
     private final MenuSounds sounds;
 
