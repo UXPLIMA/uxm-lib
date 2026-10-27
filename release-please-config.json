@@ -1,0 +1,11 @@
+{
+  "release-type": "simple",
+  "bump-minor-pre-major": true,
+  "pull-request-title-pattern": "chore(release): release ${version}",
+  "packages": {
+    ".": {
+      "package-name": "uxm-lib",
+      "release-as": "0.0.1"
+    }
+  }
+}

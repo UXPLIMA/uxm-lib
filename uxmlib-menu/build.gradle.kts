@@ -1,6 +1,5 @@
 plugins {
-    id("uxmlib.java-conventions")
-    id("uxmlib.publish-conventions")
+    id("uxm.library")
 }
 
 // The menu engine: a menu is a file, and this module is what reads one and runs it. It sits on uxmlib-gui,
@@ -17,9 +16,4 @@ dependencies {
     compileOnly(libs.paper.api)
     compileOnly(libs.bundles.adventure)
     implementation(libs.configurate.hocon)
-
-    testImplementation(libs.mockbukkit)
-    testImplementation(libs.paper.api)
-    testImplementation(libs.bundles.adventure)
-    testImplementation(libs.configurate.hocon)
 }

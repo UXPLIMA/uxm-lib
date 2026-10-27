@@ -2,11 +2,26 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         maven("https://repo.papermc.io/repository/maven-public/")
+        maven("https://repo.uxplima.com/repository/maven-public/")
+    }
+    plugins {
+        id("uxm.library") version "0.0.2"
     }
 }
 
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
+}
+
+dependencyResolutionManagement {
+    repositories {
+        maven("https://repo.uxplima.com/repository/maven-public/")
+    }
+    versionCatalogs {
+        // The shared versions the conventions build with. `libs` (gradle/libs.versions.toml) keeps
+        // the dependencies only this library uses.
+        create("uxm") { from("com.uxplima.gradle:uxm-catalog:0.0.2") }
+    }
 }
 
 rootProject.name = "uxmlib"

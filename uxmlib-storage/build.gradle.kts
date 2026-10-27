@@ -1,6 +1,5 @@
 plugins {
-    id("uxmlib.java-conventions")
-    id("uxmlib.publish-conventions")
+    id("uxm.library")
 }
 
 dependencies {
@@ -29,18 +28,4 @@ dependencies {
     // compileOnly here, constructed only when a Redis URI is configured, so a consumer that never touches
     // Redis ships nothing extra. On the test runtime so the adapter compiles and links against the real API.
     compileOnly(libs.lettuce.core)
-
-    // Storage is pure infra (no Paper). Tests run a real in-memory SQLite, so they are plain JUnit. The
-    // SqlType Component codec needs Adventure + MiniMessage on the test runtime since they are compileOnly.
-    // Hikari logs through slf4j at runtime, so the tests that open a real pool need an API on the classpath.
-    // The server provides it in production; here it is a test dependency like any other.
-    testRuntimeOnly(libs.slf4j.api)
-    testImplementation(libs.sqlite.jdbc)
-    testImplementation(libs.bundles.adventure)
-    // The H2 dialect round-trip test runs against a real in-memory H2, so the driver is on the test runtime.
-    testImplementation(libs.h2)
-    // Lettuce on the test runtime so RedisDataSynchronizer links and a smoke/integration test can construct it.
-    testImplementation(libs.lettuce.core)
-    // The SQL synchronizer is proved on every backend, on servers started in containers.
-    testImplementation(project(":uxmlib-storage-testing"))
 }

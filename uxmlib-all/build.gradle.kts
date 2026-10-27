@@ -1,7 +1,6 @@
 plugins {
-    id("uxmlib.java-conventions")
-    id("uxmlib.publish-conventions")
-    alias(libs.plugins.shadow)
+    id("uxm.library")
+    id("com.gradleup.shadow")
 }
 
 // The aggregate: every module on the API surface, plus a thin JavaPlugin so uxmlib can also be dropped
@@ -26,11 +25,6 @@ dependencies {
     api(project(":uxmlib-nametags"))
     api(project(":uxmlib-schematic"))
     compileOnly(libs.paper.api)
-
-    // Architecture guards analyse every module's bytecode (all are api deps, so they're on the test
-    // classpath); paper-api is needed so ArchUnit can resolve the Bukkit types the rules reference.
-    testImplementation(libs.archunit.junit)
-    testImplementation(libs.paper.api)
 }
 
 tasks.processResources {

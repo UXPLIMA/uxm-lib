@@ -1,6 +1,8 @@
-// No root `plugins {}` block. Spotless / Error Prone / NullAway are pulled onto every
-// subproject's buildscript classpath via the buildSrc convention plugin; redeclaring them here
-// with `apply false` makes Gradle 9.x fail with "plugin already on classpath with an unknown version".
+import com.uxplima.gradle.UxmExtension
+
+plugins {
+    id("uxm.library") apply false
+}
 
 allprojects {
     // The published coordinates, and the group every plugin names this library by. It is a plain
@@ -9,7 +11,7 @@ allprojects {
     // without editing that consumer's build file. -PprojectVersion is how the release workflow
     // passes the tag; the fallback is only ever the local snapshot.
     group = project.findProperty("projectGroup")?.toString() ?: "com.uxplima.uxmlib"
-    version = project.findProperty("projectVersion")?.toString() ?: "0.46.0-SNAPSHOT"
+    version = project.findProperty("projectVersion")?.toString() ?: "0.0.1-SNAPSHOT"
 
     repositories {
         mavenCentral()
@@ -29,5 +31,19 @@ allprojects {
         maven("https://maven.enginehub.org/repo/")        // WorldGuard / WorldEdit
         maven("https://repo.glaremasters.me/repository/towny/") // Towny
         maven("https://repo.opencollab.dev/main/")        // Floodgate and Cumulus
+    }
+}
+
+subprojects {
+    plugins.withId("uxm.java") {
+        extensions.configure<UxmExtension>("uxplima") {
+            // Modules that never touch a server stay usable from an ordinary Java 21 project.
+            javaRelease = 21
+            license = "MIT"
+        }
+        tasks.withType<JavaCompile>().configureEach { options.compilerArgs.add("-Xlint:-classfile") }
+        tasks.withType<Javadoc>().configureEach {
+            (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
+        }
     }
 }

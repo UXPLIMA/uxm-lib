@@ -1,6 +1,5 @@
 plugins {
-    id("uxmlib.java-conventions")
-    id("uxmlib.publish-conventions")
+    id("uxm.library")
 }
 
 dependencies {
@@ -11,9 +10,4 @@ dependencies {
     api(project(":uxmlib-bedrock"))
     compileOnly(libs.paper.api)
     compileOnly(libs.bundles.adventure)
-
-    // MockBukkit drives the real Paper API in tests; production declares Paper/Adventure compileOnly.
-    testImplementation(libs.mockbukkit)
-    testImplementation(libs.paper.api)
-    testImplementation(libs.bundles.adventure)
 }
