@@ -2,10 +2,9 @@
 
 ## [0.0.2](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.0.1...uxm-lib-v0.0.2) (2026-10-27)
 
+### Fixed
 
-### Continuous Integration
-
-* **release:** check that the standalone jar reached the repository ([#40](https://github.com/UXPLIMA/uxm-lib/issues/40)) ([70f2b45](https://github.com/UXPLIMA/uxm-lib/commit/70f2b45cfdd9f426150aa472e37b4c20617710c7))
+- `uxmlib-all` is complete again: 0.0.1 lacks its standalone, sources and javadoc jars because their upload was cut off. The code is the same as 0.0.1; use 0.0.2.
 
 ## 0.0.1 (2026-10-27)
 
