@@ -49,7 +49,11 @@ jobs:
       - env:
           VERSION: ${{ needs.release-please.outputs.version }}
         run: |
-          pom="https://repo.uxplima.com/repository/maven-releases/com/uxplima/uxmlib/uxmlib-all/$VERSION/uxmlib-all-$VERSION.pom"
-          code=$(curl -sS -o /dev/null -w '%{http_code}' --head "$pom")
-          echo "$pom answered $code"
-          [ "$code" = 200 ]
+          # uxmlib-all is published last and its standalone jar is the largest file, so it arriving
+          # means the whole release did.
+          base="https://repo.uxplima.com/repository/maven-releases/com/uxplima/uxmlib/uxmlib-all/$VERSION"
+          for file in "uxmlib-all-$VERSION.pom" "uxmlib-all-$VERSION-standalone.jar"; do
+            code=$(curl -sS -o /dev/null -w '%{http_code}' --head "$base/$file")
+            echo "$file answered $code"
+            [ "$code" = 200 ]
+          done
