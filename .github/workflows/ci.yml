@@ -15,11 +15,11 @@ concurrency:
 
 jobs:
   ci:
-    uses: UXPLIMA/.github/.github/workflows/uxm-ci.yml@4de7dadcfc932f88497489c0ba42dbea870e37a9 # main
+    uses: UXPLIMA/.github/.github/workflows/uxm-ci.yml@ded69d5df03ed47ffa1d42e89d7fac080c250bf8 # main
     permissions:
       contents: read
     with:
       # Public: hosted runners cost nothing here.
       runner: '["ubuntu-latest"]'
       scopes: "common item gui bedrock menu command storage redis integration hud update condition pipeline packet nametags schematic bom all build ci docs release"
-      tools-ref: 4de7dadcfc932f88497489c0ba42dbea870e37a9
+      tools-ref: ded69d5df03ed47ffa1d42e89d7fac080c250bf8
