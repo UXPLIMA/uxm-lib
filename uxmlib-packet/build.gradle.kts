@@ -1,7 +1,5 @@
 plugins {
-    id("uxmlib.java-conventions")
-    id("uxmlib.publish-conventions")
-    `java-test-fixtures`
+    id("uxm.library")
     alias(libs.plugins.paperweight.userdev)
 }
 
@@ -22,54 +20,15 @@ dependencies {
     // Paper bundles Netty at runtime but does not export it through its POM; the channel/pipeline types are
     // a compileOnly dependency pinned to the version the server ships. Infra dep; the consumer never shades it.
     compileOnly(libs.netty.transport)
-
-    // The dev bundle is kept off the test classpath (see below), so the plain Paper API and Adventure are
-    // brought in directly for the MockBukkit-driven tests; Paper API also supplies JOML's Vector3f.
-    testImplementation(libs.mockbukkit)
-    testImplementation(libs.paper.api)
-    testImplementation(libs.bundles.adventure)
-    testImplementation(libs.bundles.testing)
-    testImplementation(libs.netty.transport)
-
-    // The fakes a consumer's own tests drive a packet hologram with: a recording packet seam, a scheduler that
-    // runs a frame on demand, and a probe that reads back what a viewer's client holds. They name the Paper
-    // API and Adventure, which every consumer already has on its test classpath, so neither is passed on.
-    testFixturesCompileOnly(libs.paper.api)
-    testFixturesCompileOnly(libs.bundles.adventure)
-    testFixturesCompileOnly(libs.jspecify)
 }
 
-// Keep the Mojang-mapped dev bundle off the test classpath. MockBukkit drives the plugin against the plain
-// Paper API, and the full server's static initializers throw if their classes leak onto the unit-test
-// runtime. compileOnly alone is what the helpers need: net.minecraft is provided by the live server.
+// The server internals are compileOnly: the live server provides net.minecraft at runtime.
 paperweight {
     addServerDependencyTo.set(listOf(configurations.compileOnly.get()))
 }
 
-// This module and uxmlib-nametags apply paperweight-userdev against the same dev bundle, so both derive
-// the same work directory and both want its lock. org.gradle.parallel is on, so in one build the two
-// setup tasks reach for that lock at the same moment and the second dies with "lock file is currently
-// held by this process": two tasks of one build, not two builds on one machine, which is why waiting
-// and running it again always worked and why it came back on every cold cache.
-//
-// Ordering them costs one setup's wait on a cold cache and nothing after that, because the second task
-// finds the work done. The pair is named rather than generalised: a third module applying paperweight
-// would have to join the chain here, and a comment that says so is worth more than a clever rule.
+// This module and uxmlib-nametags set up the same dev bundle, and with parallel builds the two setup tasks
+// would race for its lock. Ordering them costs one wait on a cold cache.
 tasks.named("paperweightUserdevSetup") {
     mustRunAfter(":uxmlib-nametags:paperweightUserdevSetup")
-}
-
-// The fixtures' classpaths read the Paper API too, so they accept its Java 25 metadata the way the convention
-// widens the main and test classpaths; the bytecode they emit stays at the library's release.
-listOf("testFixturesCompileClasspath", "testFixturesRuntimeClasspath").forEach { name ->
-    configurations.named(name) {
-        attributes {
-            attribute(
-                org.gradle.api.attributes.java.TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE,
-                libs.versions.java.toolchain
-                    .get()
-                    .toInt(),
-            )
-        }
-    }
 }

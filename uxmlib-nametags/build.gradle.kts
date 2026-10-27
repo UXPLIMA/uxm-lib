@@ -1,6 +1,5 @@
 plugins {
-    id("uxmlib.java-conventions")
-    id("uxmlib.publish-conventions")
+    id("uxm.library")
     alias(libs.plugins.paperweight.userdev)
 }
 
@@ -21,19 +20,9 @@ dependencies {
     // Paper bundles Netty at runtime but does not export it through its POM; the channel/pipeline types are
     // a compileOnly dependency pinned to the version the server ships. Infra dep; the consumer never shades it.
     compileOnly(libs.netty.transport)
-
-    // The dev bundle is kept off the test classpath (see below), so the plain Paper API and Adventure are
-    // brought in directly for the MockBukkit-driven tests; Paper API also supplies JOML's Vector3f.
-    testImplementation(libs.mockbukkit)
-    testImplementation(libs.paper.api)
-    testImplementation(libs.bundles.adventure)
-    testImplementation(libs.bundles.testing)
-    testImplementation(libs.netty.transport)
 }
 
-// Keep the Mojang-mapped dev bundle off the test classpath. MockBukkit drives the plugin against the plain
-// Paper API, and the full server's static initializers throw if their classes leak onto the unit-test
-// runtime. compileOnly alone is what the renderer needs: net.minecraft is provided by the live server.
+// The server internals are compileOnly: the live server provides net.minecraft at runtime.
 paperweight {
     addServerDependencyTo.set(listOf(configurations.compileOnly.get()))
 }

@@ -1,6 +1,5 @@
 plugins {
-    id("uxmlib.java-conventions")
-    id("uxmlib.publish-conventions")
+    id("uxm.library")
 }
 
 // A test dependency for a consumer, never shipped in a plugin: it starts database servers in containers so a
@@ -18,7 +17,4 @@ dependencies {
     runtimeOnly(libs.mysql.connector)
     runtimeOnly(libs.mariadb.jdbc)
     runtimeOnly(libs.postgresql)
-
-    testImplementation(libs.bundles.testing)
-    testRuntimeOnly(libs.slf4j.api)
 }

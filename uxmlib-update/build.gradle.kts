@@ -1,18 +1,11 @@
 plugins {
-    id("uxmlib.java-conventions")
-    id("uxmlib.publish-conventions")
+    id("uxm.library")
 }
 
 dependencies {
     api(project(":uxmlib-common")) // Scheduler + Text seams
     compileOnly(libs.paper.api)
     compileOnly(libs.bundles.adventure)
-
-    // MockBukkit smoke-tests the join-notify wiring; the version compare + JSON parse are plain JUnit.
-    testImplementation(libs.mockbukkit)
-    testImplementation(libs.paper.api)
-    testImplementation(libs.bundles.adventure)
-    testImplementation(libs.bundles.testing)
 }
 
 // Generate UxmLibVersion.java from project.version at build time so the update-checker's notion of its own

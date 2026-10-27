@@ -1,6 +1,5 @@
 plugins {
-    id("uxmlib.java-conventions")
-    id("uxmlib.publish-conventions")
+    id("uxm.library")
 }
 
 dependencies {
@@ -13,14 +12,4 @@ dependencies {
     // coordinates, so they add nothing to this list and nothing to the build.
     compileOnly(libs.treasury.api)
     compileOnly(libs.placeholderapi)
-
-    // The comparator and the placeholder condition are pure logic and unit-test as plain JUnit; MockBukkit
-    // only smoke-tests the Player-bound wiring of a request against a real Paper server.
-    testImplementation(libs.mockbukkit)
-    testImplementation(libs.paper.api)
-    testImplementation(libs.bundles.adventure)
-    testImplementation(libs.bundles.testing)
-    // Treasury on the test runtime so a fake economy of its own shape can be built and the subscriber path
-    // proved. Production still treats it as compileOnly, and the absent-plugin path is proved without it.
-    testImplementation(libs.treasury.api)
 }

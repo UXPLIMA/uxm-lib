@@ -1,6 +1,6 @@
 plugins {
     `java-platform`
-    id("uxmlib.nexus-repository")
+    `maven-publish`
 }
 
 // A BOM so a consumer can align every uxmlib-* artifact to one version with a single platform import.
@@ -34,12 +34,18 @@ publishing {
                 name.set("uxmlib-bom")
                 description.set("Bill of materials aligning all uxmlib-* module versions")
                 url.set("https://github.com/UXPLIMA/uxm-lib")
-                licenses {
-                    license {
-                        name.set("MIT License")
-                        url.set("https://opensource.org/licenses/MIT")
-                    }
-                }
+                licenses { license { name.set("MIT") } }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "uxplima"
+            val snapshot = version.toString().endsWith("-SNAPSHOT")
+            url = uri("https://repo.uxplima.com/repository/maven-${if (snapshot) "snapshots" else "releases"}/")
+            credentials {
+                username = providers.gradleProperty("uxplimaNexusUser").orElse(providers.environmentVariable("UXPLIMA_NEXUS_USER")).orNull
+                password = providers.gradleProperty("uxplimaNexusPass").orElse(providers.environmentVariable("UXPLIMA_NEXUS_PASS")).orNull
             }
         }
     }

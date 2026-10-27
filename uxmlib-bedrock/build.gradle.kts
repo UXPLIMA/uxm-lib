@@ -1,6 +1,5 @@
 plugins {
-    id("uxmlib.java-conventions")
-    id("uxmlib.publish-conventions")
+    id("uxm.library")
 }
 
 dependencies {
@@ -11,10 +10,4 @@ dependencies {
     // server therefore loads neither, because the two classes that name them are constructed only inside the
     // enabled branch of the two factories.
     compileOnly(libs.floodgate.api)
-
-    // The tests drive the two Java-only defaults and the factory selection, so they need a server to probe for
-    // plugins. Neither SDK is on the test runtime, on purpose: that is what proves the guarded classes are
-    // never reached without their plugin.
-    testImplementation(libs.paper.api)
-    testImplementation(libs.mockbukkit)
 }

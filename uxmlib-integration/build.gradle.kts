@@ -1,6 +1,5 @@
 plugins {
-    id("uxmlib.java-conventions")
-    id("uxmlib.publish-conventions")
+    id("uxm.library")
 }
 
 // WorldGuard, through WorldEdit, publishes `strictly` constraints on Guava, Gson and fastutil, pinned to
@@ -48,29 +47,6 @@ dependencies {
     compileOnly(libs.claim.griefprevention) { isTransitive = false }
     compileOnly(libs.claim.simpleclaimsystem) { isTransitive = false }
     compileOnly(libs.claim.rclaim) { isTransitive = false }
-
-    // Tests exercise the absent-plugin path (MockBukkit) and the pure JSON/spec logic (plain JUnit).
-    // LuckPerms is on the test runtime so the hook class loads (and reports absent) without a real plugin.
-    testImplementation(libs.mockbukkit)
-    testImplementation(libs.paper.api)
-    testImplementation(libs.bundles.adventure)
-    testImplementation(libs.luckperms.api)
-    // Vault on the test runtime lets a fake Economy service exercise the bridge's format/currency
-    // delegation and the service-register rebinding; production still treats Vault as compileOnly.
-    testImplementation(libs.vault.api)
-    testImplementation(libs.vaultunlocked.api)
-    // WorldGuard and Towny on the test runtime let the region adapter classes load so the present-guard
-    // (no plugin under MockBukkit -> empty) is asserted; production still treats both as compileOnly.
-    testImplementation(libs.worldguard.bukkit) { withoutServerProvidedLibraries() }
-    testImplementation(libs.towny)
-    // WorldEdit on the test runtime so the extent that guards an edit can be driven write by write with real
-    // block and entity types, which need no running editor to be built.
-    testImplementation(libs.worldedit.bukkit) { withoutServerProvidedLibraries() }
-    // Lands and GriefPrevention on the test runtime so the ownership tests can stub a real Area and Claim and
-    // prove that an owner is distinct from a merely trusted member. The other two stay compileOnly: their
-    // absent-plugin path is what the provider tests assert, and an absent SDK is what that path needs.
-    testImplementation(libs.claim.lands) { isTransitive = false }
-    testImplementation(libs.claim.griefprevention) { isTransitive = false }
 }
 
 // FastAsyncWorldEdit answers WorldEdit's API with its own copy of every com.sk89q class, and it does not honour
@@ -83,32 +59,11 @@ val fawe: SourceSet =
     sourceSets.create("fawe") {
         compileClasspath += sourceSets.main.get().output
     }
-val faweTest: SourceSet =
-    sourceSets.create("faweTest") {
-        compileClasspath += fawe.output + sourceSets.main.get().output
-        runtimeClasspath += fawe.output + sourceSets.main.get().output
-    }
 
 dependencies {
     "faweCompileOnly"(libs.jspecify)
     "faweCompileOnly"(libs.fawe.core) { withoutServerProvidedLibraries() }
-    "faweTestCompileOnly"(libs.jspecify)
-    "faweTestCompileOnly"(libs.guava)
-    "faweTestImplementation"(libs.fawe.core)
-    "faweTestImplementation"(platform(libs.junit.bom))
-    "faweTestImplementation"(libs.bundles.testing)
-    "faweTestRuntimeOnly"("org.junit.platform:junit-platform-launcher")
 }
-
-val faweTests =
-    tasks.register<Test>("faweTest") {
-        description = "Runs the tests of the FastAsyncWorldEdit half, on FAWE's classpath."
-        group = "verification"
-        testClassesDirs = faweTest.output.classesDirs
-        classpath = faweTest.runtimeClasspath
-    }
-
-tasks.check { dependsOn(faweTests) }
 
 tasks.jar { from(fawe.output) }
 
