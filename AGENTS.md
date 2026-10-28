@@ -49,7 +49,7 @@ version.
 
 ## Testing
 
-There are no tests yet. New tests follow the repository standard: they prove behavior a plugin relies on,
+Tests live in each module's `src/test` and follow the repository standard: they prove behavior a plugin relies on,
 through the public API, with no assertion on structure. Storage behavior is tested on every backend with
 `@EveryBackend` from `uxmlib-storage-testing`. In-game behavior is checked with Craftwire on a development
 server.
