@@ -28,4 +28,22 @@ final class PaperTaskHandle implements TaskHandle {
     public boolean isCancelled() {
         return task == null || task.isCancelled();
     }
+
+    /**
+     * Two handles on the same Paper task are equal. A repeating task is handed a new handle on every run, so a
+     * caller that keeps the handle the scheduler returned can still find or remove it with the one its task was
+     * handed. A handle on work that never started equals only itself.
+     */
+    @Override
+    public boolean equals(@Nullable Object other) {
+        if (other == this) {
+            return true;
+        }
+        return task != null && other instanceof PaperTaskHandle handle && handle.task == task;
+    }
+
+    @Override
+    public int hashCode() {
+        return System.identityHashCode(task == null ? this : task);
+    }
 }
