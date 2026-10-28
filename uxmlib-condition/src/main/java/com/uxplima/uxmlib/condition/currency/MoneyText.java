@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -24,9 +25,8 @@ public final class MoneyText {
     private static final BigDecimal THOUSAND = BigDecimal.valueOf(1000);
 
     /** The one number a currency may have a second shape for. */
-    private static final String ONE = "1";
-
     private final Map<String, CurrencyDisplay> byCurrency;
+
     private final CurrencyDisplay fallback;
 
     public MoneyText(Map<String, CurrencyDisplay> byCurrency, CurrencyDisplay fallback) {
@@ -40,7 +40,10 @@ public final class MoneyText {
         Map<String, CurrencyDisplay> read = new LinkedHashMap<>();
         for (Map.Entry<Object, ? extends ConfigurationNode> entry :
                 config.nodeAt("currencies").childrenMap().entrySet()) {
-            read.put(String.valueOf(entry.getKey()), display(entry.getValue().node("display")));
+            // Keyed the way CurrencyId writes an id, lower case, so "Coins" finds its display block.
+            read.put(
+                    String.valueOf(entry.getKey()).toLowerCase(Locale.ROOT),
+                    display(entry.getValue().node("display")));
         }
         return new MoneyText(read, CurrencyDisplay.plain());
     }
@@ -56,7 +59,7 @@ public final class MoneyText {
         Objects.requireNonNull(money, "money");
         CurrencyDisplay display = byCurrency.getOrDefault(money.currency().value(), fallback);
         String written = number(money.amount(), display);
-        String shape = ONE.equals(written) ? display.formatOne() : display.format();
+        String shape = money.amount().compareTo(BigDecimal.ONE) == 0 ? display.formatOne() : display.format();
         return shape.replace("{amount}", written)
                 .replace("{currency}", money.currency().value());
     }
@@ -72,6 +75,11 @@ public final class MoneyText {
                 step++;
             }
             BigDecimal shown = size.divide(THOUSAND.pow(step), 1, RoundingMode.UP);
+            // 999,999 rounds up to 1000.0k; it reads as 1M when there is a next suffix.
+            if (shown.compareTo(THOUSAND) >= 0 && step < display.suffixes().size()) {
+                step++;
+                shown = size.divide(THOUSAND.pow(step), 1, RoundingMode.UP);
+            }
             return sign + plain(shown, display) + display.suffixes().get(step - 1);
         }
         return sign + plain(size.setScale(display.decimals(), RoundingMode.UP), display);

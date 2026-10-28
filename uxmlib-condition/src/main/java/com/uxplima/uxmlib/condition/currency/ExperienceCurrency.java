@@ -89,7 +89,12 @@ public final class ExperienceCurrency implements Currency {
             return false;
         }
         return onThePlayer(player, online -> {
-                    set(online, held(online) + given);
+                    long total = (long) held(online) + given;
+                    if (total > Integer.MAX_VALUE) {
+                        // More experience than an int holds; refused rather than wrapped to a negative.
+                        return false;
+                    }
+                    set(online, (int) total);
                     return true;
                 })
                 .orElse(false);

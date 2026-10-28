@@ -46,6 +46,7 @@ public final class TreasuryCurrency implements Currency {
     private final Supplier<Optional<Object>> provider;
     private final Duration waitFor;
     private final System.Logger log;
+    private volatile boolean readable = true;
 
     /**
      * @param id the id of this currency in the plugin
@@ -96,19 +97,18 @@ public final class TreasuryCurrency implements Currency {
             if (currency.isEmpty()) {
                 return Money.zero(id);
             }
-            Optional<PlayerAccount> account = account(player);
+            Optional<PlayerAccount> account = account(player, false);
             if (account.isEmpty()) {
                 return Money.zero(id);
             }
             me.lokka30.treasury.api.economy.currency.Currency held = currency.get();
             PlayerAccount owner = account.get();
             BigDecimal has = this.<BigDecimal>answer(subscriber -> owner.retrieveBalance(held, subscriber));
-            return has == null ? Money.zero(id) : new Money(id, has);
+            readable = true;
+            // Treasury lets a balance go under nothing; a player in debt has nothing to spend.
+            return has == null ? Money.zero(id) : new Money(id, has.max(BigDecimal.ZERO));
         } catch (RuntimeException | LinkageError unreachable) {
-            log.log(
-                    System.Logger.Level.WARNING,
-                    "The " + id + " currency could not be read from Treasury.",
-                    unreachable);
+            warnOnce("The " + id + " currency could not be read from Treasury.", unreachable);
             return Money.zero(id);
         }
     }
@@ -139,7 +139,8 @@ public final class TreasuryCurrency implements Currency {
             if (currency.isEmpty()) {
                 return false;
             }
-            Optional<PlayerAccount> account = account(player);
+            // A take needs money that is there, so only a payment opens an account.
+            Optional<PlayerAccount> account = account(player, !away);
             if (account.isEmpty()) {
                 return false;
             }
@@ -164,8 +165,8 @@ public final class TreasuryCurrency implements Currency {
         }
     }
 
-    /** The account of one player, made when Treasury has none for them yet. */
-    private Optional<PlayerAccount> account(UUID player) {
+    /** The account of one player; made when Treasury has none and {@code create} asks for one. */
+    private Optional<PlayerAccount> account(UUID player, boolean create) {
         try {
             Optional<EconomyProvider> found = treasury();
             if (found.isEmpty()) {
@@ -173,6 +174,9 @@ public final class TreasuryCurrency implements Currency {
             }
             EconomyProvider treasury = found.get();
             Boolean known = this.<Boolean>answer(subscriber -> treasury.hasPlayerAccount(player, subscriber));
+            if (!Boolean.TRUE.equals(known) && !create) {
+                return Optional.empty();
+            }
             return Optional.ofNullable(
                     Boolean.TRUE.equals(known)
                             ? this.<PlayerAccount>answer(
@@ -180,10 +184,7 @@ public final class TreasuryCurrency implements Currency {
                             : this.<PlayerAccount>answer(
                                     subscriber -> treasury.createPlayerAccount(player, subscriber)));
         } catch (RuntimeException | LinkageError unreachable) {
-            log.log(
-                    System.Logger.Level.WARNING,
-                    "The " + id + " currency could not read a Treasury account.",
-                    unreachable);
+            warnOnce("The " + id + " currency could not read a Treasury account.", unreachable);
             return Optional.empty();
         }
     }
@@ -198,10 +199,7 @@ public final class TreasuryCurrency implements Currency {
             EconomyProvider treasury = found.get();
             return named.isEmpty() ? Optional.of(treasury.getPrimaryCurrency()) : treasury.findCurrency(named);
         } catch (RuntimeException | LinkageError unreachable) {
-            log.log(
-                    System.Logger.Level.WARNING,
-                    "The " + id + " currency could not be read from Treasury.",
-                    unreachable);
+            warnOnce("The " + id + " currency could not be read from Treasury.", unreachable);
             return Optional.empty();
         }
     }
@@ -238,6 +236,17 @@ public final class TreasuryCurrency implements Currency {
             throw new IllegalStateException("the wait for Treasury was interrupted", stopped);
         } catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException unanswered) {
             throw new IllegalStateException("Treasury did not answer in " + waitFor, unanswered);
+        }
+    }
+
+    /**
+     * Say once that Treasury cannot be read. A menu asks whether a currency is ready on every draw, so a
+     * warning per ask would bury the console; the next successful balance read lets it speak again.
+     */
+    private void warnOnce(String what, Throwable why) {
+        if (readable) {
+            readable = false;
+            log.log(System.Logger.Level.WARNING, what, why);
         }
     }
 

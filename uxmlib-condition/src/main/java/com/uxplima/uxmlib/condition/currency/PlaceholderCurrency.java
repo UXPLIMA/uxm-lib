@@ -80,7 +80,10 @@ public final class PlaceholderCurrency implements Currency {
         Objects.requireNonNull(player, "player");
         return new Money(
                 id,
-                reader.read(player, spec.placeholder()).flatMap(this::number).orElse(BigDecimal.ZERO));
+                reader.read(player, spec.placeholder())
+                        .flatMap(this::number)
+                        .orElse(BigDecimal.ZERO)
+                        .max(BigDecimal.ZERO));
     }
 
     @Override

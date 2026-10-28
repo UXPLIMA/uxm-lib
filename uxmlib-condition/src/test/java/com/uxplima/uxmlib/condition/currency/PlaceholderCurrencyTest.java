@@ -61,6 +61,16 @@ class PlaceholderCurrencyTest {
     }
 
     @Test
+    void aBalanceInDebtReadsAsZeroAndTakesNothing() {
+        names.put(STEVE, "Steve");
+        balances.put(STEVE, "-3");
+
+        assertThat(tokens().balanceOf(STEVE).isZero()).isTrue();
+        assertThat(tokens().take(STEVE, Money.of(TOKENS, "1"))).isFalse();
+        assertThat(console).isEmpty();
+    }
+
+    @Test
     void takingSendsTheFilledLineOnlyWhenThePlayerHasEnough() {
         names.put(STEVE, "Steve");
         balances.put(STEVE, "100");

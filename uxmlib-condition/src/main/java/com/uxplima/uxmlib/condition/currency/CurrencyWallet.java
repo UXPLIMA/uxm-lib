@@ -82,6 +82,10 @@ public final class CurrencyWallet implements Wallet {
      * operator wrote and rounding up would take more, and either is the plugin deciding what a line meant.
      */
     private static Optional<Money> amountIn(Currency currency, double amount) {
+        if (!Double.isFinite(amount) || amount < 0) {
+            // A line whose placeholder answered NaN or Infinity names no amount at all.
+            return Optional.empty();
+        }
         BigDecimal sum = BigDecimal.valueOf(amount);
         if (currency.isWhole() && sum.stripTrailingZeros().scale() > 0) {
             return Optional.empty();

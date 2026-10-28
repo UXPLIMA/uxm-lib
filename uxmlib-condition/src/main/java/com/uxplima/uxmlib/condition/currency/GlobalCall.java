@@ -35,7 +35,8 @@ public final class GlobalCall {
         Objects.requireNonNull(scheduler, "scheduler");
         Objects.requireNonNull(work, "work");
 
-        if (Bukkit.isPrimaryThread()) {
+        // On Folia every region thread is a primary thread; only the global one may run this in place.
+        if (Bukkit.isGlobalTickThread()) {
             return Optional.ofNullable(work.get());
         }
 

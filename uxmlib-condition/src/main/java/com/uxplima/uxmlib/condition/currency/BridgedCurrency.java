@@ -79,7 +79,8 @@ public final class BridgedCurrency implements Currency {
     @Override
     public Money balanceOf(java.util.UUID player) {
         Objects.requireNonNull(player, "player");
-        return new Money(id, wallet.balanceExact(player, pool));
+        // An economy that allows debt reports a negative balance; a player in debt has nothing to spend.
+        return new Money(id, wallet.balanceExact(player, pool).max(BigDecimal.ZERO));
     }
 
     @Override
