@@ -13,6 +13,7 @@ import java.util.function.Supplier;
 import com.uxplima.uxmlib.condition.currency.Currency;
 import com.uxplima.uxmlib.condition.currency.CurrencyId;
 import com.uxplima.uxmlib.condition.currency.Money;
+import com.uxplima.uxmlib.condition.currency.PlayerLocks;
 import me.lokka30.treasury.api.economy.EconomyProvider;
 import me.lokka30.treasury.api.economy.account.PlayerAccount;
 import me.lokka30.treasury.api.economy.response.EconomySubscriber;
@@ -46,6 +47,7 @@ public final class TreasuryCurrency implements Currency {
     private final Supplier<Optional<Object>> provider;
     private final Duration waitFor;
     private final System.Logger log;
+    private final PlayerLocks locks = new PlayerLocks();
     private volatile boolean readable = true;
 
     /**
@@ -117,7 +119,7 @@ public final class TreasuryCurrency implements Currency {
     public boolean take(UUID player, Money amount) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(amount, "amount");
-        return move(player, amount, true);
+        return locks.holding(player, () -> move(player, amount, true));
     }
 
     @Override
@@ -154,10 +156,22 @@ public final class TreasuryCurrency implements Currency {
             }
             EconomyTransactionInitiator<?> asked =
                     EconomyTransactionInitiator.createInitiator(EconomyTransactionInitiator.Type.PLAYER, player);
-            if (away) {
-                this.<BigDecimal>answer(subscriber -> owner.withdrawBalance(amount.amount(), asked, held, subscriber));
-            } else {
-                this.<BigDecimal>answer(subscriber -> owner.depositBalance(amount.amount(), asked, held, subscriber));
+            try {
+                if (away) {
+                    this.<BigDecimal>answer(
+                            subscriber -> owner.withdrawBalance(amount.amount(), asked, held, subscriber));
+                } else {
+                    this.<BigDecimal>answer(
+                            subscriber -> owner.depositBalance(amount.amount(), asked, held, subscriber));
+                }
+            } catch (IllegalStateException unanswered) {
+                // The request has left and cannot be called back, so Treasury may still carry it out. The
+                // caller hears "not moved", which is the side that never pays twice, and the console names
+                // the account so an operator can check it.
+                return refuse(
+                        "Treasury did not say whether the " + id + " currency moved " + amount.amount() + " for "
+                                + player + ". Check that account.",
+                        unanswered);
             }
             return true;
         } catch (RuntimeException | LinkageError unreachable) {

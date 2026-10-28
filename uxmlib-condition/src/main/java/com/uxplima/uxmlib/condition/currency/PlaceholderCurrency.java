@@ -46,6 +46,7 @@ public final class PlaceholderCurrency implements Currency {
     private final Reader reader;
     private final Console console;
     private final KnownPlayers players;
+    private final PlayerLocks locks = new PlayerLocks();
 
     public PlaceholderCurrency(CurrencySpec.OfPlaceholder spec, Reader reader, Console console, KnownPlayers players) {
         this.spec = Objects.requireNonNull(spec, "spec");
@@ -90,10 +91,7 @@ public final class PlaceholderCurrency implements Currency {
     public boolean take(UUID player, Money amount) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(amount, "amount");
-        if (!balanceOf(player).isAtLeast(amount)) {
-            return false;
-        }
-        return send(spec.take(), player, amount);
+        return locks.holding(player, () -> balanceOf(player).isAtLeast(amount) && send(spec.take(), player, amount));
     }
 
     @Override
