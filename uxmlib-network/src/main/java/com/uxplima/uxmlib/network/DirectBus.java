@@ -24,6 +24,7 @@ import org.jspecify.annotations.Nullable;
 public final class DirectBus implements Bus {
 
     private static final int OUTBOX = 4096;
+    private static final long OUTBOX_BYTES = 16L << 20;
     private static final Duration FIRST_PAUSE = Duration.ofSeconds(1);
     private static final Duration LONGEST_PAUSE = Duration.ofSeconds(30);
 
@@ -32,7 +33,7 @@ public final class DirectBus implements Bus {
     private final Signer signer;
     private final System.Logger log;
     private final Handlers handlers;
-    private final Outbox outbox = new Outbox(OUTBOX);
+    private final Outbox outbox = new Outbox(OUTBOX, OUTBOX_BYTES);
     private final Thread loop;
 
     private volatile boolean open = true;

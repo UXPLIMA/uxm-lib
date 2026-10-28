@@ -241,12 +241,13 @@ public final class DirectBroker implements Bus {
     private final class Link {
 
         private static final int QUEUE = 4096;
+        private static final long QUEUE_BYTES = 16L << 20;
 
         private final String id;
         private final Socket socket;
         private final DataOutputStream out;
         private final Signer signer;
-        private final Outbox queue = new Outbox(QUEUE);
+        private final Outbox queue = new Outbox(QUEUE, QUEUE_BYTES);
         private long sequence;
 
         Link(String id, Socket socket, DataOutputStream out, Signer signer, long start) {
