@@ -9,8 +9,12 @@ final class ServerId {
 
     private ServerId() {}
 
+    static boolean isValid(String id) {
+        return ALLOWED.matcher(id).matches();
+    }
+
     static String check(String id) {
-        if (!ALLOWED.matcher(id).matches()) {
+        if (!isValid(id)) {
             throw new IllegalArgumentException("a server id must match " + ALLOWED.pattern() + ", got: " + id);
         }
         return id;

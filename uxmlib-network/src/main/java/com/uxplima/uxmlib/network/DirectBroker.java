@@ -130,8 +130,16 @@ public final class DirectBroker implements Bus {
             socket.setTcpNoDelay(true);
             DataInputStream in = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
             DataOutputStream out = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-            id = in.readUTF();
+            String claimed = in.readUTF();
             long serverNonce = in.readLong();
+            if (!ServerId.isValid(claimed)) {
+                log.log(
+                        System.Logger.Level.WARNING,
+                        "A connection from " + socket.getRemoteSocketAddress()
+                                + " named itself with an id no server can have.");
+                return;
+            }
+            id = claimed;
             Signer signer = signers.get(id);
             if (signer == null) {
                 log.log(
@@ -159,11 +167,11 @@ public final class DirectBroker implements Bus {
                 replaced.close();
             }
             log.log(System.Logger.Level.INFO, "The server " + id + " joined the network.");
-            Thread heartbeat = Thread.ofVirtual().start(link::beat);
+            Thread writer = Thread.ofVirtual().start(link::write);
             try {
                 read(id, in, signer, brokerNonce + 1);
             } finally {
-                heartbeat.interrupt();
+                writer.interrupt();
             }
         } catch (IOException | RuntimeException lost) {
             if (open && link != null) {
@@ -223,13 +231,22 @@ public final class DirectBroker implements Bus {
         }
     }
 
-    /** One connected server: its socket, its writer and its down sequence. */
+    /**
+     * One connected server: its socket, its queue and its down sequence.
+     *
+     * <p>Routing only queues. Each link writes on its own thread, so a server that reads slowly delays
+     * nobody but itself, and one that falls a full queue behind is cut off rather than allowed to hold
+     * the frames of every other server in memory.
+     */
     private final class Link {
+
+        private static final int QUEUE = 4096;
 
         private final String id;
         private final Socket socket;
         private final DataOutputStream out;
         private final Signer signer;
+        private final Outbox queue = new Outbox(QUEUE);
         private long sequence;
 
         Link(String id, Socket socket, DataOutputStream out, Signer signer, long start) {
@@ -240,23 +257,26 @@ public final class DirectBroker implements Bus {
             this.sequence = start;
         }
 
-        synchronized void send(byte[] body) {
-            try {
-                Wire.write(out, signer, sequence++, body);
-            } catch (IOException failed) {
-                log.log(System.Logger.Level.INFO, "Could not reach " + id + ": " + failed.getMessage());
+        void send(byte[] body) {
+            if (queue.offer(body)) {
+                log.log(
+                        System.Logger.Level.WARNING,
+                        "The server " + id + " reads too slowly to keep up and was"
+                                + " disconnected; it will connect again.");
                 close();
             }
         }
 
-        void beat() {
+        void write() {
             try {
                 while (!Thread.currentThread().isInterrupted() && !socket.isClosed()) {
-                    Thread.sleep(Wire.HEARTBEAT);
-                    send(new byte[0]);
+                    byte[] body = queue.next(Wire.HEARTBEAT.toMillis());
+                    Wire.write(out, signer, sequence++, body == null ? new byte[0] : body);
                 }
             } catch (InterruptedException stopped) {
                 Thread.currentThread().interrupt();
+            } catch (IOException failed) {
+                close();
             }
         }
 
