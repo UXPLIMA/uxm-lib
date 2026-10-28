@@ -122,6 +122,24 @@ bus.subscribe("party-updates", frame -> applyUpdate(frame));   // RedisBus: opaq
 bus.publish("party-updates", encode(update));                  // fail-degraded, auto-reconnecting
 ```
 
+`uxmlib-network` carries frames between the servers of a proxy network when a plugin needs more than a
+hint: a chat line, a presence list, a message to one server. A `Bus` sends to every other server
+(`publish`) or to one (`send`), by topic, and never hands a server its own frame. Two transports implement
+it. `DirectBus` connects each server to a `DirectBroker` that the proxy plugin runs, so the network needs
+no Redis and works with no player online; every server has its own secret, each frame is signed with it
+(`Signer`, HMAC-SHA256 with a sequence number), and the broker refuses a server id it holds no secret for.
+`RedisNetworkBus` runs the same contract over `uxmlib-redis` for a network that already has Redis.
+
+```java
+Bus bus = new DirectBus("lobby", "127.0.0.1", 25590, secret, log);   // secret from Signer.newSecret()
+bus.subscribe("chat-line", frame -> scheduler.global(() -> show(frame.origin(), frame.payload())));
+bus.send("survival", "chat-line", encode(line));                      // one server; publish for all
+```
+
+Delivery is at most once and in order per sender while the link is up. Frames sent while it is down wait
+in a queue bounded by count and bytes, oldest dropped first. Handlers run on the transport's thread, so a
+handler that touches the world hands the work to the scheduler. Server ids match `[a-z0-9_-]{1,32}`.
+
 ## Backup participation
 
 A plugin that keeps state in memory has, at any moment, work that a file copy would miss. Register once, and
