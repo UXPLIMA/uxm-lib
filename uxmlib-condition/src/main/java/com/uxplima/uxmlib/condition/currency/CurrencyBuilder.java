@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 
 import com.uxplima.uxmlib.condition.currency.treasury.TreasuryCurrency;
@@ -91,6 +92,11 @@ public final class CurrencyBuilder {
                 }
             }
         }
-        return List.copyOf(built);
+        // One set of take locks for every currency built here, so two currencies over one economy take
+        // one at a time per player as well.
+        OneTakeAtATime.Takes takes = new OneTakeAtATime.Takes();
+        return built.stream()
+                .<Currency>map(currency -> new OneTakeAtATime(currency, takes, Bukkit::isPrimaryThread))
+                .toList();
     }
 }

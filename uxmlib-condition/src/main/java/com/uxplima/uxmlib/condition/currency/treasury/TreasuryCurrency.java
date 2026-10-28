@@ -13,7 +13,6 @@ import java.util.function.Supplier;
 import com.uxplima.uxmlib.condition.currency.Currency;
 import com.uxplima.uxmlib.condition.currency.CurrencyId;
 import com.uxplima.uxmlib.condition.currency.Money;
-import com.uxplima.uxmlib.condition.currency.PlayerLocks;
 import me.lokka30.treasury.api.economy.EconomyProvider;
 import me.lokka30.treasury.api.economy.account.PlayerAccount;
 import me.lokka30.treasury.api.economy.response.EconomySubscriber;
@@ -47,7 +46,6 @@ public final class TreasuryCurrency implements Currency {
     private final Supplier<Optional<Object>> provider;
     private final Duration waitFor;
     private final System.Logger log;
-    private final PlayerLocks locks = new PlayerLocks();
     private volatile boolean readable = true;
 
     /**
@@ -119,7 +117,7 @@ public final class TreasuryCurrency implements Currency {
     public boolean take(UUID player, Money amount) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(amount, "amount");
-        return locks.holding(player, () -> move(player, amount, true));
+        return move(player, amount, true);
     }
 
     @Override
@@ -164,14 +162,16 @@ public final class TreasuryCurrency implements Currency {
                     this.<BigDecimal>answer(
                             subscriber -> owner.depositBalance(amount.amount(), asked, held, subscriber));
                 }
-            } catch (IllegalStateException unanswered) {
-                // The request has left and cannot be called back, so Treasury may still carry it out. The
-                // caller hears "not moved", which is the side that never pays twice, and the console names
-                // the account so an operator can check it.
-                return refuse(
+            } catch (Unanswered unanswered) {
+                // The request has left and cannot be called back, so Treasury may still carry it out. A take
+                // reads as not made and a payment as made: either way nothing is paid twice, and the console
+                // names the account so an operator can check it.
+                log.log(
+                        System.Logger.Level.WARNING,
                         "Treasury did not say whether the " + id + " currency moved " + amount.amount() + " for "
                                 + player + ". Check that account.",
                         unanswered);
+                return !away;
             }
             return true;
         } catch (RuntimeException | LinkageError unreachable) {
@@ -248,8 +248,20 @@ public final class TreasuryCurrency implements Currency {
         } catch (InterruptedException stopped) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("the wait for Treasury was interrupted", stopped);
-        } catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException unanswered) {
-            throw new IllegalStateException("Treasury did not answer in " + waitFor, unanswered);
+        } catch (java.util.concurrent.ExecutionException refused) {
+            throw new IllegalStateException("Treasury refused", refused.getCause());
+        } catch (java.util.concurrent.TimeoutException late) {
+            throw new Unanswered("Treasury did not answer in " + waitFor, late);
+        }
+    }
+
+    /** Treasury got the request and gave no answer in time, so whether it ran is unknown. */
+    private static final class Unanswered extends IllegalStateException {
+
+        private static final long serialVersionUID = 1L;
+
+        Unanswered(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 

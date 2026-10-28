@@ -27,6 +27,10 @@ final class Hop {
     private Hop() {}
 
     static <T> Optional<T> await(Consumer<Runnable> lane, Supplier<T> work) {
+        return await(lane, work, LIMIT);
+    }
+
+    static <T> Optional<T> await(Consumer<Runnable> lane, Supplier<T> work, Duration limit) {
         AtomicBoolean claimed = new AtomicBoolean();
         CompletableFuture<T> answer = new CompletableFuture<>();
         lane.accept(() -> {
@@ -35,12 +39,16 @@ final class Hop {
             }
             try {
                 answer.complete(work.get());
-            } catch (RuntimeException failure) {
+            } catch (Throwable failure) {
+                // An Error too: a caller that lost the claim waits for this answer, and must get one.
                 answer.completeExceptionally(failure);
+                if (failure instanceof Error error) {
+                    throw error;
+                }
             }
         });
         try {
-            return Optional.ofNullable(answer.get(LIMIT.toMillis(), TimeUnit.MILLISECONDS));
+            return Optional.ofNullable(answer.get(limit.toMillis(), TimeUnit.MILLISECONDS));
         } catch (ExecutionException failure) {
             return Optional.empty();
         } catch (InterruptedException interrupted) {
