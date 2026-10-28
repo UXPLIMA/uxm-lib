@@ -26,6 +26,7 @@ graph TD
     update[uxmlib-update] --> common
     condition[uxmlib-condition] --> common
     redis[uxmlib-redis]
+    network[uxmlib-network] --> redis
     pipeline[uxmlib-pipeline] --> common
     packet[uxmlib-packet] --> pipeline
     nametags[uxmlib-nametags] --> common
