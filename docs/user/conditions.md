@@ -83,3 +83,43 @@ beside the take: `depositPlayer` for Vault, `deposit` for VaultUnlocked, `give` 
 console line for `PlaceholderWallet.Pool`. EcoBits names none, because its take is a give of a negative
 number and `EconomyBinding.give()` reads that off `Calls.takeNegates`. An economy that names no give, or
 that renamed the one it named, goes on reading and taking and refuses only the payment.
+
+## Currencies
+
+A wallet is one backend. A plugin that prices things in several, such as coins, points, levels and
+diamonds at once, reads them from a `currencies.conf` the operator writes, through the
+`com.uxplima.uxmlib.condition.currency` package:
+
+```hocon
+currencies {
+  coins {
+    type = "vault"          # vault, vaultunlocked, playerpoints, ecobits, treasury,
+    order = 10              # item, experience, bridge or placeholder
+    enabled = true
+    display { format = "{amount} coins", format-one = "{amount} coin", decimals = 2, thousands = "," }
+  }
+  experience { type = "experience", order = 30, unit = "levels" }
+  diamonds   { type = "item", order = 40, material = "diamond" }
+}
+```
+
+```java
+List<CurrencySpec> specs = CurrencyFile.read(config, "uxmShop");    // no server needed
+List<Currency> built = CurrencyBuilder.build(specs, items, players, scheduler, economies,
+        placeholders, console, known, log);
+CurrencyRegistry currencies = new CurrencyRegistry(built);          // the operator's order
+Wallet wallet = new CurrencyWallet(currencies);                     // for [give-money] and friends
+MoneyText text = MoneyText.read(config);                            // "1,250 coins", "1 coin"
+```
+
+- `order` decides the preferred currency (the lowest) and the order of a menu's tabs. HOCON forgets the
+  order a section was written in, so the file says it; two equal orders fall back to the id.
+- A currency whose plugin is missing is built but not ready. `CurrencyRegistry.ready()` leaves it out
+  and a price in it cannot be paid until the plugin is there. Nothing fails to start over one.
+- Amounts are `Money`: a currency id and a `BigDecimal`, so a price never drifts by a rounding error.
+  `isWhole()` currencies (experience, items) refuse fractions.
+- Every method takes a player id, because the other side of a trade is often offline. `paysOffline()`
+  says whether an absent player can be paid directly; when it cannot, the plugin keeps the money for them.
+- `bridge` describes an economy no shipped description covers (its class, its take and give methods)
+  and `placeholder` reads a balance through a placeholder and moves it with two console lines, so an
+  operator with another economy plugin needs nothing new from the library.
