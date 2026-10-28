@@ -23,6 +23,7 @@ public final class RedisNetworkBus implements Bus {
     private final Handlers handlers;
     private final System.Logger log;
     private final Set<String> listening = ConcurrentHashMap.newKeySet();
+    private volatile boolean closed;
 
     /**
      * @param prefix what every channel of this plugin starts with, such as {@code uxmchat}
@@ -59,7 +60,13 @@ public final class RedisNetworkBus implements Bus {
     public void subscribe(String topic, Consumer<Frame> handler) {
         handlers.add(Objects.requireNonNull(topic, "topic"), Objects.requireNonNull(handler, "handler"));
         if (listening.add(topic)) {
-            redis.subscribe(channel(topic), this::receive);
+            try {
+                redis.subscribe(channel(topic), this::receive);
+            } catch (RuntimeException down) {
+                // Not listening after all, so the next subscribe to this topic tries again.
+                listening.remove(topic);
+                throw down;
+            }
         }
     }
 
@@ -68,12 +75,19 @@ public final class RedisNetworkBus implements Bus {
         return redis.healthy();
     }
 
+    /**
+     * Stop handing frames to this bus's handlers. The {@link RedisBus} is the caller's and stays open, since
+     * other code may share it; the caller closes it when nothing uses it.
+     */
     @Override
     public void close() {
-        redis.close();
+        closed = true;
     }
 
     private void receive(byte[] bytes) {
+        if (closed) {
+            return;
+        }
         Frame frame;
         try {
             frame = FrameCodec.decode(bytes);

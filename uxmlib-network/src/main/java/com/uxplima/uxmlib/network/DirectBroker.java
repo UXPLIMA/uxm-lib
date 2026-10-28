@@ -50,11 +50,26 @@ public final class DirectBroker implements Bus {
         this.log = Objects.requireNonNull(log, "log");
         this.handlers = new Handlers(log);
         Map<String, Signer> built = new ConcurrentHashMap<>();
-        secrets.forEach((id, secret) -> built.put(ServerId.check(id), new Signer(secret)));
+        secrets.forEach((id, secret) -> {
+            String checked = ServerId.check(id);
+            if (checked.equals(PROXY)) {
+                // The broker's own id: a server under it could speak as the proxy and never hear its frames.
+                log.log(
+                        System.Logger.Level.WARNING,
+                        "A server cannot be called " + PROXY + ", the broker's own id; it is left off the network.");
+                return;
+            }
+            built.put(checked, new Signer(secret));
+        });
         this.signers = Map.copyOf(built);
         this.bind = new InetSocketAddress(Objects.requireNonNull(host, "host"), port);
         this.listening = new ServerSocket();
-        listening.bind(bind);
+        try {
+            listening.bind(bind);
+        } catch (IOException taken) {
+            listening.close();
+            throw taken;
+        }
         this.acceptor = Thread.ofVirtual().name("uxmlib-network-broker").start(this::accept);
     }
 
@@ -222,7 +237,9 @@ public final class DirectBroker implements Bus {
             return;
         }
         if (frame.target().equals(PROXY)) {
-            handlers.deliver(frame);
+            if (!frame.origin().equals(PROXY)) {
+                handlers.deliver(frame);
+            }
             return;
         }
         Link target = links.get(frame.target());

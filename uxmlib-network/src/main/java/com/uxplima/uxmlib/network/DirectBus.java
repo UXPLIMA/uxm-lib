@@ -25,6 +25,9 @@ public final class DirectBus implements Bus {
 
     private static final int OUTBOX = 4096;
     private static final long OUTBOX_BYTES = 16L << 20;
+    /** How long {@link #close} waits for queued frames to go out. */
+    private static final Duration FLUSH = Duration.ofSeconds(1);
+
     private static final Duration FIRST_PAUSE = Duration.ofSeconds(1);
     private static final Duration LONGEST_PAUSE = Duration.ofSeconds(30);
 
@@ -81,6 +84,13 @@ public final class DirectBus implements Bus {
 
     @Override
     public void close() {
+        // A frame published just before closing, such as a leaving notice, gets a moment to go out.
+        long until = System.nanoTime() + FLUSH.toNanos();
+        while (connected && !outbox.isEmpty() && System.nanoTime() < until) {
+            if (!sleep(Duration.ofMillis(20))) {
+                break;
+            }
+        }
         open = false;
         closeSocket();
         loop.interrupt();
@@ -158,9 +168,8 @@ public final class DirectBus implements Bus {
                 try {
                     Wire.write(out, signer, sequence++, sending);
                 } catch (IOException failed) {
-                    if (body != null) {
-                        outbox.putBack(body);
-                    }
+                    // The frame may have reached the broker before the link broke, so it is not sent again:
+                    // delivery is at most once, and a line shown twice is worse than one lost with the link.
                     closeSocket();
                     return;
                 }

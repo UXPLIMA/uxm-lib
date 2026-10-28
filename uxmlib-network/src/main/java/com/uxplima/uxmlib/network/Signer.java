@@ -26,6 +26,8 @@ public final class Signer {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final SecretKeySpec key;
+    /** A Mac per thread, made once: looking one up per frame costs a provider search each time. */
+    private final ThreadLocal<Mac> macs = ThreadLocal.withInitial(this::newMac);
 
     public Signer(String secret) {
         Objects.requireNonNull(secret, "secret");
@@ -54,11 +56,16 @@ public final class Signer {
     }
 
     public byte[] sign(long sequence, byte[] body) {
+        Mac mac = macs.get();
+        mac.update(ByteBuffer.allocate(Long.BYTES).putLong(sequence).array());
+        return mac.doFinal(body);
+    }
+
+    private Mac newMac() {
         try {
             Mac mac = Mac.getInstance(ALGORITHM);
             mac.init(key);
-            mac.update(ByteBuffer.allocate(Long.BYTES).putLong(sequence).array());
-            return mac.doFinal(body);
+            return mac;
         } catch (GeneralSecurityException missing) {
             throw new IllegalStateException("this Java has no " + ALGORITHM, missing);
         }

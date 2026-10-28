@@ -140,4 +140,47 @@ class DirectNetworkTest {
         await(() -> !heard.isEmpty());
         assertThat(heard.getFirst().origin()).isEqualTo(DirectBroker.PROXY);
     }
+
+    @Test
+    void aServerCalledProxyIsNeverLetInSinceThatIdIsTheBrokers() throws Exception {
+        String secret = Signer.newSecret();
+        DirectBroker broker = new DirectBroker("127.0.0.1", 0, Map.of("proxy", secret), LOG);
+        open.add(broker);
+        DirectBus pretender = server(broker, "proxy", secret);
+        List<Frame> heardByBroker = new CopyOnWriteArrayList<>();
+        broker.subscribe("route", heardByBroker::add);
+
+        pretender.publish("route", text("i am the proxy"));
+
+        Thread.sleep(1000);
+        assertThat(broker.connected()).isEmpty();
+        assertThat(heardByBroker).isEmpty();
+    }
+
+    @Test
+    void theProxyNeverHearsAFrameItSentToItself() throws Exception {
+        DirectBroker broker = broker();
+        List<Frame> heard = new CopyOnWriteArrayList<>();
+        broker.subscribe("route", heard::add);
+
+        broker.send(DirectBroker.PROXY, "route", text("echo"));
+
+        Thread.sleep(200);
+        assertThat(heard).isEmpty();
+    }
+
+    @Test
+    void aFramePublishedJustBeforeClosingStillGoesOut() throws Exception {
+        DirectBroker broker = broker();
+        DirectBus lobby = new DirectBus("lobby", "127.0.0.1", broker.port(), lobbySecret, LOG);
+        DirectBus survival = server(broker, "survival", survivalSecret);
+        List<Frame> heard = new CopyOnWriteArrayList<>();
+        survival.subscribe("presence", heard::add);
+        await(() -> broker.connected().containsAll(List.of("lobby", "survival")));
+
+        lobby.publish("presence", text("leaving"));
+        lobby.close();
+
+        await(() -> !heard.isEmpty());
+    }
 }

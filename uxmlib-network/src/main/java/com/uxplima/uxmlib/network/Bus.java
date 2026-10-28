@@ -6,8 +6,9 @@ import java.util.function.Consumer;
  * Frames between the servers of a network.
  *
  * <p>A server never receives its own frames. Delivery is at most once and in order per sender while the
- * transport is up; a frame sent while it is down waits in a bounded queue and the oldest is dropped first
- * when the queue is full. Handlers run on the transport's thread, so a handler that touches the server
+ * transport is up. What happens to a frame sent while it is down is the transport's: {@link DirectBus} keeps
+ * it in a bounded queue and drops the oldest first when the queue is full, {@link RedisNetworkBus} hands it
+ * to Redis, which drops it. Handlers run on the transport's thread, so a handler that touches the server
  * hands the work to the server's scheduler itself.
  */
 public interface Bus extends AutoCloseable {
