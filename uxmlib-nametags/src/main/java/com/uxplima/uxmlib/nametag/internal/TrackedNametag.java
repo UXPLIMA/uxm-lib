@@ -77,7 +77,7 @@ public final class TrackedNametag implements NametagHandle {
 
     /** Send the full spawn bundle to each resolvable viewer in the supplier's current set. */
     public void spawnAll() {
-        Set<UUID> initial = new HashSet<>(resolveViewers());
+        Set<UUID> initial = tracking(resolveViewers());
         for (UUID viewer : initial) {
             spawnFor(viewer);
         }
@@ -112,13 +112,28 @@ public final class TrackedNametag implements NametagHandle {
         return supplied == null ? Set.of() : supplied;
     }
 
+    /**
+     * The viewers in {@code supplied} whose client tracks the target. The mount seats the lines on the target's
+     * entity, so a client without that entity drops it and keeps the lines where they spawned, at the target's
+     * feet. Such a viewer is left out until their client tracks the target, and then gets the whole stack.
+     */
+    private Set<UUID> tracking(Set<UUID> supplied) {
+        Set<UUID> tracking = new HashSet<>();
+        for (Player viewer : target.getTrackedBy()) {
+            if (supplied.contains(viewer.getUniqueId())) {
+                tracking.add(viewer.getUniqueId());
+            }
+        }
+        return tracking;
+    }
+
     /** Diff {@code nextViewers} against the last-reconciled set: spawn newcomers, drop departed, refresh the rest. */
     private void reconcile(Set<UUID> nextViewers) {
         if (removed) {
             return;
         }
         Set<UUID> previous = this.viewers;
-        Set<UUID> next = new HashSet<>(nextViewers);
+        Set<UUID> next = tracking(nextViewers);
         for (UUID viewer : next) {
             reconcileViewer(viewer, previous.contains(viewer));
         }
@@ -144,12 +159,21 @@ public final class TrackedNametag implements NametagHandle {
         }
     }
 
-    /** Re-send each line's metadata to a viewer whose stack height has not changed. */
+    /**
+     * Re-send each line's metadata to a viewer whose stack height has not changed, and seat the lines again. A
+     * client that loses the target's entity and gets it back between two refreshes keeps the lines, unseated,
+     * where the target left; the mount puts them back on the target.
+     */
     private void refreshLines(UUID viewer, List<Component> lines) {
         int obscuredOpacity = opacityFor(viewer);
+        List<Object> frame = new ArrayList<>(lines.size() + 1);
+        int[] ids = new int[lines.size()];
         for (int i = 0; i < lines.size(); i++) {
-            sendTo(viewer, metadataPacket(lineId(i), lines.get(i), i, lines.size(), obscuredOpacity));
+            ids[i] = lineId(i);
+            frame.add(metadataPacket(ids[i], lines.get(i), i, lines.size(), obscuredOpacity));
         }
+        frame.add(packets.mountPacket(target.getEntityId(), ids));
+        sendTo(viewer, packets.bundle(frame));
     }
 
     /** Spawn the whole stack for a viewer: per-line spawn + metadata, then one mount seating every line id. */

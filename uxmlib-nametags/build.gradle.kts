@@ -20,6 +20,10 @@ dependencies {
     // Paper bundles Netty at runtime but does not export it through its POM; the channel/pipeline types are
     // a compileOnly dependency pinned to the version the server ships. Infra dep; the consumer never shades it.
     compileOnly(libs.netty.transport)
+
+    // The tests drive the renderer through a fake packet port, so they need only the Paper API, not the server.
+    testImplementation(libs.paper.api)
+    testImplementation(libs.bundles.adventure)
 }
 
 // The server internals are compileOnly: the live server provides net.minecraft at runtime.
