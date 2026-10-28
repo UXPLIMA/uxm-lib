@@ -77,7 +77,9 @@ public final class NametagRenderer {
      * {@code period}, re-asks {@code viewers} for the live set, diffs it against the tracked set (newcomers get a
      * spawn bundle, departed viewers a remove packet, the rest a metadata refresh), re-resolves per-viewer text,
      * and re-applies line-of-sight fading. The renderer's own loop is therefore the single source of truth: a
-     * consumer need not run a second loop to follow players entering or leaving range.
+     * consumer need not run a second loop to follow players entering or leaving range. Of the supplier's set, only
+     * the viewers whose client tracks the target are sent anything, since the lines ride the target's entity; a
+     * viewer joins the audience on the first refresh their client tracks the target.
      *
      * <p>{@code viewers} is invoked on the target's region thread (the refresh thread), so it must be cheap and
      * thread-appropriate: it typically reads online players and eligibility, both safe to read on that thread.
