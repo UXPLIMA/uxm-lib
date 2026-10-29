@@ -123,6 +123,7 @@ public final class PlaceholderWallet implements Wallet {
     private final Reader reader;
     private final Console console;
     private final Names names;
+    private final TakeLocks takes = new TakeLocks();
 
     /**
      * @param names where a name comes from for a line that takes one, when the player is known only by id
@@ -205,11 +206,11 @@ public final class PlaceholderWallet implements Wallet {
             return false;
         }
         // The whole cost is read before any of it is taken. A command cannot refuse, so this is the only
-        // place the refusal can be made, and it is made before a line is sent.
-        if (balanceExact(player, currency).compareTo(amount) < 0) {
-            return false;
-        }
-        return send(pool.take(), player, amount, name);
+        // place the refusal can be made, and it is made before a line is sent, with no other take for this
+        // player between the read and the line.
+        return takes.holding(
+                player,
+                () -> balanceExact(player, currency).compareTo(amount) >= 0 && send(pool.take(), player, amount, name));
     }
 
     /**

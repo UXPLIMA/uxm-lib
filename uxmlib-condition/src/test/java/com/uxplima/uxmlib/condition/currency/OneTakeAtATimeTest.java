@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import com.uxplima.uxmlib.condition.wallet.TakeLocks;
 import org.junit.jupiter.api.Test;
 
 /** Two takes for one player never both pass one balance check. */
@@ -19,9 +20,9 @@ class OneTakeAtATimeTest {
     @Test
     void twoTakesAtOnceForOnePlayerNeverOverdraw() throws InterruptedException {
         SlowCurrency slow = new SlowCurrency(new BigDecimal("100"), null);
-        OneTakeAtATime.Takes takes = new OneTakeAtATime.Takes();
-        Currency first = new OneTakeAtATime(slow, takes, () -> false);
-        Currency second = new OneTakeAtATime(slow, takes, () -> false);
+        TakeLocks takes = new TakeLocks(() -> false);
+        Currency first = new OneTakeAtATime(slow, takes);
+        Currency second = new OneTakeAtATime(slow, takes);
         AtomicInteger passed = new AtomicInteger();
 
         Thread one = Thread.ofVirtual().start(() -> count(first.take(STEVE, Money.of(COINS, "80")), passed));
@@ -42,18 +43,20 @@ class OneTakeAtATimeTest {
             inside.countDown();
             await(release);
         });
-        OneTakeAtATime.Takes takes = new OneTakeAtATime.Takes();
-        Thread worker = Thread.ofVirtual()
-                .start(() -> new OneTakeAtATime(held, takes, () -> false).take(STEVE, Money.of(COINS, "10")));
+        Thread server = Thread.currentThread();
+        TakeLocks takes = new TakeLocks(() -> Thread.currentThread() == server);
+        Currency currency = new OneTakeAtATime(held, takes);
+        Thread worker = Thread.ofVirtual().start(() -> currency.take(STEVE, Money.of(COINS, "10")));
         await(inside);
 
         long started = System.nanoTime();
-        boolean taken = new OneTakeAtATime(held, takes, () -> true).take(STEVE, Money.of(COINS, "10"));
+        boolean taken = currency.take(STEVE, Money.of(COINS, "10"));
 
         assertThat(taken).isFalse();
         assertThat(Duration.ofNanos(System.nanoTime() - started)).isLessThan(Duration.ofSeconds(1));
         release.countDown();
         worker.join();
+        assertThat(takes.isEmpty()).isTrue();
     }
 
     private static void count(boolean taken, AtomicInteger passed) {

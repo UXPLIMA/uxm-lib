@@ -50,6 +50,7 @@ public final class BridgedWallet implements Wallet {
     private final EconomyProviders providers;
     private final PlayerArguments arguments;
     private final System.Logger log;
+    private final TakeLocks takes = new TakeLocks();
 
     /** The object the calls go to, resolved on first use and kept. */
     private volatile @Nullable Object handle;
@@ -163,6 +164,12 @@ public final class BridgedWallet implements Wallet {
         if (amount.signum() <= 0) {
             return true;
         }
+        // An economy that cannot refuse an overdraft is read and then taken from; no other take for this
+        // player runs in between.
+        return takes.holding(player, () -> take(player, currency, amount));
+    }
+
+    private boolean take(UUID player, String currency, BigDecimal amount) {
         Optional<Bound> found = bound(currency);
         if (found.isEmpty()) {
             return false;
