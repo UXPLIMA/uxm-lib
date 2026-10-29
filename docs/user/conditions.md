@@ -75,6 +75,12 @@ Every take is all or nothing. Where the economy refuses an overdraft itself, its
 back; where it cannot (EcoBits adjusts a balance and answers nothing, a console line answers nothing at
 all), the balance is read first and the take is refused before anything moves.
 
+`BridgedWallet`, `TreasuryWallet` and `PlaceholderWallet` also take a player id and a `BigDecimal`
+(`balanceExact`, `withdrawExact`, `depositExact`), for a plugin that pays a player who is offline and keeps
+every digit of a price. A `PlaceholderWallet.Reader` is asked by player id for the same reason. Treasury
+may leave a move unanswered inside its bound: a take then reads as not made and a payment as made, so
+nothing is paid twice, and the console names the account so an operator can check it.
+
 `Wallet.deposit` is the mirror, for a plugin that owes a player a wage, a refund or a prize. It carries the
 same all-or-nothing promise and reads nothing first, because a payment has no overdraft to refuse. It is a
 `default` that refuses, so a wallet written against the older contract keeps compiling and says plainly
@@ -120,6 +126,9 @@ MoneyText text = MoneyText.read(config);                            // "1,250 co
   `isWhole()` currencies (experience, items) refuse fractions.
 - Every method takes a player id, because the other side of a trade is often offline. `paysOffline()`
   says whether an absent player can be paid directly; when it cannot, the plugin keeps the money for them.
+- Each economy currency is the wallet of the same name with the plugin's rules on top, so a fix to a
+  backend reaches both. The currencies hop to the thread a backend needs (the player's region for
+  experience and items, the global one for placeholders and console lines) and back.
 - `bridge` describes an economy no shipped description covers (its class, its take and give methods)
   and `placeholder` reads a balance through a placeholder and moves it with two console lines, so an
   operator with another economy plugin needs nothing new from the library.

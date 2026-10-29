@@ -2,10 +2,12 @@ package com.uxplima.uxmlib.condition.wallet;
 
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -30,6 +32,11 @@ import org.jspecify.annotations.Nullable;
  * back a subscriber instead, an account is a hop of its own before the balance is, and moving money needs
  * a currency object and an initiator that says who asked. So this economy is written out.
  *
+ * <p>The currency name is the id of a currency inside Treasury, and the empty name is its primary one. The
+ * {@code Exact} methods take a player id and a {@link BigDecimal}, so a plugin can pay a player who is
+ * offline: an account of Treasury is a row under a player id. The service and each currency are looked up
+ * once and kept; an account is asked for on every call, because Treasury may close one in between.
+ *
  * <p>Every call waits for its answer with a bound on it, which is {@code waitFor}. A stalled economy costs
  * one purchase and never the server, and an operator whose economy sits on a slow database can give it
  * longer.
@@ -41,10 +48,10 @@ import org.jspecify.annotations.Nullable;
  *
  * <p>A take reads the balance first and refuses the whole cost before it moves anything, because Treasury
  * lets a balance go under nothing and a wallet that took more than a player has would be lending money it
- * never agreed to lend. One honest gap is left, and it is the reason {@code waitFor} is an operator's
- * choice: if Treasury takes the money and then fails to answer inside the bound, this reads the silence as
- * a refusal, so the caller delivers nothing while the money may already have gone. Nothing this side of
- * the call can tell the two apart.
+ * never agreed to lend. Only a payment opens an account. One honest gap is left, and it is the reason
+ * {@code waitFor} is an operator's choice: a request that has left and is not answered inside the bound may
+ * still be carried out. A take then reads as not made and a payment as made, so nothing is ever paid twice,
+ * and the console names the account so an operator can check it.
  */
 public final class TreasuryWallet implements Wallet {
 
@@ -57,8 +64,11 @@ public final class TreasuryWallet implements Wallet {
     private final Supplier<Optional<Object>> provider;
     private final Duration waitFor;
     private final System.Logger log;
+    /** The currencies of Treasury found so far, by the name asked for, as plain objects. */
+    private final Map<String, Object> currencies = new ConcurrentHashMap<>();
 
     private volatile @Nullable Object handle;
+    private volatile boolean readable = true;
 
     /**
      * @param provider where the Treasury service comes from, empty when the plugin is not here
@@ -80,74 +90,104 @@ public final class TreasuryWallet implements Wallet {
         return new TreasuryWallet(() -> providers.service(PLUGIN, PROVIDER), waitFor, log);
     }
 
+    /** Whether Treasury is here and holds {@code currency}. */
+    public boolean reaches(String currency) {
+        Objects.requireNonNull(currency, "currency");
+        return currency(currency) != null;
+    }
+
+    /** Whether {@code currency} takes no decimal places in Treasury. False when Treasury does not hold it. */
+    public boolean countsWhole(String currency) {
+        Objects.requireNonNull(currency, "currency");
+        Object found = currency(currency);
+        try {
+            return found != null && TreasuryCalls.whole(found);
+        } catch (RuntimeException | LinkageError unreachable) {
+            warnOnce("Treasury could not say how the " + named(currency) + " counts.", unreachable);
+            return false;
+        }
+    }
+
     /** The named currency of Treasury, or its primary one when the name is empty. Zero if neither is here. */
     @Override
     public double balance(@Nullable Player player, String currency) {
         Objects.requireNonNull(currency, "currency");
-        if (player == null) {
-            return 0;
-        }
+        return player == null ? 0 : balanceExact(player.getUniqueId(), currency).doubleValue();
+    }
+
+    /**
+     * The balance as Treasury holds it, which may be under zero. A player with no account, and a currency
+     * Treasury does not hold, read zero; reading never opens an account.
+     */
+    public BigDecimal balanceExact(UUID player, String currency) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(currency, "currency");
         Object treasury = treasury();
-        if (treasury == null) {
-            return 0;
+        Object held = currency(currency);
+        if (treasury == null || held == null) {
+            return BigDecimal.ZERO;
         }
         try {
-            BigDecimal has = TreasuryCalls.balance(treasury, player.getUniqueId(), currency.strip(), waitFor);
-            return has == null ? 0 : has.doubleValue();
+            BigDecimal has = TreasuryCalls.balance(treasury, held, player, waitFor);
+            readable = true;
+            return has == null ? BigDecimal.ZERO : has;
         } catch (RuntimeException | LinkageError unreachable) {
-            log.log(System.Logger.Level.WARNING, "Treasury could not be read for " + player.getName(), unreachable);
-            return 0;
+            warnOnce("Treasury could not read the " + named(currency) + " for " + player + ".", unreachable);
+            return BigDecimal.ZERO;
         }
     }
 
     @Override
     public boolean withdraw(@Nullable Player player, String currency, double amount) {
         Objects.requireNonNull(currency, "currency");
-        if (amount <= 0) {
-            return true;
-        }
-        if (player == null) {
-            return false;
-        }
-        Object treasury = treasury();
-        if (treasury == null) {
-            return false;
-        }
-        try {
-            return TreasuryCalls.withdraw(
-                    treasury, player.getUniqueId(), currency.strip(), BigDecimal.valueOf(amount), waitFor);
-        } catch (RuntimeException | LinkageError unreachable) {
-            log.log(System.Logger.Level.WARNING, "Treasury could not take money, so nothing was", unreachable);
-            return false;
-        }
+        return amount <= 0
+                || (player != null && withdrawExact(player.getUniqueId(), currency, BigDecimal.valueOf(amount)));
     }
 
-    /**
-     * Pay the amount in. Treasury cannot refuse a payment for want of money, so nothing is read first.
-     *
-     * <p>The same honest gap the take has is here the other way round: if Treasury pays the money and then
-     * fails to answer inside {@code waitFor}, this reads the silence as a refusal, so the caller is told the
-     * money did not arrive when it may have. Nothing this side of the call can tell the two apart, and a
-     * caller that reads {@code false} and pays again through another road would pay twice.
-     */
+    /** Take the whole amount, or take nothing and say so. */
+    public boolean withdrawExact(UUID player, String currency, BigDecimal amount) {
+        return move(player, currency, amount, true);
+    }
+
     @Override
     public boolean deposit(@Nullable Player player, String currency, double amount) {
         Objects.requireNonNull(currency, "currency");
-        if (amount <= 0) {
+        return amount <= 0
+                || (player != null && depositExact(player.getUniqueId(), currency, BigDecimal.valueOf(amount)));
+    }
+
+    /** Pay the whole amount in, opening the player's account when they have none. */
+    public boolean depositExact(UUID player, String currency, BigDecimal amount) {
+        return move(player, currency, amount, false);
+    }
+
+    private boolean move(UUID player, String currency, BigDecimal amount, boolean away) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(currency, "currency");
+        Objects.requireNonNull(amount, "amount");
+        if (amount.signum() <= 0) {
             return true;
         }
-        if (player == null) {
-            return false;
-        }
         Object treasury = treasury();
-        if (treasury == null) {
+        Object held = currency(currency);
+        if (treasury == null || held == null) {
             return false;
         }
         try {
-            return TreasuryCalls.deposit(
-                    treasury, player.getUniqueId(), currency.strip(), BigDecimal.valueOf(amount), waitFor);
+            return TreasuryCalls.move(treasury, held, player, amount, away, waitFor);
+        } catch (Unanswered unanswered) {
+            log.log(
+                    System.Logger.Level.WARNING,
+                    "Treasury did not say whether it " + (away ? "took " : "paid ") + amount.toPlainString()
+                            + " of the " + named(currency) + (away ? " from " : " to ") + player
+                            + ". Check that account.",
+                    unanswered);
+            return !away;
         } catch (RuntimeException | LinkageError unreachable) {
-            log.log(System.Logger.Level.WARNING, "Treasury could not be paid, so nothing was", unreachable);
+            log.log(
+                    System.Logger.Level.WARNING,
+                    "Treasury could not " + (away ? "take" : "pay") + " the " + named(currency) + ", so nothing moved.",
+                    unreachable);
             return false;
         }
     }
@@ -171,6 +211,54 @@ public final class TreasuryWallet implements Wallet {
         return found;
     }
 
+    /** The currency of Treasury under {@code named}, found once and kept; null while Treasury holds none. */
+    private @Nullable Object currency(String named) {
+        String key = named.strip();
+        Object known = currencies.get(key);
+        if (known != null) {
+            return known;
+        }
+        Object treasury = treasury();
+        if (treasury == null) {
+            return null;
+        }
+        try {
+            Object found = TreasuryCalls.currency(treasury, key);
+            if (found != null) {
+                currencies.put(key, found);
+            }
+            return found;
+        } catch (RuntimeException | LinkageError unreachable) {
+            warnOnce("Treasury could not find the " + named(named) + ".", unreachable);
+            return null;
+        }
+    }
+
+    private static String named(String currency) {
+        return currency.isBlank() ? "primary currency" : "currency " + currency.strip();
+    }
+
+    /**
+     * Say once that Treasury cannot be read. A menu asks for a balance on every draw, so a warning per ask
+     * would bury the console; the next balance read that works lets it speak again.
+     */
+    private void warnOnce(String what, Throwable why) {
+        if (readable) {
+            readable = false;
+            log.log(System.Logger.Level.WARNING, what, why);
+        }
+    }
+
+    /** Treasury got the request and gave no answer in time, so whether it ran is unknown. */
+    private static final class Unanswered extends IllegalStateException {
+
+        private static final long serialVersionUID = 1L;
+
+        Unanswered(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
     /**
      * Everything that names a Treasury type.
      *
@@ -182,92 +270,76 @@ public final class TreasuryWallet implements Wallet {
 
         private TreasuryCalls() {}
 
-        /** The balance, or {@code null} when Treasury holds no such currency and no such account. */
-        static @Nullable BigDecimal balance(Object provider, UUID who, String named, Duration waitFor) {
+        /** The currency the caller named, or the primary one; null when Treasury holds no such currency. */
+        static @Nullable Object currency(Object provider, String named) {
             if (!(provider instanceof EconomyProvider treasury)) {
                 return null;
             }
-            Currency currency = currency(treasury, named);
-            if (currency == null) {
-                return null;
-            }
-            PlayerAccount account = account(treasury, who, waitFor);
-            if (account == null) {
-                return null;
-            }
-            return answer(waitFor, subscriber -> account.retrieveBalance(currency, subscriber));
-        }
-
-        /** Take the whole amount, or take nothing at all and say so. */
-        static boolean withdraw(Object provider, UUID who, String named, BigDecimal amount, Duration waitFor) {
-            if (!(provider instanceof EconomyProvider treasury)) {
-                return false;
-            }
-            Currency currency = currency(treasury, named);
-            if (currency == null) {
-                return false;
-            }
-            PlayerAccount account = account(treasury, who, waitFor);
-            if (account == null) {
-                return false;
-            }
-            BigDecimal has = answer(waitFor, subscriber -> account.retrieveBalance(currency, subscriber));
-            if (has == null || has.compareTo(amount) < 0) {
-                return false;
-            }
-            EconomyTransactionInitiator<?> asked =
-                    EconomyTransactionInitiator.createInitiator(EconomyTransactionInitiator.Type.PLAYER, who);
-            // The answer is the balance that is left. Nothing here reads it: what matters is that the call
-            // answered at all, and a call that did not answer throws out of the wait and is read as a
-            // refusal by the wallet above.
-            TreasuryCalls.<BigDecimal>answer(
-                    waitFor, subscriber -> account.withdrawBalance(amount, asked, currency, subscriber));
-            return true;
-        }
-
-        /** Pay the whole amount in, or pay nothing at all and say so. */
-        static boolean deposit(Object provider, UUID who, String named, BigDecimal amount, Duration waitFor) {
-            if (!(provider instanceof EconomyProvider treasury)) {
-                return false;
-            }
-            Currency currency = currency(treasury, named);
-            if (currency == null) {
-                return false;
-            }
-            PlayerAccount account = account(treasury, who, waitFor);
-            if (account == null) {
-                return false;
-            }
-            EconomyTransactionInitiator<?> asked =
-                    EconomyTransactionInitiator.createInitiator(EconomyTransactionInitiator.Type.PLAYER, who);
-            // As with the take, the answer is the balance that is left and nothing here reads it: what
-            // matters is that the call answered at all, and a call that did not throws out of the wait.
-            TreasuryCalls.<BigDecimal>answer(
-                    waitFor, subscriber -> account.depositBalance(amount, asked, currency, subscriber));
-            return true;
-        }
-
-        /** The currency this call prices in: the one the caller named, or the primary one. */
-        private static @Nullable Currency currency(EconomyProvider treasury, String named) {
             return named.isEmpty()
                     ? treasury.getPrimaryCurrency()
                     : treasury.findCurrency(named).orElse(null);
         }
 
-        /** The account of one player, made when Treasury has none for them yet. */
-        private static @Nullable PlayerAccount account(EconomyProvider treasury, UUID who, Duration waitFor) {
+        static boolean whole(Object currency) {
+            return currency instanceof Currency held && held.getPrecision() == 0;
+        }
+
+        /** The balance, or {@code null} when the player has no account. */
+        static @Nullable BigDecimal balance(Object provider, Object currency, UUID who, Duration waitFor) {
+            if (!(provider instanceof EconomyProvider treasury) || !(currency instanceof Currency held)) {
+                return null;
+            }
+            PlayerAccount account = account(treasury, who, false, waitFor);
+            return account == null ? null : answer(waitFor, subscriber -> account.retrieveBalance(held, subscriber));
+        }
+
+        /** Move the whole amount one way, or move nothing and say so. */
+        static boolean move(
+                Object provider, Object currency, UUID who, BigDecimal amount, boolean away, Duration waitFor) {
+            if (!(provider instanceof EconomyProvider treasury) || !(currency instanceof Currency held)) {
+                return false;
+            }
+            // A take needs money that is there, so only a payment opens an account.
+            PlayerAccount account = account(treasury, who, !away, waitFor);
+            if (account == null) {
+                return false;
+            }
+            if (away) {
+                BigDecimal has = answer(waitFor, subscriber -> account.retrieveBalance(held, subscriber));
+                if (has == null || has.compareTo(amount) < 0) {
+                    return false;
+                }
+            }
+            EconomyTransactionInitiator<?> asked =
+                    EconomyTransactionInitiator.createInitiator(EconomyTransactionInitiator.Type.PLAYER, who);
+            // The answer is the balance that is left. Nothing here reads it: what matters is that the call
+            // answered at all, and one that did not throws out of the wait.
+            TreasuryCalls.<BigDecimal>answer(waitFor, subscriber -> {
+                if (away) {
+                    account.withdrawBalance(amount, asked, held, subscriber);
+                } else {
+                    account.depositBalance(amount, asked, held, subscriber);
+                }
+            });
+            return true;
+        }
+
+        /** The account of one player; made when Treasury has none and {@code create} asks for one. */
+        private static @Nullable PlayerAccount account(
+                EconomyProvider treasury, UUID who, boolean create, Duration waitFor) {
             Boolean known = answer(waitFor, subscriber -> treasury.hasPlayerAccount(who, subscriber));
-            return Boolean.TRUE.equals(known)
-                    ? answer(waitFor, subscriber -> treasury.retrievePlayerAccount(who, subscriber))
-                    : answer(waitFor, subscriber -> treasury.createPlayerAccount(who, subscriber));
+            if (Boolean.TRUE.equals(known)) {
+                return answer(waitFor, subscriber -> treasury.retrievePlayerAccount(who, subscriber));
+            }
+            return create ? answer(waitFor, subscriber -> treasury.createPlayerAccount(who, subscriber)) : null;
         }
 
         /**
          * Ask Treasury one thing and wait for the answer.
          *
          * <p>Treasury answers a subscriber rather than returning, so the call is turned into a future and
-         * the future is waited on with a bound. An economy that never answers throws out of here, and the
-         * wallet above reads that as nothing having happened.
+         * the future is waited on with a bound. A refusal throws, and an economy that never answers throws
+         * {@link Unanswered}, since that request may still be carried out.
          */
         private static <T> @Nullable T answer(Duration waitFor, Consumer<EconomySubscriber<T>> call) {
             CompletableFuture<T> asked = EconomySubscriber.asFuture(call);
@@ -276,8 +348,10 @@ public final class TreasuryWallet implements Wallet {
             } catch (InterruptedException stopped) {
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException("the wait for Treasury was interrupted", stopped);
-            } catch (ExecutionException | TimeoutException unanswered) {
-                throw new IllegalStateException("Treasury did not answer in " + waitFor, unanswered);
+            } catch (ExecutionException refused) {
+                throw new IllegalStateException("Treasury refused", refused.getCause());
+            } catch (TimeoutException late) {
+                throw new Unanswered("Treasury did not answer in " + waitFor, late);
             }
         }
     }
