@@ -36,6 +36,7 @@ include(
     ":uxmlib-storage",
     ":uxmlib-storage-testing",
     ":uxmlib-redis",
+    ":uxmlib-network",
     ":uxmlib-integration",
     ":uxmlib-hud",
     ":uxmlib-update",

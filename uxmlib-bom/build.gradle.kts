@@ -14,6 +14,7 @@ dependencies {
         api(project(":uxmlib-storage"))
         api(project(":uxmlib-storage-testing"))
         api(project(":uxmlib-redis"))
+        api(project(":uxmlib-network"))
         api(project(":uxmlib-integration"))
         api(project(":uxmlib-hud"))
         api(project(":uxmlib-update"))

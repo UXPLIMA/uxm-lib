@@ -21,5 +21,5 @@ jobs:
     with:
       # Public: hosted runners cost nothing here.
       runner: '["ubuntu-latest"]'
-      scopes: "common item gui bedrock menu command storage redis integration hud update condition pipeline packet nametags schematic bom all build ci docs release"
+      scopes: "common item gui bedrock menu command storage redis network integration hud update condition pipeline packet nametags schematic bom all build ci docs release"
       tools-ref: ded69d5df03ed47ffa1d42e89d7fac080c250bf8
