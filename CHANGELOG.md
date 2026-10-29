@@ -1,5 +1,41 @@
 # Changelog
 
+## [0.2.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.1.0...uxm-lib-v0.2.0) (2026-10-29)
+
+Upgrading: change the imports of `RegionCall`, `GlobalCall`, `OnlinePlayers` and `Hop` to
+`com.uxplima.uxmlib.scheduler`, and a `PlaceholderWallet.Reader` of your own to `read(UUID, String)`.
+Callers of `CurrencyBuilder` need no change.
+
+### Changed
+
+- `RegionCall`, `GlobalCall`, `OnlinePlayers` and `Hop` moved from `com.uxplima.uxmlib.condition.currency`
+  to `com.uxplima.uxmlib.scheduler` in `uxmlib-common`, beside `Scheduler`.
+- `PlaceholderWallet.Reader` reads by player id: `read(UUID player, String placeholder)`, so a balance can
+  be read for a player who is offline. `ServerPlaceholders` does the same.
+- The placeholder, experience and Treasury currencies are built on the wallets of the same name, so a fix
+  to a wallet reaches the currency too.
+- `TreasuryWallet` never opens an account to read a balance or take; only a payment opens one. A move
+  Treasury leaves unanswered within the bound reads as not taken, or as paid, and is logged with the
+  account.
+
+### Added
+
+- `PlaceholderWallet` and `TreasuryWallet` take a player id and a `BigDecimal`: `balanceExact`,
+  `withdrawExact`, `depositExact` and `reaches`, as `BridgedWallet` already did.
+- `PlaceholderWallet.Names`, for a console line that needs the player's name.
+- `TakeLocks`: one take at a time per player. A worker thread waits up to 30 seconds; a server thread is
+  refused rather than kept waiting.
+- `KnownPlayers.ofServer()`: online players first, then the ones on disk, never Mojang.
+
+### Fixed
+
+- Two takes from the same player at once could both pass the balance check on an economy that cannot
+  refuse an overdraft itself (EcoBits, a console line). The wallets now take one at a time per player.
+- The Treasury currency and wallet had drifted: the wallet opened an account to read a balance and read
+  an unanswered payment as refused, so a caller could pay twice.
+- The Redis bus opened a connection per subscription; it now shares one.
+- The direct bus logs the broker as `host:port`, as the operator wrote it.
+
 ## [0.1.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.0.2...uxm-lib-v0.1.0) (2026-10-29)
 
 ### Added
