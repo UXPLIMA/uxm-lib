@@ -33,6 +33,9 @@ public final class DirectBus implements Bus {
 
     private final String serverId;
     private final InetSocketAddress broker;
+    /** The broker as an operator wrote it, for the log; an unresolved address prints as host/<unresolved>. */
+    private final String where;
+
     private final Signer signer;
     private final System.Logger log;
     private final Handlers handlers;
@@ -51,6 +54,7 @@ public final class DirectBus implements Bus {
     public DirectBus(String serverId, String host, int port, String secret, System.Logger log) {
         this.serverId = ServerId.check(Objects.requireNonNull(serverId, "serverId"));
         this.broker = InetSocketAddress.createUnresolved(Objects.requireNonNull(host, "host"), port);
+        this.where = (host.indexOf(':') >= 0 ? "[" + host + "]" : host) + ":" + port;
         this.signer = new Signer(secret);
         this.log = Objects.requireNonNull(log, "log");
         this.handlers = new Handlers(log);
@@ -118,7 +122,7 @@ public final class DirectBus implements Bus {
                 long[] sequences = handshake(in, out);
                 connected = true;
                 pause = FIRST_PAUSE;
-                log.log(System.Logger.Level.INFO, "Connected to the network at " + broker + ".");
+                log.log(System.Logger.Level.INFO, "Connected to the network at " + where + ".");
                 Thread writer = Thread.ofVirtual().start(() -> write(out, sequences[0]));
                 try {
                     read(in, sequences[1]);
@@ -129,7 +133,7 @@ public final class DirectBus implements Bus {
                 if (open) {
                     log.log(
                             System.Logger.Level.WARNING,
-                            (connected ? "Lost" : "Could not reach") + " the network at " + broker + ": "
+                            (connected ? "Lost" : "Could not reach") + " the network at " + where + ": "
                                     + lost.getMessage() + ". Trying again in " + pause.toSeconds() + "s.");
                 }
             } finally {
