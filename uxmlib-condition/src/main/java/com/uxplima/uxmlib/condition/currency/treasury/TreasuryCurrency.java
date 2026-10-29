@@ -154,10 +154,24 @@ public final class TreasuryCurrency implements Currency {
             }
             EconomyTransactionInitiator<?> asked =
                     EconomyTransactionInitiator.createInitiator(EconomyTransactionInitiator.Type.PLAYER, player);
-            if (away) {
-                this.<BigDecimal>answer(subscriber -> owner.withdrawBalance(amount.amount(), asked, held, subscriber));
-            } else {
-                this.<BigDecimal>answer(subscriber -> owner.depositBalance(amount.amount(), asked, held, subscriber));
+            try {
+                if (away) {
+                    this.<BigDecimal>answer(
+                            subscriber -> owner.withdrawBalance(amount.amount(), asked, held, subscriber));
+                } else {
+                    this.<BigDecimal>answer(
+                            subscriber -> owner.depositBalance(amount.amount(), asked, held, subscriber));
+                }
+            } catch (Unanswered unanswered) {
+                // The request has left and cannot be called back, so Treasury may still carry it out. A take
+                // reads as not made and a payment as made: either way nothing is paid twice, and the console
+                // names the account so an operator can check it.
+                log.log(
+                        System.Logger.Level.WARNING,
+                        "Treasury did not say whether the " + id + " currency moved " + amount.amount() + " for "
+                                + player + ". Check that account.",
+                        unanswered);
+                return !away;
             }
             return true;
         } catch (RuntimeException | LinkageError unreachable) {
@@ -234,8 +248,20 @@ public final class TreasuryCurrency implements Currency {
         } catch (InterruptedException stopped) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("the wait for Treasury was interrupted", stopped);
-        } catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException unanswered) {
-            throw new IllegalStateException("Treasury did not answer in " + waitFor, unanswered);
+        } catch (java.util.concurrent.ExecutionException refused) {
+            throw new IllegalStateException("Treasury refused", refused.getCause());
+        } catch (java.util.concurrent.TimeoutException late) {
+            throw new Unanswered("Treasury did not answer in " + waitFor, late);
+        }
+    }
+
+    /** Treasury got the request and gave no answer in time, so whether it ran is unknown. */
+    private static final class Unanswered extends IllegalStateException {
+
+        private static final long serialVersionUID = 1L;
+
+        Unanswered(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 

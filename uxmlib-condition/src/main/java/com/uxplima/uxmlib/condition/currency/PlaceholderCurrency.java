@@ -90,10 +90,7 @@ public final class PlaceholderCurrency implements Currency {
     public boolean take(UUID player, Money amount) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(amount, "amount");
-        if (!balanceOf(player).isAtLeast(amount)) {
-            return false;
-        }
-        return send(spec.take(), player, amount);
+        return balanceOf(player).isAtLeast(amount) && send(spec.take(), player, amount);
     }
 
     @Override

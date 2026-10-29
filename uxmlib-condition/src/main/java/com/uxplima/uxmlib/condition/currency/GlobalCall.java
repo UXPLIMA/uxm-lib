@@ -1,12 +1,7 @@
 package com.uxplima.uxmlib.condition.currency;
 
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
@@ -25,9 +20,6 @@ import com.uxplima.uxmlib.scheduler.Scheduler;
  */
 public final class GlobalCall {
 
-    /** Long enough for a busy server to answer, short enough that a stuck tick does not hold a worker. */
-    private static final Duration LIMIT = Duration.ofSeconds(5);
-
     private GlobalCall() {}
 
     /** The answer, or empty when the server did not produce one in time. */
@@ -40,23 +32,6 @@ public final class GlobalCall {
             return Optional.ofNullable(work.get());
         }
 
-        CompletableFuture<T> answer = new CompletableFuture<>();
-        scheduler.global(() -> {
-            try {
-                answer.complete(work.get());
-            } catch (RuntimeException failure) {
-                answer.completeExceptionally(failure);
-            }
-        });
-        try {
-            return Optional.ofNullable(answer.get(LIMIT.toMillis(), TimeUnit.MILLISECONDS));
-        } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-            return Optional.empty();
-        } catch (TimeoutException | ExecutionException failure) {
-            // The caller reads an empty answer as "it did not happen", which is the safe way round for
-            // money that belongs to somebody else.
-            return Optional.empty();
-        }
+        return Hop.await(scheduler::global, work);
     }
 }

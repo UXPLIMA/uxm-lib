@@ -1,12 +1,7 @@
 package com.uxplima.uxmlib.condition.currency;
 
-import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
@@ -27,9 +22,6 @@ import com.uxplima.uxmlib.scheduler.Scheduler;
  */
 public final class RegionCall {
 
-    /** Long enough for a busy server to answer, short enough that a stuck region does not hold a worker. */
-    private static final Duration LIMIT = Duration.ofSeconds(5);
-
     private RegionCall() {}
 
     /** The answer, or empty when the region did not produce one in time. */
@@ -42,23 +34,6 @@ public final class RegionCall {
             return Optional.ofNullable(work.get());
         }
 
-        CompletableFuture<T> answer = new CompletableFuture<>();
-        scheduler.entity(player, () -> {
-            try {
-                answer.complete(work.get());
-            } catch (RuntimeException failure) {
-                answer.completeExceptionally(failure);
-            }
-        });
-        try {
-            return Optional.ofNullable(answer.get(LIMIT.toMillis(), TimeUnit.MILLISECONDS));
-        } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-            return Optional.empty();
-        } catch (TimeoutException | ExecutionException failure) {
-            // A player who left between the check and the hop is the ordinary case, and it is not a
-            // fault: the caller reads an empty answer as "not paid" and writes to the mailbox instead.
-            return Optional.empty();
-        }
+        return Hop.await(task -> scheduler.entity(player, task), work);
     }
 }
