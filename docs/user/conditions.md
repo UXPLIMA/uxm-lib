@@ -113,8 +113,10 @@ currencies {
 
 ```java
 List<CurrencySpec> specs = CurrencyFile.read(config, "uxmShop");    // no server needed
+OnlinePlayers players = OnlinePlayers.ofServer();                   // com.uxplima.uxmlib.scheduler
+KnownPlayers known = KnownPlayers.ofServer();                       // online, then on disk; never Mojang
 List<Currency> built = CurrencyBuilder.build(specs, items, players, scheduler, economies,
-        placeholders, console, known, log);
+        new ServerPlaceholderReader(scheduler), new ServerConsole(scheduler), known, log);
 CurrencyRegistry currencies = new CurrencyRegistry(built);          // the operator's order
 Wallet wallet = new CurrencyWallet(currencies);                     // for [give-money] and friends
 MoneyText text = MoneyText.read(config);                            // "1,250 coins", "1 coin"
@@ -131,6 +133,9 @@ MoneyText text = MoneyText.read(config);                            // "1,250 co
 - Each economy currency is the wallet of the same name with the plugin's rules on top, so a fix to a
   backend reaches both. The currencies hop to the thread a backend needs (the player's region for
   experience and items, the global one for placeholders and console lines) and back.
+- `RegionCall` and `GlobalCall` (beside `Scheduler`) carry work to the player's region or the global
+  thread and wait a bounded time. Work that had not started when the wait ran out never runs, and work
+  that had started is waited for, so an empty answer always means nothing happened.
 - `bridge` describes an economy no shipped description covers (its class, its take and give methods)
   and `placeholder` reads a balance through a placeholder and moves it with two console lines, so an
   operator with another economy plugin needs nothing new from the library.

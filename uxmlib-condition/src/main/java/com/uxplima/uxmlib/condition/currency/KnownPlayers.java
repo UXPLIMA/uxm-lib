@@ -3,6 +3,10 @@ package com.uxplima.uxmlib.condition.currency;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
+
 /**
  * Who the server has seen.
  *
@@ -21,4 +25,34 @@ public interface KnownPlayers {
      * <p>A command that an operator wrote takes a name, so the plugin has to turn its id back into one.
      */
     Optional<String> nameOf(UUID id);
+
+    /**
+     * The server: an online player answers first, then a player the server already has on disk. It never
+     * asks Mojang, because a lookup that waits on the network holds a thread, so a player this server has
+     * never seen has no id and no name here.
+     */
+    static KnownPlayers ofServer() {
+        return new KnownPlayers() {
+            @Override
+            public Optional<UUID> byName(String name) {
+                if (name.isBlank()) {
+                    return Optional.empty();
+                }
+                Player online = Bukkit.getPlayerExact(name);
+                if (online != null) {
+                    return Optional.of(online.getUniqueId());
+                }
+                return Optional.ofNullable(Bukkit.getOfflinePlayerIfCached(name))
+                        .map(OfflinePlayer::getUniqueId);
+            }
+
+            @Override
+            public Optional<String> nameOf(UUID id) {
+                Player online = Bukkit.getPlayer(id);
+                return online != null
+                        ? Optional.of(online.getName())
+                        : Optional.ofNullable(Bukkit.getOfflinePlayer(id).getName());
+            }
+        };
+    }
 }

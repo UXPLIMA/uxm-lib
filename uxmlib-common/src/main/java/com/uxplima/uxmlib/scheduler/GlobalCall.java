@@ -1,4 +1,4 @@
-package com.uxplima.uxmlib.condition.currency;
+package com.uxplima.uxmlib.scheduler;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -6,14 +6,13 @@ import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 
-import com.uxplima.uxmlib.scheduler.Scheduler;
-
 /**
  * Run something on the thread the server ticks on, and wait for the answer.
  *
  * <p>{@link RegionCall} hops to the region that owns a player. This one is for work that belongs to no
  * player: a command that the console sends, or a plugin that answers a question and was written for one
- * thread. The plugin does its money work off the main threads, so it has to hop over and come back.
+ * thread. Its wait follows the same rule as {@link RegionCall}: work that had not started when the wait
+ * ran out never runs, and work that had started is waited for.
  *
  * <p>A caller that is already on that thread runs the work in place. Waiting for itself would be a
  * server that stops.

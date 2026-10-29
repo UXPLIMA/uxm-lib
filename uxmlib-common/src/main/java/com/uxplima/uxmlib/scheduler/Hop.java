@@ -1,4 +1,4 @@
-package com.uxplima.uxmlib.condition.currency;
+package com.uxplima.uxmlib.scheduler;
 
 import java.time.Duration;
 import java.util.Optional;
@@ -14,7 +14,7 @@ import java.util.function.Supplier;
 /**
  * Hand work to another thread and wait a bounded time for its answer, without ever losing one.
  *
- * <p>The work moves money, so "the caller gave up" and "the work ran" must never both be true. Whoever
+ * <p>The work may move money, so "the caller gave up" and "the work ran" must never both be true. Whoever
  * claims the flag first wins: the work claims it when it starts, the caller claims it when its wait runs
  * out. A caller that loses the claim knows the work has started, and waits for its real outcome instead
  * of reporting that nothing happened while a payment goes through behind it.

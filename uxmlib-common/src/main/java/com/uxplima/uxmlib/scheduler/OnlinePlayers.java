@@ -1,4 +1,4 @@
-package com.uxplima.uxmlib.condition.currency;
+package com.uxplima.uxmlib.scheduler;
 
 import java.util.Optional;
 import java.util.UUID;
