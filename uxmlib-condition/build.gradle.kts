@@ -14,5 +14,6 @@ dependencies {
     compileOnly(libs.placeholderapi)
 
     testImplementation(libs.paper.api)
+    testImplementation(libs.treasury.api)
     testImplementation(libs.bundles.adventure)
 }

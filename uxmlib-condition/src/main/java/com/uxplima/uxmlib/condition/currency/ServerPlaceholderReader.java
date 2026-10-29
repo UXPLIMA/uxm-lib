@@ -4,25 +4,20 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.bukkit.Bukkit;
-
+import com.uxplima.uxmlib.condition.wallet.ServerEconomyProviders;
+import com.uxplima.uxmlib.condition.wallet.ServerPlaceholders;
 import com.uxplima.uxmlib.scheduler.Scheduler;
 
 /**
- * The one door onto PlaceholderAPI for a currency.
+ * PlaceholderAPI, asked from the thread the money work runs on.
  *
- * <p>Nothing outside this class names a type of that plugin, so a server without it loads this plugin as
- * usual: a class is read by the machine when something calls into it, and nothing calls into the reader
- * until the plugin is found.
- *
- * <p>The question is asked on the thread the server ticks on. An expansion is written for that thread,
- * and the money work of this plugin runs off it.
+ * <p>{@link ServerPlaceholders} asks the question; this carries it to the thread the server ticks on, which
+ * an expansion is written for, and brings the answer back.
  */
 public final class ServerPlaceholderReader implements PlaceholderCurrency.Reader {
 
-    private static final String PLUGIN = "PlaceholderAPI";
-
     private final Scheduler scheduler;
+    private final ServerPlaceholders placeholders = new ServerPlaceholders();
 
     public ServerPlaceholderReader(Scheduler scheduler) {
         this.scheduler = Objects.requireNonNull(scheduler, "scheduler");
@@ -30,7 +25,7 @@ public final class ServerPlaceholderReader implements PlaceholderCurrency.Reader
 
     @Override
     public boolean isReady() {
-        return Bukkit.getPluginManager().getPlugin(PLUGIN) != null;
+        return ServerEconomyProviders.isPresent(ServerPlaceholders.PLUGIN);
     }
 
     @Override
@@ -40,16 +35,7 @@ public final class ServerPlaceholderReader implements PlaceholderCurrency.Reader
         if (!isReady()) {
             return Optional.empty();
         }
-        return GlobalCall.on(scheduler, () -> Answered.of(player, placeholder));
-    }
-
-    /** The call itself, in a class of its own, so the type of the other plugin is read only here. */
-    private static final class Answered {
-
-        private Answered() {}
-
-        private static String of(UUID player, String placeholder) {
-            return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(Bukkit.getOfflinePlayer(player), placeholder);
-        }
+        return GlobalCall.on(
+                scheduler, () -> placeholders.read(player, placeholder).orElse(null));
     }
 }

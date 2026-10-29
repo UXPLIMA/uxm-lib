@@ -4,7 +4,10 @@ import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Supplier;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import com.uxplima.uxmlib.condition.Wallet;
@@ -26,6 +29,9 @@ import org.jspecify.annotations.Nullable;
  * cannot be told that a take failed. It therefore reads the balance first and refuses a take the player
  * cannot afford, and after that it trusts the line it sent. A plugin that refuses the command quietly is a
  * plugin this wallet cannot use, and {@link BridgedWallet} is there for it.
+ *
+ * <p>The {@code Exact} methods take a player id and a {@link BigDecimal}, so a plugin can pay a player who is
+ * offline and keep every digit of the sum; the ones a condition calls take a live player and a double.
  *
  * <p>A balance that cannot be read as a number is read as zero. Zero is the safe way round: it refuses a
  * take this cannot prove the player can pay, and it never invents money.
@@ -86,10 +92,14 @@ public final class PlaceholderWallet implements Wallet {
         }
     }
 
-    /** What a placeholder answers for one player. Absent means nobody answered it. */
+    /**
+     * What a placeholder answers for one player, online or not. Absent means nobody answered it.
+     *
+     * <p>It takes an id rather than a player, so a balance can be read for a player who is away.
+     */
     @FunctionalInterface
     public interface Reader {
-        Optional<String> read(Player player, String placeholder);
+        Optional<String> read(UUID player, String placeholder);
     }
 
     /** How one line reaches the server. True means the server took the line. */
@@ -98,14 +108,35 @@ public final class PlaceholderWallet implements Wallet {
         boolean run(String line);
     }
 
+    /** The name the server knows for a player id, absent when it has never seen them. */
+    @FunctionalInterface
+    public interface Names {
+        Optional<String> of(UUID player);
+
+        /** The server's own record of who has played. */
+        static Names ofServer() {
+            return player -> Optional.ofNullable(Bukkit.getOfflinePlayer(player).getName());
+        }
+    }
+
     private final Map<String, Pool> pools;
     private final Reader reader;
     private final Console console;
+    private final Names names;
 
-    public PlaceholderWallet(Map<String, Pool> pools, Reader reader, Console console) {
+    /**
+     * @param names where a name comes from for a line that takes one, when the player is known only by id
+     */
+    public PlaceholderWallet(Map<String, Pool> pools, Reader reader, Console console, Names names) {
         this.pools = Map.copyOf(Objects.requireNonNull(pools, "pools"));
         this.reader = Objects.requireNonNull(reader, "reader");
         this.console = Objects.requireNonNull(console, "console");
+        this.names = Objects.requireNonNull(names, "names");
+    }
+
+    /** A wallet that asks the server for the name of a player known only by id. */
+    public PlaceholderWallet(Map<String, Pool> pools, Reader reader, Console console) {
+        this(pools, reader, console, Names.ofServer());
     }
 
     /** A wallet over the server's own PlaceholderAPI and console. */
@@ -118,17 +149,32 @@ public final class PlaceholderWallet implements Wallet {
         return ofServer(Map.of("", Objects.requireNonNull(pool, "pool")));
     }
 
+    /** Whether this wallet holds a pool under {@code currency}. */
+    public boolean reaches(String currency) {
+        Objects.requireNonNull(currency, "currency");
+        return pools.containsKey(currency);
+    }
+
     @Override
     public double balance(@Nullable Player player, String currency) {
         Objects.requireNonNull(currency, "currency");
+        return player == null ? 0 : balanceExact(player.getUniqueId(), currency).doubleValue();
+    }
+
+    /**
+     * The balance as the placeholder answers it, which may be under zero for an economy that allows debt.
+     * An unknown pool, or an answer that is not a number, reads zero.
+     */
+    public BigDecimal balanceExact(UUID player, String currency) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(currency, "currency");
         Pool pool = pools.get(currency);
-        if (player == null || pool == null) {
-            return 0;
+        if (pool == null) {
+            return BigDecimal.ZERO;
         }
         return reader.read(player, pool.placeholder())
                 .flatMap(answered -> number(answered, pool.thousands()))
-                .map(BigDecimal::doubleValue)
-                .orElse(0d);
+                .orElse(BigDecimal.ZERO);
     }
 
     @Override
@@ -137,16 +183,33 @@ public final class PlaceholderWallet implements Wallet {
         if (amount <= 0) {
             return true;
         }
+        return player != null
+                && take(
+                        player.getUniqueId(),
+                        currency,
+                        BigDecimal.valueOf(amount),
+                        () -> Optional.of(player.getName()));
+    }
+
+    /** {@link #withdraw} for a player known by id, who may be offline. */
+    public boolean withdrawExact(UUID player, String currency, BigDecimal amount) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(currency, "currency");
+        Objects.requireNonNull(amount, "amount");
+        return amount.signum() <= 0 || take(player, currency, amount, () -> names.of(player));
+    }
+
+    private boolean take(UUID player, String currency, BigDecimal amount, Supplier<Optional<String>> name) {
         Pool pool = pools.get(currency);
-        if (player == null || pool == null) {
+        if (pool == null) {
             return false;
         }
         // The whole cost is read before any of it is taken. A command cannot refuse, so this is the only
         // place the refusal can be made, and it is made before a line is sent.
-        if (balance(player, currency) < amount) {
+        if (balanceExact(player, currency).compareTo(amount) < 0) {
             return false;
         }
-        return line(pool.take(), player, amount).map(console::run).orElse(false);
+        return send(pool.take(), player, amount, name);
     }
 
     /**
@@ -163,29 +226,43 @@ public final class PlaceholderWallet implements Wallet {
         if (amount <= 0) {
             return true;
         }
+        return player != null
+                && pay(player.getUniqueId(), currency, BigDecimal.valueOf(amount), () -> Optional.of(player.getName()));
+    }
+
+    /** {@link #deposit} for a player known by id, who may be offline. */
+    public boolean depositExact(UUID player, String currency, BigDecimal amount) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(currency, "currency");
+        Objects.requireNonNull(amount, "amount");
+        return amount.signum() <= 0 || pay(player, currency, amount, () -> names.of(player));
+    }
+
+    private boolean pay(UUID player, String currency, BigDecimal amount, Supplier<Optional<String>> name) {
         Pool pool = pools.get(currency);
-        if (player == null || pool == null || pool.give() == null) {
-            return false;
-        }
-        return line(pool.give(), player, amount).map(console::run).orElse(false);
+        String give = pool == null ? null : pool.give();
+        return give != null && send(give, player, amount, name);
     }
 
     /**
-     * The line to send, with the player and the amount written into it.
+     * Send one line, with the player and the amount written into it.
      *
      * <p>The amount goes in as plain digits with no grouping and no currency name, because what a number
      * looks like to a player is the plugin's business and what a command wants is a number.
      *
-     * <p>Empty when the line names the player and the name is not one an account could have: a server told to check
-     * names less lets one hold a space, which would add an argument to the command. No line is then sent, and the
-     * take or the pay-out reads as refused.
+     * <p>A line that names the player is not sent when the server has never seen them, because a command
+     * with an empty name where the name goes does something else, nor when the name is not one an account
+     * could have: a server told to check names less lets one hold a space, which would add an argument to
+     * the command. The take or the pay-out then reads as refused.
      */
-    private static Optional<String> line(String template, Player player, double amount) {
-        return NameFill.into(template, player.getName())
-                .map(named -> named.replace("{uuid}", player.getUniqueId().toString())
-                        .replace(
-                                "{amount}",
-                                BigDecimal.valueOf(amount).stripTrailingZeros().toPlainString()));
+    private boolean send(String template, UUID player, BigDecimal amount, Supplier<Optional<String>> name) {
+        boolean namesThePlayer = NameFill.TOKENS.stream().anyMatch(template::contains);
+        Optional<String> named =
+                namesThePlayer ? name.get().flatMap(known -> NameFill.into(template, known)) : Optional.of(template);
+        return named.map(line -> line.replace("{uuid}", player.toString())
+                        .replace("{amount}", amount.stripTrailingZeros().toPlainString()))
+                .map(console::run)
+                .orElse(false);
     }
 
     /** The number in the text a placeholder answered with, absent when there is none. */
