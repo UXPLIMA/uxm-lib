@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import com.uxplima.uxmlib.condition.wallet.ServerEconomyProviders;
 import com.uxplima.uxmlib.condition.wallet.ServerPlaceholders;
+import com.uxplima.uxmlib.scheduler.GlobalCall;
 import com.uxplima.uxmlib.scheduler.Scheduler;
 
 /**

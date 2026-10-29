@@ -1,4 +1,4 @@
-package com.uxplima.uxmlib.condition.currency;
+package com.uxplima.uxmlib.scheduler;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

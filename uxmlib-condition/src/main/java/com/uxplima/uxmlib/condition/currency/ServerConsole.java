@@ -4,6 +4,7 @@ import java.util.Objects;
 
 import com.uxplima.uxmlib.condition.wallet.ConsoleCommands;
 import com.uxplima.uxmlib.condition.wallet.PlaceholderWallet;
+import com.uxplima.uxmlib.scheduler.GlobalCall;
 import com.uxplima.uxmlib.scheduler.Scheduler;
 
 /**
