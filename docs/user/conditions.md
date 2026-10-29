@@ -83,6 +83,12 @@ every digit of a price. A `PlaceholderWallet.Reader` is asked by player id for t
 may leave a move unanswered inside its bound: a take then reads as not made and a payment as made, so
 nothing is paid twice, and the console names the account so an operator can check it.
 
+`BridgedWallet`, `TreasuryWallet` and `PlaceholderWallet` also take a player id and a `BigDecimal`
+(`balanceExact`, `withdrawExact`, `depositExact`), for a plugin that pays a player who is offline and keeps
+every digit of a price. A `PlaceholderWallet.Reader` is asked by player id for the same reason. Treasury
+may leave a move unanswered inside its bound: a take then reads as not made and a payment as made, so
+nothing is paid twice, and the console names the account so an operator can check it.
+
 `Wallet.deposit` is the mirror, for a plugin that owes a player a wage, a refund or a prize. It carries the
 same all-or-nothing promise and reads nothing first, because a payment has no overdraft to refuse. It is a
 `default` that refuses, so a wallet written against the older contract keeps compiling and says plainly
