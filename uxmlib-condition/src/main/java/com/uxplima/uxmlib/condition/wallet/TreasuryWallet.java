@@ -67,6 +67,8 @@ public final class TreasuryWallet implements Wallet {
     /** The currencies of Treasury found so far, by the name asked for, as plain objects. */
     private final Map<String, Object> currencies = new ConcurrentHashMap<>();
 
+    private final TakeLocks takes = new TakeLocks();
+
     private volatile @Nullable Object handle;
     private volatile boolean readable = true;
 
@@ -146,7 +148,9 @@ public final class TreasuryWallet implements Wallet {
 
     /** Take the whole amount, or take nothing and say so. */
     public boolean withdrawExact(UUID player, String currency, BigDecimal amount) {
-        return move(player, currency, amount, true);
+        Objects.requireNonNull(player, "player");
+        // The balance is read and then taken; no other take for this player runs in between.
+        return takes.holding(player, () -> move(player, currency, amount, true));
     }
 
     @Override

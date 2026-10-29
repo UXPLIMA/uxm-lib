@@ -5,11 +5,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 
 import com.uxplima.uxmlib.condition.currency.treasury.TreasuryCurrency;
 import com.uxplima.uxmlib.condition.wallet.EconomyProviders;
+import com.uxplima.uxmlib.condition.wallet.TakeLocks;
 import com.uxplima.uxmlib.scheduler.Scheduler;
 
 /**
@@ -94,9 +94,9 @@ public final class CurrencyBuilder {
         }
         // One set of take locks for every currency built here, so two currencies over one economy take
         // one at a time per player as well.
-        OneTakeAtATime.Takes takes = new OneTakeAtATime.Takes();
+        TakeLocks takes = new TakeLocks();
         return built.stream()
-                .<Currency>map(currency -> new OneTakeAtATime(currency, takes, Bukkit::isPrimaryThread))
+                .<Currency>map(currency -> new OneTakeAtATime(currency, takes))
                 .toList();
     }
 }

@@ -73,7 +73,15 @@ several is the plugin's own `Wallet`.
 
 Every take is all or nothing. Where the economy refuses an overdraft itself, its refusal is read straight
 back; where it cannot (EcoBits adjusts a balance and answers nothing, a console line answers nothing at
-all), the balance is read first and the take is refused before anything moves.
+all), the balance is read first and the take is refused before anything moves. Takes for one player run
+one at a time (`TakeLocks`), so two at once never both pass that read; a server thread that finds the
+player busy is refused rather than kept waiting.
+
+`BridgedWallet`, `TreasuryWallet` and `PlaceholderWallet` also take a player id and a `BigDecimal`
+(`balanceExact`, `withdrawExact`, `depositExact`), for a plugin that pays a player who is offline and keeps
+every digit of a price. A `PlaceholderWallet.Reader` is asked by player id for the same reason. Treasury
+may leave a move unanswered inside its bound: a take then reads as not made and a payment as made, so
+nothing is paid twice, and the console names the account so an operator can check it.
 
 `BridgedWallet`, `TreasuryWallet` and `PlaceholderWallet` also take a player id and a `BigDecimal`
 (`balanceExact`, `withdrawExact`, `depositExact`), for a plugin that pays a player who is offline and keeps

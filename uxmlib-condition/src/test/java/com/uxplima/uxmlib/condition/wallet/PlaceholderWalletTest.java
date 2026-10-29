@@ -3,12 +3,15 @@ package com.uxplima.uxmlib.condition.wallet;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.Test;
 
@@ -18,7 +21,7 @@ class PlaceholderWalletTest {
 
     private final Map<UUID, String> balances = new HashMap<>();
     private final Map<UUID, String> names = new HashMap<>();
-    private final List<String> console = new ArrayList<>();
+    private final List<String> console = new CopyOnWriteArrayList<>();
 
     private PlaceholderWallet wallet(PlaceholderWallet.Pool pool) {
         return new PlaceholderWallet(
@@ -60,6 +63,53 @@ class PlaceholderWalletTest {
 
         PlaceholderWallet takeOnly = wallet(PlaceholderWallet.Pool.of("%tokens%", "tokens take {player} {amount}"));
         assertThat(takeOnly.depositExact(STEVE, "tokens", BigDecimal.ONE)).isFalse();
+    }
+
+    @Test
+    void twoTakesAtOnceForOnePlayerNeverBothPassTheBalanceCheck() throws InterruptedException {
+        names.put(STEVE, "Steve");
+        CountDownLatch bothAsked = new CountDownLatch(2);
+        AtomicInteger balance = new AtomicInteger(100);
+        PlaceholderWallet slow = new PlaceholderWallet(
+                Map.of("tokens", PlaceholderWallet.Pool.of("%tokens%", "tokens take {player} {amount}")),
+                (player, placeholder) -> {
+                    // The balance is read, then the read waits a moment for the other take, so two takes
+                    // that were not held apart would both have read 100.
+                    String read = Integer.toString(balance.get());
+                    bothAsked.countDown();
+                    awaitBriefly(bothAsked);
+                    return Optional.of(read);
+                },
+                line -> {
+                    balance.addAndGet(-80);
+                    return console.add(line);
+                },
+                player -> Optional.ofNullable(names.get(player)));
+        AtomicInteger passed = new AtomicInteger();
+
+        Thread one = Thread.ofVirtual()
+                .start(() -> count(slow.withdrawExact(STEVE, "tokens", new BigDecimal("80")), passed));
+        Thread two = Thread.ofVirtual()
+                .start(() -> count(slow.withdrawExact(STEVE, "tokens", new BigDecimal("80")), passed));
+        one.join();
+        two.join();
+
+        assertThat(passed).hasValue(1);
+        assertThat(balance).hasValue(20);
+    }
+
+    private static void count(boolean taken, AtomicInteger passed) {
+        if (taken) {
+            passed.incrementAndGet();
+        }
+    }
+
+    private static void awaitBriefly(CountDownLatch latch) {
+        try {
+            latch.await(300, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Test
