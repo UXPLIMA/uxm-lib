@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.1.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.0.2...uxm-lib-v0.1.0) (2026-10-29)
+
+
+### Features
+
+* **condition:** add the currency layer ([#50](https://github.com/UXPLIMA/uxm-lib/issues/50)) ([f393ba0](https://github.com/UXPLIMA/uxm-lib/commit/f393ba05206f2abf749c6546aa619cfdda463ec1)), closes [#49](https://github.com/UXPLIMA/uxm-lib/issues/49)
+* **network:** add a bus between the servers of a network ([#55](https://github.com/UXPLIMA/uxm-lib/issues/55)) ([1dc4190](https://github.com/UXPLIMA/uxm-lib/commit/1dc4190e0fcbf64831597eb9b598a2db60fc0fb8)), closes [#54](https://github.com/UXPLIMA/uxm-lib/issues/54)
+
+
+### Bug Fixes
+
+* **common:** make handles on the same scheduled task equal ([#45](https://github.com/UXPLIMA/uxm-lib/issues/45)) ([e29744b](https://github.com/UXPLIMA/uxm-lib/commit/e29744b84328a6c8639edd82bfe49f65d0f22e91)), closes [#44](https://github.com/UXPLIMA/uxm-lib/issues/44)
+* **condition:** never report a money move as undone while it can still run ([#53](https://github.com/UXPLIMA/uxm-lib/issues/53)) ([147f890](https://github.com/UXPLIMA/uxm-lib/commit/147f890ef5ec39f8c1cfac03d20a6c664a87e809)), closes [#52](https://github.com/UXPLIMA/uxm-lib/issues/52)
+* **nametags:** show nametags only to clients that track the target ([#48](https://github.com/UXPLIMA/uxm-lib/issues/48)) ([99dea2b](https://github.com/UXPLIMA/uxm-lib/commit/99dea2b5c92d2fddaca962f81a71bf74a93fb8f8)), closes [#47](https://github.com/UXPLIMA/uxm-lib/issues/47)
+
 ## [0.0.2](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.0.1...uxm-lib-v0.0.2) (2026-10-27)
 
 ### Fixed
