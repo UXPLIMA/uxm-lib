@@ -12,4 +12,7 @@ dependencies {
     // coordinates, so they add nothing to this list and nothing to the build.
     compileOnly(libs.treasury.api)
     compileOnly(libs.placeholderapi)
+
+    testImplementation(libs.paper.api)
+    testImplementation(libs.bundles.adventure)
 }
