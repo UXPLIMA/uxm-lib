@@ -12,8 +12,8 @@ Board balance = Board.snapshot("balance", balances);  // what players hold now, 
 Board xp = Board.counter("xp").withAllTime(levels);   // periods count, all time reads the snapshot
 ```
 
-A word takes 1 to 32 lower-case letters, digits and `-`, never `_`; the plugin's `board_name` column must hold the
-longest. A `Snapshot` answers `top`, `countByScore` (both on the async lane, may block) and `scoreOf` (from memory).
+A word takes 1 to 32 lower-case letters, digits, `-` and `_`; a key is read from its end, so `top_my_job_weekly_1_name`
+is the board `my_job`. The plugin's `board_name` column must hold the longest word. A `Snapshot` answers `top`, `countByScore` (both on the async lane, may block) and `scoreOf` (from memory).
 
 ## Wiring
 
