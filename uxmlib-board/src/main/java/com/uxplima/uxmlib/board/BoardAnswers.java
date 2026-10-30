@@ -1,6 +1,7 @@
 package com.uxplima.uxmlib.board;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -98,18 +99,20 @@ public final class BoardAnswers {
 
     /** {@code <board>_<period>_<n>_<field>}. */
     private @Nullable String top(@Nullable UUID reader, String params) {
+        // Read from the end: a board's word may hold an underscore, the period, place and field never do.
         String[] parts = params.split("_", -1);
-        if (parts.length != 4) {
+        int last = parts.length - 1;
+        if (parts.length < 4) {
             return null;
         }
-        Optional<Target> target = target(parts[0], parts[1]);
-        OptionalInt place = number(parts[2]);
+        Optional<Target> target = target(String.join("_", Arrays.copyOfRange(parts, 0, last - 2)), parts[last - 2]);
+        OptionalInt place = number(parts[last - 1]);
         if (target.isEmpty() || place.isEmpty()) {
             return null;
         }
         Board board = target.get().board();
         Optional<Leaderboard.Row> row = leaderboard.at(board, target.get().period(), place.getAsInt());
-        return switch (parts[3]) {
+        return switch (parts[last]) {
             case "name" -> row.map(Leaderboard.Row::name).orElseGet(() -> text.nobody(reader));
             case "value" ->
                 row.map(held -> text.score(board, target.get().period(), held.score(), reader))
@@ -162,8 +165,8 @@ public final class BoardAnswers {
 
     /** {@code <board>_<period>}. */
     private Optional<Target> target(String params) {
-        String[] parts = params.split("_", -1);
-        return parts.length == 2 ? target(parts[0], parts[1]) : Optional.empty();
+        int split = params.lastIndexOf('_');
+        return split < 1 ? Optional.empty() : target(params.substring(0, split), params.substring(split + 1));
     }
 
     /** A board the plugin has, in a period it runs on that board. */

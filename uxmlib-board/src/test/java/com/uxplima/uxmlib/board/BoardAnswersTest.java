@@ -119,6 +119,34 @@ class BoardAnswersTest {
     }
 
     @Test
+    void aWordWithAnUnderscoreIsReadFromTheEnd() {
+        Board job = Board.counter("my_job");
+        Leaderboard jobs = new Leaderboard(
+                store,
+                List.of(job),
+                id -> "Someone",
+                () -> new BoardSettings(
+                        10,
+                        Duration.ofSeconds(15),
+                        EnumSet.of(BoardPeriod.ALLTIME, BoardPeriod.WEEKLY),
+                        new BoardCalendar(ZoneOffset.UTC, DayOfWeek.MONDAY),
+                        12,
+                        "steve"),
+                clock);
+        Standings held = new Standings(store, jobs);
+        held.load(ALEX);
+        new BoardRecorder(store, jobs, held, Runnable::run, clock).add(ALEX, job, 6);
+        jobs.refresh();
+        BoardAnswers answers = new BoardAnswers(jobs, held, new Words(), () -> "steve");
+
+        assertThat(answers.answer(null, null, "top_my_job_weekly_1_name")).isEqualTo("Alex");
+        assertThat(answers.answer(null, null, "top_my_job_weekly_1_value")).isEqualTo("6");
+        assertThat(answers.answer(ALEX, "Alex", "rank_my_job_weekly")).isEqualTo("1");
+        assertThat(answers.answer(ALEX, "Alex", "value_my_job_alltime")).isEqualTo("6");
+        assertThat(answers.answer(null, null, "top_job_weekly_1_name")).isNull();
+    }
+
+    @Test
     void aPeriodStartsAgainInTheReadersWords() {
         assertThat(answers.answer(null, null, "resets_weekly")).isEqualTo("4d 12h");
         assertThat(answers.answer(null, null, "resets_daily")).isEqualTo("12h 0m");

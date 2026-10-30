@@ -215,7 +215,8 @@ class LeaderboardTest {
     void twoBoardsCannotShareAWord() {
         assertThatThrownBy(() -> leaderboard(Board.counter("kills"), Board.record("kills")))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> Board.counter("top_kills")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Board.counter("Kills")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> Board.counter("")).isInstanceOf(IllegalArgumentException.class);
     }
 
     /** What players hold now, fixed for the test. */
