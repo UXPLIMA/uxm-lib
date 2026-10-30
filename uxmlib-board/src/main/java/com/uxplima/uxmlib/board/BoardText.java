@@ -38,4 +38,12 @@ public interface BoardText {
     default String score(Board board, long score, @Nullable UUID reader) {
         return Long.toString(score);
     }
+
+    /**
+     * How {@code score} on {@code board} is shown in {@code period}. The same as {@link #score(Board, long, UUID)}
+     * unless the plugin shows all time another way, such as a level where the periods show the experience earned.
+     */
+    default String score(Board board, BoardPeriod period, long score, @Nullable UUID reader) {
+        return score(board, score, reader);
+    }
 }

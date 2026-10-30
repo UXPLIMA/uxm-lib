@@ -66,6 +66,14 @@ class BoardAnswersTest {
         public String score(Board board, long score, @Nullable UUID reader) {
             return board.word().equals("time") ? score + "s" : Long.toString(score);
         }
+
+        /** All time shows kills as a rank title, the periods as a count. */
+        @Override
+        public String score(Board board, BoardPeriod period, long score, @Nullable UUID reader) {
+            return board.word().equals("kills") && period == BoardPeriod.ALLTIME
+                    ? "rank " + score
+                    : score(board, score, reader);
+        }
     }
 
     @BeforeEach
@@ -100,6 +108,14 @@ class BoardAnswersTest {
         assertThat(answers.answer(SAM, "Sam", "rank_kills_daily")).isEqualTo("none");
         assertThat(answers.answer(SAM, "Sam", "value_kills_daily")).isEqualTo("0");
         assertThat(answers.answer(null, null, "rank_kills_daily")).isNull();
+    }
+
+    @Test
+    void aScoreIsShownByItsPeriod() {
+        assertThat(answers.answer(null, null, "top_kills_alltime_1_value")).isEqualTo("rank 4");
+        assertThat(answers.answer(null, null, "top_kills_daily_1_value")).isEqualTo("4");
+        assertThat(answers.answer(ALEX, "Alex", "value_kills_alltime")).isEqualTo("rank 4");
+        assertThat(answers.answer(ALEX, "Alex", "value_kills_weekly")).isEqualTo("4");
     }
 
     @Test
