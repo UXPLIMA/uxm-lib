@@ -14,6 +14,7 @@ dependencies {
     api(project(":uxmlib-gui"))
     api(project(":uxmlib-bedrock"))
     api(project(":uxmlib-storage"))
+    api(project(":uxmlib-board"))
     api(project(":uxmlib-redis"))
     api(project(":uxmlib-network"))
     api(project(":uxmlib-integration"))

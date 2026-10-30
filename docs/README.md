@@ -8,6 +8,7 @@
 - [Commands](user/commands.md): the Brigadier facade and the annotation DSL.
 - [Configuration, storage and messaging](user/config-and-storage.md): HOCON config, JDBC storage, Redis, backups.
 - [Holograms, HUD and packets](user/display.md): displays, sidebars, boss bars, the experimental packet layer.
+- [Leaderboards](user/boards.md): counters, records and snapshot boards in every period, and their placeholders.
 - [Conditions and actions](user/conditions.md): the condition engine, the action engine, wallets.
 - [Integrations, updates and schematics](user/integrations.md): soft dependencies, the update checker, schematics.
 
