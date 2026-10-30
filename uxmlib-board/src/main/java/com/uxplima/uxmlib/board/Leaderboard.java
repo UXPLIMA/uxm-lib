@@ -3,6 +3,7 @@ package com.uxplima.uxmlib.board;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -46,12 +47,16 @@ public final class Leaderboard {
     /** The old windows are dropped this often at most: a delete per period per refresh would be noise. */
     private static final Duration PRUNE_EVERY = Duration.ofHours(1);
 
+    /** The boards the supplier last gave, by word, kept while it gives the same list. */
+    private record Named(List<Board> boards, Map<String, Board> byWord) {}
+
     private final BoardStore store;
-    private final Map<String, Board> boards;
+    private final Supplier<List<Board>> boards;
     private final Function<UUID, String> names;
     private final Supplier<BoardSettings> settings;
     private final Clock clock;
 
+    private volatile Named named = new Named(List.of(), Map.of());
     private volatile Map<Key, Shown> shown = Map.of();
     private volatile Instant prunedAt = Instant.EPOCH;
 
@@ -66,27 +71,66 @@ public final class Leaderboard {
             Function<UUID, String> names,
             Supplier<BoardSettings> settings,
             Clock clock) {
+        this(store, fixed(boards), names, settings, clock);
+    }
+
+    /**
+     * Boards that can change while the plugin runs, such as one board per track an operator configures: the supplier
+     * is read at every refresh and every answer, so a reload that adds a board shows it from the next refresh and one
+     * that takes a board away stops it answering at once. It must be cheap, and give no two boards the same word.
+     *
+     * @param names the name of a player whose row has none kept. It runs on the async lane, so it must not go to the
+     *     network
+     * @param settings read again at every refresh, so a reload changes it
+     */
+    public Leaderboard(
+            BoardStore store,
+            Supplier<List<Board>> boards,
+            Function<UUID, String> names,
+            Supplier<BoardSettings> settings,
+            Clock clock) {
         this.store = Objects.requireNonNull(store, "store");
-        Map<String, Board> byWord = new LinkedHashMap<>();
-        for (Board board : Objects.requireNonNull(boards, "boards")) {
-            if (byWord.putIfAbsent(board.word(), board) != null) {
-                throw new IllegalArgumentException("two boards share the word " + board.word());
-            }
-        }
-        this.boards = byWord;
+        this.boards = Objects.requireNonNull(boards, "boards");
         this.names = Objects.requireNonNull(names, "names");
         this.settings = Objects.requireNonNull(settings, "settings");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
+    private static Supplier<List<Board>> fixed(List<Board> boards) {
+        List<Board> held = List.copyOf(Objects.requireNonNull(boards, "boards"));
+        byWord(held);
+        return () -> held;
+    }
+
+    private static Map<String, Board> byWord(List<Board> boards) {
+        Map<String, Board> byWord = new LinkedHashMap<>();
+        for (Board board : boards) {
+            if (byWord.putIfAbsent(board.word(), board) != null) {
+                throw new IllegalArgumentException("two boards share the word " + board.word());
+            }
+        }
+        return byWord;
+    }
+
+    /** The boards the supplier gives now, by word, worked out again only when it gives another list. */
+    private Map<String, Board> named() {
+        List<Board> now = boards.get();
+        Named last = named;
+        if (!last.boards().equals(now)) {
+            last = new Named(List.copyOf(now), Collections.unmodifiableMap(byWord(now)));
+            named = last;
+        }
+        return last.byWord();
+    }
+
     /** Every board, in the order the plugin named them. */
     public List<Board> boards() {
-        return List.copyOf(boards.values());
+        return List.copyOf(named().values());
     }
 
     /** The board a word names. */
     public Optional<Board> board(String word) {
-        return Optional.ofNullable(boards.get(Objects.requireNonNull(word, "word")));
+        return Optional.ofNullable(named().get(Objects.requireNonNull(word, "word")));
     }
 
     /** Whether {@code board} runs in {@code period}: the period is on in the settings and the board has it. */
@@ -151,7 +195,7 @@ public final class Leaderboard {
         BoardSettings now = settings.get();
         Map<Key, Shown> read = new HashMap<>();
         openWindows().forEach((period, window) -> {
-            for (Board board : boards.values()) {
+            for (Board board : named().values()) {
                 if (board.runs(period)) {
                     read.put(new Key(board, period), read(board, period, window, now.size()));
                 }

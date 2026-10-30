@@ -12,8 +12,8 @@ Board balance = Board.snapshot("balance", balances);  // what players hold now, 
 Board xp = Board.counter("xp").withAllTime(levels);   // periods count, all time reads the snapshot
 ```
 
-A word takes lower-case letters, digits and `-`, never `_`. A `Snapshot` answers `top`, `countByScore` (both on the
-async lane, may block) and `scoreOf` (from memory).
+A word takes 1 to 32 lower-case letters, digits and `-`, never `_`; the plugin's `board_name` column must hold the
+longest. A `Snapshot` answers `top`, `countByScore` (both on the async lane, may block) and `scoreOf` (from memory).
 
 ## Wiring
 
@@ -30,6 +30,10 @@ scheduler.asyncTimer(Duration.ZERO, settings.refresh(), task -> leaderboard.refr
 
 recorder.add(killer, kills, 1);
 ```
+
+Boards that change while the plugin runs, one per track an operator configures for instance, go in as a
+`Supplier<List<Board>>` instead of a list. It is read at every refresh and every answer: a board a reload adds shows
+from the next refresh, and one it takes away stops answering at once.
 
 The plugin creates the `{prefix}board` and `{prefix}name` tables in its own migrations; the `SqlBoardStore` Javadoc
 gives their shape. An add is an upsert that sums (a counter) or keeps the higher score (a record) in the database

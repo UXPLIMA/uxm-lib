@@ -61,6 +61,46 @@ class LeaderboardTest {
     }
 
     @Test
+    void boardsFromASupplierFollowWhatItGivesNow() {
+        Board mining = Board.counter("mining");
+        Board fishing = Board.counter("fishing");
+        java.util.concurrent.atomic.AtomicReference<List<Board>> tracks =
+                new java.util.concurrent.atomic.AtomicReference<>(List.of(mining));
+        Leaderboard board = new Leaderboard(store, tracks::get, id -> "?", () -> settings, clock);
+        BoardRecorder recorder = new BoardRecorder(store, board, new Standings(store, board), Runnable::run, clock);
+        recorder.add(ALEX, mining, 3);
+        recorder.add(SAM, fishing, 5);
+        board.refresh();
+
+        assertThat(board.board("fishing")).isEmpty();
+        assertThat(board.at(mining, BoardPeriod.DAILY, 1)).isPresent();
+
+        tracks.set(List.of(mining, fishing));
+        assertThat(board.boards()).containsExactly(mining, fishing);
+        board.refresh();
+        assertThat(board.at(fishing, BoardPeriod.DAILY, 1))
+                .hasValueSatisfying(row -> assertThat(row.player()).isEqualTo(SAM));
+
+        tracks.set(List.of(fishing));
+        assertThat(board.board("mining"))
+                .as("a board taken away stops answering at once")
+                .isEmpty();
+    }
+
+    @Test
+    void aWordIsUpToThirtyTwoLong() {
+        assertThat(Board.counter("a".repeat(32)).word()).hasSize(32);
+        assertThatThrownBy(() -> Board.counter("a".repeat(33))).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> new Leaderboard(
+                        store,
+                        List.of(Board.counter("kills"), Board.counter("kills")),
+                        id -> "?",
+                        () -> settings,
+                        clock))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void aRecordKeepsTheBestAndTheFirstToReachItRanksFirst() {
         Board best = Board.record("best");
         Leaderboard board = leaderboard(best);
