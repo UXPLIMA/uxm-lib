@@ -21,7 +21,7 @@ import org.jspecify.annotations.Nullable;
  *
  * <pre>{@code
  * CREATE TABLE {prefix}board (
- *     board_name   VARCHAR(16) NOT NULL,
+ *     board_name   VARCHAR(32) NOT NULL,   -- as long as the longest board word
  *     board_period VARCHAR(16) NOT NULL,
  *     window_start BIGINT      NOT NULL,
  *     player_id    VARCHAR(36) NOT NULL,

@@ -19,8 +19,8 @@ import org.jspecify.annotations.Nullable;
  * plugin can lower, such as experience that a prestige resets: the periods still count what was earned in them.
  *
  * <p>The word is what a placeholder writes between {@code top_} and the period. It takes lower-case letters, digits
- * and {@code -}, never {@code _}, which separates the parts of a placeholder. Two boards are the same board when
- * their words are.
+ * and {@code -}, never {@code _}, which separates the parts of a placeholder, and is at most 32 long, which the
+ * plugin's {@code board_name} column must hold. Two boards are the same board when their words are.
  */
 public final class Board {
 
@@ -31,7 +31,7 @@ public final class Board {
         SNAPSHOT
     }
 
-    private static final Pattern WORD = Pattern.compile("[a-z0-9][a-z0-9-]{0,15}");
+    private static final Pattern WORD = Pattern.compile("[a-z0-9][a-z0-9-]{0,31}");
 
     private final String word;
     private final Kind kind;
@@ -41,7 +41,7 @@ public final class Board {
         Objects.requireNonNull(word, "word");
         if (!WORD.matcher(word).matches()) {
             throw new IllegalArgumentException(
-                    "a board word takes 1 to 16 lower-case letters, digits and '-', got: " + word);
+                    "a board word takes 1 to 32 lower-case letters, digits and '-', got: " + word);
         }
         this.word = word;
         this.kind = Objects.requireNonNull(kind, "kind");
