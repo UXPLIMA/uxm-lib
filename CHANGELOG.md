@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.3.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.2.0...uxm-lib-v0.3.0) (2026-10-30)
+
+### Added
+
+- `uxmlib-board`: leaderboards in the grammar every UXM plugin shares. `Board.counter`, `Board.record` and
+  `Board.snapshot` (all time only), and `withAllTime` for a counter whose all-time board reads a snapshot.
+  `BoardSettings.read(config, "leaderboard")` reads the standard `leaderboard` block. `SqlBoardStore` keeps
+  boards in the plugin's own `{prefix}board` and `{prefix}name` tables on SQLite, MySQL, MariaDB and
+  PostgreSQL, adding in the database itself so an event for a player who is away is kept. `Leaderboard`,
+  `Standings`, `BoardRecorder`, `BoardAnswers` (the `top_`, `rank_`, `value_`, `resets_` and `head`
+  placeholders, worded through `BoardText`) and `BoardPresence` (loads scores on pre-login). The module is in
+  the BOM and in `uxmlib-all`. See `docs/user/boards.md`.
+
 ## [0.2.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.1.0...uxm-lib-v0.2.0) (2026-10-29)
 
 Upgrading: change the imports of `RegionCall`, `GlobalCall`, `OnlinePlayers` and `Hop` to
