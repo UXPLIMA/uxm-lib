@@ -2,11 +2,17 @@
 
 ## [0.4.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.3.0...uxm-lib-v0.4.0) (2026-10-30)
 
+### Added
 
-### Features
+- `Leaderboard` takes a `Supplier<List<Board>>` as well as a list, for boards that change while the plugin runs,
+  such as one per track an operator configures. A board a reload adds shows from the next refresh; one it takes
+  away stops answering at once.
+- `BoardText.score(Board, BoardPeriod, long, UUID)`, a default method, so a plugin can show all time another way
+  than the periods. `BoardAnswers` asks it for `top_..._value` and `value_...`.
 
-* **board:** show a score by its period ([#77](https://github.com/UXPLIMA/uxm-lib/issues/77)) ([7d42da4](https://github.com/UXPLIMA/uxm-lib/commit/7d42da411d63b0f6a32f235eadbe2774c48852ad)), closes [#76](https://github.com/UXPLIMA/uxm-lib/issues/76)
-* **board:** take boards from a supplier, words up to 32 long ([#74](https://github.com/UXPLIMA/uxm-lib/issues/74)) ([3c65b48](https://github.com/UXPLIMA/uxm-lib/commit/3c65b48e5eff033f6ed177b85eb50533cae73076)), closes [#73](https://github.com/UXPLIMA/uxm-lib/issues/73)
+### Changed
+
+- A board word takes 1 to 32 characters (was 16). The plugin's `board_name` column must hold the longest.
 
 ## [0.3.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.2.0...uxm-lib-v0.3.0) (2026-10-30)
 
