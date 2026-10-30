@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.3.0...uxm-lib-v0.4.0) (2026-10-30)
+
+
+### Features
+
+* **board:** show a score by its period ([#77](https://github.com/UXPLIMA/uxm-lib/issues/77)) ([7d42da4](https://github.com/UXPLIMA/uxm-lib/commit/7d42da411d63b0f6a32f235eadbe2774c48852ad)), closes [#76](https://github.com/UXPLIMA/uxm-lib/issues/76)
+* **board:** take boards from a supplier, words up to 32 long ([#74](https://github.com/UXPLIMA/uxm-lib/issues/74)) ([3c65b48](https://github.com/UXPLIMA/uxm-lib/commit/3c65b48e5eff033f6ed177b85eb50533cae73076)), closes [#73](https://github.com/UXPLIMA/uxm-lib/issues/73)
+
 ## [0.3.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.2.0...uxm-lib-v0.3.0) (2026-10-30)
 
 ### Added
