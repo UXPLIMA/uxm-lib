@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.5.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.4.0...uxm-lib-v0.5.0) (2026-10-30)
+
+
+### Changed
+
+- A board word may hold `_` as well: 1 to 32 of `a-z`, `0-9`, `-` and `_`, so a plugin whose ids hold an
+  underscore (a job such as `deep_miner`) can name a board after them.
+- `BoardAnswers` reads a key from its end: the field, the place and the period are its last parts and the board is
+  everything before them. Keys of boards without an underscore answer exactly as before.
+
 ## [0.4.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.3.0...uxm-lib-v0.4.0) (2026-10-30)
 
 ### Added
