@@ -55,4 +55,5 @@ Hand `BoardAnswers` what follows the plugin's prefix:
 | `head` | what the reader's own head is drawn from |
 
 Periods are `alltime`, `monthly`, `weekly` and `daily`. A board, period or field the plugin does not run answers
-null, which PlaceholderAPI leaves as written. The words come from the plugin through `BoardText`.
+null, which PlaceholderAPI leaves as written. The words come from the plugin through `BoardText`. Its `score` can show
+all time another way than the periods, a level where the periods show the experience earned in them.

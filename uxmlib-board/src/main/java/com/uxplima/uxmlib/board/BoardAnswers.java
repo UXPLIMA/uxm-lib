@@ -112,7 +112,8 @@ public final class BoardAnswers {
         return switch (parts[3]) {
             case "name" -> row.map(Leaderboard.Row::name).orElseGet(() -> text.nobody(reader));
             case "value" ->
-                row.map(held -> text.score(board, held.score(), reader)).orElseGet(() -> text.none(reader));
+                row.map(held -> text.score(board, target.get().period(), held.score(), reader))
+                        .orElseGet(() -> text.none(reader));
             case "head" -> row.map(held -> headOf(held.player(), held.name())).orElseGet(emptyHead);
             default -> null;
         };
@@ -136,7 +137,8 @@ public final class BoardAnswers {
             return null;
         }
         Board board = target.get().board();
-        return text.score(board, standings.scoreOf(reader, board, target.get().period()), reader);
+        BoardPeriod period = target.get().period();
+        return text.score(board, period, standings.scoreOf(reader, board, period), reader);
     }
 
     private @Nullable String resets(@Nullable UUID reader, String params) {
