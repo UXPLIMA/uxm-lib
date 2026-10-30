@@ -35,6 +35,7 @@ include(
     ":uxmlib-bedrock",
     ":uxmlib-storage",
     ":uxmlib-storage-testing",
+    ":uxmlib-board",
     ":uxmlib-redis",
     ":uxmlib-network",
     ":uxmlib-integration",

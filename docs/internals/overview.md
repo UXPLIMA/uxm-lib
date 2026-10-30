@@ -21,6 +21,7 @@ graph TD
     menu --> item
     menu --> bedrock
     storage[uxmlib-storage] --> common
+    board[uxmlib-board] --> storage
     integration[uxmlib-integration] --> common
     hud[uxmlib-hud] --> common
     update[uxmlib-update] --> common
