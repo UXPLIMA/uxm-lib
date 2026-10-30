@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.4.0...uxm-lib-v0.5.0) (2026-10-30)
+
+
+### Features
+
+* **board:** read a key from its end, words may hold underscores ([#79](https://github.com/UXPLIMA/uxm-lib/issues/79)) ([321999a](https://github.com/UXPLIMA/uxm-lib/commit/321999a37bbd0c23b5fa13256ffc7e43119f5bd9)), closes [#78](https://github.com/UXPLIMA/uxm-lib/issues/78)
+
 ## [0.4.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.3.0...uxm-lib-v0.4.0) (2026-10-30)
 
 ### Added
