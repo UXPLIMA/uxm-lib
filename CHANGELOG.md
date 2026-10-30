@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.2.0...uxm-lib-v0.3.0) (2026-10-30)
+
+
+### Features
+
+* **board:** add the shared leaderboard module ([#71](https://github.com/UXPLIMA/uxm-lib/issues/71)) ([de5afd1](https://github.com/UXPLIMA/uxm-lib/commit/de5afd1b2332edf0aca1ba495beb9cee4a1cd40a)), closes [#70](https://github.com/UXPLIMA/uxm-lib/issues/70)
+
 ## [0.2.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.1.0...uxm-lib-v0.2.0) (2026-10-29)
 
 Upgrading: change the imports of `RegionCall`, `GlobalCall`, `OnlinePlayers` and `Hop` to
