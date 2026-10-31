@@ -4,11 +4,13 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 
 import com.uxplima.uxmlib.common.Durations;
+import com.uxplima.uxmlib.text.message.LocaleSource;
 
 /**
  * Every sentence the command layer says to a sender on its own behalf: the refusals, the argument
@@ -51,6 +53,10 @@ public interface CommandMessages {
      * language and in the plugin's palette, and an operator can re-word any of it in their language file
      * without a build. Implement the interface by hand only for a line these keys do not cover.
      *
+     * <p>The sender's language is the catalog's own answer, so a player who chose a language in any plugin of
+     * ours is answered, sent their command words and given their {@code Locale} parameter in it, and not in
+     * their client's. A registry given {@link ParamResolvers#locales(LocaleSource)} keeps that source instead.
+     *
      * <pre>{@code
      * ParamResolvers resolvers = ParamResolvers.withDefaults()
      *         .messages(CommandMessages.fromCatalogue(messages));
@@ -58,6 +64,14 @@ public interface CommandMessages {
      */
     static CommandMessages fromCatalogue(com.uxplima.uxmlib.text.message.Messages messages) {
         return new CatalogueCommandMessages(messages);
+    }
+
+    /**
+     * Who reads these lines in which language, when the messages know it better than a client does. A registry
+     * with no {@link ParamResolvers#locales(LocaleSource) locales} of its own asks here first.
+     */
+    default Optional<LocaleSource> readers() {
+        return Optional.empty();
     }
 
     /**

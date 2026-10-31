@@ -28,7 +28,8 @@ public final class ParamResolvers {
     private Cooldowns cooldowns = new Cooldowns();
     private Replacers replacers = Replacers.none();
     private CommandMessages messages = CommandMessages.english();
-    private LocaleSource locales = LocaleSource.ofDefault(Locale.ENGLISH);
+    private static final LocaleSource CLIENTS = LocaleSource.ofDefault(Locale.ENGLISH);
+    private @Nullable LocaleSource locales;
 
     private ParamResolvers() {}
 
@@ -164,17 +165,25 @@ public final class ParamResolvers {
     }
 
     /**
-     * Resolve the locale each sender is answered in through {@code locales}. Defaults to a source that reads
-     * a player's own client locale and falls back to English for the console. Returns this for chaining.
+     * Resolve the locale each sender is answered in through {@code locales}. Without it, a registry asks its
+     * {@link #messages(CommandMessages) messages} (a catalog's are the plugin's own languages), and failing that
+     * reads a player's own client locale and falls back to English for the console. Returns this for chaining.
      */
     public ParamResolvers locales(LocaleSource locales) {
         this.locales = Objects.requireNonNull(locales, "locales");
         return this;
     }
 
-    /** The locale source; a player's client locale with an English fallback when none was set. */
+    /**
+     * The locale source: the one set with {@link #locales(LocaleSource)}, else the readers of the
+     * {@link #messages(CommandMessages) messages}, else a player's client locale with an English fallback.
+     */
     LocaleSource locales() {
-        return locales;
+        LocaleSource set = locales;
+        if (set != null) {
+            return set;
+        }
+        return messages.readers().orElse(CLIENTS);
     }
 
     /** Whether some resolver handles {@code type} (directly, or as an enum). */
