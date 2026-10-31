@@ -244,6 +244,24 @@ public final class Messages {
         return content.locales().localeOf(viewer);
     }
 
+    /**
+     * {@link #localeOf} as a {@link LocaleSource}, for a layer beside the catalog that has to answer in the same
+     * language: the command layer, and the command list a client is sent. Read live, like {@link #localeOf}.
+     */
+    public LocaleSource locales() {
+        return new LocaleSource() {
+            @Override
+            public Locale defaultLocale() {
+                return content.locales().defaultLocale();
+            }
+
+            @Override
+            public Locale localeOf(Audience viewer) {
+                return Messages.this.localeOf(viewer);
+            }
+        };
+    }
+
     /** The catalog this facade currently reads from, for callers that need direct template access. */
     public MessageCatalog catalog() {
         return content.catalog();

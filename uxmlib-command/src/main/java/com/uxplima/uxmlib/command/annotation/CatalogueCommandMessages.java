@@ -4,12 +4,14 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.Optional;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 
 import com.uxplima.uxmlib.common.Durations;
 import com.uxplima.uxmlib.text.Text;
+import com.uxplima.uxmlib.text.message.LocaleSource;
 import com.uxplima.uxmlib.text.message.MessageKey;
 import com.uxplima.uxmlib.text.message.Messages;
 
@@ -34,6 +36,12 @@ final class CatalogueCommandMessages implements CommandMessages {
 
     CatalogueCommandMessages(Messages messages) {
         this.messages = Objects.requireNonNull(messages, "messages");
+    }
+
+    /** The catalog's own readers: the language the player chose in any plugin of ours, or their client's. */
+    @Override
+    public Optional<LocaleSource> readers() {
+        return Optional.of(messages.locales());
     }
 
     @Override
