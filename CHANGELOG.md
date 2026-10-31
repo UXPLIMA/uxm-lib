@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.5.0...uxm-lib-v0.5.1) (2026-10-31)
+
+
+### Bug Fixes
+
+* **command:** answer commands in the language the player chose ([#82](https://github.com/UXPLIMA/uxm-lib/issues/82)) ([cba56c7](https://github.com/UXPLIMA/uxm-lib/commit/cba56c70de40652425e028a2160a7c68242c6b1d)), closes [#81](https://github.com/UXPLIMA/uxm-lib/issues/81)
+
 ## [0.5.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.4.0...uxm-lib-v0.5.0) (2026-10-30)
 
 
