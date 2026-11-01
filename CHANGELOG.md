@@ -1,20 +1,30 @@
 # Changelog
 
-## [0.6.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.5.0...uxm-lib-v0.6.0) (2026-11-01)
+## [0.6.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.5.0...uxm-lib-v0.6.0)
 
+### Added
 
-### ⚠ BREAKING CHANGES
+- `FeatureFiles`: a large feature keeps its block in `<block>.conf` beside `config.conf`. `moveOut` takes the
+  block out of an older `config.conf` as text with its comment, `bringUpToDate` merges each file's shipped keys
+  (catalogues still honoured), and `readInto` lays the files under the config so every key keeps its path.
+- `ConfigBackups`: the copy a merge keeps before it writes a file again goes to
+  `backups/<name>-<yyyy-MM-dd-HHmmss>.conf` beside the file, the last five of each file.
+- `DataFiles.resolve(folder, name)`: what a plugin writes for itself lives under `data/`; an old copy in the
+  plugin's folder moves there the first time, with SQLite journal files.
+- `StorageSettings.sqliteFile(folder)`: where the SQLite file of a block is.
+- `MoneyText.of(money, lines)`: a `format`, `format-one` or short suffix may name an `@` line, drawn in the
+  reader's language.
 
-* **common:** a merge no longer writes <name>.bak beside the file; the copy is in backups/. A SQLite file named by a StorageSettings block now lives under data/ and is moved there on the next open; a plugin that reads the file path itself should use StorageSettings.sqliteFile.
+### Changed
 
-### Features
+- A merge no longer writes `<name>.bak` beside the file; the copy is in `backups/`, and an old `.bak` moves
+  there the next time the file is merged. Breaking for a plugin whose log line names `config.conf.bak`.
+- A SQLite file named by a `StorageSettings` block lives under `data/` and moves there on the next open. Breaking
+  for a plugin that resolves the file path itself: use `StorageSettings.sqliteFile`.
 
-* **common:** feature files, dated backups and a data folder ([#84](https://github.com/UXPLIMA/uxm-lib/issues/84)) ([9f5654a](https://github.com/UXPLIMA/uxm-lib/commit/9f5654a48aea0edff4e04da5244327d053ef195d))
+### Fixed
 
-
-### Bug Fixes
-
-* **command:** answer commands in the language the player chose ([#82](https://github.com/UXPLIMA/uxm-lib/issues/82)) ([cba56c7](https://github.com/UXPLIMA/uxm-lib/commit/cba56c70de40652425e028a2160a7c68242c6b1d)), closes [#81](https://github.com/UXPLIMA/uxm-lib/issues/81)
+- A command answers in the language the player chose, not the client's (#82).
 
 ## [0.5.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.4.0...uxm-lib-v0.5.0) (2026-10-30)
 
