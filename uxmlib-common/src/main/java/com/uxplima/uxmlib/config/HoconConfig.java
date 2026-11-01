@@ -159,8 +159,8 @@ public final class HoconConfig {
      * added. A plugin that only writes its file on the first run gives every later knob to a new server and
      * to no existing one, and the operator finds out by reading a changelog.
      *
-     * <p>A run that adds something keeps the file as it was, beside it, as {@code <name>.bak}. A run that
-     * adds nothing writes nothing and leaves nothing behind.
+     * <p>A run that adds something keeps the file as it was in the backups folder beside it, with the last five
+     * copies of it, through {@link ConfigBackups}. A run that adds nothing writes nothing and leaves nothing behind.
      *
      * <p>A catalogue is a map whose entries are the operator's whole, such as a list of tags or of colour
      * presets: an entry they deleted is one they do not want. Each dotted path in {@code catalogues} is merged
@@ -190,21 +190,11 @@ public final class HoconConfig {
         return ConfigUpgrade.mergeDefaults(currentRoot(), defaults, this::keepAsItWas, this::save);
     }
 
-    /** Copy the file beside itself, before a merge renders it again. A file that is not there has none. */
+    /** Keep a copy of the file in the backups folder beside it, before a merge renders it again. */
     private void keepAsItWas() {
-        if (!java.nio.file.Files.isRegularFile(file)) {
-            return;
-        }
-        java.nio.file.Path parent = file.getParent();
-        String name = file.getFileName() + ".bak";
-        java.nio.file.Path copy = parent == null ? java.nio.file.Path.of(name) : parent.resolve(name);
-        try {
-            java.nio.file.Files.copy(file, copy, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
-        } catch (java.io.IOException unwritable) {
-            // A copy that cannot be written must not stop the merge: the merge itself adds keys and changes
-            // no value, so the worst case is the operator losing their own formatting with no copy of it.
-            throw new ConfigException("cannot keep a copy of " + file + " before merging into it", unwritable);
-        }
+        // A copy that cannot be written stops the merge: the merge adds keys and changes no value, but it renders
+        // the file again, and the operator's own formatting would be gone with no copy of it.
+        ConfigBackups.keep(file);
     }
 
     /**

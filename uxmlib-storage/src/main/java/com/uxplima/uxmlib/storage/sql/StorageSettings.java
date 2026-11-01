@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
+import com.uxplima.uxmlib.config.DataFiles;
 import com.uxplima.uxmlib.config.HoconConfig;
 import com.uxplima.uxmlib.storage.StorageException;
 import com.uxplima.uxmlib.storage.migration.Migration;
@@ -20,7 +21,7 @@ import com.uxplima.uxmlib.storage.migration.SchemaIntrospector;
  * <pre>
  * storage {
  *   type = sqlite            # sqlite, mysql, mariadb or postgresql
- *   file = "rows.db"         # sqlite only, inside the data folder
+ *   file = "rows.db"         # sqlite only, inside the plugin's data/ folder
  *   host = localhost
  *   port = 0                 # 0 is the backend's own: 3306, or 5432 for postgresql
  *   database = minecraft
@@ -44,7 +45,7 @@ import com.uxplima.uxmlib.storage.migration.SchemaIntrospector;
  * <p>Every key may be left out. The table prefix is written into every table name and into the history of the
  * migrations, so two schemas, or two copies of one under different prefixes, can share a database.
  *
- * @param file the SQLite file, relative to the data folder
+ * @param file the SQLite file, relative to the {@code data} folder in the plugin's folder (see {@link DataFiles})
  * @param tablePrefix a bare identifier, possibly empty
  */
 public record StorageSettings(
@@ -125,11 +126,20 @@ public record StorageSettings(
                 Backend.SQLITE, file, "localhost", 0, DEFAULT_DATABASE, DEFAULT_DATABASE, "", tablePrefix, 1, false);
     }
 
-    /** The URL the driver reads. A file is resolved against {@code dataFolder}. */
+    /**
+     * Where the SQLite file is: under {@code data/} in {@code dataFolder}. A file an earlier release kept straight in
+     * {@code dataFolder} moves there first, with its journal files, so its rows come along.
+     */
+    public Path sqliteFile(Path dataFolder) {
+        Objects.requireNonNull(dataFolder, "dataFolder");
+        return DataFiles.resolve(dataFolder, file);
+    }
+
+    /** The URL the driver reads. A file is resolved with {@link #sqliteFile}. */
     public String jdbcUrl(Path dataFolder) {
         Objects.requireNonNull(dataFolder, "dataFolder");
         if (backend.isFile()) {
-            return "jdbc:sqlite:" + dataFolder.resolve(file);
+            return "jdbc:sqlite:" + sqliteFile(dataFolder);
         }
         return "jdbc:" + backend.id() + "://" + host + ":" + port + "/" + database;
     }
@@ -145,12 +155,12 @@ public record StorageSettings(
         return table("schema_history");
     }
 
-    /** Open the pool. A SQLite file is created in {@code dataFolder} when it is not there yet. */
+    /** Open the pool. A SQLite file is created under {@code data/} in {@code dataFolder} when it is not there yet. */
     public Database open(Path dataFolder, String poolName) {
         Objects.requireNonNull(poolName, "poolName");
         DatabaseBuilder builder = Database.builder().poolName(poolName).driverClassName(backend.driverClassName());
         if (backend.isFile()) {
-            return builder.sqlite(dataFolder.resolve(file)).build();
+            return builder.sqlite(sqliteFile(dataFolder)).build();
         }
         return builder.jdbcUrl(jdbcUrl(dataFolder))
                 .username(username)

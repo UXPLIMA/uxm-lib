@@ -23,10 +23,29 @@ Settings current = settings.current();   // cached snapshot: cheap on the hot pa
 settings.reload();                        // swaps in the new value, or keeps the prior one on a parse error
 ```
 
+A release that adds keys reaches an operator's file through `mergeDefaults`, which keeps every value they
+wrote. Before it writes the file again it keeps a copy in `backups/` beside it, named for the file and the time
+(`backups/config-<yyyy-MM-dd-HHmmss>.conf`); `ConfigBackups` keeps the last five of each file and moves a
+`<name>.bak` an earlier release left beside the file into the folder.
+
+A feature too large for `config.conf` keeps its block in a file of its own, under the same name, so every key
+keeps its path:
+
+```java
+List<String> features = List.of("protection", "economy");
+FeatureFiles.moveOut(dataFolder.resolve("config.conf"), features); // once: the block and its comment, as text
+FeatureFiles.bringUpToDate(dataFolder, features, classLoader);      // each <block>.conf gets new keys
+FeatureFiles.readInto(config, dataFolder, features);               // a reader finds "protection.radius" as before
+```
+
+What a plugin writes for itself, a database or its logs, lives in `data/` in its folder.
+`DataFiles.resolve(dataFolder, "logs")` gives that path and moves an old copy from the plugin's folder the first
+time; a SQLite file a `StorageSettings` block names goes there the same way, journal files included.
+
 ## Storage
 
 ```java
-Database db = Database.builder().sqlite(dataFolder.resolve("data.db")).build();  // SQLite default, WAL
+Database db = Database.builder().sqlite(DataFiles.resolve(dataFolder, "data.db")).build();  // SQLite, WAL
 Sql sql = new Sql(db);
 sql.execute("CREATE TABLE IF NOT EXISTS players (uuid TEXT PRIMARY KEY, coins INTEGER)");
 

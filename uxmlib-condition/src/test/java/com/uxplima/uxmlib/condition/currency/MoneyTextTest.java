@@ -52,4 +52,25 @@ class MoneyTextTest {
 
         assertThat(text.of(Money.of(COINS, "999999"))).isEqualTo("1M");
     }
+
+    @Test
+    void aFormatThatNamesALineReadsThatLineInTheReadersLanguage() throws IOException {
+        MoneyText text = read("""
+                currencies { coins { display {
+                  format = "@currency.coins", format-one = "@currency.coin", short = true, short-suffixes = ["@suffix.k"]
+                } } }
+                """);
+        java.util.Map<String, String> turkish = java.util.Map.of(
+                "@currency.coins", "{amount} jeton", "@currency.coin", "{amount} jeton", "@suffix.k", "B");
+
+        assertThat(text.of(Money.of(COINS, "5"), line -> turkish.getOrDefault(line, line)))
+                .isEqualTo("5 jeton");
+        assertThat(text.of(Money.of(COINS, "1"), line -> turkish.getOrDefault(line, line)))
+                .isEqualTo("1 jeton");
+        assertThat(text.of(Money.of(COINS, "2500"), line -> turkish.getOrDefault(line, line)))
+                .isEqualTo("2.5B jeton");
+        assertThat(text.of(Money.of(COINS, "5")))
+                .as("no reader: the value as written")
+                .isEqualTo("@currency.coins");
+    }
 }
