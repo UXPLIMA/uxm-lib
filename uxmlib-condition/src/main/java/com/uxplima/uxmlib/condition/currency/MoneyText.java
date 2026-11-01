@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 import com.uxplima.uxmlib.config.HoconConfig;
 import org.jspecify.annotations.Nullable;
@@ -56,15 +57,29 @@ public final class MoneyText {
      * every number the same way.
      */
     public String of(Money money) {
+        return of(money, UnaryOperator.identity());
+    }
+
+    /**
+     * What a player reads for this amount, in their language.
+     *
+     * <p>A {@code format}, {@code format-one} or short suffix may name a line of the messages files, as
+     * {@code format = "@currency.coins"} does, so a currency reads {@code 5 coins} to one player and {@code 5 jeton}
+     * to another. {@code lines} turns such a value into the line for the reader, usually
+     * {@code line -> messages.expandLine(viewer, line)}; a value that names no line comes back as it is.
+     */
+    public String of(Money money, UnaryOperator<String> lines) {
         Objects.requireNonNull(money, "money");
+        Objects.requireNonNull(lines, "lines");
         CurrencyDisplay display = byCurrency.getOrDefault(money.currency().value(), fallback);
-        String written = number(money.amount(), display);
+        String written = number(money.amount(), display, lines);
         String shape = money.amount().compareTo(BigDecimal.ONE) == 0 ? display.formatOne() : display.format();
-        return shape.replace("{amount}", written)
+        return lines.apply(shape)
+                .replace("{amount}", written)
                 .replace("{currency}", money.currency().value());
     }
 
-    private static String number(BigDecimal amount, CurrencyDisplay display) {
+    private static String number(BigDecimal amount, CurrencyDisplay display, UnaryOperator<String> lines) {
         String sign = amount.signum() < 0 ? "-" : "";
         BigDecimal size = amount.abs();
         if (display.shortForm() && !display.suffixes().isEmpty() && size.compareTo(THOUSAND) >= 0) {
@@ -80,7 +95,7 @@ public final class MoneyText {
                 step++;
                 shown = size.divide(THOUSAND.pow(step), 1, RoundingMode.UP);
             }
-            return sign + plain(shown, display) + display.suffixes().get(step - 1);
+            return sign + plain(shown, display) + lines.apply(display.suffixes().get(step - 1));
         }
         return sign + plain(size.setScale(display.decimals(), RoundingMode.UP), display);
     }

@@ -122,6 +122,10 @@ Wallet wallet = new CurrencyWallet(currencies);                     // for [give
 MoneyText text = MoneyText.read(config);                            // "1,250 coins", "1 coin"
 ```
 
+A `format`, `format-one` or short suffix may name a line of the messages files (`format = "@currency.coins"`).
+`text.of(money, line -> messages.expandLine(viewer, line))` then writes the amount in the reader's language;
+`text.of(money)` writes the value as the file has it.
+
 - `order` decides the preferred currency (the lowest) and the order of a menu's tabs. HOCON forgets the
   order a section was written in, so the file says it; two equal orders fall back to the id.
 - A currency whose plugin is missing is built but not ready. `CurrencyRegistry.ready()` leaves it out

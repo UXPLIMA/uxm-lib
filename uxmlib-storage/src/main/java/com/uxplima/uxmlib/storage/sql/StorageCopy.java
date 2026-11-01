@@ -62,7 +62,7 @@ public final class StorageCopy {
         }
         StorageSettings file = settings.localFile();
         // Opening a SQLite pool creates the file, and an empty one left behind would read as rows that vanished.
-        if (!Files.isRegularFile(dataFolder.resolve(file.file()))) {
+        if (!Files.isRegularFile(file.sqliteFile(dataFolder))) {
             throw new Refused(Reason.NO_FILE, file.file(), "there is no " + file.file() + " to copy from");
         }
         try (Database source = file.open(dataFolder, "copy-" + file.file())) {
@@ -97,7 +97,7 @@ public final class StorageCopy {
         }
         StorageSettings local = settings.localFile();
         // Opening a SQLite pool creates the file, and an empty one left behind would read as rows that vanished.
-        if (!Files.isRegularFile(dataFolder.resolve(local.file()))) {
+        if (!Files.isRegularFile(local.sqliteFile(dataFolder))) {
             migrate.accept(target);
             LOG.log(System.Logger.Level.WARNING, "copy-from-file found no " + local.file() + " to copy from");
             return Optional.empty();
