@@ -50,6 +50,27 @@ public interface BedrockDetector {
     }
 
     /**
+     * What {@code player}'s Bedrock client reported when it connected: device, input, layout, version and language.
+     *
+     * <p>Only Floodgate passes these on to a backend. A Java player, a Geyser-only backend or no backend at all
+     * answer empty.
+     */
+    default Optional<BedrockClient> client(UUID player) {
+        return Optional.empty();
+    }
+
+    /**
+     * The text Floodgate puts in front of a Bedrock player's name so it cannot clash with a Java name, such as
+     * {@code "."}. Empty when there is no prefix or no Floodgate.
+     *
+     * <p>A command that looks a player up by name tries the name again with this prefix when nobody answers to
+     * it, so a Java player typing {@code Mira} still reaches the Bedrock player {@code .Mira}.
+     */
+    default String namePrefix() {
+        return "";
+    }
+
+    /**
      * Which plugin answers this detector's questions, for the one line the bootstrap logs on enable. Operators
      * read it to tell the two working shapes apart, so it names the source rather than the class.
      *

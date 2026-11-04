@@ -82,6 +82,26 @@ public interface BedrockScreen {
             Player player, String title, @Nullable String content, List<BedrockButton> buttons, IntConsumer onSelect);
 
     /**
+     * Send {@code player} a SimpleForm as {@link #sendSimpleForm(Player, String, String, List, IntConsumer)} does, and
+     * run {@code onClose} when the viewer closes the form without tapping a button.
+     *
+     * <p>A form that stands in for a container another plugin opened needs this: the container stays open on the
+     * server until it is told the form went away. Like the select callback, {@code onClose} fires off the main
+     * thread. A screen that cannot tell a close apart, {@link #NONE} among them, never runs it.
+     *
+     * @param onClose invoked when the viewer closes or dismisses the form; never {@code null}
+     */
+    default void sendSimpleForm(
+            Player player,
+            String title,
+            @Nullable String content,
+            List<BedrockButton> buttons,
+            IntConsumer onSelect,
+            Runnable onClose) {
+        sendSimpleForm(player, title, content, buttons, onSelect);
+    }
+
+    /**
      * Send {@code player} a ModalForm (a titled window with exactly two buttons), running {@code onButton1} when the
      * first button is tapped and {@code onButton2} when the second is. A two-button confirm window renders here
      * for a Bedrock viewer instead of a confirm chest. The callbacks fire off the main thread when the viewer
