@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.7.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.6.0...uxm-lib-v0.7.0) (2026-11-04)
+
+
+### Features
+
+* **bedrock:** client details, closed forms and chest menus by choice ([#85](https://github.com/UXPLIMA/uxm-lib/issues/85)) ([b45b659](https://github.com/UXPLIMA/uxm-lib/commit/b45b6596f742482dfc801ab97c19fe72f3dfb256))
+
 ## [0.6.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.5.0...uxm-lib-v0.6.0)
 
 ### Added
