@@ -42,6 +42,7 @@ who types a word they may not use reads Brigadier's own "Incorrect argument for 
 | `Gate.permission(node)` | holders of the node | holders of the node |
 | `Gate.visibility(node)` | holders, and everyone when the node is declared `default: true` | holders of the node |
 | `Gate.shownTo(predicate)` | senders the predicate accepts, such as the readers of a language | everyone |
+| `Gate.when(predicate)` | senders the predicate accepts, such as a feature that is on | the same senders; a refusal names no node |
 | `Gate.open()` | everyone | everyone |
 
 A gate always passes as a requirement, so the parser accepts the word. `CommandRegistrar` seals the tree:

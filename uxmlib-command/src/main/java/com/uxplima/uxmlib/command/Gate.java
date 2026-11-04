@@ -76,6 +76,15 @@ public final class Gate implements Predicate<CommandSourceStack> {
         return new Gate(shownTo, sender -> true, null, List.of());
     }
 
+    /**
+     * Shown to and usable by the senders {@code condition} accepts, for a reason that is not a permission, such as a
+     * feature the server turned off. A refusal names no node.
+     */
+    public static Gate when(Predicate<CommandSender> condition) {
+        Objects.requireNonNull(condition, "condition");
+        return new Gate(condition, condition, null, List.of());
+    }
+
     /** Shown to and usable by everyone. */
     public static Gate open() {
         return OPEN;
