@@ -37,6 +37,18 @@ final class CumulusBedrockScreen implements BedrockScreen {
     @Override
     public void sendSimpleForm(
             Player player, String title, @Nullable String content, List<BedrockButton> buttons, IntConsumer onSelect) {
+        sendSimpleForm(player, title, content, buttons, onSelect, () -> {});
+    }
+
+    @Override
+    public void sendSimpleForm(
+            Player player,
+            String title,
+            @Nullable String content,
+            List<BedrockButton> buttons,
+            IntConsumer onSelect,
+            Runnable onClose) {
+        Objects.requireNonNull(onClose, "onClose");
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(title, "title");
         Objects.requireNonNull(buttons, "buttons");
@@ -53,8 +65,11 @@ final class CumulusBedrockScreen implements BedrockScreen {
                 int id = response.clickedButtonId();
                 if (id >= 0 && id < buttons.size()) {
                     onSelect.accept(id);
+                } else {
+                    onClose.run();
                 }
             });
+            builder.closedOrInvalidResultHandler(onClose);
             FloodgateApi.getInstance().sendForm(player.getUniqueId(), builder.build());
         } catch (RuntimeException notReady) {
             LOG.warning("event=bedrock_form_failed player=" + player.getName() + " reason=" + notReady.getMessage());

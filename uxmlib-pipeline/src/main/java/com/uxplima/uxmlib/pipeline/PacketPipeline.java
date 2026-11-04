@@ -7,12 +7,14 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 
 import org.bukkit.entity.Player;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import org.jspecify.annotations.Nullable;
 
@@ -128,6 +130,55 @@ public class PacketPipeline {
         return remembered(player)
                 .map(channel -> channel.pipeline().get(handlerName) != null)
                 .orElse(false);
+    }
+
+    /**
+     * Hand {@code packet} to the server as if {@code player}'s client had sent it.
+     *
+     * <p>The packet enters the pipeline right after our handler, so the server's own packet handler processes it
+     * and no listener of this pipeline sees it again. It runs on the channel's event loop, the thread a real
+     * packet from the client arrives on. A form that stands in for a container uses this to send the click, the
+     * sign text or the anvil name the plugin behind the container waits for.
+     *
+     * <p>{@code packet} must be a packet the server reads from a client; anything else is dropped by the server's
+     * handler, which this cannot tell from here.
+     *
+     * @return {@code false} when the player has no open channel with our handler in it, when nothing follows our
+     *     handler to read the packet, or when the channel's thread is shutting down: nothing was sent
+     */
+    public boolean receive(Player player, Object packet) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(packet, "packet");
+        Optional<Channel> channel = remembered(player);
+        return channel.isPresent() && receive(channel.orElseThrow(), packet);
+    }
+
+    // Package-private channel seam, as for inject.
+    boolean receive(Channel channel, Object packet) {
+        @Nullable ChannelHandlerContext context = channel.pipeline().context(handlerName);
+        if (context == null) {
+            return false;
+        }
+        // After a reorder that lost its anchor, our handler sits last, and a read fired from there reaches only
+        // Netty's tail, which drops it. Say so rather than report a packet the server never sees.
+        List<String> names = channel.pipeline().names();
+        int ours = names.indexOf(handlerName);
+        boolean anythingAfter = false;
+        for (int index = ours + 1; index < names.size(); index++) {
+            if (channel.pipeline().get(names.get(index)) != null) {
+                anythingAfter = true;
+                break;
+            }
+        }
+        if (!anythingAfter) {
+            return false;
+        }
+        try {
+            context.executor().execute(() -> context.fireChannelRead(packet));
+        } catch (RejectedExecutionException shuttingDown) {
+            return false;
+        }
+        return true;
     }
 
     /** The open channel our handler was injected into for {@code player}; a closed one is forgotten. */

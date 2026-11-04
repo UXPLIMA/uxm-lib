@@ -37,9 +37,25 @@ final class ResolvingBedrockScreen implements BedrockScreen {
     }
 
     @Override
+    public boolean available() {
+        return current().available();
+    }
+
+    @Override
     public void sendSimpleForm(
             Player player, String title, @Nullable String content, List<BedrockButton> buttons, IntConsumer onSelect) {
         current().sendSimpleForm(player, title, content, buttons, onSelect);
+    }
+
+    @Override
+    public void sendSimpleForm(
+            Player player,
+            String title,
+            @Nullable String content,
+            List<BedrockButton> buttons,
+            IntConsumer onSelect,
+            Runnable onClose) {
+        current().sendSimpleForm(player, title, content, buttons, onSelect, onClose);
     }
 
     @Override

@@ -48,6 +48,16 @@ final class ResolvingBedrockDetector implements BedrockDetector {
     }
 
     @Override
+    public Optional<BedrockClient> client(UUID player) {
+        return current().client(player);
+    }
+
+    @Override
+    public String namePrefix() {
+        return current().namePrefix();
+    }
+
+    @Override
     public String backend() {
         return current().backend();
     }

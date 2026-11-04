@@ -29,6 +29,11 @@ public interface BedrockScreen {
     /** The Java-only default: sending any form is a no-op, and no {@code org.geysermc} class is referenced. */
     BedrockScreen NONE = new BedrockScreen() {
         @Override
+        public boolean available() {
+            return false;
+        }
+
+        @Override
         public void sendSimpleForm(
                 Player player,
                 String title,
@@ -66,6 +71,15 @@ public interface BedrockScreen {
     };
 
     /**
+     * Whether a form sent here reaches the player. {@link #NONE} answers {@code false}: a Bedrock player recognised
+     * through Geyser alone, on a server without Floodgate, has nothing to send a form with, so a menu opens as the
+     * chest instead of a form that never arrives.
+     */
+    default boolean available() {
+        return true;
+    }
+
+    /**
      * Send {@code player} a SimpleForm (a titled list of buttons) and route the tapped button back through
      * {@code onSelect}. Each button carries a label and an optional icon ({@link BedrockButton}); the icon becomes the
      * button's image when present, else the button is text-only. The {@code onSelect} callback is invoked with the
@@ -80,6 +94,26 @@ public interface BedrockScreen {
      */
     void sendSimpleForm(
             Player player, String title, @Nullable String content, List<BedrockButton> buttons, IntConsumer onSelect);
+
+    /**
+     * Send {@code player} a SimpleForm as {@link #sendSimpleForm(Player, String, String, List, IntConsumer)} does, and
+     * run {@code onClose} when the viewer closes the form without tapping a button.
+     *
+     * <p>A form that stands in for a container another plugin opened needs this: the container stays open on the
+     * server until it is told the form went away. Like the select callback, {@code onClose} fires off the main
+     * thread. A screen that cannot tell a close apart, {@link #NONE} among them, never runs it.
+     *
+     * @param onClose invoked when the viewer closes or dismisses the form; never {@code null}
+     */
+    default void sendSimpleForm(
+            Player player,
+            String title,
+            @Nullable String content,
+            List<BedrockButton> buttons,
+            IntConsumer onSelect,
+            Runnable onClose) {
+        sendSimpleForm(player, title, content, buttons, onSelect);
+    }
 
     /**
      * Send {@code player} a ModalForm (a titled window with exactly two buttons), running {@code onButton1} when the

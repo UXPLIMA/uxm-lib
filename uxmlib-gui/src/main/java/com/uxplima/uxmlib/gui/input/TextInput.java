@@ -74,6 +74,11 @@ public final class TextInput {
     private final ChatTextBackend chatBackend;
     private final BedrockDetector bedrock;
     private final BedrockScreen bedrockScreen;
+
+    /** The player's choice of chests over forms, shared by every plugin on the player's data. */
+    private final com.uxplima.uxmlib.bedrock.BedrockMenuChoice menuChoice =
+            com.uxplima.uxmlib.bedrock.BedrockMenuChoice.onServer();
+
     private final Log log;
 
     /**
@@ -131,7 +136,7 @@ public final class TextInput {
         Objects.requireNonNull(request, "request");
         Objects.requireNonNull(onSubmit, "onSubmit");
         Objects.requireNonNull(onCancel, "onCancel");
-        if (bedrock.isBedrock(player.getUniqueId())) {
+        if (wantsForm(player)) {
             sendInputForm(player, request, onSubmit, onCancel);
             return;
         }
@@ -171,7 +176,7 @@ public final class TextInput {
         Objects.requireNonNull(prompt, "prompt");
         Objects.requireNonNull(onSubmit, "onSubmit");
         Objects.requireNonNull(onCancel, "onCancel");
-        if (bedrock.isBedrock(player.getUniqueId())) {
+        if (wantsForm(player)) {
             sendResolvedInputForm(player, prompt, initialText, onSubmit, onCancel);
             return;
         }
@@ -282,5 +287,13 @@ public final class TextInput {
         }
         player.sendMessage(guiText.text(player, CANCELLED_KEY));
         onCancel.run();
+    }
+
+    /**
+     * Whether {@code player} types into a native form: a Bedrock player who has not chosen chest menus, on a server
+     * that can send one. Anyone else gets the anvil or the chat prompt, so one flow never switches between the two.
+     */
+    private boolean wantsForm(Player player) {
+        return bedrockScreen.available() && bedrock.isBedrock(player.getUniqueId()) && !menuChoice.wantsChest(player);
     }
 }

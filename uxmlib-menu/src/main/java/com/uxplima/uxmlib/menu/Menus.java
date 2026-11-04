@@ -29,6 +29,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import com.uxplima.uxmlib.bedrock.BedrockButton;
 import com.uxplima.uxmlib.bedrock.BedrockDetector;
 import com.uxplima.uxmlib.bedrock.BedrockIcons;
+import com.uxplima.uxmlib.bedrock.BedrockMenuChoice;
 import com.uxplima.uxmlib.bedrock.BedrockScreen;
 import com.uxplima.uxmlib.gui.style.MenuTitles;
 import com.uxplima.uxmlib.menu.api.event.MenuOpenEvent;
@@ -143,6 +144,9 @@ public final class Menus {
      * has confirmed a Bedrock viewer, so a Java-only engine never sends a form and never loads the Cumulus SDK.
      */
     private final BedrockScreen bedrockScreen;
+
+    /** The player's choice of chests over forms, shared by every plugin on the player's data. */
+    private final BedrockMenuChoice menuChoice = BedrockMenuChoice.onServer();
 
     /** Where the confirm window puts its two buttons and which blocks they are: the host's look, or the standard. */
     private final ConfirmLook confirmLook;
@@ -625,7 +629,7 @@ public final class Menus {
         // A Bedrock viewer gets a native form here for the same reason they get one at every other open: a chest is
         // a window they cannot use properly. An editor has no chest-only escape and needs none, because it is a
         // list of settings and a form is a list of buttons: the two shapes match exactly.
-        if (bedrock.isBedrock(viewer.getUniqueId())) {
+        if (wantsForm(viewer)) {
             sendEditorForm(viewer, spec, subject);
             return;
         }
@@ -679,7 +683,7 @@ public final class Menus {
         // The same redirect the editor and the confirm take. A list of entities is already a list of buttons, so a
         // form carries the whole of it: every entity, the create button and the action button, with no paging
         // because a form scrolls on its own.
-        if (bedrock.isBedrock(viewer.getUniqueId())) {
+        if (wantsForm(viewer)) {
             sendListForm(viewer, spec);
             return;
         }
@@ -724,7 +728,7 @@ public final class Menus {
         if (!viewer.isOnline()) {
             return;
         }
-        if (bedrock.isBedrock(viewer.getUniqueId())) {
+        if (wantsForm(viewer)) {
             sendConfirmModal(viewer, title, onYes, onNo);
             return;
         }
@@ -973,7 +977,7 @@ public final class Menus {
         // open. One holding a gesture-aware button is not: that button is four verbs on one square, a form sends one
         // tap and no modifier, and turning it into a form would take three of the four away. Such a selector stays a
         // chest, where Geyser can still send a right click and a shift click.
-        if (bedrock.isBedrock(viewer.getUniqueId()) && buttons.stream().noneMatch(SelectorButton::gestureAware)) {
+        if (wantsForm(viewer) && buttons.stream().noneMatch(SelectorButton::gestureAware)) {
             sendSelectorForm(viewer, title, buttons);
             return;
         }
@@ -1279,15 +1283,13 @@ public final class Menus {
         // path does: otherwise a back from a form would have no history to step to and a menu's open-actions would
         // never fire for a Bedrock viewer. A Java viewer (isBedrock false) falls straight through to the chest path
         // unchanged.
-        if (bedrock.isBedrock(viewer.getUniqueId())
-                && !spec.keepsTheChest()
-                && spec.bedrock().isPresent()) {
+        if (wantsForm(viewer) && !spec.keepsTheChest() && spec.bedrock().isPresent()) {
             forms.sendCustomForm(viewer, spec, ctx);
             afterBedrockOpen(spec, viewer, ctx, viewer, specId, subject, page, arguments, record);
             return;
         }
         // The resolved list cache is threaded through so a list-backed menu's entries page as form buttons.
-        if (bedrock.isBedrock(viewer.getUniqueId()) && !spec.keepsTheChest()) {
+        if (wantsForm(viewer) && !spec.keepsTheChest()) {
             forms.sendSimpleForm(viewer, spec, ctx, resolved.rows());
             afterBedrockOpen(spec, viewer, ctx, viewer, specId, subject, page, arguments, record);
             return;
@@ -1603,5 +1605,13 @@ public final class Menus {
                 }
             }
         });
+    }
+
+    /**
+     * Whether {@code viewer} gets a native form instead of the chest: a Bedrock player who has not chosen chest
+     * menus, on a server that can send one. The choice is shared by every plugin through {@link BedrockMenuChoice}.
+     */
+    private boolean wantsForm(Player viewer) {
+        return bedrockScreen.available() && bedrock.isBedrock(viewer.getUniqueId()) && !menuChoice.wantsChest(viewer);
     }
 }
