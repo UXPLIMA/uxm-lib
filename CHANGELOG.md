@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.7.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.6.0...uxm-lib-v0.7.0)
+
+### Added
+
+- `BedrockClient` and `BedrockDetector.client(player)`: a Bedrock player's device, input, UI layout, game version
+  and language, read from Floodgate or Geyser. `BedrockDetector.namePrefix()` gives the Floodgate name prefix.
+- `BedrockScreen.sendSimpleForm` takes an `onClose` callback, and `BedrockScreen.available()` tells whether
+  Floodgate or Geyser can send a form at all.
+- `PacketPipeline.receive(player, packet)`: hand the server a packet as if the client sent it. It returns false
+  when the player has no channel, nothing reads after the pipeline's handler, or the event loop refuses the task.
+- `BedrockMenuChoice`: a Bedrock player may choose chest menus over forms, and every plugin on uxmLib reads the
+  same choice from the player's data. A write runs on the player's own thread, so it is safe on Folia.
+
+### Changed
+
+- `Menus` and `TextInput` open a form for a Bedrock player only when a form can be sent and the player has not
+  chosen chests; otherwise they open the chest or anvil a Java player gets.
+
 ## [0.6.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.5.0...uxm-lib-v0.6.0)
 
 ### Added
