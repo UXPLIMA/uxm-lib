@@ -27,20 +27,46 @@ public final class CommandRegistrar {
 
     private CommandRegistrar() {}
 
-    /** Register a built command node with a description and aliases. */
+    /**
+     * Register a built command node with a description and aliases. A sender a {@link Gate} refuses reads the server's
+     * own permission message; a plugin with its own line passes a {@link CommandGates.Refusal}.
+     */
     public static void register(
             JavaPlugin plugin, LiteralCommandNode<CommandSourceStack> node, String description, List<String> aliases) {
+        register(plugin, node, description, aliases, CommandRegistrar::serverRefusal);
+    }
+
+    /**
+     * Register a built command node with a description and aliases, its {@link Gate}s answered by {@code refusal}.
+     * The tree is sealed (see {@link CommandGates#seal}), and when it has a gate the command list each player is
+     * sent loses the nodes that gate hides from them.
+     */
+    public static void register(
+            JavaPlugin plugin,
+            LiteralCommandNode<CommandSourceStack> node,
+            String description,
+            List<String> aliases,
+            CommandGates.Refusal refusal) {
         Objects.requireNonNull(plugin, "plugin");
         Objects.requireNonNull(node, "node");
         Objects.requireNonNull(description, "description");
         Objects.requireNonNull(aliases, "aliases");
+        Objects.requireNonNull(refusal, "refusal");
         List<String> aliasCopy = List.copyOf(aliases);
+        LiteralCommandNode<CommandSourceStack> sealed = CommandGates.seal(node, refusal);
+        if (CommandGates.hasGates(sealed)) {
+            GateVisibility.listen(plugin, sealed, aliasCopy);
+        }
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             // registrar() is an unannotated generic return, which NullAway treats as @Nullable; it is
             // always present inside a COMMANDS handler.
             Commands commands = Objects.requireNonNull(event.registrar(), "registrar");
-            commands.register(node, description, aliasCopy);
+            commands.register(sealed, description, aliasCopy);
         });
+    }
+
+    private static void serverRefusal(CommandSourceStack source, Gate gate) {
+        source.getSender().sendMessage(source.getSender().getServer().permissionMessage());
     }
 
     /** Register a command builder (built for you) with a description and varargs aliases. */

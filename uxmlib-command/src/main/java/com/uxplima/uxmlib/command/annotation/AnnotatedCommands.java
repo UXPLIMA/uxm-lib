@@ -70,7 +70,11 @@ public final class AnnotatedCommands {
                 plugin,
                 new BrigadierRenderer(resolvers, scheduler).render(model),
                 model.command().description(),
-                List.of(model.command().aliases()));
+                List.of(model.command().aliases()),
+                (source, gate) -> Sender.of(source)
+                        .send(resolvers
+                                .messages()
+                                .noPermission(resolvers.locales().localeOf(Sender.audience(source)))));
         watchLocalizedWords(plugin, model, resolvers);
     }
 

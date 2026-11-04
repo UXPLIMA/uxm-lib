@@ -187,10 +187,10 @@ final class CommandExecutors {
     /**
      * The refusal a sender reads when they run a verb they are meant to have and do not.
      *
-     * <p>A node an operator holds never reaches this: its branch is not there for them, so Brigadier
-     * answers before the executor does. A node the descriptor declares {@code default: true} is visible to
-     * everybody on purpose, and this is the other half of that: the player who lost it is told, rather
-     * than reading the server's own "unknown command" and reporting the plugin as broken.
+     * <p>The branch's {@link com.uxplima.uxmlib.command.Gate} refuses first when the tree is registered through
+     * {@link com.uxplima.uxmlib.command.CommandRegistrar}; this is the same refusal for a tree built with {@link
+     * AnnotatedCommands#buildNode} and registered some other way, so no path runs a branch for a sender who lacks
+     * its node.
      */
     private static @org.jspecify.annotations.Nullable CommandCondition permissionCondition(
             BranchModel branch, ParamResolvers resolvers) {

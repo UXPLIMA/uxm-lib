@@ -45,7 +45,11 @@ public final class Cmd {
      * to every player: hiding it from the player who lost it reads as a broken plugin rather than as a
      * locked feature, and they are then told, by the refusal the executor sends. Every other node stays
      * hidden, so nobody learns an operator's verb exists by being refused it.
+     *
+     * @deprecated a native requirement: a sender it hides who types the word reads Brigadier's own error text. Use
+     *     {@link Gate#visibility}, which hides the word from their list and answers it with the plugin's refusal.
      */
+    @Deprecated
     public static Predicate<CommandSourceStack> visibility(String permission) {
         Objects.requireNonNull(permission, "permission");
         return source -> source.getSender().hasPermission(permission) || meantForEveryone(permission);
@@ -69,7 +73,14 @@ public final class Cmd {
         }
     }
 
-    /** A {@code requires} predicate that passes when the sender holds {@code permission}. */
+    /**
+     * A {@code requires} predicate that passes when the sender holds {@code permission}.
+     *
+     * @deprecated a native requirement: a sender without the node who types the word reads Brigadier's own error
+     *     text. Use {@link Gate#permission}, which hides the word from their list and answers it with the plugin's
+     *     refusal.
+     */
+    @Deprecated
     public static Predicate<CommandSourceStack> permission(String permission) {
         Objects.requireNonNull(permission, "permission");
         return source -> source.getSender().hasPermission(permission);
