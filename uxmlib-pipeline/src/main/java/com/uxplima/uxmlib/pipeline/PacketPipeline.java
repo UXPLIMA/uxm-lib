@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
+import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import org.jspecify.annotations.Nullable;
 
@@ -128,6 +129,33 @@ public class PacketPipeline {
         return remembered(player)
                 .map(channel -> channel.pipeline().get(handlerName) != null)
                 .orElse(false);
+    }
+
+    /**
+     * Hand {@code packet} to the server as if {@code player}'s client had sent it.
+     *
+     * <p>The packet enters the pipeline right after our handler, so the server's own packet handler processes it
+     * and no listener of this pipeline sees it again. It runs on the channel's event loop, the thread a real
+     * packet from the client arrives on. A form that stands in for a container uses this to send the click, the
+     * sign text or the anvil name the plugin behind the container waits for.
+     *
+     * @return {@code false} when the player has no open channel with our handler in it, so nothing was sent
+     */
+    public boolean receive(Player player, Object packet) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(packet, "packet");
+        Optional<Channel> channel = remembered(player);
+        return channel.isPresent() && receive(channel.orElseThrow(), packet);
+    }
+
+    // Package-private channel seam, as for inject.
+    boolean receive(Channel channel, Object packet) {
+        @Nullable ChannelHandlerContext context = channel.pipeline().context(handlerName);
+        if (context == null) {
+            return false;
+        }
+        context.executor().execute(() -> context.fireChannelRead(packet));
+        return true;
     }
 
     /** The open channel our handler was injected into for {@code player}; a closed one is forgotten. */
