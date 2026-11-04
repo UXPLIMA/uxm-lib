@@ -6,7 +6,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Predicate;
 
 import org.bukkit.entity.Player;
 
@@ -17,6 +16,7 @@ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import com.uxplima.uxmlib.command.Cmd;
+import com.uxplima.uxmlib.command.Gate;
 import com.uxplima.uxmlib.command.annotation.annotations.Command;
 import com.uxplima.uxmlib.command.annotation.annotations.Permission;
 import com.uxplima.uxmlib.scheduler.Scheduler;
@@ -46,11 +46,12 @@ final class BrigadierRenderer {
         Command command = model.command();
         LiteralArgumentBuilder<CommandSourceStack> root = Cmd.literal(command.name());
         Permission classPermission = model.classPermission();
+        Gate rootGate = rootWord(model.branches());
         if (classPermission != null) {
-            root.requires(Cmd.visibility(classPermission.value()));
+            rootGate = rootGate.and(Gate.visibility(classPermission.value()));
         }
-        Map<String, Predicate<CommandSourceStack>> words = sharedWords(model.branches());
-        root.requires(rootWord(model.branches()).and(root.getRequirement()));
+        root.requires(rootGate);
+        Map<String, Gate> words = sharedWords(model.branches());
         for (BranchModel branch : model.branches()) {
             attachBranch(root, model.handler(), branch, command.name(), words);
         }
@@ -69,23 +70,23 @@ final class BrigadierRenderer {
      * here to anyone who may use any branch that passes through it. The executor refuses a sender who lacks a
      * branch's own node, so a shared word opened wider lets nobody run what they may not.
      */
-    private Map<String, Predicate<CommandSourceStack>> sharedWords(List<BranchModel> branches) {
-        Map<String, Predicate<CommandSourceStack>> words = new HashMap<>();
+    private Map<String, Gate> sharedWords(List<BranchModel> branches) {
+        Map<String, Gate> words = new HashMap<>();
         for (BranchModel branch : branches) {
             String[] literals = branch.literals();
             if (literals.length == 0) {
                 continue;
             }
-            Predicate<CommandSourceStack> may = visibilityOf(branch.permission());
+            Gate may = visibilityOf(branch.permission());
             for (String[] spelling : spellingsOf(branch, literals)) {
                 for (int depth = 1; depth <= spelling.length; depth++) {
-                    words.merge(key(spelling, depth), may, Predicate::or);
+                    words.merge(key(spelling, depth), may, Gate::or);
                 }
             }
             branch.localizedAliases().forEach((word, tags) -> {
                 String[] spelling = literals.clone();
                 spelling[spelling.length - 1] = word;
-                words.merge(key(spelling, spelling.length), may.and(readersOf(tags)), Predicate::or);
+                words.merge(key(spelling, spelling.length), may.and(readersOf(tags)), Gate::or);
             });
         }
         return words;
@@ -96,12 +97,13 @@ final class BrigadierRenderer {
      * to sit on this word, so a root kept for operators hid every player's branch below it. The executor of the
      * bare command still refuses a sender who lacks its node.
      */
-    private static Predicate<CommandSourceStack> rootWord(List<BranchModel> branches) {
-        Predicate<CommandSourceStack> may = source -> false;
+    private static Gate rootWord(List<BranchModel> branches) {
+        @Nullable Gate may = null;
         for (BranchModel branch : branches) {
-            may = may.or(visibilityOf(branch.permission()));
+            Gate own = visibilityOf(branch.permission());
+            may = may == null ? own : may.or(own);
         }
-        return branches.isEmpty() ? source -> true : may;
+        return may == null ? Gate.open() : may;
     }
 
     private static List<String[]> spellingsOf(BranchModel branch, String[] literals) {
@@ -119,8 +121,8 @@ final class BrigadierRenderer {
         return String.join(" ", Arrays.copyOf(spelling, depth));
     }
 
-    private static Predicate<CommandSourceStack> visibilityOf(@Nullable Permission permission) {
-        return permission == null ? source -> true : Cmd.visibility(permission.value());
+    private static Gate visibilityOf(@Nullable Permission permission) {
+        return permission == null ? Gate.open() : Gate.visibility(permission.value());
     }
 
     private void attachBranch(
@@ -128,7 +130,7 @@ final class BrigadierRenderer {
             Object handler,
             BranchModel branch,
             String rootName,
-            Map<String, Predicate<CommandSourceStack>> words) {
+            Map<String, Gate> words) {
         String path = branch.path();
         String commandPath = path.isEmpty() ? rootName : rootName + ' ' + path;
         com.mojang.brigadier.Command<CommandSourceStack> executor = CommandExecutors.executorFor(
@@ -160,15 +162,15 @@ final class BrigadierRenderer {
      * says they read, and anything that is not a player. Brigadier sends a client only the nodes it may use,
      * so this is what keeps the word out of every other reader's completions.
      */
-    private Predicate<CommandSourceStack> readersOf(List<String> tags) {
+    private Gate readersOf(List<String> tags) {
         LocaleSource locales = resolvers.locales();
-        return source -> {
-            if (!(source.getSender() instanceof Player player)) {
+        return Gate.shownTo(sender -> {
+            if (!(sender instanceof Player player)) {
                 return true;
             }
             Locale reads = locales.localeOf(player);
             return tags.stream().anyMatch(tag -> LocaleTags.matches(tag, reads));
-        };
+        });
     }
 
     /**
@@ -181,7 +183,7 @@ final class BrigadierRenderer {
             String[] literals,
             ArgChain chain,
             com.mojang.brigadier.Command<CommandSourceStack> executor,
-            Map<String, Predicate<CommandSourceStack>> words) {
+            Map<String, Gate> words) {
         ArgumentBuilder<CommandSourceStack, ?> tail = Cmd.literal(literals[literals.length - 1]);
         applyChain(tail, chain, executor);
         tail.requires(requirementAt(words, literals, literals.length));
@@ -194,9 +196,8 @@ final class BrigadierRenderer {
         root.then(tail);
     }
 
-    private static Predicate<CommandSourceStack> requirementAt(
-            Map<String, Predicate<CommandSourceStack>> words, String[] spelling, int depth) {
-        return words.getOrDefault(key(spelling, depth), source -> true);
+    private static Gate requirementAt(Map<String, Gate> words, String[] spelling, int depth) {
+        return words.getOrDefault(key(spelling, depth), Gate.open());
     }
 
     /**
@@ -208,12 +209,12 @@ final class BrigadierRenderer {
             BranchModel branch,
             ArgChain chain,
             com.mojang.brigadier.Command<CommandSourceStack> executor) {
-        Predicate<CommandSourceStack> may = visibilityOf(branch.permission());
+        Gate may = visibilityOf(branch.permission());
         if (chain.firstArg != null) {
-            chain.firstArg.requires(may.and(chain.firstArg.getRequirement()));
+            chain.firstArg.requires(may.and(Gate.of(chain.firstArg.getRequirement())));
         }
         if (chain.prefixFlags != null) {
-            chain.prefixFlags.requires(may.and(chain.prefixFlags.getRequirement()));
+            chain.prefixFlags.requires(may.and(Gate.of(chain.prefixFlags.getRequirement())));
         }
         applyChain(root, chain, executor);
     }
