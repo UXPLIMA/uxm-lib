@@ -145,6 +145,9 @@ public final class Menus {
      */
     private final BedrockScreen bedrockScreen;
 
+    /** The player's choice of chests over forms, shared by every plugin on the player's data. */
+    private final BedrockMenuChoice menuChoice = BedrockMenuChoice.onServer();
+
     /** Where the confirm window puts its two buttons and which blocks they are: the host's look, or the standard. */
     private final ConfirmLook confirmLook;
 
@@ -1606,9 +1609,9 @@ public final class Menus {
 
     /**
      * Whether {@code viewer} gets a native form instead of the chest: a Bedrock player who has not chosen chest
-     * menus. The choice is shared by every plugin through {@link BedrockMenuChoice}.
+     * menus, on a server that can send one. The choice is shared by every plugin through {@link BedrockMenuChoice}.
      */
     private boolean wantsForm(Player viewer) {
-        return bedrock.isBedrock(viewer.getUniqueId()) && !BedrockMenuChoice.wantsChest(viewer);
+        return bedrockScreen.available() && bedrock.isBedrock(viewer.getUniqueId()) && !menuChoice.wantsChest(viewer);
     }
 }

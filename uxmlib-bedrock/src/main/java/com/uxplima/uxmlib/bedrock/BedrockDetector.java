@@ -52,8 +52,8 @@ public interface BedrockDetector {
     /**
      * What {@code player}'s Bedrock client reported when it connected: device, input, layout, version and language.
      *
-     * <p>Only Floodgate passes these on to a backend. A Java player, a Geyser-only backend or no backend at all
-     * answer empty.
+     * <p>Floodgate passes these on to a backend, and Geyser answers them for a player on its own server. A Java
+     * player, or a backend behind a Geyser on the proxy without Floodgate, answers empty.
      */
     default Optional<BedrockClient> client(UUID player) {
         return Optional.empty();

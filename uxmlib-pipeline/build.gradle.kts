@@ -16,4 +16,7 @@ dependencies {
     // Paper bundles Netty at runtime but paper-api's POM does not export it, so the channel/pipeline types are
     // a compileOnly dependency pinned to the version the server ships. Infra dep; the consumer never shades it.
     compileOnly(libs.netty.transport)
+
+    testImplementation(libs.paper.api)
+    testImplementation(libs.netty.transport)
 }

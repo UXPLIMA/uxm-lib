@@ -10,4 +10,7 @@ dependencies {
     // server therefore loads neither, because the two classes that name them are constructed only inside the
     // enabled branch of the two factories.
     compileOnly(libs.floodgate.api)
+
+    testImplementation(libs.paper.api)
+    testImplementation(libs.floodgate.api)
 }

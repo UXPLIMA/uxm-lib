@@ -86,7 +86,9 @@ final class FloodgateBedrockDetector implements BedrockDetector {
         }
         return switch (os) {
             case GOOGLE -> BedrockClient.Device.ANDROID;
-            case IOS, TVOS -> BedrockClient.Device.IOS;
+            case IOS -> BedrockClient.Device.IOS;
+            // An Apple TV is played with a controller on a television, not held: it is no phone.
+            case TVOS -> BedrockClient.Device.OTHER;
             case OSX -> BedrockClient.Device.MACOS;
             case AMAZON -> BedrockClient.Device.FIRE_OS;
             case UWP, WIN32 -> BedrockClient.Device.WINDOWS;

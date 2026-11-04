@@ -7,6 +7,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.function.Consumer;
 
 import org.bukkit.entity.Player;
@@ -139,7 +140,11 @@ public class PacketPipeline {
      * packet from the client arrives on. A form that stands in for a container uses this to send the click, the
      * sign text or the anvil name the plugin behind the container waits for.
      *
-     * @return {@code false} when the player has no open channel with our handler in it, so nothing was sent
+     * <p>{@code packet} must be a packet the server reads from a client; anything else is dropped by the server's
+     * handler, which this cannot tell from here.
+     *
+     * @return {@code false} when the player has no open channel with our handler in it, when nothing follows our
+     *     handler to read the packet, or when the channel's thread is shutting down: nothing was sent
      */
     public boolean receive(Player player, Object packet) {
         Objects.requireNonNull(player, "player");
@@ -154,7 +159,25 @@ public class PacketPipeline {
         if (context == null) {
             return false;
         }
-        context.executor().execute(() -> context.fireChannelRead(packet));
+        // After a reorder that lost its anchor, our handler sits last, and a read fired from there reaches only
+        // Netty's tail, which drops it. Say so rather than report a packet the server never sees.
+        List<String> names = channel.pipeline().names();
+        int ours = names.indexOf(handlerName);
+        boolean anythingAfter = false;
+        for (int index = ours + 1; index < names.size(); index++) {
+            if (channel.pipeline().get(names.get(index)) != null) {
+                anythingAfter = true;
+                break;
+            }
+        }
+        if (!anythingAfter) {
+            return false;
+        }
+        try {
+            context.executor().execute(() -> context.fireChannelRead(packet));
+        } catch (RejectedExecutionException shuttingDown) {
+            return false;
+        }
         return true;
     }
 

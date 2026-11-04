@@ -29,6 +29,11 @@ public interface BedrockScreen {
     /** The Java-only default: sending any form is a no-op, and no {@code org.geysermc} class is referenced. */
     BedrockScreen NONE = new BedrockScreen() {
         @Override
+        public boolean available() {
+            return false;
+        }
+
+        @Override
         public void sendSimpleForm(
                 Player player,
                 String title,
@@ -64,6 +69,15 @@ public interface BedrockScreen {
                 Consumer<Map<String, String>> onSubmit,
                 Runnable onClose) {}
     };
+
+    /**
+     * Whether a form sent here reaches the player. {@link #NONE} answers {@code false}: a Bedrock player recognised
+     * through Geyser alone, on a server without Floodgate, has nothing to send a form with, so a menu opens as the
+     * chest instead of a form that never arrives.
+     */
+    default boolean available() {
+        return true;
+    }
 
     /**
      * Send {@code player} a SimpleForm (a titled list of buttons) and route the tapped button back through
