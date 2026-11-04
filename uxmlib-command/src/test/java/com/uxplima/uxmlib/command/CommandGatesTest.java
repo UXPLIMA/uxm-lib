@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -130,7 +131,7 @@ class CommandGatesTest {
         sent.getRoot().addChild(kit());
         sent.getRoot().addChild(Cmd.literal("other").then(Cmd.literal("editor")).build());
 
-        CommandGates.prune(sent.getRoot(), Set.of("kit"), registered, sender(USE));
+        CommandGates.prune(sent.getRoot(), Map.of("kit", registered), sender(USE));
 
         CommandNode<CommandSourceStack> kit = sent.getRoot().getChild("kit");
         assertThat(kit).isNotNull();
@@ -145,7 +146,7 @@ class CommandGatesTest {
         CommandDispatcher<CommandSourceStack> sent = new CommandDispatcher<>();
         sent.getRoot().addChild(kit());
 
-        CommandGates.prune(sent.getRoot(), Set.of("kit"), registered, sender());
+        CommandGates.prune(sent.getRoot(), Map.of("kit", registered), sender());
 
         assertThat(sent.getRoot().getChild("kit")).isNull();
     }
@@ -163,7 +164,7 @@ class CommandGatesTest {
         CommandDispatcher<CommandSourceStack> sent = new CommandDispatcher<>();
         sent.getRoot().addChild(tree);
 
-        CommandGates.prune(sent.getRoot(), Set.of("kit"), registered, sender());
+        CommandGates.prune(sent.getRoot(), Map.of("kit", registered), sender());
         dispatcher.execute("kit düzenle", source());
 
         assertThat(sent.getRoot().getChild("kit").getChild("düzenle")).isNull();
@@ -234,9 +235,9 @@ class CommandGatesTest {
                 .join();
 
         Suggestions forPlayer =
-                CommandGates.visibleSuggestions("/kit ", offered, Set.of("kit"), registered, sender(USE));
+                CommandGates.visibleSuggestions("/kit ", offered, Map.of("kit", registered), sender(USE));
         Suggestions forStaff =
-                CommandGates.visibleSuggestions("/kit ", offered, Set.of("kit"), registered, sender(USE, EDIT));
+                CommandGates.visibleSuggestions("/kit ", offered, Map.of("kit", registered), sender(USE, EDIT));
 
         assertThat(offered.getList()).extracting(s -> s.getText()).contains("editor", "list");
         assertThat(forPlayer.getList())

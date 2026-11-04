@@ -55,7 +55,7 @@ public final class CommandRegistrar {
         List<String> aliasCopy = List.copyOf(aliases);
         LiteralCommandNode<CommandSourceStack> sealed = CommandGates.seal(node, refusal);
         if (CommandGates.hasGates(sealed)) {
-            GateVisibility.listen(plugin, sealed, aliasCopy);
+            GateVisibility.listen(plugin).add(sealed, aliasCopy);
         }
         plugin.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             // registrar() is an unannotated generic return, which NullAway treats as @Nullable; it is

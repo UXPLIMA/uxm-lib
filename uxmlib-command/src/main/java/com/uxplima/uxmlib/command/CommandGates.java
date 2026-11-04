@@ -5,8 +5,8 @@ import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 
 import org.bukkit.command.CommandSender;
 
@@ -184,24 +184,22 @@ public final class CommandGates {
     /**
      * {@code offered} without the words a gate hides from {@code sender}: the server lists every child of a node as a
      * completion, so a word kept out of the command list would otherwise come back as a suggestion. {@code buffer} is
-     * what the player typed; a suggestion is judged by the command path it completes, walked through {@code
-     * registered} under any of {@code labels}.
+     * what the player typed; a suggestion is judged by the command path it completes, walked through the tree {@code
+     * registered} holds for its first word, as {@link #prune} reads it.
      */
     public static Suggestions visibleSuggestions(
             String buffer,
             Suggestions offered,
-            Set<String> labels,
-            CommandNode<CommandSourceStack> registered,
+            Map<String, ? extends CommandNode<CommandSourceStack>> registered,
             CommandSender sender) {
         Objects.requireNonNull(buffer, "buffer");
         Objects.requireNonNull(offered, "offered");
-        Objects.requireNonNull(labels, "labels");
         Objects.requireNonNull(registered, "registered");
         Objects.requireNonNull(sender, "sender");
         List<Suggestion> kept = new ArrayList<>();
         for (Suggestion suggestion : offered.getList()) {
             int start = Math.min(suggestion.getRange().getStart(), buffer.length());
-            if (shows(buffer.substring(0, start) + suggestion.getText(), labels, registered, sender)) {
+            if (shows(buffer.substring(0, start) + suggestion.getText(), registered, sender)) {
                 kept.add(suggestion);
             }
         }
@@ -209,13 +207,13 @@ public final class CommandGates {
     }
 
     private static boolean shows(
-            String typed, Set<String> labels, CommandNode<CommandSourceStack> registered, CommandSender sender) {
+            String typed, Map<String, ? extends CommandNode<CommandSourceStack>> registered, CommandSender sender) {
         String line = typed.startsWith("/") ? typed.substring(1) : typed;
         String[] words = line.split(" ", -1);
-        if (words.length == 0 || !labels.contains(words[0])) {
+        CommandNode<CommandSourceStack> node = words.length == 0 ? null : registered.get(words[0]);
+        if (node == null) {
             return true;
         }
-        CommandNode<CommandSourceStack> node = registered;
         if (!Gate.of(node.getRequirement()).shows(sender)) {
             return false;
         }
@@ -255,23 +253,26 @@ public final class CommandGates {
     }
 
     /**
-     * Remove from {@code sent}, the root of a command list about to go to {@code sender}, every node under the
-     * labels in {@code labels} whose gate in {@code registered} does not show itself to them. Nodes are matched by
-     * name, level by level; a node {@code registered} does not know is left alone.
+     * Remove from {@code sent}, the root of a command list about to go to {@code sender}, every node whose gate does not
+     * show itself to them. {@code registered} maps each label a command is sent under (its name, its aliases, each with
+     * its namespace) to the tree registered for it; nodes are matched by name, level by level, and a command or node
+     * {@code registered} does not know is left alone.
      */
     public static void prune(
-            CommandNode<?> sent, Set<String> labels, CommandNode<CommandSourceStack> registered, CommandSender sender) {
+            CommandNode<?> sent,
+            Map<String, ? extends CommandNode<CommandSourceStack>> registered,
+            CommandSender sender) {
         Objects.requireNonNull(sent, "sent");
-        Objects.requireNonNull(labels, "labels");
         Objects.requireNonNull(registered, "registered");
         Objects.requireNonNull(sender, "sender");
         List<String> hidden = new ArrayList<>();
         for (CommandNode<?> command : sent.getChildren()) {
-            if (!labels.contains(command.getName())) {
+            CommandNode<CommandSourceStack> ours = registered.get(command.getName());
+            if (ours == null) {
                 continue;
             }
-            if (Gate.of(registered.getRequirement()).shows(sender)) {
-                pruneBelow(command, registered, sender);
+            if (Gate.of(ours.getRequirement()).shows(sender)) {
+                pruneBelow(command, ours, sender);
             } else {
                 hidden.add(command.getName());
             }
