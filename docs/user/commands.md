@@ -46,13 +46,13 @@ who types a word they may not use reads Brigadier's own "Incorrect argument for 
 | `Gate.open()` | everyone | everyone |
 
 A gate always passes as a requirement, so the parser accepts the word. `CommandRegistrar` seals the tree:
-every executor and suggestion below a gate asks it first, and a refused sender gets the refusal you pass, or
-the server's permission message when you pass none. The command list each player is sent loses the nodes a
-gate hides from them, and Geyser shows a Bedrock player the same list. `@Permission` in the annotation layer
+every executor and suggestion below a gate, an argument type's own included, asks it first, and a refused
+sender gets the refusal you pass, or the server's permission message when you pass none. The command list each player is sent loses the nodes a
+gate hides from them, and so do the completions the server sends, and Geyser shows a Bedrock player the same list. `@Permission` in the annotation layer
 is a gate already, refused with `CommandMessages.noPermission`.
 
 - Gates join only gates (`and`, `or`); a plain predicate throws, because it would always pass.
-- A gated node may not redirect: the command it reaches runs past the gate.
+- A tree with a gate may not redirect anywhere: a redirect runs past the gates before it and points at a node the seal does not cover.
 - A tree registered without `CommandRegistrar` is sealed by its registrar with `CommandGates.seal`, and its
   command list trimmed with `GateVisibility`; an unsealed gate lets everyone through.
 - `Cmd.permission` and `Cmd.visibility` are native requirements and deprecated.

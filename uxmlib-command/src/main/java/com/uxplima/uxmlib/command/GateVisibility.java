@@ -14,6 +14,8 @@ import org.bukkit.plugin.Plugin;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import com.destroystokyo.paper.event.brigadier.AsyncPlayerSendCommandsEvent;
+import com.destroystokyo.paper.event.brigadier.AsyncPlayerSendSuggestionsEvent;
+import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 
 /**
@@ -21,7 +23,8 @@ import com.mojang.brigadier.tree.LiteralCommandNode;
  * itself to them.
  *
  * <p>Gates always pass as Brigadier requirements, so Paper builds every player the full tree; this takes the hidden
- * nodes back out of the copy built for that one player. Geyser translates the same list for a Bedrock player, so
+ * nodes back out of the copy built for that one player, and the words they hide out of the completions the server
+ * sends. Geyser translates the same list for a Bedrock player, so
  * they see what a Java player sees. A plugin registers one listener per command; each walks only its own command's
  * labels.
  */
@@ -67,5 +70,15 @@ public final class GateVisibility implements Listener {
             return;
         }
         CommandGates.prune(event.getCommandNode(), labels, registered, event.getPlayer());
+    }
+
+    @EventHandler(priority = EventPriority.LOW)
+    public void onSendSuggestions(AsyncPlayerSendSuggestionsEvent event) {
+        Suggestions offered = event.getSuggestions();
+        Suggestions visible =
+                CommandGates.visibleSuggestions(event.getBuffer(), offered, labels, registered, event.getPlayer());
+        if (visible != offered) {
+            event.setSuggestions(visible);
+        }
     }
 }

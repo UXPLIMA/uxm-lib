@@ -7,15 +7,20 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.command.CommandSender;
 
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.arguments.ArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
+import com.mojang.brigadier.context.CommandContext;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import org.junit.jupiter.api.Test;
@@ -166,17 +171,79 @@ class CommandGatesTest {
     }
 
     @Test
-    void aRedirectBelowAGateIsRefusedWhenTheTreeIsSealed() {
+    void anyRedirectInATreeWithGatesIsRefusedWhenTheTreeIsSealed() {
         CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
-        LiteralCommandNode<CommandSourceStack> target =
-                dispatcher.register(Cmd.literal("target").executes(ctx -> run("target")));
+        LiteralCommandNode<CommandSourceStack> gated = Cmd.literal("editor")
+                .requires(Gate.permission(EDIT))
+                .executes(ctx -> run("editor"))
+                .build();
         LiteralCommandNode<CommandSourceStack> tree = Cmd.literal("kit")
-                .then(Cmd.literal("go").requires(Gate.permission(EDIT)).redirect(target))
+                .then(gated)
+                .then(Cmd.literal("edit").redirect(gated))
                 .build();
 
         assertThatThrownBy(() -> CommandGates.seal(tree, refusal))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("go");
+                .hasMessageContaining("edit");
+        assertThat(dispatcher.getRoot().getChildren()).isEmpty();
+    }
+
+    @Test
+    void anArgumentTypesOwnSuggestionsAreGatedToo() {
+        ArgumentType<String> secrets = new ArgumentType<>() {
+            @Override
+            public String parse(StringReader reader) {
+                return reader.readUnquotedString();
+            }
+
+            @Override
+            public <S> CompletableFuture<Suggestions> listSuggestions(
+                    CommandContext<S> context, SuggestionsBuilder builder) {
+                return builder.suggest("secret").buildFuture();
+            }
+        };
+        LiteralCommandNode<CommandSourceStack> tree = Cmd.literal("kit")
+                .then(Cmd.literal("editor")
+                        .requires(Gate.permission(EDIT))
+                        .then(Cmd.argument("name", secrets).executes(ctx -> run("editor"))))
+                .build();
+        CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
+        dispatcher.getRoot().addChild(CommandGates.seal(tree, refusal));
+
+        Suggestions refusedSuggestions = dispatcher
+                .getCompletionSuggestions(dispatcher.parse("kit editor ", source()))
+                .join();
+        Suggestions allowedSuggestions = dispatcher
+                .getCompletionSuggestions(dispatcher.parse("kit editor ", source(EDIT)))
+                .join();
+
+        assertThat(refusedSuggestions.getList()).isEmpty();
+        assertThat(allowedSuggestions.getList()).extracting(s -> s.getText()).containsExactly("secret");
+    }
+
+    @Test
+    void theServersCompletionsLoseTheWordsAGateHides() {
+        LiteralCommandNode<CommandSourceStack> registered = CommandGates.seal(kit(), refusal);
+        CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
+        dispatcher.getRoot().addChild(registered);
+        // The server reads the line the client typed, slash and all, past the slash: ranges count the slash.
+        StringReader typed = new StringReader("/kit ");
+        typed.skip();
+        Suggestions offered = dispatcher
+                .getCompletionSuggestions(dispatcher.parse(typed, source(USE)))
+                .join();
+
+        Suggestions forPlayer =
+                CommandGates.visibleSuggestions("/kit ", offered, Set.of("kit"), registered, sender(USE));
+        Suggestions forStaff =
+                CommandGates.visibleSuggestions("/kit ", offered, Set.of("kit"), registered, sender(USE, EDIT));
+
+        assertThat(offered.getList()).extracting(s -> s.getText()).contains("editor", "list");
+        assertThat(forPlayer.getList())
+                .extracting(s -> s.getText())
+                .contains("list")
+                .doesNotContain("editor");
+        assertThat(forStaff.getList()).extracting(s -> s.getText()).contains("editor", "list");
     }
 
     @Test

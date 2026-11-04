@@ -178,12 +178,6 @@ final class CommandExecutors {
         Sender.of(ctx.getSource()).send(message);
     }
 
-    /** The node gating this branch: its own, or the one the class carries, or none. */
-    private static @org.jspecify.annotations.Nullable Permission permissionOf(BranchModel branch) {
-        Permission own = branch.permission();
-        return own != null ? own : branch.classView().get(Permission.class);
-    }
-
     /**
      * The refusal a sender reads when they run a verb they are meant to have and do not.
      *
@@ -194,17 +188,26 @@ final class CommandExecutors {
      */
     private static @org.jspecify.annotations.Nullable CommandCondition permissionCondition(
             BranchModel branch, ParamResolvers resolvers) {
-        Permission permission = permissionOf(branch);
-        if (permission == null) {
+        List<String> nodes = new ArrayList<>(2);
+        Permission own = branch.permission();
+        if (own != null) {
+            nodes.add(own.value());
+        }
+        Permission onClass = branch.classView().get(Permission.class);
+        if (onClass != null && !nodes.contains(onClass.value())) {
+            nodes.add(onClass.value());
+        }
+        if (nodes.isEmpty()) {
             return null;
         }
-        String node = permission.value();
         CommandMessages messages = resolvers.messages();
         return context -> {
-            if (context.getSource().getSender().hasPermission(node)) {
-                return;
+            for (String node : nodes) {
+                if (!context.getSource().getSender().hasPermission(node)) {
+                    throw new CommandCondition.CommandConditionException(
+                            messages.noPermission(localeOf(resolvers, context)));
+                }
             }
-            throw new CommandCondition.CommandConditionException(messages.noPermission(localeOf(resolvers, context)));
         };
     }
 

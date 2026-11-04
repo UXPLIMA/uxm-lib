@@ -16,7 +16,9 @@ import com.mojang.brigadier.Command;
 import com.mojang.brigadier.builder.ArgumentBuilder;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+import com.mojang.brigadier.suggestion.Suggestion;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
+import com.mojang.brigadier.suggestion.Suggestions;
 import com.mojang.brigadier.tree.ArgumentCommandNode;
 import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -79,8 +81,9 @@ public final class CommandGates {
      * {@code root} rebuilt with every executor and suggestion provider behind the gates on its path. The nodes keep
      * their names, gates, argument types and children; a tree without gates comes back with the same behavior.
      *
-     * @throws IllegalArgumentException when a node at or below a gate redirects: the command it reaches runs in a
-     *     context of its own, past every gate before the redirect
+     * @throws IllegalArgumentException when the tree has a gate and any node of it redirects: the command a redirect
+     *     reaches runs in a context of its own, past every gate before the redirect, and the node it points at is the
+     *     one given here, not the sealed copy
      */
     public static LiteralCommandNode<CommandSourceStack> seal(
             LiteralCommandNode<CommandSourceStack> root, Refusal refusal) {
@@ -88,22 +91,28 @@ public final class CommandGates {
         Objects.requireNonNull(refusal, "refusal");
         @SuppressWarnings("unchecked") // a literal node's builder is a literal builder
         LiteralArgumentBuilder<CommandSourceStack> builder =
-                (LiteralArgumentBuilder<CommandSourceStack>) rebuild(root, List.of(), refusal);
+                (LiteralArgumentBuilder<CommandSourceStack>) rebuild(root, List.of(), refusal, hasGates(root));
         return builder.build();
     }
 
     private static ArgumentBuilder<CommandSourceStack, ?> rebuild(
-            CommandNode<CommandSourceStack> node, List<Gate> above, Refusal refusal) {
+            CommandNode<CommandSourceStack> node, List<Gate> above, Refusal refusal, boolean gated) {
         List<Gate> path = withOwnGate(node, above);
-        if (node.getRedirect() != null && !path.isEmpty()) {
-            throw new IllegalArgumentException("the gated command node '" + node.getName()
-                    + "' redirects; a redirect leaves its gates behind, so gate the node it reaches instead");
+        if (gated && node.getRedirect() != null) {
+            throw new IllegalArgumentException("the command node '" + node.getName()
+                    + "' redirects in a tree with gates; a redirect runs past the gates before it and points at a node"
+                    + " the seal does not cover, so spell the branch out instead");
         }
         ArgumentBuilder<CommandSourceStack, ?> builder;
         if (node instanceof ArgumentCommandNode<CommandSourceStack, ?> argument) {
             RequiredArgumentBuilder<CommandSourceStack, ?> required = argument.createBuilder();
-            SuggestionProvider<CommandSourceStack> suggestions = argument.getCustomSuggestions();
-            if (suggestions != null && !path.isEmpty()) {
+            if (!path.isEmpty()) {
+                // Every argument below a gate answers through it, its type's own suggestions included, so a client
+                // that asks for what it was never sent learns nothing.
+                SuggestionProvider<CommandSourceStack> own = argument.getCustomSuggestions();
+                SuggestionProvider<CommandSourceStack> suggestions = own != null
+                        ? own
+                        : (context, completions) -> argument.getType().listSuggestions(context, completions);
                 required.suggests(guarded(suggestions, path));
             }
             builder = required;
@@ -115,7 +124,7 @@ public final class CommandGates {
             builder.executes(guarded(command, path, refusal));
         }
         for (CommandNode<CommandSourceStack> child : node.getChildren()) {
-            builder.then(rebuild(child, path, refusal));
+            builder.then(rebuild(child, path, refusal, gated));
         }
         return builder;
     }
@@ -170,6 +179,79 @@ public final class CommandGates {
             }
         }
         return false;
+    }
+
+    /**
+     * {@code offered} without the words a gate hides from {@code sender}: the server lists every child of a node as a
+     * completion, so a word kept out of the command list would otherwise come back as a suggestion. {@code buffer} is
+     * what the player typed; a suggestion is judged by the command path it completes, walked through {@code
+     * registered} under any of {@code labels}.
+     */
+    public static Suggestions visibleSuggestions(
+            String buffer,
+            Suggestions offered,
+            Set<String> labels,
+            CommandNode<CommandSourceStack> registered,
+            CommandSender sender) {
+        Objects.requireNonNull(buffer, "buffer");
+        Objects.requireNonNull(offered, "offered");
+        Objects.requireNonNull(labels, "labels");
+        Objects.requireNonNull(registered, "registered");
+        Objects.requireNonNull(sender, "sender");
+        List<Suggestion> kept = new ArrayList<>();
+        for (Suggestion suggestion : offered.getList()) {
+            int start = Math.min(suggestion.getRange().getStart(), buffer.length());
+            if (shows(buffer.substring(0, start) + suggestion.getText(), labels, registered, sender)) {
+                kept.add(suggestion);
+            }
+        }
+        return kept.size() == offered.getList().size() ? offered : new Suggestions(offered.getRange(), kept);
+    }
+
+    private static boolean shows(
+            String typed, Set<String> labels, CommandNode<CommandSourceStack> registered, CommandSender sender) {
+        String line = typed.startsWith("/") ? typed.substring(1) : typed;
+        String[] words = line.split(" ", -1);
+        if (words.length == 0 || !labels.contains(words[0])) {
+            return true;
+        }
+        CommandNode<CommandSourceStack> node = registered;
+        if (!Gate.of(node.getRequirement()).shows(sender)) {
+            return false;
+        }
+        for (int i = 1; i < words.length; i++) {
+            CommandNode<CommandSourceStack> next = literalChild(node, words[i]);
+            if (next == null) {
+                next = onlyArgumentChild(node);
+            }
+            if (next == null) {
+                return true;
+            }
+            if (!Gate.of(next.getRequirement()).shows(sender)) {
+                return false;
+            }
+            node = next;
+        }
+        return true;
+    }
+
+    private static @Nullable CommandNode<CommandSourceStack> literalChild(
+            CommandNode<CommandSourceStack> node, String word) {
+        CommandNode<CommandSourceStack> child = node.getChild(word);
+        return child instanceof LiteralCommandNode<CommandSourceStack> ? child : null;
+    }
+
+    private static @Nullable CommandNode<CommandSourceStack> onlyArgumentChild(CommandNode<CommandSourceStack> node) {
+        CommandNode<CommandSourceStack> only = null;
+        for (CommandNode<CommandSourceStack> child : node.getChildren()) {
+            if (child instanceof ArgumentCommandNode<CommandSourceStack, ?>) {
+                if (only != null) {
+                    return null;
+                }
+                only = child;
+            }
+        }
+        return only;
     }
 
     /**
