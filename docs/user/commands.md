@@ -55,6 +55,8 @@ is a gate already, refused with `CommandMessages.noPermission`.
 - A tree with a gate may not redirect anywhere: a redirect runs past the gates before it and points at a node the seal does not cover.
 - A tree registered without `CommandRegistrar` is sealed by its registrar with `CommandGates.seal`, and its
   command list trimmed with `GateVisibility`; an unsealed gate lets everyone through.
+- Code that walks a tree to list what a sender may see asks `CommandGates.shows(node, source)`; `canUse` is
+  always true for a gate.
 - `Cmd.permission` and `Cmd.visibility` are native requirements and deprecated.
 
 The annotation layer also covers `@Range`/`@Length` bounds, `@Cooldown` rate limits, `@PlayerOnly`, flags

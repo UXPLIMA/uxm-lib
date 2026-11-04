@@ -167,6 +167,17 @@ public final class CommandGates {
         return null;
     }
 
+    /**
+     * Whether {@code source}'s sender is shown {@code node}: its gate's answer, or Brigadier's own for a node without a
+     * gate. Code that walks a tree to list what a sender may see (help pages, usage lines) asks this, never {@code
+     * canUse}, which a gate always passes.
+     */
+    public static boolean shows(CommandNode<CommandSourceStack> node, CommandSourceStack source) {
+        Objects.requireNonNull(node, "node");
+        Objects.requireNonNull(source, "source");
+        return node.getRequirement() instanceof Gate gate ? gate.shows(source.getSender()) : node.canUse(source);
+    }
+
     /** Whether any node of {@code root}, the root included, carries a {@link Gate}. */
     public static boolean hasGates(CommandNode<CommandSourceStack> root) {
         Objects.requireNonNull(root, "root");

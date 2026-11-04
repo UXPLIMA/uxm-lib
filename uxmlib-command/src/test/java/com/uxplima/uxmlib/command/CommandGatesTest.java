@@ -248,6 +248,17 @@ class CommandGatesTest {
     }
 
     @Test
+    void aTreeWalkAsksTheGateNotBrigadier() {
+        LiteralCommandNode<CommandSourceStack> registered = CommandGates.seal(kit(), refusal);
+        CommandNode<CommandSourceStack> editor = registered.getChild("editor");
+
+        assertThat(editor.canUse(source(USE))).isTrue();
+        assertThat(CommandGates.shows(editor, source(USE))).isFalse();
+        assertThat(CommandGates.shows(editor, source(USE, EDIT))).isTrue();
+        assertThat(CommandGates.shows(registered.getChild("list"), source(USE))).isTrue();
+    }
+
+    @Test
     void aGateJoinsOnlyGatesAndNamesTheNodeThatRefused() {
         Gate both = Gate.permission(USE).and(Gate.permission(EDIT));
 
