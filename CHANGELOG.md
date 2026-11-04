@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.8.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.7.0...uxm-lib-v0.8.0) (2026-11-04)
+
+
+### Features
+
+* **command:** gates answer refused players with the plugin's line ([#87](https://github.com/UXPLIMA/uxm-lib/issues/87)) ([0e726da](https://github.com/UXPLIMA/uxm-lib/commit/0e726dac0807c6eed95492571a1d073ea0508278))
+
 ## [0.7.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.6.0...uxm-lib-v0.7.0)
 
 ### Added
