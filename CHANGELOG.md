@@ -1,11 +1,34 @@
 # Changelog
 
-## [0.8.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.7.0...uxm-lib-v0.8.0) (2026-11-04)
+## [0.8.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.7.0...uxm-lib-v0.8.0)
 
+Upgrading: replace `requires(Cmd.permission(node))` and `requires(Cmd.visibility(node))` with `Gate.permission`
+and `Gate.visibility`. A tree you register through `CommandRegistrar` is sealed for you; one you hand Paper yourself
+goes through `CommandGates.seal` and one `GateVisibility` per plugin. Code that walks a tree to list what a sender
+may see asks `CommandGates.shows`, not `canUse`. See `docs/user/commands.md`.
 
-### Features
+### Added
 
-* **command:** gates answer refused players with the plugin's line ([#87](https://github.com/UXPLIMA/uxm-lib/issues/87)) ([0e726da](https://github.com/UXPLIMA/uxm-lib/commit/0e726dac0807c6eed95492571a1d073ea0508278))
+- `Gate`: who sees a command node and who may use it, kept apart. `Gate.permission`, `Gate.visibility`,
+  `Gate.shownTo` (a word for some readers, usable by everyone), `Gate.when` (a condition that is not a permission)
+  and `Gate.open`, joined with `and` and `or`. As a requirement a gate always passes, so a player who types a word
+  they may not use is answered with the plugin's line instead of Brigadier's "Incorrect argument for command".
+- `CommandGates.seal`: every executor and suggestion below a gate asks the gates on its path first and answers a
+  refusal with a `CommandGates.Refusal`. `CommandGates.prune`, `visibleSuggestions` and `shows`.
+- `GateVisibility`: one listener per plugin that trims each player's command list and the completions the server
+  sends of what a gate hides from them.
+- `CommandRegistrar.register` with a `Refusal`.
+
+### Changed
+
+- `CommandRegistrar` seals every tree it registers; without a `Refusal` the server's permission message answers.
+- The annotation layer renders `@Permission` as gates and refuses with `CommandMessages.noPermission`; a branch's
+  executor checks the class node as well as its own.
+- A tree with a gate may not redirect: registering one throws.
+
+### Deprecated
+
+- `Cmd.permission` and `Cmd.visibility`: native requirements that answer with Brigadier's text.
 
 ## [0.7.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.6.0...uxm-lib-v0.7.0)
 
