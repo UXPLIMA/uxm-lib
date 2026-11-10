@@ -8,6 +8,7 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 
 import org.junit.jupiter.api.AfterEach;
@@ -167,6 +168,41 @@ class DirectNetworkTest {
 
         Thread.sleep(200);
         assertThat(heard).isEmpty();
+    }
+
+    @Test
+    void aFileSentInLargeFramesReachesTheProxyWhole() throws Exception {
+        DirectBroker broker = broker();
+        DirectBus lobby = server(broker, "lobby", lobbySecret);
+        AtomicLong heard = new AtomicLong();
+        broker.subscribe("build", frame -> heard.addAndGet(frame.payload().length));
+        await(() -> broker.connected().contains("lobby"));
+
+        // More than a socket's buffers hold, so the sender has to wait for room while it also listens.
+        byte[] part = new byte[256 * 1024];
+        int parts = 40;
+        for (int index = 0; index < parts; index++) {
+            lobby.send(DirectBroker.PROXY, "build", part);
+        }
+
+        await(() -> heard.get() == (long) parts * part.length);
+    }
+
+    @Test
+    void aFileSentInLargeFramesReachesAServerWhole() throws Exception {
+        DirectBroker broker = broker();
+        DirectBus lobby = server(broker, "lobby", lobbySecret);
+        AtomicLong heard = new AtomicLong();
+        lobby.subscribe("build", frame -> heard.addAndGet(frame.payload().length));
+        await(() -> broker.connected().contains("lobby"));
+
+        byte[] part = new byte[256 * 1024];
+        int parts = 40;
+        for (int index = 0; index < parts; index++) {
+            broker.send("lobby", "build", part);
+        }
+
+        await(() -> heard.get() == (long) parts * part.length);
     }
 
     @Test
