@@ -24,6 +24,18 @@ final class Wire {
 
     private Wire() {}
 
+    /**
+     * Start a thread that blocks on a connection's socket.
+     *
+     * <p>A platform thread, not a virtual one. On Windows a socket that one virtual thread reads while another
+     * writes can lose the wakeup of the writer that waits for room (JDK-8334574): a frame larger than the
+     * socket's buffers then never finishes, and the link drops when the other end's read times out. A connection
+     * has two threads, so virtual ones would save nothing.
+     */
+    static Thread thread(String name, Runnable task) {
+        return Thread.ofPlatform().daemon().name(name).start(task);
+    }
+
     /** The bytes a server's handshake proof signs: its id and the broker's nonce. */
     static byte[] serverProof(String serverId, long brokerNonce) {
         byte[] id = serverId.getBytes(StandardCharsets.UTF_8);

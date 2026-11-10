@@ -70,7 +70,7 @@ public final class DirectBroker implements Bus {
             listening.close();
             throw taken;
         }
-        this.acceptor = Thread.ofVirtual().name("uxmlib-network-broker").start(this::accept);
+        this.acceptor = Wire.thread("uxmlib-network-broker", this::accept);
     }
 
     /** The servers connected right now. */
@@ -125,7 +125,7 @@ public final class DirectBroker implements Bus {
         while (open) {
             try {
                 Socket socket = listening.accept();
-                Thread.ofVirtual().start(() -> serve(socket));
+                Wire.thread("uxmlib-network-broker-reader", () -> serve(socket));
             } catch (IOException stopped) {
                 if (open) {
                     log.log(
@@ -182,7 +182,7 @@ public final class DirectBroker implements Bus {
                 replaced.close();
             }
             log.log(System.Logger.Level.INFO, "The server " + id + " joined the network.");
-            Thread writer = Thread.ofVirtual().start(link::write);
+            Thread writer = Wire.thread("uxmlib-network-broker-" + id + "-writer", link::write);
             try {
                 read(id, in, signer, brokerNonce + 1);
             } finally {
