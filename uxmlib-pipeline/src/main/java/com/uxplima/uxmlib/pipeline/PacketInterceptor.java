@@ -9,6 +9,7 @@ import java.util.function.Supplier;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
+import io.netty.util.ReferenceCountUtil;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -65,7 +66,12 @@ public final class PacketInterceptor extends ChannelDuplexHandler {
         PacketListenerRegistry.Dispatch dispatch =
                 report(registry.dispatch(PacketDirection.OUTBOUND, ownerId.get(), msg));
         if (dispatch.cancelled()) {
-            return; // cancelled: drop the outbound packet by not forwarding it.
+            // Cancelled: the packet is dropped, not forwarded, and its write still completes. A sender that waits
+            // on the write (a plugin that sends a follow-up once a bundle is out) would otherwise wait forever,
+            // and so would a whole bundle when one of its packets is dropped.
+            ReferenceCountUtil.release(msg);
+            promise.trySuccess();
+            return;
         }
         // A rewrite forwards the replacement in place of the original; otherwise forward the original unchanged.
         Object replacement = dispatch.replacement();
