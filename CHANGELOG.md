@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.10.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.9.0...uxm-lib-v0.10.0) (2026-11-17)
+
+Nothing breaks a caller of 0.9.0. A menu `input:` step can now ask for a secret, and an action handler can escape
+the values a player typed with its own function.
+
+### Added
+
+- `secret = true` on a menu `input:` step: the answer is asked in a dialog or an anvil, never in chat or on a sign,
+  and a Bedrock player still gets the form. `Continuation.Input` carries the flag (the four-argument constructor
+  stays); the loader reads it and the writer writes it back.
+- `TextInput.promptResolved(..., boolean secret, ...)`, a seven-argument `MenuTextPrompt.prompt` and
+  `MenuTextPrompt.through(Supplier<TextInput>)`. A prompt that does not override the secret form cancels a secret
+  step and logs `event=menu_secret_input_unsupported` rather than asking it in chat.
+- `MenuActionContext.args(UnaryOperator<String> typed)` and `ActionArguments.resolve(args, ctx, typed)`: one pass
+  that runs only typed arguments and typed locals through the caller's function, for a handler that needs another
+  escape than MiniMessage (JSON, legacy text). A context built from already filled arguments answers them as they
+  are, so escaping them is the builder's job.
+
+### Fixed
+
+- A menu whose title, item name or lore used `%argument_<name>%`, `%input%`, `%drag_*%` or a form field id was
+  skipped at load as referencing unknown ids. Misspelled ids are still reported.
+
 ## [0.9.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.8.0...uxm-lib-v0.9.0) (2026-11-17)
 
 Upgrading: a menu argument is now drawn as text in a menu line. A plugin that passed markup in an argument on
