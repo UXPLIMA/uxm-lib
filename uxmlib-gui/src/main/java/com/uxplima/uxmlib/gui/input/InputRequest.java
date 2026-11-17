@@ -61,7 +61,10 @@ public record InputRequest(
         return new InputRequest(key, label, Map.of(), Objects.requireNonNull(initialText, "initialText"));
     }
 
-    /** This request, for a secret line: never asked for in chat or on a sign. */
+    /**
+     * This request, for a secret line: never asked for in chat or on a sign. The anvil it may go to instead still
+     * shows the typed rename text to {@code PrepareAnvilEvent} listeners.
+     */
     public InputRequest asSecret() {
         return new InputRequest(key, label, placeholders, initialText, true);
     }

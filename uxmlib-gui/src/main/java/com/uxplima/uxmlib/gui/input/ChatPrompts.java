@@ -11,7 +11,10 @@ import org.jspecify.annotations.NullMarked;
 /**
  * The chat lines awaited as input, one per player, and whether a raising of a chat line is one to hide from every
  * other listener. A pending prompt carries a deadline, so an unanswered prompt expires instead of swallowing a chat
- * line minutes later, and a second prompt for the same player replaces the first.
+ * line minutes later, and a second prompt for the same player replaces the first. *
+ * <p>This is best-effort hiding, not a secure channel: the event's {@code originalMessage()} and
+ * {@code signedMessage()}, {@code AsyncChatDecorateEvent}, and a lowest-priority listener registered before the
+ * capture still see the raw text. A real secret is asked for with {@link InputRequest#asSecret()}, never in chat.
  */
 @NullMarked
 final class ChatPrompts {
@@ -25,7 +28,7 @@ final class ChatPrompts {
     void await(UUID player, Consumer<String> line, long deadline) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(line, "line");
-        echo.forget(player);
+        // The mark of a line just captured stays: its second raising must not answer this prompt.
         pending.put(player, new Pending(line, deadline));
     }
 
@@ -37,9 +40,13 @@ final class ChatPrompts {
     boolean take(UUID player, String text, long now, boolean first) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(text, "text");
+        // The second raising of a captured line comes first, so it can never answer a prompt asked for meanwhile.
+        if (!first && echo.take(player, now)) {
+            return true;
+        }
         Pending awaited = pending.remove(player);
         if (awaited == null) {
-            return echo.take(player, now);
+            return false;
         }
         if (now > awaited.deadline()) {
             return false; // the prompt expired: the line posts as a normal chat message rather than be swallowed
@@ -55,7 +62,6 @@ final class ChatPrompts {
     void cancel(UUID player) {
         Objects.requireNonNull(player, "player");
         pending.remove(player);
-        echo.forget(player);
     }
 
     void clear() {

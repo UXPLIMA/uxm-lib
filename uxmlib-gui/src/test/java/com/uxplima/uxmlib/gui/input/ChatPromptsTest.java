@@ -46,6 +46,29 @@ class ChatPromptsTest {
     }
 
     @Test
+    void theSecondRaisingOfALineNeverAnswersAPromptAskedForWhenItWasCaptured() {
+        // A PIN, then "confirm your PIN": the second prompt is asked for while the first line is being captured.
+        prompts.await(
+                ALEX,
+                pin -> {
+                    captured.add(pin);
+                    prompts.await(ALEX, captured::add, 2_000L);
+                },
+                1_000L);
+
+        assertThat(prompts.take(ALEX, "1234", 100L, true)).isTrue();
+        assertThat(prompts.take(ALEX, "", 101L, false))
+                .as("the emptied modern raising")
+                .isTrue();
+        assertThat(captured).containsExactly("1234");
+
+        assertThat(prompts.take(ALEX, "1234", 300L, true))
+                .as("the confirmation")
+                .isTrue();
+        assertThat(captured).containsExactly("1234", "1234");
+    }
+
+    @Test
     void aLineAfterThePromptExpiredIsChat() {
         prompts.await(ALEX, captured::add, 1_000L);
 

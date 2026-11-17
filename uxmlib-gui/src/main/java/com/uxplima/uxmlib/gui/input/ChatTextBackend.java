@@ -39,7 +39,10 @@ import org.jspecify.annotations.Nullable;
  * {@code AsyncPlayerChatEvent} first whenever any plugin listens to it, and only then as {@link AsyncChatEvent}, so the
  * capture listens to both at the lowest priority. It takes the line from whichever comes first, and in both it cancels
  * the event, empties the message and drops the recipients, so a chat logger or a bridge listening later reads nothing,
- * cancelled or not. A listener at the same lowest priority registered before this one is outside its reach.
+ * cancelled or not. A listener at the same lowest priority registered before this one is outside its reach. *
+ * <p>This is best-effort hiding, not a secure channel: the event's {@code originalMessage()} and
+ * {@code signedMessage()}, {@code AsyncChatDecorateEvent}, and a lowest-priority listener registered before the
+ * capture still see the raw text. A real secret is asked for with {@link InputRequest#asSecret()}, never in chat.
  */
 @NullMarked
 final class ChatTextBackend implements TextInputBackend, Listener {

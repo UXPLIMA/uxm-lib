@@ -204,10 +204,11 @@ public final class TextInput {
     /**
      * The mode a prompt opens in: the operator's, except that a secret is never asked for in chat or on a sign, whose
      * lines other plugins receive (chat loggers, bridges, sign loggers). It goes to the dialog when one is wired, else
-     * the anvil.
+     * the anvil; a dialog configured on a server without one goes to the anvil too, never to the sign a dialog
+     * otherwise falls back to.
      */
     static InputMode modeFor(InputMode configured, boolean secret, boolean dialogWired) {
-        if (!secret || configured == InputMode.ANVIL || configured == InputMode.DIALOG) {
+        if (!secret || configured == InputMode.ANVIL || (configured == InputMode.DIALOG && dialogWired)) {
             return configured;
         }
         return dialogWired ? InputMode.DIALOG : InputMode.ANVIL;

@@ -14,6 +14,10 @@ import org.jspecify.annotations.NullMarked;
  *
  * <p>A mark lasts a few seconds at most, so a line Paper never raised a second time cannot hide the player's next
  * one later.
+ *
+ * <p>This is best-effort hiding, not a secure channel: the event's {@code originalMessage()} and
+ * {@code signedMessage()}, {@code AsyncChatDecorateEvent}, and a lowest-priority listener registered before the
+ * capture still see the raw text. A real secret is asked for with {@link InputRequest#asSecret()}, never in chat.
  */
 @NullMarked
 final class ChatEcho {

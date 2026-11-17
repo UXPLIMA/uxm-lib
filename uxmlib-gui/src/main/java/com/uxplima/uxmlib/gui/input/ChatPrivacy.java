@@ -11,6 +11,10 @@ import org.jspecify.annotations.NullMarked;
 /**
  * Hides a chat line captured as input from every listener after the capture: the event is cancelled, its message
  * emptied and its recipients dropped, so a listener that reads cancelled events too finds nothing to log or forward.
+ *
+ * <p>This is best-effort hiding, not a secure channel: the event's {@code originalMessage()} and
+ * {@code signedMessage()}, {@code AsyncChatDecorateEvent}, and a lowest-priority listener registered before the
+ * capture still see the raw text. A real secret is asked for with {@link InputRequest#asSecret()}, never in chat.
  */
 @NullMarked
 final class ChatPrivacy {

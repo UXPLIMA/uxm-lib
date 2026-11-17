@@ -16,6 +16,9 @@ class TextInputModeTest {
         assertThat(TextInput.modeFor(InputMode.CHAT, true, false)).isEqualTo(InputMode.ANVIL);
         assertThat(TextInput.modeFor(InputMode.SIGN, true, false)).isEqualTo(InputMode.ANVIL);
         assertThat(TextInput.modeFor(InputMode.ANVIL, true, true)).isEqualTo(InputMode.ANVIL);
+        assertThat(TextInput.modeFor(InputMode.DIALOG, true, true)).isEqualTo(InputMode.DIALOG);
+        // A dialog configured where none is wired falls back to the sign for other lines; a secret takes the anvil.
+        assertThat(TextInput.modeFor(InputMode.DIALOG, true, false)).isEqualTo(InputMode.ANVIL);
     }
 
     @Test
