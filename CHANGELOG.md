@@ -2,16 +2,26 @@
 
 ## [0.10.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.9.0...uxm-lib-v0.10.0) (2026-11-17)
 
+Nothing breaks a caller of 0.9.0. A menu `input:` step can now ask for a secret, and an action handler can escape
+the values a player typed with its own function.
 
-### Features
+### Added
 
-* **menu:** escape typed action arguments with the caller's function ([#117](https://github.com/UXPLIMA/uxm-lib/issues/117)) ([3c3a39a](https://github.com/UXPLIMA/uxm-lib/commit/3c3a39a15e6417c30ed793e49be6b6aa2e705212)), closes [#116](https://github.com/UXPLIMA/uxm-lib/issues/116)
-* **menu:** let a menu input step ask for a secret ([#123](https://github.com/UXPLIMA/uxm-lib/issues/123)) ([56ecd07](https://github.com/UXPLIMA/uxm-lib/commit/56ecd07cf7fafd4e45bcee8463dcb6c1cff7eb2c)), closes [#120](https://github.com/UXPLIMA/uxm-lib/issues/120)
+- `secret = true` on a menu `input:` step: the answer is asked in a dialog or an anvil, never in chat or on a sign,
+  and a Bedrock player still gets the form. `Continuation.Input` carries the flag (the four-argument constructor
+  stays); the loader reads it and the writer writes it back.
+- `TextInput.promptResolved(..., boolean secret, ...)`, a seven-argument `MenuTextPrompt.prompt` and
+  `MenuTextPrompt.through(Supplier<TextInput>)`. A prompt that does not override the secret form cancels a secret
+  step and logs `event=menu_secret_input_unsupported` rather than asking it in chat.
+- `MenuActionContext.args(UnaryOperator<String> typed)` and `ActionArguments.resolve(args, ctx, typed)`: one pass
+  that runs only typed arguments and typed locals through the caller's function, for a handler that needs another
+  escape than MiniMessage (JSON, legacy text). A context built from already filled arguments answers them as they
+  are, so escaping them is the builder's job.
 
+### Fixed
 
-### Bug Fixes
-
-* **menu:** accept menu argument ids when validating a menu ([#115](https://github.com/UXPLIMA/uxm-lib/issues/115)) ([6ca7d52](https://github.com/UXPLIMA/uxm-lib/commit/6ca7d52728d5eefc29865cc5a634129011700eca)), closes [#114](https://github.com/UXPLIMA/uxm-lib/issues/114)
+- A menu whose title, item name or lore used `%argument_<name>%`, `%input%`, `%drag_*%` or a form field id was
+  skipped at load as referencing unknown ids. Misspelled ids are still reported.
 
 ## [0.9.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.8.0...uxm-lib-v0.9.0) (2026-11-17)
 
