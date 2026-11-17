@@ -50,6 +50,7 @@ import com.uxplima.uxmlib.menu.GridHandlers;
 import com.uxplima.uxmlib.menu.GridSpec;
 import com.uxplima.uxmlib.menu.GridView;
 import com.uxplima.uxmlib.menu.api.event.MenuClickEvent;
+import com.uxplima.uxmlib.menu.api.event.MenuCloseEvent;
 import com.uxplima.uxmlib.menu.binding.ActionRegistry;
 import com.uxplima.uxmlib.menu.binding.ConditionRegistry;
 import com.uxplima.uxmlib.menu.binding.ContentProviderRegistry;
@@ -1688,6 +1689,9 @@ public final class MenuListener implements Listener {
             closeMenu(holder);
             if (closesForGood(event.getReason())) {
                 runEach(holder, holder.ctx(), ClickKind.LEFT, holder.spec().closeActions());
+                if (event.getPlayer() instanceof Player viewer) {
+                    Bukkit.getPluginManager().callEvent(new MenuCloseEvent(viewer, holder.specId(), false));
+                }
             }
             restoreBottom(holder, event.getPlayer());
             // A preview window carries a close hook that steps the operator back to the grid editor; the reopen it runs
