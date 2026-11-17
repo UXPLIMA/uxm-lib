@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.10.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.9.0...uxm-lib-v0.10.0) (2026-11-17)
+
+
+### Features
+
+* **menu:** escape typed action arguments with the caller's function ([#117](https://github.com/UXPLIMA/uxm-lib/issues/117)) ([3c3a39a](https://github.com/UXPLIMA/uxm-lib/commit/3c3a39a15e6417c30ed793e49be6b6aa2e705212)), closes [#116](https://github.com/UXPLIMA/uxm-lib/issues/116)
+* **menu:** let a menu input step ask for a secret ([#123](https://github.com/UXPLIMA/uxm-lib/issues/123)) ([56ecd07](https://github.com/UXPLIMA/uxm-lib/commit/56ecd07cf7fafd4e45bcee8463dcb6c1cff7eb2c)), closes [#120](https://github.com/UXPLIMA/uxm-lib/issues/120)
+
+
+### Bug Fixes
+
+* **menu:** accept menu argument ids when validating a menu ([#115](https://github.com/UXPLIMA/uxm-lib/issues/115)) ([6ca7d52](https://github.com/UXPLIMA/uxm-lib/commit/6ca7d52728d5eefc29865cc5a634129011700eca)), closes [#114](https://github.com/UXPLIMA/uxm-lib/issues/114)
+
 ## [0.9.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.8.0...uxm-lib-v0.9.0) (2026-11-17)
 
 Upgrading: a menu argument is now drawn as text in a menu line. A plugin that passed markup in an argument on
