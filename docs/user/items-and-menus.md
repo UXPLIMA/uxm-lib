@@ -181,7 +181,9 @@ MenuSpec shop = MenuSpecs.loadOrBundled("menus/shop.conf", dataFolder, 6, log);
 menus.registerSpec("shop", shop);
 
 // A file that names an action, a condition, a placeholder, or a list source that nobody registered is
-// reported here, with every offending name, rather than on the click that would have reached it.
+// reported here, with every offending name, rather than on the click that would have reached it. What the
+// engine fills itself counts as known: %argument_<name>%, %input%, %drag_material%, %drag_amount%,
+// %drag_name%, and the field names of the menu's own bedrock form.
 List<String> problems = bindings.validate(List.of(shop));
 
 menus.open(player, "shop", null);                  // no subject
