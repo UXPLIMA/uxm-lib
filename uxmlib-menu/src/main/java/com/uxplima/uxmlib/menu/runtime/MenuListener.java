@@ -1061,6 +1061,7 @@ public final class MenuListener implements Listener {
                 input.key(),
                 prompt,
                 initial,
+                input.secret(),
                 text -> runChain(holder, withInput(base, text), kind, remaining, 0),
                 () -> runEach(holder, base, kind, input.onCancel()));
     }

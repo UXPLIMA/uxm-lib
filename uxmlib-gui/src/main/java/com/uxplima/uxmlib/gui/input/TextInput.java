@@ -171,6 +171,25 @@ public final class TextInput {
             @Nullable String initialText,
             Consumer<String> onSubmit,
             Runnable onCancel) {
+        promptResolved(player, key, prompt, initialText, false, onSubmit, onCancel);
+    }
+
+    /**
+     * As {@link #promptResolved(Player, String, Component, String, Consumer, Runnable)}, for a line that may be a
+     * secret: a PIN or a password, which is then never asked for in chat or on a sign whatever the operator's mode for
+     * {@code key}, the same rule an {@link InputRequest#asSecret() InputRequest marked secret} follows. A Bedrock player
+     * still gets the form.
+     *
+     * @param secret whether the line is a secret
+     */
+    public void promptResolved(
+            Player player,
+            String key,
+            Component prompt,
+            @Nullable String initialText,
+            boolean secret,
+            Consumer<String> onSubmit,
+            Runnable onCancel) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(prompt, "prompt");
@@ -180,7 +199,7 @@ public final class TextInput {
             sendResolvedInputForm(player, prompt, initialText, onSubmit, onCancel);
             return;
         }
-        InputMode mode = settings.modeFor(key);
+        InputMode mode = modeFor(settings.modeFor(key), secret, dialogBackend != null);
         TextInputBackend backend = backendFor(mode);
         // A chat prompt has no cancel button, so it carries the abort hint; a screen backend (anvil/sign) shows the
         // prompt as its own title and needs none: the same rule buildPrompt applies to a catalog-resolved prompt.

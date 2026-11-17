@@ -1,11 +1,15 @@
 package com.uxplima.uxmlib.menu.runtime;
 
+import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
+import java.util.logging.Logger;
 
 import org.bukkit.entity.Player;
 
 import net.kyori.adventure.text.Component;
 
+import com.uxplima.uxmlib.gui.input.TextInput;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -37,4 +41,68 @@ public interface MenuTextPrompt {
             @Nullable String initialText,
             Consumer<String> onSubmit,
             Runnable onCancel);
+
+    /**
+     * As the six-argument form, for a line that may be a secret, a PIN or a password, which must then never be asked
+     * for in chat or on a sign, whose lines other plugins receive. Production wires this over {@code
+     * TextInput.promptResolved} with the same flag.
+     *
+     * <p>The default asks through the six-argument form for a line that is not a secret. For a secret it cancels:
+     * an implementation that does not override this cannot say where the line is typed, so it is never handed one.
+     */
+    default void prompt(
+            Player viewer,
+            String key,
+            Component prompt,
+            @Nullable String initialText,
+            boolean secret,
+            Consumer<String> onSubmit,
+            Runnable onCancel) {
+        if (secret) {
+            Logger.getLogger(MenuTextPrompt.class.getName())
+                    .warning("event=menu_secret_input_unsupported key=" + key
+                            + " reason=the text prompt cannot keep a secret out of chat");
+            onCancel.run();
+            return;
+        }
+        prompt(viewer, key, prompt, initialText, onSubmit, onCancel);
+    }
+
+    /**
+     * The prompt over the text-input seam {@code input} answers, asked for on each prompt so a plugin that builds the
+     * seam after the menu listener can hand it over later. A secret goes through as one. While {@code input} answers
+     * nothing, every prompt cancels.
+     */
+    static MenuTextPrompt through(Supplier<@Nullable TextInput> input) {
+        Objects.requireNonNull(input, "input");
+        return new MenuTextPrompt() {
+            @Override
+            public void prompt(
+                    Player viewer,
+                    String key,
+                    Component prompt,
+                    @Nullable String initialText,
+                    Consumer<String> onSubmit,
+                    Runnable onCancel) {
+                prompt(viewer, key, prompt, initialText, false, onSubmit, onCancel);
+            }
+
+            @Override
+            public void prompt(
+                    Player viewer,
+                    String key,
+                    Component prompt,
+                    @Nullable String initialText,
+                    boolean secret,
+                    Consumer<String> onSubmit,
+                    Runnable onCancel) {
+                TextInput seam = input.get();
+                if (seam == null) {
+                    onCancel.run();
+                    return;
+                }
+                seam.promptResolved(viewer, key, prompt, initialText, secret, onSubmit, onCancel);
+            }
+        };
+    }
 }
