@@ -12,6 +12,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.ObjectComponent;
+import net.kyori.adventure.text.object.PlayerHeadObjectContents;
+
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -200,5 +205,97 @@ class BoardAnswersTest {
         assertThat(withSkins.answer(BEDROCK, ".BedrockSam", "head")).isEqualTo("skins/bedrock-sam");
         assertThat(withSkins.answer(OFFLINE, "Notch", "head")).isEqualTo("steve");
         assertThat(withSkins.answer(SAM, "Sam", "head")).isEqualTo("Sam");
+    }
+
+    /** A skin as Mojang hands it out, signed, and one a plugin made itself, unsigned. */
+    private static final StoredSkin NOTCH_SKIN = new StoredSkin("ewogICJ0aW1lc3RhbXAiIDogMQp9", "c2lnbmVk");
+
+    private static final StoredSkin BEDROCK_SKIN = StoredSkin.unsigned("ewogICJ0aW1lc3RhbXAiIDogMgp9");
+
+    private final BoardAnswers withStoredSkins = new BoardAnswers(
+            leaderboard,
+            standings,
+            new Words(),
+            () -> BoardSettings.STEVE,
+            player -> Optional.empty(),
+            player -> player.equals(OFFLINE)
+                    ? Optional.of(NOTCH_SKIN)
+                    : player.equals(BEDROCK) ? Optional.of(BEDROCK_SKIN) : Optional.empty());
+
+    @Test
+    void aStoredSkinIsDrawnFromItsTexturesAloneForAnOfflineOrBedrockReader() {
+        PlayerHeadObjectContents notch = head(withStoredSkins.headComponent(OFFLINE, "Notch", "head"));
+        PlayerHeadObjectContents bedrock = head(withStoredSkins.headComponent(BEDROCK, ".BedrockSam", "head"));
+
+        assertThat(notch.profileProperties()).singleElement().satisfies(property -> {
+            assertThat(property.name()).isEqualTo("textures");
+            assertThat(property.value()).isEqualTo(NOTCH_SKIN.value());
+            assertThat(property.signature()).isEqualTo("c2lnbmVk");
+        });
+        // No name or id: the client draws the skin it was given and asks Mojang about nobody.
+        assertThat(notch.name()).isNull();
+        assertThat(notch.id()).isNull();
+        assertThat(bedrock.profileProperties()).singleElement().satisfies(property -> {
+            assertThat(property.value()).isEqualTo(BEDROCK_SKIN.value());
+            assertThat(property.signature()).isNull();
+        });
+    }
+
+    @Test
+    void theTagTextStaysWhatATagCanTakeWhenASkinIsStored() {
+        assertThat(withStoredSkins.answer(OFFLINE, "Notch", "head")).isEqualTo(BoardSettings.STEVE);
+        assertThat(withStoredSkins.answer(BEDROCK, ".BedrockSam", "head")).isEqualTo(BoardSettings.STEVE);
+    }
+
+    @Test
+    void aPlaceHolderIsDrawnFromTheirSkinAndAnEmptyPlaceFromTheEmptyHead() {
+        store.name(OFFLINE, "Notch");
+        BoardRecorder recorder = new BoardRecorder(store, leaderboard, standings, Runnable::run, clock);
+        standings.load(OFFLINE);
+        recorder.add(OFFLINE, kills, 9);
+        leaderboard.refresh();
+
+        PlayerHeadObjectContents first = head(withStoredSkins.headComponent(null, null, "top_kills_weekly_1_head"));
+        PlayerHeadObjectContents second = head(withStoredSkins.headComponent(null, null, "top_kills_weekly_2_head"));
+        PlayerHeadObjectContents empty = head(withStoredSkins.headComponent(null, null, "top_kills_weekly_3_head"));
+
+        assertThat(first.profileProperties())
+                .singleElement()
+                .satisfies(property -> assertThat(property.value()).isEqualTo(NOTCH_SKIN.value()));
+        assertThat(second.name()).as("a Mojang account without a stored skin").isEqualTo("Alex");
+        assertThat(empty.texture()).isEqualTo(Key.key(BoardSettings.STEVE));
+        assertThat(empty.profileProperties()).isEmpty();
+    }
+
+    @Test
+    void aHeadWithoutAStoredSkinIsReadAsTheTagReadsItsText() {
+        assertThat(head(withStoredSkins.headComponent(SAM, "Sam", "head")).name())
+                .isEqualTo("Sam");
+        assertThat(head(withStoredSkins.headComponent(SAM, "Sam.With.Dots", "head"))
+                        .id())
+                .isEqualTo(SAM);
+        assertThat(head(answers.headComponent(OFFLINE, "Notch", "head")).name())
+                .as("the configured empty head, a name here")
+                .isEqualTo("steve");
+    }
+
+    @Test
+    void onlyAHeadRequestAnswersAComponent() {
+        assertThat(withStoredSkins.headComponent(null, null, "head"))
+                .as("no reader")
+                .isNull();
+        assertThat(withStoredSkins.headComponent(null, null, "top_kills_weekly_1_name"))
+                .isNull();
+        assertThat(withStoredSkins.headComponent(null, null, "top_nothing_weekly_1_head"))
+                .isNull();
+        assertThat(withStoredSkins.headComponent(ALEX, "Alex", "rank_kills_daily"))
+                .isNull();
+    }
+
+    private static PlayerHeadObjectContents head(@Nullable Component component) {
+        if (!(component instanceof ObjectComponent object)) {
+            throw new AssertionError("expected a head, got " + component);
+        }
+        return (PlayerHeadObjectContents) object.contents();
     }
 }

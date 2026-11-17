@@ -59,8 +59,25 @@ Hand `BoardAnswers` what follows the plugin's prefix:
 A head tag hands a name or an id to the client, which asks Mojang about it. So only an account Mojang made (a version
 4 uuid) is drawn by its name, or its id when an account cannot have that name. An offline-mode account (version 3) or a
 Bedrock one through Floodgate (version 0) is drawn as the empty head, never as whoever holds its name at Mojang. A
-plugin that keeps players' skins passes them as the last argument of `BoardAnswers`, a texture path per player read
-from memory, and that is drawn first for every account.
+plugin that keeps an asset path per player passes it as the `storedHead` argument of `BoardAnswers`, read from memory,
+and that is drawn first for every account.
+
+A skin a plugin keeps, such as one it fetched for an offline-mode or Bedrock player, is a `StoredSkin`: the
+`textures` property value and its signature, if it has one. No tag argument can name one, so it is drawn through
+`headComponent`, which answers the same head placeholders as a component for a line that can hold one, such as a
+MiniPlaceholders tag:
+
+```java
+BoardAnswers answers = new BoardAnswers(leaderboard, standings, words, emptyHead,
+        player -> Optional.empty(),                                   // no asset paths
+        player -> skins.cached(player).map(skin -> new StoredSkin(skin.value(), skin.signature())));
+
+Component head = answers.headComponent(reader, readerName, "top_kills_weekly_1_head");
+```
+
+The head is built from the `textures` property alone, so the client draws that skin and asks Mojang about nobody. A
+player without a stored skin, and a place nobody holds, read as the text answer does. The text answer stays what a
+`<head:...>` tag can take.
 
 Periods are `alltime`, `monthly`, `weekly` and `daily`. A board, period or field the plugin does not run answers
 null, which PlaceholderAPI leaves as written. The words come from the plugin through `BoardText`. Its `score` can show
