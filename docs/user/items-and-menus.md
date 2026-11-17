@@ -279,7 +279,8 @@ What the engine adds over a plain layout reader:
   which is split as written before anything typed goes in. Each is filled once and never read again, so a
   typed `%papi_player_ip%` reads as those words. A material, an amount, a condition and an action's
   argument read it as typed; an action that sends its argument as words reads `ctx.textArg()`, as
-  `message:` does. A plugin that fills an argument with its own markup names it on the open:
+  `message:` does, and one that sends a format of its own, JSON or legacy codes, reads
+  `ctx.args(escape)` with that format's escape for what was typed. A plugin that fills an argument with its own markup names it on the open:
   `menus.open(player, "profile", null, 0, Map.of("rank", rankMarkup), Set.of("rank"), Map.of())`.
 - **A property editor.** Text, number, toggle, enum, colour, and list properties over one object, each
   with its own picker window, so a plugin that edits a configuration object writes no menu for it.

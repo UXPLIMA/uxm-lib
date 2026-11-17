@@ -2,6 +2,7 @@ package com.uxplima.uxmlib.menu.runtime;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 import org.bukkit.entity.Player;
 
@@ -150,6 +151,18 @@ public final class MenuActionContext {
     public Map<String, String> textArgs() {
         Map<String, String> source = written;
         return source == null ? args : ActionArguments.resolveAsText(source, ctx);
+    }
+
+    /**
+     * The arguments filled with every value a player typed put through {@code typed}, and every value an operator
+     * wrote, or an argument the opener vouched for as markup, as written. An action that sends its argument in a format
+     * other than MiniMessage reads this with that format's escape: JSON string content for a JSON component, the colour
+     * codes taken out for a legacy line. A context built from arguments already filled answers {@link #args()}.
+     */
+    public Map<String, String> args(UnaryOperator<String> typed) {
+        Objects.requireNonNull(typed, "typed");
+        Map<String, String> source = written;
+        return source == null ? args : ActionArguments.resolve(source, ctx, typed);
     }
 
     /** The single positional argument filled as words, as {@link #textArgs()} fills it. */
