@@ -269,7 +269,9 @@ What the engine adds over a plain layout reader:
   something the verb that gives has to fold into itself. An action carrying a `delay` is waited off the
   chain and cannot stop it.
 - **Continuations.** An `input:` or a `confirm:` action splits the chain: the rest of it runs when the
-  viewer answers, through the same anvil, chat, sign, or dialog input `uxmlib-gui` installs.
+  viewer answers, through the same anvil, chat, sign, or dialog input `uxmlib-gui` installs. An
+  `input:` step written with `secret = true` asks for a PIN or a password, which never goes to chat or a
+  sign whatever the operator's mode; wire the listener with `MenuTextPrompt.through(...)` so it can.
 - **Private input.** A line typed in chat as input is taken from the first chat event Paper raises, legacy or
   modern, and both are cancelled with the message emptied and the recipients dropped, so no chat logger or bridge
   listening after it reads the line. A plugin marks a PIN or a password with `InputRequest.asSecret()`, and it is
