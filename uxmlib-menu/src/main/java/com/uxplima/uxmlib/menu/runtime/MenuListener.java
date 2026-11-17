@@ -501,12 +501,13 @@ public final class MenuListener implements Listener {
      * the item: the same local-placeholder channel the renderer resolves in text.
      */
     private MenuContext dragContext(MenuHolder holder, RenderedSlot rs, ItemStack cursor) {
-        Map<String, String> locals = new LinkedHashMap<>(holder.ctx().localPlaceholders());
-        locals.put("drag_material", cursor.getType().name());
-        locals.put("drag_amount", String.valueOf(cursor.getAmount()));
-        locals.put("drag_name", plainName(cursor));
+        // A dropped item's name is whatever a player called it at an anvil, so the three go in as typed locals.
+        Map<String, String> dropped = new LinkedHashMap<>();
+        dropped.put("drag_material", cursor.getType().name());
+        dropped.put("drag_amount", String.valueOf(cursor.getAmount()));
+        dropped.put("drag_name", plainName(cursor));
         MenuContext base = rs.entry() == null ? holder.ctx() : holder.ctx().withEntry(rs.entry());
-        return base.withLocalPlaceholders(locals);
+        return base.withTypedLocals(dropped);
     }
 
     /**
@@ -1066,9 +1067,7 @@ public final class MenuListener implements Listener {
 
     /** A copy of {@code base} exposing the submitted line as the {@code %input%} menu-local placeholder. */
     private static MenuContext withInput(MenuContext base, String text) {
-        Map<String, String> locals = new LinkedHashMap<>(base.localPlaceholders());
-        locals.put("input", text);
-        return base.withLocalPlaceholders(locals);
+        return base.withTypedLocals(Map.of("input", text));
     }
 
     /**
@@ -1316,11 +1315,11 @@ public final class MenuListener implements Listener {
         if (!viewer.isOnline()) {
             return false;
         }
-        Map<String, String> args = ActionArguments.resolve(ref.args(), base.arguments());
-        // Expand the menu-local placeholders too (the open spec's own placeholders{} block, and the item-drag
-        // flow's %drag_*% tokens) so an action reads the dropped item the same way the renderer reads it in text.
-        args = ActionArguments.resolveLocals(args, base.localPlaceholders());
-        MenuActionContext context = new MenuActionContext(base, viewer, kind, args, new HolderControl(holder));
+        // The typed arguments and the menu-local placeholders (the open spec's own placeholders{} block, a prompt's
+        // %input% and the item-drag flow's %drag_*% tokens) in one pass, so an action reads the dropped item the same
+        // way the renderer does and a typed value is never read again for a token it spells.
+        MenuActionContext context =
+                MenuActionContext.written(base, viewer, kind, ref.args(), new HolderControl(holder));
         try {
             handler.accept(context);
         } catch (RuntimeException failure) {

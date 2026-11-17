@@ -273,6 +273,14 @@ What the engine adds over a plain layout reader:
   listening after it reads the line. A plugin marks a PIN or a password with `InputRequest.asSecret()`, and it is
   then never asked for in chat or on a sign, whatever the operator's mode: a dialog when one is wired, else an
   anvil. `TextInput.cancel(player)` drops a pending chat prompt.
+- **What a player typed stays words.** A menu argument (`%argument_<name>%`), a prompt's `%input%`, a
+  Bedrock form field and a dropped item's `%drag_name%` are escaped where they go into a line: in a line's
+  words, inside a quoted tag argument such as a click's command, and inside a `@key name=value` argument,
+  which is split as written before anything typed goes in. Each is filled once and never read again, so a
+  typed `%papi_player_ip%` reads as those words. A material, an amount, a condition and an action's
+  argument read it as typed; an action that sends its argument as words reads `ctx.textArg()`, as
+  `message:` does. A plugin that fills an argument with its own markup names it on the open:
+  `menus.open(player, "profile", null, 0, Map.of("rank", rankMarkup), Set.of("rank"), Map.of())`.
 - **A property editor.** Text, number, toggle, enum, colour, and list properties over one object, each
   with its own picker window, so a plugin that edits a configuration object writes no menu for it.
 - **Icons from other plugins.** An icon spec may name a head, a serialized stack, or an item held by
