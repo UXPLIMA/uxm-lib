@@ -252,6 +252,32 @@ class TypedMenuTextTest {
         assertThat(click.textArg()).isEqualTo("msg Al\\<ex hi");
     }
 
+    @Test
+    void anActionPutsOnlyWhatWasTypedThroughItsOwnEscapeAndOnce() {
+        MenuContext ctx = opened(Map.of("name", "Al\"ex %argument_rank%", "rank", "<gold>VIP"))
+                .withMarkupArguments(Set.of("rank"))
+                .withLocalPlaceholders(Map.of("greet", "hello"))
+                .withTypedLocals(Map.of("input", "&cred"));
+        MenuActionContext click = MenuActionContext.written(
+                ctx,
+                viewer,
+                ClickKind.LEFT,
+                Map.of("value", "%greet% %argument_name% %input% %argument_rank%"),
+                MenuControl.NOOP);
+
+        assertThat(click.args(typed -> "[" + typed + "]"))
+                .containsEntry("value", "hello [Al\"ex %argument_rank%] [&cred] <gold>VIP");
+        assertThat(click.arg()).isEqualTo("hello Al\"ex %argument_rank% &cred <gold>VIP");
+    }
+
+    @Test
+    void aContextBuiltFromFilledArgumentsAnswersThemAsTheyAre() {
+        MenuActionContext click =
+                new MenuActionContext(opened(Map.of("name", "Alex")), viewer, ClickKind.LEFT, Map.of("value", "Alex"));
+
+        assertThat(click.args(typed -> "[" + typed + "]")).containsEntry("value", "Alex");
+    }
+
     private MenuContext opened(Map<String, String> arguments) {
         return MenuContext.of(viewer, null, 0, arguments);
     }

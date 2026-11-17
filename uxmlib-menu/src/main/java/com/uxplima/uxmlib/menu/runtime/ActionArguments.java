@@ -2,6 +2,8 @@ package com.uxplima.uxmlib.menu.runtime;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
+import java.util.function.UnaryOperator;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -58,7 +60,21 @@ public final class ActionArguments {
      * when there is nothing to expand.
      */
     public static Map<String, String> resolve(Map<String, String> args, MenuContext ctx) {
-        return resolve(args, ctx, ValueSpot.DATA);
+        return fill(args, ctx, (written, at, typed) -> typed);
+    }
+
+    /**
+     * The action arguments filled as {@link #resolve(Map, MenuContext)} fills them, with every value a player typed
+     * put through {@code typed} first: an argument the opener did not vouch for as markup, a prompt's answer, a form
+     * field, a dropped item's name. A value an operator wrote, and an argument vouched for as markup, go in as written.
+     *
+     * <p>This is for an action that sends its argument in a format of its own, where only the action knows what keeps
+     * a typed value inside it: a JSON component needs it as JSON string content, a legacy line needs its colour codes
+     * taken out. The fill is one pass, so what {@code typed} returns is never read again for a token.
+     */
+    public static Map<String, String> resolve(Map<String, String> args, MenuContext ctx, UnaryOperator<String> typed) {
+        Objects.requireNonNull(typed, "typed");
+        return fill(args, ctx, (written, at, value) -> typed.apply(value));
     }
 
     /**
@@ -69,20 +85,29 @@ public final class ActionArguments {
      * an operator wrote goes in as written.
      */
     public static Map<String, String> resolveAsText(Map<String, String> args, MenuContext ctx) {
-        return resolve(args, ctx, ValueSpot.TEXT);
+        return fill(
+                args,
+                ctx,
+                (written, at, typed) -> ValueSpot.TEXT.at(written, at).fit(typed));
     }
 
-    private static Map<String, String> resolve(Map<String, String> args, MenuContext ctx, ValueSpot spot) {
+    /** How a value a player typed goes in at position {@code at} of the written value {@code written}. */
+    @FunctionalInterface
+    private interface TypedFit {
+        String fit(String written, int at, String typed);
+    }
+
+    private static Map<String, String> fill(Map<String, String> args, MenuContext ctx, TypedFit fit) {
         if (ctx.arguments().isEmpty() && ctx.localPlaceholders().isEmpty()) {
             return args;
         }
         Map<String, String> resolved = new LinkedHashMap<>(args.size());
-        args.forEach((key, value) -> resolved.put(key, substituteOnce(value, ctx, spot)));
+        args.forEach((key, value) -> resolved.put(key, substituteOnce(value, ctx, fit)));
         return resolved;
     }
 
     /** Replace each argument token and each token the local placeholders define in {@code value}, in one pass. */
-    private static String substituteOnce(String value, MenuContext ctx, ValueSpot spot) {
+    private static String substituteOnce(String value, MenuContext ctx, TypedFit fit) {
         Map<String, String> arguments = ctx.arguments();
         Map<String, String> locals = ctx.localPlaceholders();
         Matcher matcher = PLACEHOLDER.matcher(value);
@@ -95,9 +120,7 @@ public final class ActionArguments {
                 if (local == null) {
                     replacement = matcher.group();
                 } else {
-                    replacement = ctx.typedLocals().contains(token)
-                            ? spot.at(value, matcher.start()).fit(local)
-                            : local;
+                    replacement = ctx.typedLocals().contains(token) ? fit.fit(value, matcher.start(), local) : local;
                 }
             } else if (arguments.isEmpty()) {
                 // An open without arguments has always left the token as written, for whoever reads it next.
@@ -105,9 +128,7 @@ public final class ActionArguments {
             } else {
                 String name = token.substring(ARGUMENT_PREFIX.length());
                 String typed = arguments.getOrDefault(name, "");
-                replacement = ctx.markupArguments().contains(name)
-                        ? typed
-                        : spot.at(value, matcher.start()).fit(typed);
+                replacement = ctx.markupArguments().contains(name) ? typed : fit.fit(value, matcher.start(), typed);
             }
             matcher.appendReplacement(out, Matcher.quoteReplacement(replacement));
         }
