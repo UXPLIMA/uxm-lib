@@ -50,11 +50,17 @@ Hand `BoardAnswers` what follows the plugin's prefix:
 |---|---|
 | `top_<board>_<period>_<n>_name` | the player at place n, or the word for nobody |
 | `top_<board>_<period>_<n>_value` | their score as `BoardText.score` shows it, or the word for none |
-| `top_<board>_<period>_<n>_head` | their name when an account can have it, else their id, or the empty head |
+| `top_<board>_<period>_<n>_head` | their stored head, else their name or id for a Mojang account, else the empty head |
 | `rank_<board>_<period>` | the reader's place, or the word for none |
 | `value_<board>_<period>` | the reader's score |
 | `resets_<period>` | the time until the period starts again, or the word for none for all time |
-| `head` | what the reader's own head is drawn from |
+| `head` | what the reader's own head is drawn from, by the same rule |
+
+A head tag hands a name or an id to the client, which asks Mojang about it. So only an account Mojang made (a version
+4 uuid) is drawn by its name, or its id when an account cannot have that name. An offline-mode account (version 3) or a
+Bedrock one through Floodgate (version 0) is drawn as the empty head, never as whoever holds its name at Mojang. A
+plugin that keeps players' skins passes them as the last argument of `BoardAnswers`, a texture path per player read
+from memory, and that is drawn first for every account.
 
 Periods are `alltime`, `monthly`, `weekly` and `daily`. A board, period or field the plugin does not run answers
 null, which PlaceholderAPI leaves as written. The words come from the plugin through `BoardText`. Its `score` can show
