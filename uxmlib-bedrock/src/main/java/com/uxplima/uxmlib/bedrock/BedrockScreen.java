@@ -219,6 +219,33 @@ public interface BedrockScreen {
      * @return a screen that is {@link #NONE} until a backend enables, and that backend from then on
      */
     static BedrockScreen resolving(Server server) {
-        return new ResolvingBedrockScreen(server);
+        return new ResolvingBedrockScreen(server, NONE);
+    }
+
+    /**
+     * {@link #forServer(Server)}, answering {@code fallback} where it would answer {@link #NONE}.
+     *
+     * <p>For a plugin that sends forms another way when this server has neither Floodgate nor Geyser, such as a
+     * {@link RelayedBedrockScreen} through a proxy that runs Geyser. A plugin on this server still wins.
+     *
+     * @param server the running server, used only to probe plugin presence; never {@code null}
+     * @param fallback the screen for a server with neither plugin; never {@code null}
+     * @return the Floodgate or Geyser screen when either is enabled, else {@code fallback}
+     */
+    static BedrockScreen forServer(Server server, BedrockScreen fallback) {
+        Objects.requireNonNull(fallback, "fallback");
+        BedrockScreen local = forServer(server);
+        return local == NONE ? fallback : local;
+    }
+
+    /**
+     * {@link #resolving(Server)}, answering {@code fallback} until Floodgate or Geyser enables.
+     *
+     * @param server the running server, probed for the backend on each use until one is found; never {@code null}
+     * @param fallback the screen while neither plugin is enabled; never {@code null}
+     * @return a screen that is {@code fallback} until a backend enables, and that backend from then on
+     */
+    static BedrockScreen resolving(Server server, BedrockScreen fallback) {
+        return new ResolvingBedrockScreen(server, fallback);
     }
 }

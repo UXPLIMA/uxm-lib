@@ -9,7 +9,8 @@
  * <p>Both follow one shape. Each is an interface with a {@code NONE} constant that names no SDK type at all,
  * and a {@code forServer(Server)} factory that returns a backed implementation only when the plugin behind it
  * is enabled. The backed implementations are package-private, so the {@code org.geysermc} classes they
- * reference are named in exactly three files and reached only inside the enabled branch. On a Java-only server
+ * reference are named only there and in {@link com.uxplima.uxmlib.bedrock.CumulusForms}, and reached only inside
+ * the enabled branch. On a Java-only server
  * the factories answer {@code NONE} and no Geyser or Floodgate class is ever loaded. That property is why the
  * factory exists: a caller must never have to guard the call itself.
  *
@@ -18,6 +19,12 @@
  * SimpleForm, {@link com.uxplima.uxmlib.bedrock.BedrockWidget} for a CustomForm, and
  * {@link com.uxplima.uxmlib.bedrock.BedrockIcons} to turn a material name or a head reference into a button
  * icon. None of them names a Cumulus type, so a caller can build and test a form with no SDK on the classpath.
+ *
+ * <p>A plugin that learns its Bedrock players another way, such as from a proxy that runs Geyser, passes its own
+ * detector and screen as the fallback of {@code forServer} or {@code resolving}.
+ * {@link com.uxplima.uxmlib.bedrock.BedrockFormRequest} and {@link com.uxplima.uxmlib.bedrock.BedrockFormResponse}
+ * are a form and its answer as plain data, {@link com.uxplima.uxmlib.bedrock.BedrockFormCodec} carries them as
+ * bytes, and {@link com.uxplima.uxmlib.bedrock.RelayedBedrockScreen} sends forms through the plugin's carrier.
  */
 @NullMarked
 package com.uxplima.uxmlib.bedrock;

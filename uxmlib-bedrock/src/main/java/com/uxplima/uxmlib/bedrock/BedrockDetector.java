@@ -115,6 +115,33 @@ public interface BedrockDetector {
      * @return a detector that is {@link #NONE} until a backend enables, and that backend from then on
      */
     static BedrockDetector resolving(Server server) {
-        return new ResolvingBedrockDetector(server);
+        return new ResolvingBedrockDetector(server, NONE);
+    }
+
+    /**
+     * {@link #forServer(Server)}, answering {@code fallback} where it would answer {@link #NONE}.
+     *
+     * <p>For a plugin that learns its Bedrock players another way when this server has neither Floodgate nor
+     * Geyser, such as from a proxy that runs Geyser. A plugin on this server still wins.
+     *
+     * @param server the running server, used only to probe plugin presence; never {@code null}
+     * @param fallback the detector for a server with neither plugin; never {@code null}
+     * @return the Floodgate or Geyser detector when either is enabled, else {@code fallback}
+     */
+    static BedrockDetector forServer(Server server, BedrockDetector fallback) {
+        Objects.requireNonNull(fallback, "fallback");
+        BedrockDetector local = forServer(server);
+        return local == NONE ? fallback : local;
+    }
+
+    /**
+     * {@link #resolving(Server)}, answering {@code fallback} until Floodgate or Geyser enables.
+     *
+     * @param server the running server, probed for the backend on each use until one is found; never {@code null}
+     * @param fallback the detector while neither plugin is enabled; never {@code null}
+     * @return a detector that is {@code fallback} until a backend enables, and that backend from then on
+     */
+    static BedrockDetector resolving(Server server, BedrockDetector fallback) {
+        return new ResolvingBedrockDetector(server, fallback);
     }
 }

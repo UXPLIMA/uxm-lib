@@ -19,10 +19,12 @@ import org.jspecify.annotations.Nullable;
 final class ResolvingBedrockDetector implements BedrockDetector {
 
     private final Server server;
+    private final BedrockDetector fallback;
     private volatile @Nullable BedrockDetector found;
 
-    ResolvingBedrockDetector(Server server) {
+    ResolvingBedrockDetector(Server server, BedrockDetector fallback) {
         this.server = Objects.requireNonNull(server, "server");
+        this.fallback = Objects.requireNonNull(fallback, "fallback");
     }
 
     private BedrockDetector current() {
@@ -31,9 +33,10 @@ final class ResolvingBedrockDetector implements BedrockDetector {
             return known;
         }
         BedrockDetector now = BedrockDetector.forServer(server);
-        if (now != NONE) {
-            found = now;
+        if (now == NONE) {
+            return fallback;
         }
+        found = now;
         return now;
     }
 

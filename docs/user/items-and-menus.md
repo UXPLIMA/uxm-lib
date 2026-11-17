@@ -334,9 +334,9 @@ button image, so a menu file that already names an icon needs no second Bedrock-
 
 Both interfaces follow one shape. Each has a `NONE` constant that names no SDK type and a `forServer`
 factory that returns a backed implementation only when Geyser or Floodgate is enabled. The backed
-implementations are package-private, so `org.geysermc` is named in exactly three files and reached only
-inside the enabled branch. On a Java-only server the factories answer `NONE`, no Geyser or Floodgate class
-is ever loaded, and a caller never has to guard the call itself. A response from Cumulus arrives off the
+implementations are package-private, so `org.geysermc` is named only there and in `CumulusForms`, and
+reached only inside the enabled branch. On a Java-only server the factories answer `NONE`, no Geyser or
+Floodgate class is ever loaded, and a caller never has to guard the call itself. A response from Cumulus arrives off the
 main thread, so a callback hops back onto the viewer's entity thread before it touches the world.
 
 Which plugin answers depends on what the server runs:
@@ -345,9 +345,34 @@ Which plugin answers depends on what the server runs:
 - **Geyser-Spigot without Floodgate** answers both as well: Geyser names the Bedrock connection, its
   client and its xuid, and sends the form. A Bedrock player there signs in with a Java account, so their
   name has no prefix.
-- **Geyser on the proxy without Floodgate** leaves the backend no Bedrock API of its own. Support for it
-  is coming: the proxy tells the backend which players are Bedrock and sends their forms, through a
-  detector and a form sender a plugin supplies. Until then those players get the chest menu.
+- **Geyser on the proxy without Floodgate** leaves the backend no Bedrock API of its own. A plugin with a
+  part on that proxy supplies both answers itself, as below. Without one those players get the chest menu.
+
+### A Bedrock backend a plugin supplies
+
+The proxy knows which players are Bedrock and can send them forms; the backend asks it. A plugin passes its
+own detector and screen as the fallback, and a plugin on the backend itself still wins:
+
+```java
+RelayedBedrockScreen relayed = new RelayedBedrockScreen((player, requestId, request) ->
+        bus.sendToProxy(player, requestId, BedrockFormCodec.encode(request)));   // false when not connected
+BedrockScreen screen = BedrockScreen.resolving(server, relayed);
+BedrockDetector bedrock = BedrockDetector.resolving(server, presenceFromProxy);   // your detector
+
+// On the proxy: build the form, send it with Geyser, and carry the answer back to the backend that asked.
+Form form = CumulusForms.toForm(BedrockFormCodec.decodeRequest(bytes),
+        answer -> bus.sendToBackend(origin, player, requestId, BedrockFormCodec.encode(answer)));
+GeyserApi.api().sendForm(player, form);
+
+// Back on the backend, when the answer arrives, and when the player leaves this server.
+relayed.receive(player, requestId, BedrockFormCodec.decodeResponse(bytes));
+relayed.forget(player);
+```
+
+`BedrockFormRequest` and `BedrockFormResponse` are the form and its answer as plain data. `BedrockFormCodec`
+writes them as bytes and refuses bytes it did not write. `RelayedBedrockScreen` takes an answer only for the
+player and request it sent, once. An answer can hold a secret, such as a PIN: the relay sends it from the proxy
+to the backend that asked and nowhere else, never back to the client, and never logs it.
 
 ## Known gaps
 
