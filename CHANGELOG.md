@@ -2,27 +2,50 @@
 
 ## [0.9.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.8.0...uxm-lib-v0.9.0) (2026-11-17)
 
+Upgrading: a menu argument is now drawn as text in a menu line. A plugin that passed markup in an argument on
+purpose names it in the new `Menus.open(viewer, id, subject, page, arguments, markupArguments, passthrough)`.
+Create the `board_name` table with `name VARCHAR(SqlBoardStore.NAME_LENGTH)` (64). Mark a PIN or password prompt
+with `InputRequest.asSecret()`. See `docs/user/items-and-menus.md` and `docs/user/boards.md`.
 
-### ⚠ BREAKING CHANGES
+### Added
 
-* **menu:** a menu argument is drawn as text in a menu line. A plugin that passed markup in an argument names it in `Menus.open(viewer, id, subject, page, arguments, markupArguments, passthrough)`. `LastMenu.LastOpen` gains a `markupArguments` component, and its three-argument constructor stays.
+- Bedrock without Floodgate: with only Geyser-Spigot installed, `BedrockScreen.forServer` sends Cumulus forms
+  through Geyser and `GeyserBedrockDetector` reads the xuid. Floodgate still wins when both are installed.
+- `BedrockDetector.forServer(server, fallback)`, `BedrockScreen.forServer(server, fallback)` and `resolving(...)`:
+  a plugin can supply its own Bedrock backend when the server has neither Floodgate nor Geyser.
+- A relayable form model: `BedrockFormRequest`, `BedrockFormResponse`, `BedrockFormCodec`,
+  `RelayedBedrockScreen` over a plugin `Transport`, and `CumulusForms.toForm` for the proxy side.
+- `InputRequest.asSecret()`: a secret is asked in a dialog or an anvil, never in chat or on a sign.
+  `TextInput.cancel(Player)` drops a pending prompt.
+- `NameFill.intoConnected(line, name)` and `intoConnected(line, name, bedrockPrefix)` accept Floodgate-prefixed
+  names; `NameFill.isConnectedName`.
+- `BoardAnswers.headOf(UUID, String, String emptyHead)`, the instance `head(UUID, String)` and a constructor taking
+  stored heads per player.
+- `MenuCloseEvent`, fired when a chest menu closes for good or a Bedrock form is dismissed.
+- `render.ValueSpot`, `MenuContext.withTypedLocals` / `withMarkupArguments`, `MenuActionContext.written(...)` with
+  `textArg()` / `textArgs()`.
 
-### Features
+### Changed
 
-* **bedrock:** forms and xuid for Geyser without Floodgate ([#108](https://github.com/UXPLIMA/uxm-lib/issues/108)) ([040dcce](https://github.com/UXPLIMA/uxm-lib/commit/040dcce5202de903e2cf691c0e7ebc2161631927)), closes [#95](https://github.com/UXPLIMA/uxm-lib/issues/95)
-* **bedrock:** plugin-supplied backends and a relayable form model ([#110](https://github.com/UXPLIMA/uxm-lib/issues/110)) ([99aff4d](https://github.com/UXPLIMA/uxm-lib/commit/99aff4d67097911975cec0cb6057f50c901f4e70)), closes [#109](https://github.com/UXPLIMA/uxm-lib/issues/109)
-* **condition:** fill trusted player names with any Floodgate prefix ([#106](https://github.com/UXPLIMA/uxm-lib/issues/106)) ([55f65ce](https://github.com/UXPLIMA/uxm-lib/commit/55f65ce537d38ca62cfe657fecbbfecbc3ce00c0)), closes [#99](https://github.com/UXPLIMA/uxm-lib/issues/99)
+- Menu arguments, prompt answers, Bedrock form values and `drag_*` values are escaped where they go into a menu line
+  and are never read again as a placeholder. They stay raw where they are read as data (materials, amounts,
+  conditions, action arguments). Actions resolve in one pass; open actions now also see menu locals.
+- The built-in `message:` action draws its argument as text; `command:` is unchanged.
+- `LastMenu.LastOpen` gains a `markupArguments` component; the three-argument constructor stays.
+- Chat input capture listens to both chat events at the lowest priority, takes the line from the first, then
+  cancels and empties both. It is best-effort hiding: use `asSecret()` for a real secret.
+- A tap on a Bedrock form view can refresh it, refresh a slot or reset pagination, as a chest view can.
+- The two-argument `BoardAnswers.headOf` is deprecated and returns Steve for accounts that are not Mojang accounts.
 
+### Fixed
 
-### Bug Fixes
-
-* **board:** keep player names up to 64 characters, never a uuid ([#102](https://github.com/UXPLIMA/uxm-lib/issues/102)) ([18a78e5](https://github.com/UXPLIMA/uxm-lib/commit/18a78e57354b1cf0ef5af08d194f07e264d28359)), closes [#101](https://github.com/UXPLIMA/uxm-lib/issues/101)
-* **board:** never draw a stranger's head for offline or bedrock holders ([#103](https://github.com/UXPLIMA/uxm-lib/issues/103)) ([9aff0e2](https://github.com/UXPLIMA/uxm-lib/commit/9aff0e2698a8e75254d06d88db627b9fed5a2317)), closes [#100](https://github.com/UXPLIMA/uxm-lib/issues/100)
-* **gui:** keep captured chat input away from legacy chat listeners ([#105](https://github.com/UXPLIMA/uxm-lib/issues/105)) ([bcae3ca](https://github.com/UXPLIMA/uxm-lib/commit/bcae3ca5b9e89b0b14898e553b4f89cbf9e1676c)), closes [#98](https://github.com/UXPLIMA/uxm-lib/issues/98)
-* **item:** never resolve a skull by name on the server thread ([#104](https://github.com/UXPLIMA/uxm-lib/issues/104)) ([5b25906](https://github.com/UXPLIMA/uxm-lib/commit/5b25906afa7dcc10df19157f113989ac34834343)), closes [#96](https://github.com/UXPLIMA/uxm-lib/issues/96)
-* **menu:** escape typed menu values substituted into menu lines ([#112](https://github.com/UXPLIMA/uxm-lib/issues/112)) ([b3fee57](https://github.com/UXPLIMA/uxm-lib/commit/b3fee577a2a1213e70562ca4eddd332b34d2e3f1)), closes [#111](https://github.com/UXPLIMA/uxm-lib/issues/111)
-* **menu:** let a form-path view re-render and report its close ([#107](https://github.com/UXPLIMA/uxm-lib/issues/107)) ([550e766](https://github.com/UXPLIMA/uxm-lib/commit/550e76628e8f45573d801b639a6f1de06789d8b6)), closes [#97](https://github.com/UXPLIMA/uxm-lib/issues/97)
-* **pipeline:** complete the write of a packet a listener cancels ([#92](https://github.com/UXPLIMA/uxm-lib/issues/92)) ([c1395a7](https://github.com/UXPLIMA/uxm-lib/commit/c1395a771ff7bc07ef968a190527fe435b775634))
+- Boards drew a stranger's head for an offline-mode or Bedrock holder.
+- `SqlBoardStore` kept names over 32 characters only if the column allowed it, and could store a uuid as a name;
+  it now keeps names of 1 to 64 characters and skips anything else.
+- A skull built by name blocked a server thread on an uncached Mojang lookup, and showed Steve on offline-mode
+  servers.
+- A captured chat line (a PIN, for example) reached legacy `AsyncPlayerChatEvent` listeners.
+- A packet write was left incomplete when a listener cancelled it.
 
 ## [0.8.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.7.0...uxm-lib-v0.8.0)
 
