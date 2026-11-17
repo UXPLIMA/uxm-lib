@@ -26,6 +26,10 @@ ItemStack button = ItemBuilder.of(Material.LEATHER_CHESTPLATE)
         .build();
 ```
 
+A head given by name never waits on Mojang, so it may be built on a server thread: a Mojang account the server
+already knows under the name is drawn as itself, and any other name is left for the client to draw. Resolve the
+texture with `SkullResolver` off the server thread when the head must show before the client fetches it.
+
 `ItemConfig` reads the same spec from HOCON, `hide-vanilla-tooltip = true` included, so an operator writing
 a menu file reaches for that rather than for the deprecated `HIDE_ADDITIONAL_TOOLTIP` flag. Leave it off for
 an item a player owns: on a kit sword or a vault icon the damage and enchantment lines are the point.
@@ -277,6 +281,9 @@ What the engine adds over a plain layout reader:
   there.
 - **A Bedrock viewer sees a form.** When the spec carries a `bedrock` block and the viewer is a Bedrock
   player, the engine sends the native form instead of the chest. See [Bedrock forms](#bedrock-forms).
+  A form is gone once tapped, so an action that repaints the menu (`ctx.control().refresh()`) sends it again
+  from the menu's current state, once per tap. Dismissing a form runs the menu's close actions and fires
+  `MenuCloseEvent`, which a closed chest fires too, so a view that tracks whether its menu is open listens there.
 - **The file is written as well as read.** `MenuSpecWriter` turns a `MenuSpec` back into the HOCON the
   loader parses, so a plugin can ship an in-game menu editor without carrying a writer of its own. It is
   model faithful rather than byte faithful: see [Known gaps](#known-gaps).
@@ -328,8 +335,8 @@ button image, so a menu file that already names an icon needs no second Bedrock-
 Both interfaces follow one shape. Each has a `NONE` constant that names no SDK type and a `forServer`
 factory that returns a backed implementation only when Geyser or Floodgate is enabled. The backed
 implementations are package-private, so `org.geysermc` is named only there and in `CumulusForms`, and
-reached only inside the enabled branch. On a Java-only server the factories answer `NONE`, no Geyser or Floodgate class
-is ever loaded, and a caller never has to guard the call itself. A response from Cumulus arrives off the
+reached only inside the enabled branch. On a Java-only server the factories answer `NONE`, no Geyser or
+Floodgate class is ever loaded, and a caller never has to guard the call itself. A response from Cumulus arrives off the
 main thread, so a callback hops back onto the viewer's entity thread before it touches the world.
 
 Which plugin answers depends on what the server runs:

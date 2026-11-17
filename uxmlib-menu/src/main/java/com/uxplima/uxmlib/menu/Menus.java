@@ -62,6 +62,7 @@ import com.uxplima.uxmlib.menu.runtime.ListQueryState;
 import com.uxplima.uxmlib.menu.runtime.ListViewState;
 import com.uxplima.uxmlib.menu.runtime.MenuActionContext;
 import com.uxplima.uxmlib.menu.runtime.MenuContext;
+import com.uxplima.uxmlib.menu.runtime.MenuControl;
 import com.uxplima.uxmlib.menu.runtime.MenuHolder;
 import com.uxplima.uxmlib.menu.runtime.MenuRefresh;
 import com.uxplima.uxmlib.menu.runtime.PagedListRows;
@@ -1284,13 +1285,13 @@ public final class Menus {
         // never fire for a Bedrock viewer. A Java viewer (isBedrock false) falls straight through to the chest path
         // unchanged.
         if (wantsForm(viewer) && !spec.keepsTheChest() && spec.bedrock().isPresent()) {
-            forms.sendCustomForm(viewer, spec, ctx);
+            forms.sendCustomForm(viewer, specId, spec, ctx);
             afterBedrockOpen(spec, viewer, ctx, viewer, specId, subject, page, arguments, record);
             return;
         }
         // The resolved list cache is threaded through so a list-backed menu's entries page as form buttons.
         if (wantsForm(viewer) && !spec.keepsTheChest()) {
-            forms.sendSimpleForm(viewer, spec, ctx, resolved.rows());
+            forms.sendSimpleForm(viewer, specId, spec, ctx, resolved.rows());
             afterBedrockOpen(spec, viewer, ctx, viewer, specId, subject, page, arguments, record);
             return;
         }
@@ -1476,6 +1477,11 @@ public final class Menus {
 
     /** The same run, told which gesture asked for it, so a handler that reads the gesture reads the right one. */
     private void runActions(MenuContext ctx, List<Ref> refs, ClickKind kind) {
+        runActions(ctx, refs, kind, MenuControl.NOOP);
+    }
+
+    /** The same run, with the control a handler drives its window through: a Bedrock form's, for a tap on one. */
+    private void runActions(MenuContext ctx, List<Ref> refs, ClickKind kind, MenuControl control) {
         ActionRegistry actions = openActionRegistry;
         if (actions == null) {
             return;
@@ -1493,7 +1499,7 @@ public final class Menus {
                 warnUnknownAction(eff);
                 continue;
             }
-            handler.get().accept(new MenuActionContext(ctx, viewer, kind, args));
+            handler.get().accept(new MenuActionContext(ctx, viewer, kind, args, control));
         }
     }
 
