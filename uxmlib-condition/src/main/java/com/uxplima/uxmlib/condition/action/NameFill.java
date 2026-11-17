@@ -18,6 +18,11 @@ import java.util.regex.Pattern;
  * a name an account could not have is never filled in: the line that would carry it is not run. A name an account
  * could have holds none of those characters and is filled in as it is.
  *
+ * <p>A name from a player the server let in ({@link #intoConnected}) is held to a wider shape: a Bedrock bridge may be
+ * configured with another prefix than the default dot, and a proxy or an offline-mode network may let in names longer
+ * than sixteen. It still holds none of the characters above, and never starts with a character a command reads as a
+ * flag, a relative coordinate or a selector. A name from anywhere else (a vote, a stored row) keeps the strict shape.
+ *
  * <p>Every spelling a line may use is filled: {@code %player%}, {@code <player>}, {@code {player}} and
  * {@code %player_name%}.
  */
@@ -36,12 +41,84 @@ public final class NameFill {
      */
     private static final Pattern ACCOUNT = Pattern.compile("[.*]?[A-Za-z0-9_]{1,16}");
 
+    /**
+     * What the name of a player the server let in may hold: up to three marks a Bedrock bridge may be configured to put
+     * in front of it, then letters, digits and underscores, up to thirty-two.
+     */
+    private static final Pattern CONNECTED = Pattern.compile("[.*#!+$=:]{0,3}[A-Za-z0-9_]{1,32}");
+
+    /** The body of a name after a Bedrock bridge's own prefix. */
+    private static final Pattern BODY = Pattern.compile("[A-Za-z0-9_]{1,32}");
+
+    /** The longest prefix a Bedrock bridge's configuration is trusted with. */
+    private static final int MAX_PREFIX = 8;
+
+    /**
+     * What no name may hold anywhere: whitespace adds an argument, and the rest open a tag, close an argument, reach
+     * the line's grammar, or start a placeholder.
+     */
+    private static final String NEVER = "<>\"'{}|[]\\%";
+
+    /** What a name may not start with: a flag, a relative or local coordinate, a selector. */
+    private static final String NEVER_FIRST = "-~^@";
+
     private NameFill() {}
 
     /** Whether {@code name} is one an account could have, so it can stand inside any line unchanged. */
     public static boolean isAccountName(String name) {
         Objects.requireNonNull(name, "name");
         return ACCOUNT.matcher(name).matches();
+    }
+
+    /**
+     * Whether {@code name}, the name of a player the server let in, can stand inside any line unchanged. With
+     * {@code bedrockPrefix}, the prefix the server's Bedrock bridge is configured with (empty for none), a name that
+     * starts with it is read as that prefix and a body of letters, digits and underscores.
+     */
+    public static boolean isConnectedName(String name, String bedrockPrefix) {
+        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(bedrockPrefix, "bedrockPrefix");
+        if (CONNECTED.matcher(name).matches()) {
+            return true;
+        }
+        return trustedPrefix(bedrockPrefix)
+                && name.startsWith(bedrockPrefix)
+                && BODY.matcher(name.substring(bedrockPrefix.length())).matches();
+    }
+
+    /** Whether a configured Bedrock prefix holds nothing a name may not. */
+    private static boolean trustedPrefix(String prefix) {
+        if (prefix.isEmpty() || prefix.length() > MAX_PREFIX || NEVER_FIRST.indexOf(prefix.charAt(0)) >= 0) {
+            return false;
+        }
+        for (int i = 0; i < prefix.length(); i++) {
+            char c = prefix.charAt(i);
+            if (Character.isWhitespace(c) || Character.isISOControl(c) || NEVER.indexOf(c) >= 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * As {@link #into}, for the name of a player the server let in, whose caller vouches for it: the name is held to
+     * {@link #isConnectedName} with no Bedrock prefix beyond the marks that shape allows.
+     */
+    public static Optional<String> intoConnected(String line, String name) {
+        return intoConnected(line, name, "");
+    }
+
+    /**
+     * As {@link #into}, for the name of a player the server let in, whose caller vouches for it: the name is held to
+     * {@link #isConnectedName} with {@code bedrockPrefix}, the prefix the server's Bedrock bridge is configured with.
+     *
+     * @return the filled line, or empty when the line names the player and the name could still change what it does
+     */
+    public static Optional<String> intoConnected(String line, String name, String bedrockPrefix) {
+        Objects.requireNonNull(line, "line");
+        Objects.requireNonNull(name, "name");
+        Objects.requireNonNull(bedrockPrefix, "bedrockPrefix");
+        return fill(line, name, isConnectedName(name, bedrockPrefix));
     }
 
     /**
@@ -54,8 +131,12 @@ public final class NameFill {
     public static Optional<String> into(String line, String name) {
         Objects.requireNonNull(line, "line");
         Objects.requireNonNull(name, "name");
+        return fill(line, name, isAccountName(name));
+    }
+
+    private static Optional<String> fill(String line, String name, boolean safe) {
         boolean namesThePlayer = TOKENS.stream().anyMatch(line::contains);
-        if (namesThePlayer && !isAccountName(name)) {
+        if (namesThePlayer && !safe) {
             return Optional.empty();
         }
         String filled = line;
