@@ -35,6 +35,12 @@ for (String line : lines) {
 NameFill.into("give %player% diamond", player.getName()).ifPresent(console::dispatch);
 ```
 
+`into` holds a name to the shape an account name has, with a `.` or `*` Bedrock prefix at most, since the name may
+come from anywhere: a vote, a stored row. For a player the server let in, `intoConnected(line, name, prefix)` takes
+the wider shape such a player can have: up to three of `.*#!+$=:` in front, or the prefix the Bedrock bridge is
+configured with (`BedrockDetector.namePrefix()`), then up to thirty-two letters, digits and underscores. It still
+refuses whitespace, `<>"'{}|[]\%`, and a name starting with `-`, `~`, `^` or `@`.
+
 `MoneyCondition`, `[take-money]` and any plugin that owes a player money read through a `Wallet`, and
 `com.uxplima.uxmlib.condition.wallet`
 ships the backends. Each one is soft: the plugin manager is asked before any type of another plugin is
