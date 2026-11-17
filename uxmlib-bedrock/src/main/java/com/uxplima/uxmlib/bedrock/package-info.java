@@ -9,7 +9,7 @@
  * <p>Both follow one shape. Each is an interface with a {@code NONE} constant that names no SDK type at all,
  * and a {@code forServer(Server)} factory that returns a backed implementation only when the plugin behind it
  * is enabled. The backed implementations are package-private, so the {@code org.geysermc} classes they
- * reference are named in exactly two files and reached only inside the enabled branch. On a Java-only server
+ * reference are named in exactly three files and reached only inside the enabled branch. On a Java-only server
  * the factories answer {@code NONE} and no Geyser or Floodgate class is ever loaded. That property is why the
  * factory exists: a caller must never have to guard the call itself.
  *

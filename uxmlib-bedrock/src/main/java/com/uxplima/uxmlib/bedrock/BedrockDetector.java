@@ -31,10 +31,10 @@ public interface BedrockDetector {
     };
 
     /**
-     * Whether {@code player} connected through Floodgate as a Bedrock player.
+     * Whether {@code player} connected as a Bedrock player, through Floodgate or Geyser.
      *
      * @param player the player's unique id; never {@code null}
-     * @return {@code true} only when a Floodgate-backed detector confirms it; always {@code false} for {@link #NONE}
+     * @return {@code true} only when a backed detector confirms it; always {@code false} for {@link #NONE}
      */
     boolean isBedrock(UUID player);
 
@@ -86,8 +86,8 @@ public interface BedrockDetector {
      * named only inside its own branch, so on a server with neither plugin their classes (and the
      * {@code org.geysermc} SDKs they reference) are never loaded.
      *
-     * <p>Floodgate wins when both are installed. It is the richer source, it is a compile-time dependency rather
-     * than a reflective one, and it is the path with a Bedrock link account behind it.
+     * <p>Floodgate wins when both are installed. It is the richer source, it knows the name prefix, and it is the
+     * path with a Bedrock link account behind it.
      *
      * @param server the running server, used only to probe plugin presence; never {@code null}
      * @return a Floodgate-backed detector when Floodgate is enabled, a Geyser-backed one when only Geyser is,

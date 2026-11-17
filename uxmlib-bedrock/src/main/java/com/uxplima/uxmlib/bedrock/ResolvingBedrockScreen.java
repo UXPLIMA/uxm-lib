@@ -12,8 +12,9 @@ import org.bukkit.entity.Player;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A screen that asks {@link BedrockScreen#forServer} again until Floodgate answers, then keeps that one. The reason
- * is the one {@link ResolvingBedrockDetector} gives: a plugin enabled at {@code STARTUP} runs before Floodgate.
+ * A screen that asks {@link BedrockScreen#forServer} again until Floodgate or Geyser answers, then keeps that one.
+ * The reason is the one {@link ResolvingBedrockDetector} gives: a plugin enabled at {@code STARTUP} runs before
+ * either.
  */
 final class ResolvingBedrockScreen implements BedrockScreen {
 
