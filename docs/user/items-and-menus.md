@@ -26,6 +26,10 @@ ItemStack button = ItemBuilder.of(Material.LEATHER_CHESTPLATE)
         .build();
 ```
 
+A head given by name never waits on Mojang, so it may be built on a server thread: a Mojang account the server
+already knows under the name is drawn as itself, and any other name is left for the client to draw. Resolve the
+texture with `SkullResolver` off the server thread when the head must show before the client fetches it.
+
 `ItemConfig` reads the same spec from HOCON, `hide-vanilla-tooltip = true` included, so an operator writing
 a menu file reaches for that rather than for the deprecated `HIDE_ADDITIONAL_TOOLTIP` flag. Leave it off for
 an item a player owns: on a kit sword or a vault icon the damage and enchantment lines are the point.
