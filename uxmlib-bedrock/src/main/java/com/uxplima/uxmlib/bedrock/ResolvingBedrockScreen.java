@@ -19,10 +19,12 @@ import org.jspecify.annotations.Nullable;
 final class ResolvingBedrockScreen implements BedrockScreen {
 
     private final Server server;
+    private final BedrockScreen fallback;
     private volatile @Nullable BedrockScreen found;
 
-    ResolvingBedrockScreen(Server server) {
+    ResolvingBedrockScreen(Server server, BedrockScreen fallback) {
         this.server = Objects.requireNonNull(server, "server");
+        this.fallback = Objects.requireNonNull(fallback, "fallback");
     }
 
     private BedrockScreen current() {
@@ -31,9 +33,10 @@ final class ResolvingBedrockScreen implements BedrockScreen {
             return known;
         }
         BedrockScreen now = BedrockScreen.forServer(server);
-        if (now != NONE) {
-            found = now;
+        if (now == NONE) {
+            return fallback;
         }
+        found = now;
         return now;
     }
 
