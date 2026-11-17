@@ -140,7 +140,7 @@ public final class TextInput {
             sendInputForm(player, request, onSubmit, onCancel);
             return;
         }
-        InputMode mode = settings.modeFor(request.key());
+        InputMode mode = modeFor(settings.modeFor(request.key()), request.secret(), dialogBackend != null);
         TextInputBackend backend = backendFor(mode);
         Component prompt = buildPrompt(player, request.label(), request.placeholders(), mode);
         backend.open(
@@ -190,6 +190,28 @@ public final class TextInput {
                 effective,
                 initialText,
                 result -> scheduler.entity(player, () -> route(player, result, onSubmit, onCancel)));
+    }
+
+    /**
+     * Drop {@code player}'s pending chat prompt, so their next line is chat again; neither callback of that prompt
+     * runs. A screen the player has open (an anvil, a sign, a dialog, a form) stays theirs to close.
+     */
+    public void cancel(Player player) {
+        Objects.requireNonNull(player, "player");
+        chatBackend.cancel(player.getUniqueId());
+    }
+
+    /**
+     * The mode a prompt opens in: the operator's, except that a secret is never asked for in chat or on a sign, whose
+     * lines other plugins receive (chat loggers, bridges, sign loggers). It goes to the dialog when one is wired, else
+     * the anvil; a dialog configured on a server without one goes to the anvil too, never to the sign a dialog
+     * otherwise falls back to.
+     */
+    static InputMode modeFor(InputMode configured, boolean secret, boolean dialogWired) {
+        if (!secret || configured == InputMode.ANVIL || (configured == InputMode.DIALOG && dialogWired)) {
+            return configured;
+        }
+        return dialogWired ? InputMode.DIALOG : InputMode.ANVIL;
     }
 
     /**

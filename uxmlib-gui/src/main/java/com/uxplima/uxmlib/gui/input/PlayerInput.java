@@ -10,6 +10,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.SignChangeEvent;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -51,6 +52,7 @@ public final class PlayerInput implements Listener {
     private final InputRouter router;
     private final AnvilInput anvil;
     private final SignPrompt signPrompt = new SignPrompt();
+    private final ChatEcho echo = new ChatEcho();
 
     public PlayerInput(Plugin plugin) {
         this(plugin, null, DEFAULT_CANCEL_KEYWORD);
@@ -168,10 +170,27 @@ public final class PlayerInput implements Listener {
         return true;
     }
 
-    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    /**
+     * Paper raises a chat line as this legacy event first whenever any plugin listens to it, so a chat request is
+     * answered here when it is, and the line hidden from every later listener of either event, since it may be a
+     * secret.
+     */
+    @SuppressWarnings("deprecation")
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onLegacyChat(AsyncPlayerChatEvent event) {
+        Player player = event.getPlayer();
+        if (handleChat(player, Component.text(event.getMessage()))) {
+            echo.mark(player.getUniqueId(), System.currentTimeMillis());
+            ChatPrivacy.hide(event);
+        }
+    }
+
+    /** Answers a chat request, or hides the second raising of a line {@link #onLegacyChat} answered already. */
+    @EventHandler(priority = EventPriority.LOWEST)
     public void onChat(AsyncChatEvent event) {
-        if (handleChat(event.getPlayer(), event.message())) {
-            event.setCancelled(true);
+        Player player = event.getPlayer();
+        if (echo.take(player.getUniqueId(), System.currentTimeMillis()) || handleChat(player, event.message())) {
+            ChatPrivacy.hide(event);
         }
     }
 
@@ -193,6 +212,7 @@ public final class PlayerInput implements Listener {
         // restore() is idempotent, so this is harmless for ANVIL/CHAT quits with nothing pending.
         signPrompt.restore(event.getPlayer());
         router.cancel(event.getPlayer().getUniqueId());
+        echo.forget(event.getPlayer().getUniqueId());
     }
 
     private void dispatchOnRegion(Player player, Runnable task) {

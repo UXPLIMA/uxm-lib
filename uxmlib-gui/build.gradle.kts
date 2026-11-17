@@ -10,4 +10,7 @@ dependencies {
     api(project(":uxmlib-bedrock"))
     compileOnly(libs.paper.api)
     compileOnly(libs.bundles.adventure)
+
+    testImplementation(libs.paper.api)
+    testImplementation(libs.bundles.adventure)
 }

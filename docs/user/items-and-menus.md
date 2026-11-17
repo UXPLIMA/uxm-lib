@@ -264,6 +264,11 @@ What the engine adds over a plain layout reader:
   chain and cannot stop it.
 - **Continuations.** An `input:` or a `confirm:` action splits the chain: the rest of it runs when the
   viewer answers, through the same anvil, chat, sign, or dialog input `uxmlib-gui` installs.
+- **Private input.** A line typed in chat as input is taken from the first chat event Paper raises, legacy or
+  modern, and both are cancelled with the message emptied and the recipients dropped, so no chat logger or bridge
+  listening after it reads the line. A plugin marks a PIN or a password with `InputRequest.asSecret()`, and it is
+  then never asked for in chat or on a sign, whatever the operator's mode: a dialog when one is wired, else an
+  anvil. `TextInput.cancel(player)` drops a pending chat prompt.
 - **A property editor.** Text, number, toggle, enum, colour, and list properties over one object, each
   with its own picker window, so a plugin that edits a configuration object writes no menu for it.
 - **Icons from other plugins.** An icon spec may name a head, a serialized stack, or an item held by
