@@ -58,6 +58,11 @@ rclaim         = "2.6.0"        # com.github.Weesli:RClaim
 # must not do, so the exact timestamped build is named instead. It is compileOnly, so it reaches neither the
 # POM nor the jar and no consumer inherits it. Bump it deliberately, the way every other line here is bumped.
 floodgate      = "2.2.5-20260809.110940-20"
+# org.geysermc.api:base-api, Geyser's own API surface for a server that runs Geyser without Floodgate: the
+# connection lookup, the xuid and the form send. Unlike the floodgate api it has real releases, so a release is
+# named. It is taken without its dependencies: Cumulus already arrives with the floodgate api at the same 1.1.2
+# Geyser builds against, and its events artifact is a snapshot nothing here uses.
+geyser-base    = "1.0.3"
 
 junit    = "5.12.1"
 
@@ -100,6 +105,7 @@ claim-griefprevention = { module = "com.github.TechFortress:GriefPrevention", ve
 claim-simpleclaimsystem = { module = "com.github.Xyness:SimpleClaimSystem", version.ref = "simpleclaimsystem" }
 claim-rclaim      = { module = "com.github.Weesli:RClaim",               version.ref = "rclaim" }
 floodgate-api     = { module = "org.geysermc.floodgate:api",             version.ref = "floodgate" }
+geyser-base-api   = { module = "org.geysermc.api:base-api",              version.ref = "geyser-base" }
 lettuce-core      = { module = "io.lettuce:lettuce-core",              version.ref = "lettuce" }
 
 junit-bom         = { module = "org.junit:junit-bom",                   version.ref = "junit" }

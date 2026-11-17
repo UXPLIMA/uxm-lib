@@ -327,10 +327,20 @@ button image, so a menu file that already names an icon needs no second Bedrock-
 
 Both interfaces follow one shape. Each has a `NONE` constant that names no SDK type and a `forServer`
 factory that returns a backed implementation only when Geyser or Floodgate is enabled. The backed
-implementations are package-private, so `org.geysermc` is named in exactly two files and reached only
+implementations are package-private, so `org.geysermc` is named in exactly three files and reached only
 inside the enabled branch. On a Java-only server the factories answer `NONE`, no Geyser or Floodgate class
 is ever loaded, and a caller never has to guard the call itself. A response from Cumulus arrives off the
 main thread, so a callback hops back onto the viewer's entity thread before it touches the world.
+
+Which plugin answers depends on what the server runs:
+
+- **Floodgate** on the server answers both questions, and wins when Geyser is there too.
+- **Geyser-Spigot without Floodgate** answers both as well: Geyser names the Bedrock connection, its
+  client and its xuid, and sends the form. A Bedrock player there signs in with a Java account, so their
+  name has no prefix.
+- **Geyser on the proxy without Floodgate** leaves the backend no Bedrock API of its own. Support for it
+  is coming: the proxy tells the backend which players are Bedrock and sends their forms, through a
+  detector and a form sender a plugin supplies. Until then those players get the chest menu.
 
 ## Known gaps
 

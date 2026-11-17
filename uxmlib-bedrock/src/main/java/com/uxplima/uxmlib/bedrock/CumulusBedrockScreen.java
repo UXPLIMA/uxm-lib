@@ -4,13 +4,16 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.logging.Logger;
 
 import org.bukkit.entity.Player;
 
+import org.geysermc.api.Geyser;
 import org.geysermc.cumulus.form.CustomForm;
+import org.geysermc.cumulus.form.Form;
 import org.geysermc.cumulus.form.ModalForm;
 import org.geysermc.cumulus.form.SimpleForm;
 import org.geysermc.cumulus.response.CustomFormResponse;
@@ -19,20 +22,57 @@ import org.geysermc.floodgate.api.FloodgateApi;
 import org.jspecify.annotations.Nullable;
 
 /**
- * The Cumulus-backed {@link BedrockScreen}, delegating to the Cumulus form library and the Floodgate SDK. This is
- * the one class that names {@code org.geysermc.cumulus} and {@code org.geysermc.floodgate}; it is instantiated only
- * by {@code BedrockScreen.forServer} behind the {@code isPluginEnabled("floodgate")} guard, so it never loads on a
- * Java-only server and a {@code NoClassDefFoundError} is impossible there.
+ * The Cumulus-backed {@link BedrockScreen}: it builds each form with the Cumulus form library and hands it to the
+ * plugin that carries the player's connection, Floodgate or Geyser. Both take the same Cumulus form, so only the
+ * last call differs, and {@link #viaFloodgate()} and {@link #viaGeyser()} pick it. This is the one screen class that
+ * names {@code org.geysermc}; {@code BedrockScreen.forServer} constructs it only behind the plugin-enabled guard of
+ * the plugin it sends through, so it never loads on a Java-only server and a {@code NoClassDefFoundError} is
+ * impossible there. Each send is a lambda, so the SDK of the other plugin is never resolved.
  *
- * <p>The SDK calls are wrapped defensively: a Floodgate that is present but mid-reload or otherwise not ready can
- * return a null instance or throw, and a menu open must never fail because the form send hiccuped, so any runtime
- * failure is logged and swallowed rather than thrown into the open path. The valid-result handler routes the tapped
- * button's id back through the supplied callback; it fires off the main thread when the viewer responds, and the
- * callback the caller supplies does its own entity-thread hop before touching anything.
+ * <p>The SDK calls are wrapped defensively: a Floodgate or Geyser that is present but mid-reload or otherwise not
+ * ready can return a null instance or throw, and a menu open must never fail because the form send hiccuped, so any
+ * runtime failure is logged and swallowed rather than thrown into the open path. The valid-result handler routes the
+ * tapped button's id back through the supplied callback; it fires off the main thread when the viewer responds, and
+ * the callback the caller supplies does its own entity-thread hop before touching anything.
  */
 final class CumulusBedrockScreen implements BedrockScreen {
 
     private static final Logger LOG = Logger.getLogger(CumulusBedrockScreen.class.getName());
+
+    /** The last step of every send: the form to the plugin that carries the player's connection. */
+    @FunctionalInterface
+    interface FormSender {
+
+        /** Sends {@code form} to {@code player}; {@code false} when the plugin does not know that player. */
+        boolean send(UUID player, Form form);
+    }
+
+    private final FormSender sender;
+
+    CumulusBedrockScreen(FormSender sender) {
+        this.sender = Objects.requireNonNull(sender, "sender");
+    }
+
+    /** The screen for a server with Floodgate, which carries the Bedrock connection to this backend. */
+    static CumulusBedrockScreen viaFloodgate() {
+        return new CumulusBedrockScreen(
+                (player, form) -> FloodgateApi.getInstance().sendForm(player, form));
+    }
+
+    /**
+     * The screen for a server that runs Geyser without Floodgate. Geyser keys its connections by the Java uuid the
+     * player joined with, so the same uuid reaches it.
+     */
+    static CumulusBedrockScreen viaGeyser() {
+        return new CumulusBedrockScreen((player, form) -> Geyser.api().sendForm(player, form));
+    }
+
+    /** Sends {@code form}, noting a player the plugin does not know: such a form never reaches the screen. */
+    private void send(Player player, Form form) {
+        if (!sender.send(player.getUniqueId(), form)) {
+            LOG.warning("event=bedrock_form_undelivered player=" + player.getName());
+        }
+    }
 
     @Override
     public void sendSimpleForm(
@@ -70,7 +110,7 @@ final class CumulusBedrockScreen implements BedrockScreen {
                 }
             });
             builder.closedOrInvalidResultHandler(onClose);
-            FloodgateApi.getInstance().sendForm(player.getUniqueId(), builder.build());
+            send(player, builder.build());
         } catch (RuntimeException notReady) {
             LOG.warning("event=bedrock_form_failed player=" + player.getName() + " reason=" + notReady.getMessage());
         }
@@ -115,7 +155,7 @@ final class CumulusBedrockScreen implements BedrockScreen {
             builder.button2(button2);
             builder.validResultHandler(
                     (form, response) -> (response.clickedButtonId() == 0 ? onButton1 : onButton2).run());
-            FloodgateApi.getInstance().sendForm(player.getUniqueId(), builder.build());
+            send(player, builder.build());
         } catch (RuntimeException notReady) {
             LOG.warning("event=bedrock_modal_failed player=" + player.getName() + " reason=" + notReady.getMessage());
         }
@@ -139,7 +179,7 @@ final class CumulusBedrockScreen implements BedrockScreen {
             builder.input(inputLabel, "", initial != null ? initial : "");
             builder.validResultHandler((form, response) -> onSubmit.accept(response.asInput(0)));
             builder.closedOrInvalidResultHandler(onClose);
-            FloodgateApi.getInstance().sendForm(player.getUniqueId(), builder.build());
+            send(player, builder.build());
         } catch (RuntimeException notReady) {
             LOG.warning("event=bedrock_input_failed player=" + player.getName() + " reason=" + notReady.getMessage());
         }
@@ -169,7 +209,7 @@ final class CumulusBedrockScreen implements BedrockScreen {
             }
             builder.validResultHandler((form, response) -> onSubmit.accept(collect(widgets, response, contentPresent)));
             builder.closedOrInvalidResultHandler(onClose);
-            FloodgateApi.getInstance().sendForm(player.getUniqueId(), builder.build());
+            send(player, builder.build());
         } catch (RuntimeException notReady) {
             LOG.warning("event=bedrock_custom_failed player=" + player.getName() + " reason=" + notReady.getMessage());
         }

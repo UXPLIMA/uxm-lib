@@ -12,15 +12,15 @@ import org.bukkit.entity.Player;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Sends a Bedrock (Floodgate) player a native Cumulus form in place of a chest menu. A caller builds a
- * SimpleForm from the entries it wants to show and hands it here; the SDK detail of turning that into a Cumulus
- * form and routing the tap back lives behind this interface, so a caller names neither Cumulus nor Floodgate.
+ * Sends a Bedrock player a native Cumulus form in place of a chest menu. A caller builds a SimpleForm from the
+ * entries it wants to show and hands it here; the SDK detail of turning that into a Cumulus form and routing the
+ * tap back lives behind this interface, so a caller names neither Cumulus, Floodgate nor Geyser.
  *
  * <p>The Java-only default is {@link #NONE}: it does nothing and carries no SDK reference, so a server without
- * Floodgate never touches Cumulus. When Floodgate is installed the {@link #forServer(Server)} factory returns the
- * Cumulus-backed screen instead: that concrete class is the only place the {@code org.geysermc} SDK is named, and
- * the factory constructs it strictly behind the {@code isPluginEnabled("floodgate")} guard, so it (and the SDK it
- * references) never loads on a Java-only server. A caller reaches this only after a
+ * Floodgate or Geyser never touches Cumulus. When either is installed the {@link #forServer(Server)} factory
+ * returns the Cumulus-backed screen instead, sending through that plugin: that concrete class is the only screen
+ * that names the {@code org.geysermc} SDK, and the factory constructs it strictly behind the plugin-enabled guard,
+ * so it (and the SDK it references) never loads on a Java-only server. A caller reaches this only after a
  * {@link BedrockDetector} has confirmed the viewer is a Bedrock player, so {@link #NONE} is never actually sent a
  * form.
  */
@@ -71,9 +71,9 @@ public interface BedrockScreen {
     };
 
     /**
-     * Whether a form sent here reaches the player. {@link #NONE} answers {@code false}: a Bedrock player recognised
-     * through Geyser alone, on a server without Floodgate, has nothing to send a form with, so a menu opens as the
-     * chest instead of a form that never arrives.
+     * Whether a form sent here reaches the player. {@link #NONE} answers {@code false}: a server with neither
+     * Floodgate nor Geyser has nothing to send a form with, so a menu opens as the chest instead of a form that never
+     * arrives.
      */
     default boolean available() {
         return true;
@@ -186,17 +186,24 @@ public interface BedrockScreen {
             Runnable onClose);
 
     /**
-     * Selects the screen for this server: the Cumulus-backed one when the {@code floodgate} plugin is enabled,
-     * otherwise {@link #NONE}. The Cumulus-backed screen is named only inside the enabled branch, so on a server
-     * without Floodgate its class, and the {@code org.geysermc} SDK it references, is never loaded.
+     * Selects the screen for this server: the Cumulus-backed one sending through Floodgate when the
+     * {@code floodgate} plugin is enabled, through Geyser when only {@code Geyser-Spigot} is, otherwise
+     * {@link #NONE}. The Cumulus-backed screen is named only inside the enabled branches, so on a server with
+     * neither its class, and the {@code org.geysermc} SDK it references, is never loaded.
+     *
+     * <p>Floodgate wins when both are installed, as it does for {@link BedrockDetector#forServer(Server)}, so the
+     * detector and the screen always answer from the same plugin.
      *
      * @param server the running server, used only to probe plugin presence; never {@code null}
-     * @return a Cumulus-backed screen when Floodgate is enabled, else {@link #NONE}
+     * @return a Cumulus-backed screen when Floodgate or Geyser is enabled, else {@link #NONE}
      */
     static BedrockScreen forServer(Server server) {
         Objects.requireNonNull(server, "server");
         if (server.getPluginManager().isPluginEnabled("floodgate")) {
-            return new CumulusBedrockScreen();
+            return CumulusBedrockScreen.viaFloodgate();
+        }
+        if (server.getPluginManager().isPluginEnabled("Geyser-Spigot")) {
+            return CumulusBedrockScreen.viaGeyser();
         }
         return NONE;
     }
@@ -204,9 +211,9 @@ public interface BedrockScreen {
     /**
      * A screen that asks {@link #forServer} again on each use until a backend answers, then keeps it.
      *
-     * <p>For a plugin that enables at {@code STARTUP}: it runs before Floodgate whatever load order it declares,
-     * so {@link #forServer} called from its enable always answers {@link #NONE}. Every other plugin keeps calling
-     * {@link #forServer}, which answers once and costs nothing per use.
+     * <p>For a plugin that enables at {@code STARTUP}: it runs before Floodgate and Geyser whatever load order it
+     * declares, so {@link #forServer} called from its enable always answers {@link #NONE}. Every other plugin keeps
+     * calling {@link #forServer}, which answers once and costs nothing per use.
      *
      * @param server the running server, probed for the backend on each use until one is found; never {@code null}
      * @return a screen that is {@link #NONE} until a backend enables, and that backend from then on
