@@ -146,7 +146,11 @@ public final class MenuActionContext {
      * The arguments filled as a line of words rather than as data: every value a player typed escaped so MiniMessage
      * reads it as what they typed, every value an operator wrote as written. An action that parses its argument as
      * MiniMessage and sends it reads this instead of {@link #args()}, or a player who types a tag into a menu argument
-     * or a prompt has it drawn. A context built from arguments already filled answers {@link #args()}.
+     * or a prompt has it drawn.
+     *
+     * <p>A context built from arguments already filled, through a public constructor rather than {@link #written},
+     * answers {@link #args()} unescaped: it no longer knows which part was typed, so escaping that is its builder's
+     * job.
      */
     public Map<String, String> textArgs() {
         Map<String, String> source = written;
@@ -157,7 +161,11 @@ public final class MenuActionContext {
      * The arguments filled with every value a player typed put through {@code typed}, and every value an operator
      * wrote, or an argument the opener vouched for as markup, as written. An action that sends its argument in a format
      * other than MiniMessage reads this with that format's escape: JSON string content for a JSON component, the colour
-     * codes taken out for a legacy line. A context built from arguments already filled answers {@link #args()}.
+     * codes taken out for a legacy line.
+     *
+     * <p>A context built from arguments already filled, through a public constructor rather than {@link #written},
+     * answers {@link #args()} unescaped and never calls {@code typed}: it no longer knows which part was typed, so
+     * escaping that is its builder's job.
      */
     public Map<String, String> args(UnaryOperator<String> typed) {
         Objects.requireNonNull(typed, "typed");
