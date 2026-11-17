@@ -36,7 +36,9 @@ Boards that change while the plugin runs, one per track an operator configures f
 from the next refresh, and one it takes away stops answering at once.
 
 The plugin creates the `{prefix}board` and `{prefix}name` tables in its own migrations; the `SqlBoardStore` Javadoc
-gives their shape. An add is an upsert that sums (a counter) or keeps the higher score (a record) in the database
+gives their shape. The `name` column holds `SqlBoardStore.NAME_LENGTH` (64) characters, so a Floodgate name with its
+prefix and a long offline-mode name are kept; a longer name, a blank one or a uuid string is not written, and the name
+kept before stays. An add is an upsert that sums (a counter) or keeps the higher score (a record) in the database
 itself, so an event for a player who is away, or one counted on another server sharing the database, is kept.
 SQLite, MySQL, MariaDB and PostgreSQL are supported.
 

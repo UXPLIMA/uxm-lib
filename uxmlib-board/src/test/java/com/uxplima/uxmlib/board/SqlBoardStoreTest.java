@@ -25,8 +25,8 @@ class SqlBoardStoreTest {
                     "CREATE TABLE " + board + " (board_name VARCHAR(16) NOT NULL, board_period VARCHAR(16) NOT NULL,"
                             + " window_start BIGINT NOT NULL, player_id VARCHAR(36) NOT NULL, score BIGINT NOT NULL,"
                             + " reached_at BIGINT NOT NULL, PRIMARY KEY (board_name, board_period, window_start, player_id))");
-            sql.execute("CREATE TABLE " + names + " (player_id VARCHAR(36) NOT NULL, name VARCHAR(32) NOT NULL,"
-                    + " PRIMARY KEY (player_id))");
+            sql.execute("CREATE TABLE " + names + " (player_id VARCHAR(36) NOT NULL, name VARCHAR("
+                    + SqlBoardStore.NAME_LENGTH + ") NOT NULL, PRIMARY KEY (player_id))");
         });
         return new SqlBoardStore(database, board, names, Logger.getLogger("test"));
     }
@@ -47,6 +47,44 @@ class SqlBoardStoreTest {
             assertThat(top).extracting(Ranked::score).containsExactly(5L, 5L);
             assertThat(top.get(1).name()).isEqualTo("Alex");
             assertThat(store.countByScore(kills, BoardPeriod.ALLTIME, 0)).isEqualTo(Map.of(5L, 2));
+        }
+    }
+
+    @EveryBackend
+    void aFloodgateNameAndANameAsLongAsTheColumnAreKept(RealDatabase real) {
+        try (Database database = real.open()) {
+            SqlBoardStore store = store(real, database);
+            Board kills = Board.counter("kills");
+            UUID bedrock = UUID.fromString("00000000-0000-0000-0009-01f2a3b4c5d6");
+            String floodgate = ".BedrockGamer123456";
+            String longest = "x".repeat(SqlBoardStore.NAME_LENGTH);
+            store.add(bedrock, kills, WINDOWS, 2, 10);
+            store.add(ALEX, kills, WINDOWS, 1, 10);
+
+            store.name(bedrock, floodgate);
+            store.name(ALEX, longest);
+
+            assertThat(store.top(kills, BoardPeriod.WEEKLY, 100, 10))
+                    .extracting(Ranked::name)
+                    .containsExactly(floodgate, longest);
+        }
+    }
+
+    @EveryBackend
+    void aNameTooLongForTheColumnABlankOneOrAnIdLeavesTheNameKeptBefore(RealDatabase real) {
+        try (Database database = real.open()) {
+            SqlBoardStore store = store(real, database);
+            Board kills = Board.counter("kills");
+            store.add(ALEX, kills, WINDOWS, 1, 10);
+            store.name(ALEX, "Alex");
+
+            store.name(ALEX, "x".repeat(SqlBoardStore.NAME_LENGTH + 1));
+            store.name(ALEX, "  ");
+            store.name(ALEX, ALEX.toString());
+
+            assertThat(store.top(kills, BoardPeriod.WEEKLY, 100, 10))
+                    .extracting(Ranked::name)
+                    .containsExactly("Alex");
         }
     }
 
