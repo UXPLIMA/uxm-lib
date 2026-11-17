@@ -59,7 +59,8 @@ public final class MenuBasics {
         Objects.requireNonNull(bindings, "bindings");
         bindings.defaultAction("close", ctx -> ctx.player().closeInventory());
         bindings.defaultAction("command", ctx -> ctx.player().performCommand(ctx.arg()));
-        bindings.defaultAction("message", ctx -> ctx.player().sendMessage(Text.mini(ctx.arg())));
+        // A message is words, so what a player typed into it is escaped; a command is data and runs as typed.
+        bindings.defaultAction("message", ctx -> ctx.player().sendMessage(Text.mini(ctx.textArg())));
         bindings.defaultAction("sound", MenuBasics::sound);
         bindings.defaultCondition("perm", MenuBasics::holds);
         registerListControls(bindings);

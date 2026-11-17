@@ -1,7 +1,6 @@
 package com.uxplima.uxmlib.menu;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -436,17 +435,10 @@ final class BedrockForms {
      */
     private void runOnSubmit(Player viewer, Shown shown, Map<String, String> values) {
         MenuSpec spec = shown.spec();
-        MenuContext submitCtx = shown.ctx().withLocalPlaceholders(merge(spec.placeholders(), values));
+        // The submitted values are what the player typed, so they go in as typed locals: escaped in a line and never
+        // expanded as a template.
+        MenuContext submitCtx =
+                shown.ctx().withLocalPlaceholders(spec.placeholders()).withTypedLocals(values);
         actions.run(submitCtx, spec.bedrock().orElseThrow().onSubmit(), ClickKind.LEFT, controlFor(viewer, shown));
-    }
-
-    /** The menu's own local placeholders with the submitted values layered on top, the submitted value winning a clash. */
-    private static Map<String, String> merge(Map<String, String> base, Map<String, String> overrides) {
-        if (base.isEmpty()) {
-            return overrides;
-        }
-        Map<String, String> merged = new LinkedHashMap<>(base);
-        merged.putAll(overrides);
-        return merged;
     }
 }

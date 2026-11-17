@@ -359,7 +359,7 @@ public final class Menus {
      * or lore can expand them. A negative page is clamped to zero; an unknown spec id fails loudly here.
      */
     public void open(Player viewer, String specId, @Nullable Object subject, int page, Map<String, String> arguments) {
-        openInternal(viewer, specId, subject, page, arguments, Map.of(), true);
+        openInternal(viewer, specId, subject, page, arguments, Set.of(), Map.of(), true);
     }
 
     /**
@@ -376,7 +376,30 @@ public final class Menus {
             int page,
             Map<String, String> arguments,
             Map<String, Object> passthrough) {
-        openInternal(viewer, specId, subject, page, arguments, passthrough, true);
+        openInternal(viewer, specId, subject, page, arguments, Set.of(), passthrough, true);
+    }
+
+    /**
+     * Open the spec as {@link #open(Player, String, Object, int, Map, Map)} does, with the arguments under {@code
+     * markupArguments} put into the menu's lines as written rather than escaped.
+     *
+     * <p>An argument is escaped where it goes into a line because it is normally what a player typed: one that went in
+     * as written could carry a click event into the menu, or a tag that recolours or hides the rest of the line. This
+     * is for the host that filled an argument itself, with markup it built, and wants it drawn as markup. Name only
+     * such arguments: one that a player can reach, through a command or anywhere else, must never be named here. Where
+     * an argument is read as data (a material, an amount, a condition, an action's argument) it goes in as written
+     * either way. The names ride the open through page flips, refreshes, a {@code back} step and {@code /menu last}.
+     */
+    public void open(
+            Player viewer,
+            String specId,
+            @Nullable Object subject,
+            int page,
+            Map<String, String> arguments,
+            Set<String> markupArguments,
+            Map<String, Object> passthrough) {
+        Objects.requireNonNull(markupArguments, "markupArguments");
+        openInternal(viewer, specId, subject, page, arguments, Set.copyOf(markupArguments), passthrough, true);
     }
 
     /**
@@ -393,6 +416,7 @@ public final class Menus {
             @Nullable Object subject,
             int page,
             Map<String, String> arguments,
+            Set<String> markupArguments,
             Map<String, Object> passthrough,
             boolean record) {
         Objects.requireNonNull(viewer, "viewer");
@@ -407,13 +431,24 @@ public final class Menus {
         int startPage = Math.max(0, page);
         Map<String, String> args = Map.copyOf(arguments);
         MenuContext ctx = MenuContext.of(viewer, subject, startPage, args)
+                .withMarkupArguments(markupArguments)
                 .withLocalPlaceholders(spec.placeholders())
                 .withPassthrough(passthrough);
         scheduler.async(() -> {
             ResolvedLists resolved = resolveLists(spec, ctx);
             scheduler.entity(
                     viewer,
-                    () -> openResolved(viewer, specId, spec, subject, resolved, startPage, args, passthrough, record));
+                    () -> openResolved(
+                            viewer,
+                            specId,
+                            spec,
+                            subject,
+                            resolved,
+                            startPage,
+                            args,
+                            markupArguments,
+                            passthrough,
+                            record));
         });
     }
 
@@ -461,7 +496,8 @@ public final class Menus {
      * for; the typed reader fails loudly here instead.
      */
     private void reopen(Player viewer, LastMenu.LastOpen open) {
-        openInternal(viewer, open.menuId(), null, open.page(), open.arguments(), Map.of(), false);
+        openInternal(
+                viewer, open.menuId(), null, open.page(), open.arguments(), open.markupArguments(), Map.of(), false);
     }
 
     /**
@@ -1257,6 +1293,7 @@ public final class Menus {
             ResolvedLists resolved,
             int page,
             Map<String, String> arguments,
+            Set<String> markupArguments,
             Map<String, Object> passthrough,
             boolean record) {
         if (!viewer.isOnline()) {
@@ -1269,6 +1306,7 @@ public final class Menus {
         // whatever the host passed through; the holder carries this ctx, so a refresh or re-render reads it back and
         // keeps both through the redraw.
         MenuContext ctx = MenuContext.of(viewer, subject, page, arguments)
+                .withMarkupArguments(markupArguments)
                 .withLocalPlaceholders(spec.placeholders())
                 .withPassthrough(passthrough);
         if (!gateOpen(spec, ctx)) {
@@ -1286,13 +1324,13 @@ public final class Menus {
         // unchanged.
         if (wantsForm(viewer) && !spec.keepsTheChest() && spec.bedrock().isPresent()) {
             forms.sendCustomForm(viewer, specId, spec, ctx);
-            afterBedrockOpen(spec, viewer, ctx, viewer, specId, subject, page, arguments, record);
+            afterBedrockOpen(spec, viewer, ctx, viewer, specId, subject, page, arguments, markupArguments, record);
             return;
         }
         // The resolved list cache is threaded through so a list-backed menu's entries page as form buttons.
         if (wantsForm(viewer) && !spec.keepsTheChest()) {
             forms.sendSimpleForm(viewer, specId, spec, ctx, resolved.rows());
-            afterBedrockOpen(spec, viewer, ctx, viewer, specId, subject, page, arguments, record);
+            afterBedrockOpen(spec, viewer, ctx, viewer, specId, subject, page, arguments, markupArguments, record);
             return;
         }
         MenuHolder holder = new MenuHolder(specId, spec, ctx);
@@ -1308,7 +1346,7 @@ public final class Menus {
         }
         viewer.openInventory(inv);
         if (record) {
-            rememberLastOpen(viewer, specId, subject, page, arguments);
+            rememberLastOpen(viewer, specId, subject, page, arguments, markupArguments);
         }
         runOpenActions(spec, viewer, ctx);
         MenuRefresh.start(holder, scheduler, () -> reRender(holder));
@@ -1331,9 +1369,10 @@ public final class Menus {
             @Nullable Object subject,
             int page,
             Map<String, String> arguments,
+            Set<String> markupArguments,
             boolean record) {
         if (record) {
-            rememberLastOpen(viewer, specId, subject, page, arguments);
+            rememberLastOpen(viewer, specId, subject, page, arguments, markupArguments);
         }
         runOpenActions(spec, live, ctx);
     }
@@ -1345,9 +1384,14 @@ public final class Menus {
      * list/spec-only fixture) records nothing.
      */
     private void rememberLastOpen(
-            Player viewer, String specId, @Nullable Object subject, int page, Map<String, String> arguments) {
+            Player viewer,
+            String specId,
+            @Nullable Object subject,
+            int page,
+            Map<String, String> arguments,
+            Set<String> markupArguments) {
         if (lastMenu != null && subject == null) {
-            lastMenu.record(viewer.getUniqueId(), new LastMenu.LastOpen(specId, page, arguments));
+            lastMenu.record(viewer.getUniqueId(), new LastMenu.LastOpen(specId, page, arguments, markupArguments));
         }
     }
 
@@ -1443,10 +1487,10 @@ public final class Menus {
      * touching the live inventory is legal. Skipped when the engine was wired without an action registry (a list/spec-
      * only test engine). Each ref is resolved against the
      * action registry (the same registry-aware split the click path takes) and dispatched through a {@link
-     * MenuActionContext} carrying {@link ClickKind#LEFT} as the neutral kind (no gesture fired on an open) and the
-     * four-argument, no-control constructor, so a {@code refresh} written as an open-action is a harmless no-op rather
-     * than a null-control failure. An action's {@code %argument_<name>%} tokens are expanded from the arguments the
-     * menu was opened with, matching the click and render paths. Open-actions fire simply here; the per-action delay
+     * MenuActionContext} carrying {@link ClickKind#LEFT} as the neutral kind (no gesture fired on an open) and {@link
+     * MenuControl#NOOP}, so a {@code refresh} written as an open-action is a harmless no-op rather than a null-control
+     * failure. An action's {@code %argument_<name>%} tokens and the menu's local {@code %name%} tokens are expanded in
+     * one pass, matching the click and render paths. Open-actions fire simply here; the per-action delay
      * and chance modifiers a click action honours are a later concern.
      */
     private void runOpenActions(MenuSpec spec, Player live, MenuContext ctx) {
@@ -1457,8 +1501,8 @@ public final class Menus {
         for (Ref ref : spec.openActions()) {
             Ref eff = ref.resolve(actions::has);
             actions.get(eff.id())
-                    .ifPresent(handler -> handler.accept(new MenuActionContext(
-                            ctx, live, ClickKind.LEFT, ActionArguments.resolve(eff.args(), ctx.arguments()))));
+                    .ifPresent(handler -> handler.accept(
+                            MenuActionContext.written(ctx, live, ClickKind.LEFT, eff.args(), MenuControl.NOOP)));
         }
     }
 
@@ -1492,14 +1536,12 @@ public final class Menus {
         }
         for (Ref ref : refs) {
             Ref eff = ref.resolve(actions::has);
-            Map<String, String> args = ActionArguments.resolveLocals(
-                    ActionArguments.resolve(eff.args(), ctx.arguments()), ctx.localPlaceholders());
             java.util.Optional<java.util.function.Consumer<MenuActionContext>> handler = actions.get(eff.id());
             if (handler.isEmpty()) {
                 warnUnknownAction(eff);
                 continue;
             }
-            handler.get().accept(new MenuActionContext(ctx, viewer, kind, args, control));
+            handler.get().accept(MenuActionContext.written(ctx, viewer, kind, eff.args(), control));
         }
     }
 
