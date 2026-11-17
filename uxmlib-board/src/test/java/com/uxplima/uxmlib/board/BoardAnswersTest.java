@@ -2,12 +2,14 @@ package com.uxplima.uxmlib.board;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
@@ -16,8 +18,14 @@ import org.junit.jupiter.api.Test;
 
 class BoardAnswersTest {
 
-    private static final UUID ALEX = UUID.fromString("00000000-0000-0000-0000-00000000000a");
-    private static final UUID SAM = UUID.fromString("00000000-0000-0000-0000-00000000000b");
+    /** Accounts Mojang made: version 4 ids. */
+    private static final UUID ALEX = UUID.fromString("00000000-0000-4000-8000-00000000000a");
+
+    private static final UUID SAM = UUID.fromString("00000000-0000-4000-8000-00000000000b");
+    /** An offline-mode account: its id derived from its name, version 3. */
+    private static final UUID OFFLINE = UUID.nameUUIDFromBytes("OfflinePlayer:Notch".getBytes(StandardCharsets.UTF_8));
+    /** A Bedrock account through Floodgate: the Xbox user id under a zero high half, version 0. */
+    private static final UUID BEDROCK = UUID.fromString("00000000-0000-0000-0009-01f2a3b4c5d6");
     // A Wednesday at noon: the week starts again in 4 days and 12 hours, the day in 12 hours.
     private static final Instant NOON = Instant.parse("2030-01-02T12:00:00Z");
 
@@ -164,9 +172,33 @@ class BoardAnswersTest {
 
     @Test
     void aHeadIsDrawnByNameWhenAnAccountCanHaveIt() {
-        assertThat(BoardAnswers.headOf(SAM, "Sam_1")).isEqualTo("Sam_1");
-        assertThat(BoardAnswers.headOf(SAM, ".BedrockSam")).isEqualTo(SAM.toString());
-        assertThat(BoardAnswers.headOf(SAM, null)).isEqualTo(SAM.toString());
+        assertThat(BoardAnswers.headOf(SAM, "Sam_1", "steve")).isEqualTo("Sam_1");
+        assertThat(BoardAnswers.headOf(SAM, "Sam.With.Dots", "steve")).isEqualTo(SAM.toString());
+        assertThat(BoardAnswers.headOf(SAM, null, "steve")).isEqualTo(SAM.toString());
         assertThat(answers.answer(SAM, "Sam", "head")).isEqualTo("Sam");
+    }
+
+    @Test
+    void anOfflineModeOrBedrockAccountIsDrawnAsTheEmptyHeadNeverByItsName() {
+        // "Notch" at Mojang is somebody else; a Floodgate id is nobody there.
+        assertThat(BoardAnswers.headOf(OFFLINE, "Notch", "steve")).isEqualTo("steve");
+        assertThat(BoardAnswers.headOf(BEDROCK, ".BedrockSam", "steve")).isEqualTo("steve");
+        assertThat(BoardAnswers.headOf(BEDROCK, "BedrockSam", "steve")).isEqualTo("steve");
+        assertThat(answers.answer(OFFLINE, "Notch", "head")).isEqualTo("steve");
+        assertThat(answers.answer(BEDROCK, ".BedrockSam", "head")).isEqualTo("steve");
+    }
+
+    @Test
+    void aHeadThePluginKeepsIsDrawnFirstForEveryAccount() {
+        BoardAnswers withSkins = new BoardAnswers(
+                leaderboard,
+                standings,
+                new Words(),
+                () -> "steve",
+                player -> player.equals(BEDROCK) ? Optional.of("skins/bedrock-sam") : Optional.empty());
+
+        assertThat(withSkins.answer(BEDROCK, ".BedrockSam", "head")).isEqualTo("skins/bedrock-sam");
+        assertThat(withSkins.answer(OFFLINE, "Notch", "head")).isEqualTo("steve");
+        assertThat(withSkins.answer(SAM, "Sam", "head")).isEqualTo("Sam");
     }
 }

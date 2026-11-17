@@ -6,6 +6,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
@@ -36,19 +37,38 @@ public final class BoardAnswers {
     /** A name an account can have. Anything else, a Bedrock name with its prefix for one, is drawn by its id. */
     private static final Pattern ACCOUNT_NAME = Pattern.compile("[A-Za-z0-9_]{1,16}");
 
+    /** The uuid version Mojang gives an account; the client can ask Mojang only about these. */
+    private static final int MOJANG_UUID_VERSION = 4;
+
     private record Target(Board board, BoardPeriod period) {}
 
     private final Leaderboard leaderboard;
     private final Standings standings;
     private final BoardText text;
     private final Supplier<String> emptyHead;
+    private final Function<UUID, Optional<String>> storedHead;
 
     /** @param emptyHead read on every answer, so a reload changes it */
     public BoardAnswers(Leaderboard leaderboard, Standings standings, BoardText text, Supplier<String> emptyHead) {
+        this(leaderboard, standings, text, emptyHead, player -> Optional.empty());
+    }
+
+    /**
+     * @param emptyHead read on every answer, so a reload changes it
+     * @param storedHead the head the plugin keeps for a player, as a texture path the tag takes, answered from
+     *     memory since a placeholder may be read on a server thread; it is drawn before anything else
+     */
+    public BoardAnswers(
+            Leaderboard leaderboard,
+            Standings standings,
+            BoardText text,
+            Supplier<String> emptyHead,
+            Function<UUID, Optional<String>> storedHead) {
         this.leaderboard = Objects.requireNonNull(leaderboard, "leaderboard");
         this.standings = Objects.requireNonNull(standings, "standings");
         this.text = Objects.requireNonNull(text, "text");
         this.emptyHead = Objects.requireNonNull(emptyHead, "emptyHead");
+        this.storedHead = Objects.requireNonNull(storedHead, "storedHead");
     }
 
     /** Whether {@code request}, in lower case and without the plugin's prefix, is one this class answers. */
@@ -80,21 +100,46 @@ public final class BoardAnswers {
             return resets(reader, request.substring(RESETS.length()));
         }
         if (request.equals(HEAD)) {
-            return reader == null ? null : headOf(reader, readerName);
+            return reader == null ? null : head(reader, readerName);
         }
         return null;
     }
 
     /**
-     * What a {@code <head:...>} tag draws a player from: their name when an account can have it, their id otherwise.
-     *
-     * <p>The name first, because a server in offline mode, or one behind a proxy that does not forward identities,
-     * gives every player an id no account has, and the client draws a stock skin for it. A name finds the account's
-     * own skin. A name an account cannot have would fail the tag, so it falls back to the id, which the tag takes.
+     * What a {@code <head:...>} tag draws {@code player} from: the head the plugin keeps for them, else as
+     * {@link #headOf(UUID, String, String)} says, with the configured empty head.
      */
-    public static String headOf(UUID player, @Nullable String name) {
+    public String head(UUID player, @Nullable String name) {
         Objects.requireNonNull(player, "player");
+        Optional<String> stored = storedHead.apply(player).filter(texture -> !texture.isBlank());
+        return stored.isPresent() ? stored.get() : headOf(player, name, emptyHead.get());
+    }
+
+    /**
+     * What a {@code <head:...>} tag draws a player from, given no head of their own. The tag hands a name or an id to
+     * the client, which asks Mojang about it, so only an account Mojang made (a version 4 id) is drawn that way: by
+     * its name when an account can have it, else by its id. An offline-mode account (version 3) or a Bedrock one
+     * through Floodgate (version 0) is drawn as {@code emptyHead}, since Mojang would answer with whoever holds its
+     * name there, or with no one.
+     */
+    public static String headOf(UUID player, @Nullable String name, String emptyHead) {
+        Objects.requireNonNull(player, "player");
+        Objects.requireNonNull(emptyHead, "emptyHead");
+        if (player.version() != MOJANG_UUID_VERSION) {
+            return emptyHead;
+        }
         return name != null && ACCOUNT_NAME.matcher(name).matches() ? name : player.toString();
+    }
+
+    /**
+     * As {@link #headOf(UUID, String, String)}, with the stock Steve head for an account Mojang did not make.
+     *
+     * @deprecated a board has a configured empty head: use {@link #head(UUID, String)}, or the three-argument form
+     */
+    @Deprecated
+    @SuppressWarnings("InlineMeSuggester") // inlining would hard-code Steve where a caller has its own empty head
+    public static String headOf(UUID player, @Nullable String name) {
+        return headOf(player, name, BoardSettings.STEVE);
     }
 
     /** {@code <board>_<period>_<n>_<field>}. */
@@ -117,7 +162,7 @@ public final class BoardAnswers {
             case "value" ->
                 row.map(held -> text.score(board, target.get().period(), held.score(), reader))
                         .orElseGet(() -> text.none(reader));
-            case "head" -> row.map(held -> headOf(held.player(), held.name())).orElseGet(emptyHead);
+            case "head" -> row.map(held -> head(held.player(), held.name())).orElseGet(emptyHead);
             default -> null;
         };
     }
