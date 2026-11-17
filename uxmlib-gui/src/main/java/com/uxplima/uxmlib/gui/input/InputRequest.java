@@ -21,13 +21,21 @@ import org.jspecify.annotations.Nullable;
  * @param label the prompt catalog line, resolved in the player's locale
  * @param placeholders the {@code {name}} substitutions for the label (e.g. the currency, the entry being edited)
  * @param initialText the anvil pre-fill, or {@code null} for an empty field
+ * @param secret whether the line is a secret, a PIN or a password: it is then never asked for in chat or on a sign,
+ *     whose lines other plugins receive, whatever mode the operator chose for the key
  */
 @NullMarked
 public record InputRequest(
         String key,
         String label,
         Map<String, String> placeholders,
-        @Nullable String initialText) {
+        @Nullable String initialText,
+        boolean secret) {
+
+    /** A request that is not a secret. */
+    public InputRequest(String key, String label, Map<String, String> placeholders, @Nullable String initialText) {
+        this(key, label, placeholders, initialText, false);
+    }
 
     public InputRequest {
         Objects.requireNonNull(key, "key");
@@ -51,6 +59,11 @@ public record InputRequest(
     /** A request whose anvil field starts with {@code initialText} (the chat backend ignores it). */
     public static InputRequest withInitial(String key, String label, String initialText) {
         return new InputRequest(key, label, Map.of(), Objects.requireNonNull(initialText, "initialText"));
+    }
+
+    /** This request, for a secret line: never asked for in chat or on a sign. */
+    public InputRequest asSecret() {
+        return new InputRequest(key, label, placeholders, initialText, true);
     }
 
     /** The anvil pre-fill text, if any. */
