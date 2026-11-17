@@ -272,6 +272,9 @@ What the engine adds over a plain layout reader:
   there.
 - **A Bedrock viewer sees a form.** When the spec carries a `bedrock` block and the viewer is a Bedrock
   player, the engine sends the native form instead of the chest. See [Bedrock forms](#bedrock-forms).
+  A form is gone once tapped, so an action that repaints the menu (`ctx.control().refresh()`) sends it again
+  from the menu's current state, once per tap. Dismissing a form runs the menu's close actions and fires
+  `MenuCloseEvent`, which a closed chest fires too, so a view that tracks whether its menu is open listens there.
 - **The file is written as well as read.** `MenuSpecWriter` turns a `MenuSpec` back into the HOCON the
   loader parses, so a plugin can ship an in-game menu editor without carrying a writer of its own. It is
   model faithful rather than byte faithful: see [Known gaps](#known-gaps).
