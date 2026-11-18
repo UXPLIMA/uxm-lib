@@ -1,10 +1,8 @@
 package com.uxplima.uxmlib.gui.input;
 
 import java.time.Duration;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
@@ -13,6 +11,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.plugin.Plugin;
 
@@ -35,6 +34,15 @@ import org.jspecify.annotations.Nullable;
  * before the call site's callback runs, so the call site never has to. {@code Cancelled} is never produced here: a chat
  * prompt has no structural cancel; typing a cancel keyword is detected upstream by {@link TextInput} from the submitted
  * text. Install once on enable and {@link #uninstall()} on disable so a disabled plugin holds no listener.
+ *
+ * <p><b>Privacy.</b> A captured line may be a secret, a PIN or a password. Paper raises a chat line as the legacy
+ * {@code AsyncPlayerChatEvent} first whenever any plugin listens to it, and only then as {@link AsyncChatEvent}, so the
+ * capture listens to both at the lowest priority. It takes the line from whichever comes first, and in both it cancels
+ * the event, empties the message and drops the recipients, so a chat logger or a bridge listening later reads nothing,
+ * cancelled or not. A listener at the same lowest priority registered before this one is outside its reach. *
+ * <p>This is best-effort hiding, not a secure channel: the event's {@code originalMessage()} and
+ * {@code signedMessage()}, {@code AsyncChatDecorateEvent}, and a lowest-priority listener registered before the
+ * capture still see the raw text. A real secret is asked for with {@link InputRequest#asSecret()}, never in chat.
  */
 @NullMarked
 final class ChatTextBackend implements TextInputBackend, Listener {
@@ -42,7 +50,7 @@ final class ChatTextBackend implements TextInputBackend, Listener {
     private static final Duration PROMPT_EXPIRY = Duration.ofMinutes(2);
 
     private final Plugin plugin;
-    private final Map<UUID, Pending> pending = new ConcurrentHashMap<>();
+    private final ChatPrompts prompts = new ChatPrompts();
 
     ChatTextBackend(Plugin plugin) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
@@ -56,7 +64,7 @@ final class ChatTextBackend implements TextInputBackend, Listener {
     /** Unregister the listener and drop any pending prompts. Call on disable; mirrors {@link #install()}. */
     void uninstall() {
         HandlerList.unregisterAll(this);
-        pending.clear();
+        prompts.clear();
     }
 
     @Override
@@ -65,31 +73,41 @@ final class ChatTextBackend implements TextInputBackend, Listener {
         Objects.requireNonNull(prompt, "prompt");
         Objects.requireNonNull(outcome, "outcome");
         // The chat field cannot be pre-seeded, so initialText is intentionally ignored here.
-        pending.put(player.getUniqueId(), new Pending(outcome, System.currentTimeMillis() + PROMPT_EXPIRY.toMillis()));
+        prompts.await(
+                player.getUniqueId(),
+                text -> outcome.accept(new InputResult.Submitted(text)),
+                System.currentTimeMillis() + PROMPT_EXPIRY.toMillis());
         player.sendMessage(prompt);
+    }
+
+    /** Drop {@code player}'s pending prompt, so their next line is chat again. Nothing is reported for it. */
+    void cancel(UUID player) {
+        prompts.cancel(player);
+    }
+
+    // The legacy event is the one Paper raises first whenever any plugin listens to it, so a capture must read it.
+    @SuppressWarnings("deprecation")
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onLegacyChat(AsyncPlayerChatEvent event) {
+        if (prompts.take(
+                event.getPlayer().getUniqueId(), event.getMessage().trim(), System.currentTimeMillis(), true)) {
+            ChatPrivacy.hide(event);
+        }
     }
 
     @EventHandler(priority = EventPriority.LOWEST)
     public void onChat(AsyncChatEvent event) {
-        Pending entry = pending.remove(event.getPlayer().getUniqueId());
-        if (entry == null) {
-            return;
-        }
-        if (System.currentTimeMillis() > entry.deadline()) {
-            return; // the prompt expired: let this line post as a normal chat message rather than swallow it
-        }
-        event.setCancelled(true);
         String text = PlainTextComponentSerializer.plainText()
                 .serialize(event.message())
                 .trim();
-        entry.outcome().accept(new InputResult.Submitted(text));
+        if (prompts.take(event.getPlayer().getUniqueId(), text, System.currentTimeMillis(), false)) {
+            ChatPrivacy.hide(event);
+        }
     }
 
     /** Drop a player's pending prompt when they leave, so a quit mid-prompt never lingers until the deadline. */
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        pending.remove(event.getPlayer().getUniqueId());
+        prompts.cancel(event.getPlayer().getUniqueId());
     }
-
-    private record Pending(Consumer<InputResult> outcome, long deadline) {}
 }

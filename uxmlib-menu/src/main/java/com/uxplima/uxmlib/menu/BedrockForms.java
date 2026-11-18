@@ -1,12 +1,12 @@
 package com.uxplima.uxmlib.menu;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import com.uxplima.uxmlib.bedrock.BedrockButton;
@@ -14,9 +14,11 @@ import com.uxplima.uxmlib.bedrock.BedrockIcons;
 import com.uxplima.uxmlib.bedrock.BedrockImage;
 import com.uxplima.uxmlib.bedrock.BedrockScreen;
 import com.uxplima.uxmlib.bedrock.BedrockWidget;
+import com.uxplima.uxmlib.menu.api.event.MenuCloseEvent;
 import com.uxplima.uxmlib.menu.eval.Pagination;
 import com.uxplima.uxmlib.menu.render.MenuRenderer;
 import com.uxplima.uxmlib.menu.runtime.MenuContext;
+import com.uxplima.uxmlib.menu.runtime.MenuControl;
 import com.uxplima.uxmlib.menu.spec.BedrockFormSpec;
 import com.uxplima.uxmlib.menu.spec.ClickKind;
 import com.uxplima.uxmlib.menu.spec.MenuItemSpec;
@@ -29,14 +31,18 @@ import org.jspecify.annotations.NullMarked;
  * The native forms a Bedrock viewer is shown in place of a chest: the automatic SimpleForm built from a menu's tiles
  * and lists, the explicit {@code bedrock {}} CustomForm, and the gesture form a tile with several gestures asks
  * through. A tap runs through the engine's own action runner, so it reaches the same handler a chest click would.
+ *
+ * <p>A form is gone once tapped. An action that repaints its menu ({@link MenuControl#refresh}) sends the form again
+ * from the menu's current state, so a view that redraws after each tap stays on screen. A viewer who dismisses a form
+ * leaves the menu: its close actions run and a {@link MenuCloseEvent} is fired, as for a chest closed for good.
  */
 @NullMarked
 final class BedrockForms {
 
-    /** Runs a list of action refs for a gesture, the way a chest click runs them. */
+    /** Runs a list of action refs for a gesture, the way a chest click runs them, driving the form through control. */
     @FunctionalInterface
     interface ActionRunner {
-        void run(MenuContext ctx, List<Ref> refs, ClickKind kind);
+        void run(MenuContext ctx, List<Ref> refs, ClickKind kind, MenuControl control);
     }
 
     private final MenuRenderer renderer;
@@ -69,18 +75,62 @@ final class BedrockForms {
      * entity thread (the open path already hopped here); the tap response arrives off-thread, and each handler makes
      * its own hop. The resolved list cache is threaded in so a list-backed menu shows its entries.
      */
-    void sendSimpleForm(Player live, MenuSpec spec, MenuContext ctx, Map<String, List<?>> resolved) {
+    void sendSimpleForm(Player live, String specId, MenuSpec spec, MenuContext ctx, Map<String, List<?>> resolved) {
         Player viewer = ctx.viewer();
+        Shown shown = new Shown(specId, spec, ctx);
         List<BedrockButton> buttons = new ArrayList<>();
         List<Runnable> handlers = new ArrayList<>();
-        appendStaticButtons(spec, ctx, viewer, buttons, handlers);
-        int pageCount = appendListButtons(spec, ctx, viewer, resolved, buttons, handlers);
-        appendPageButtons(spec, ctx, viewer, pageCount, buttons, handlers);
-        bedrockScreen.sendSimpleForm(live, renderer.titleText(spec, ctx), null, buttons, index -> {
-            if (index >= 0 && index < handlers.size()) {
-                handlers.get(index).run();
-            }
-        });
+        appendStaticButtons(shown, viewer, buttons, handlers);
+        int pageCount = appendListButtons(shown, viewer, resolved, buttons, handlers);
+        appendPageButtons(shown, viewer, pageCount, buttons, handlers);
+        bedrockScreen.sendSimpleForm(
+                live,
+                renderer.titleText(spec, ctx),
+                null,
+                buttons,
+                index -> {
+                    if (index >= 0 && index < handlers.size()) {
+                        handlers.get(index).run();
+                    }
+                },
+                () -> scheduler.entity(viewer, () -> dismissed(viewer, shown)));
+    }
+
+    /** The menu a form shows: its id, its spec and the context it was drawn with, the page among it. */
+    private record Shown(String specId, MenuSpec spec, MenuContext ctx) {}
+
+    /**
+     * The control a tap on {@code shown} drives: a repaint sends the same form again from the menu's current state,
+     * its lists read again off the tick as at the open.
+     */
+    private MenuControl controlFor(Player viewer, Shown shown) {
+        return new FormControl(shown.ctx().page(), page -> resend(viewer, shown, page));
+    }
+
+    /** Send {@code shown} again at {@code page}: its custom form, or the automatic one with its lists read again. */
+    private void resend(Player viewer, Shown shown, int page) {
+        MenuContext ctx = shown.ctx().withPage(Math.max(0, page));
+        if (shown.spec().bedrock().isPresent()) {
+            scheduler.entity(viewer, () -> {
+                if (viewer.isOnline()) {
+                    sendCustomForm(viewer, shown.specId(), shown.spec(), ctx);
+                }
+            });
+            return;
+        }
+        resendBedrockPage(viewer, shown, page);
+    }
+
+    /**
+     * The viewer dismissed the form without tapping: they left the menu. Its close actions run, as for a chest
+     * closed for good, and the close is announced for a view that tracks whether its menu is open.
+     */
+    private void dismissed(Player viewer, Shown shown) {
+        if (!viewer.isOnline()) {
+            return;
+        }
+        actions.run(shown.ctx(), shown.spec().closeActions(), ClickKind.LEFT, MenuControl.NOOP);
+        Bukkit.getPluginManager().callEvent(new MenuCloseEvent(viewer, shown.specId(), true));
     }
 
     /**
@@ -92,7 +142,8 @@ final class BedrockForms {
      * runs the block's on-submit actions on the viewer's entity thread: Cumulus responds off-thread, so the hop is
      * explicit. Closing without submitting is a no-op: the viewer simply dismissed the form.
      */
-    void sendCustomForm(Player live, MenuSpec spec, MenuContext ctx) {
+    void sendCustomForm(Player live, String specId, MenuSpec spec, MenuContext ctx) {
+        Shown shown = new Shown(specId, spec, ctx);
         BedrockFormSpec form = spec.bedrock().orElseThrow();
         Player viewer = ctx.viewer();
         String title = renderer.plainText(form.title(), ctx);
@@ -103,10 +154,8 @@ final class BedrockForms {
                 title,
                 content,
                 widgets,
-                values -> scheduler.entity(viewer, () -> runOnSubmit(spec, ctx, values)),
-                () -> {
-                    // The viewer dismissed the form without submitting; there is nothing to run, they just closed it.
-                });
+                values -> scheduler.entity(viewer, () -> runOnSubmit(viewer, shown, values)),
+                () -> scheduler.entity(viewer, () -> dismissed(viewer, shown)));
     }
 
     /** Resolve each widget's display text (and a dropdown's options) against {@code ctx}, keeping its binding name and numeric bounds. */
@@ -161,11 +210,11 @@ final class BedrockForms {
      * button's icon is sourced from the item's own resolved material spec (a material → a Bedrock texture path, a
      * {@code skull:} → an mc-heads avatar URL), so a form button carries the same face the chest icon would.
      */
-    private void appendStaticButtons(
-            MenuSpec spec, MenuContext ctx, Player viewer, List<BedrockButton> buttons, List<Runnable> handlers) {
-        for (MenuItemSpec item : renderer.visibleStaticItemsInSlotOrder(spec, ctx)) {
+    private void appendStaticButtons(Shown shown, Player viewer, List<BedrockButton> buttons, List<Runnable> handlers) {
+        MenuContext ctx = shown.ctx();
+        for (MenuItemSpec item : renderer.visibleStaticItemsInSlotOrder(shown.spec(), ctx)) {
             buttons.add(formButton(item, ctx, viewer));
-            handlers.add(() -> scheduler.entity(viewer, () -> tapped(viewer, ctx, item)));
+            handlers.add(() -> scheduler.entity(viewer, () -> tapped(viewer, shown, ctx, item)));
         }
     }
 
@@ -189,12 +238,12 @@ final class BedrockForms {
      * and the one on its template are read here exactly as they are on a chest.
      */
     private int appendListButtons(
-            MenuSpec spec,
-            MenuContext ctx,
+            Shown shown,
             Player viewer,
             Map<String, List<?>> resolved,
             List<BedrockButton> buttons,
             List<Runnable> handlers) {
+        MenuSpec spec = shown.spec();
         Optional<MenuItemSpec> paged = firstListItem(spec);
         if (paged.isEmpty()) {
             return 1;
@@ -202,7 +251,7 @@ final class BedrockForms {
         // Every list is turned with the page, as on a chest, so the form pages as far as the longest one goes.
         int pageCount = 1;
         for (MenuItemSpec listItem : listItemsInDrawOrder(spec)) {
-            pageCount = Math.max(pageCount, appendRowsOfOneList(listItem, ctx, viewer, resolved, buttons, handlers));
+            pageCount = Math.max(pageCount, appendRowsOfOneList(listItem, shown, viewer, resolved, buttons, handlers));
         }
         return pageCount;
     }
@@ -210,13 +259,14 @@ final class BedrockForms {
     /** One list's rows on the current page as buttons; returns that list's page count. */
     private int appendRowsOfOneList(
             MenuItemSpec listItem,
-            MenuContext ctx,
+            Shown shown,
             Player viewer,
             Map<String, List<?>> resolved,
             List<BedrockButton> buttons,
             List<Runnable> handlers) {
         // Through the renderer, so a form reads the same two view gates a chest does: the list item's own,
         // and the template's, asked once per row. A row a Java viewer cannot see is not a form button.
+        MenuContext ctx = shown.ctx();
         List<?> entries = renderer.visibleListEntries(listItem, ctx, resolved);
         MenuItemSpec template = listItem.list().orElseThrow().template();
         @SuppressWarnings("unchecked") // a list source's element type is opaque to the engine; entries flow as Object
@@ -225,7 +275,7 @@ final class BedrockForms {
         for (Map.Entry<Integer, Object> placement : page.placements()) {
             MenuContext entryCtx = ctx.withEntry(placement.getValue());
             buttons.add(formButton(template, entryCtx, viewer));
-            handlers.add(() -> scheduler.entity(viewer, () -> tapped(viewer, entryCtx, template)));
+            handlers.add(() -> scheduler.entity(viewer, () -> tapped(viewer, shown, entryCtx, template)));
         }
         return page.pageCount();
     }
@@ -249,19 +299,15 @@ final class BedrockForms {
      * control needs none). A single-page menu (a static-only menu or a list that fits one page) adds neither.
      */
     private void appendPageButtons(
-            MenuSpec spec,
-            MenuContext ctx,
-            Player viewer,
-            int pageCount,
-            List<BedrockButton> buttons,
-            List<Runnable> handlers) {
+            Shown shown, Player viewer, int pageCount, List<BedrockButton> buttons, List<Runnable> handlers) {
+        MenuContext ctx = shown.ctx();
         if (ctx.page() > 0) {
             buttons.add(new BedrockButton(renderer.plainMessage(viewer, MenuKeys.PAGE_PREVIOUS), null));
-            handlers.add(() -> resendBedrockPage(viewer, spec, ctx, ctx.page() - 1));
+            handlers.add(() -> resendBedrockPage(viewer, shown, ctx.page() - 1));
         }
         if (ctx.page() + 1 < pageCount) {
             buttons.add(new BedrockButton(renderer.plainMessage(viewer, MenuKeys.PAGE_NEXT), null));
-            handlers.add(() -> resendBedrockPage(viewer, spec, ctx, ctx.page() + 1));
+            handlers.add(() -> resendBedrockPage(viewer, shown, ctx.page() + 1));
         }
     }
 
@@ -280,13 +326,13 @@ final class BedrockForms {
      * have gone offline between the tap and the re-render, so the online player is re-fetched and a missing one
      * skipped.
      */
-    private void resendBedrockPage(Player viewer, MenuSpec spec, MenuContext baseCtx, int page) {
-        MenuContext newCtx = baseCtx.withPage(Math.max(0, page));
+    private void resendBedrockPage(Player viewer, Shown shown, int page) {
+        MenuContext newCtx = shown.ctx().withPage(Math.max(0, page));
         scheduler.async(() -> {
-            Map<String, List<?>> rows = listRows.apply(spec, newCtx);
+            Map<String, List<?>> rows = listRows.apply(shown.spec(), newCtx);
             scheduler.entity(viewer, () -> {
                 if (viewer.isOnline()) {
-                    sendSimpleForm(viewer, spec, newCtx, rows);
+                    sendSimpleForm(viewer, shown.specId(), shown.spec(), newCtx, rows);
                 }
             });
         });
@@ -300,14 +346,14 @@ final class BedrockForms {
      * they could not restock, a quest they could not reroll, a line they could not take off. A tile that binds one
      * gesture runs it, whichever one it is, and a tile that binds several is asked about.
      */
-    private void tapped(Player live, MenuContext ctx, MenuItemSpec item) {
+    private void tapped(Player live, Shown shown, MenuContext ctx, MenuItemSpec item) {
         List<ClickKind> gestures = boundGestures(item);
         if (gestures.size() > 1) {
-            sendGestureForm(live, ctx, item, gestures);
+            sendGestureForm(live, shown, ctx, item, gestures);
             return;
         }
         ClickKind only = gestures.isEmpty() ? ClickKind.LEFT : gestures.get(0);
-        actions.run(ctx, item.click().actionsFor(only), only);
+        actions.run(ctx, item.click().actionsFor(only), only, controlFor(live, shown));
     }
 
     /**
@@ -335,7 +381,8 @@ final class BedrockForms {
      * the viewer reads. Cumulus answers off the server thread, so the chosen gesture hops back onto the viewer's
      * entity thread before it runs, the same hop the first form's tap takes.
      */
-    private void sendGestureForm(Player live, MenuContext ctx, MenuItemSpec item, List<ClickKind> gestures) {
+    private void sendGestureForm(
+            Player live, Shown shown, MenuContext ctx, MenuItemSpec item, List<ClickKind> gestures) {
         Player viewer = ctx.viewer();
         List<BedrockButton> buttons = new ArrayList<>();
         for (ClickKind kind : gestures) {
@@ -346,13 +393,21 @@ final class BedrockForms {
             buttons.add(new BedrockButton(label, null));
         }
         bedrockScreen.sendSimpleForm(
-                live, renderer.plainMessage(viewer, MenuKeys.GESTURE_TITLE), null, buttons, index -> {
+                live,
+                renderer.plainMessage(viewer, MenuKeys.GESTURE_TITLE),
+                null,
+                buttons,
+                index -> {
                     if (index < 0 || index >= gestures.size()) {
                         return;
                     }
                     ClickKind chosen = gestures.get(index);
-                    scheduler.entity(viewer, () -> actions.run(ctx, item.click().actionsFor(chosen), chosen));
-                });
+                    scheduler.entity(
+                            viewer,
+                            () -> actions.run(ctx, item.click().actionsFor(chosen), chosen, controlFor(viewer, shown)));
+                },
+                // Backing out of the question leaves the menu as dismissing its form does: no form is on screen.
+                () -> scheduler.entity(viewer, () -> dismissed(viewer, shown)));
     }
 
     /** The word that names one gesture on the form. */
@@ -378,18 +433,12 @@ final class BedrockForms {
      * the click path expands an item-drag's {@code %drag_*%} tokens. Runs on the viewer's entity thread the caller
      * already hopped onto, through the same shared engine's action runner a form tap uses.
      */
-    private void runOnSubmit(MenuSpec spec, MenuContext ctx, Map<String, String> values) {
-        MenuContext submitCtx = ctx.withLocalPlaceholders(merge(spec.placeholders(), values));
-        actions.run(submitCtx, spec.bedrock().orElseThrow().onSubmit(), ClickKind.LEFT);
-    }
-
-    /** The menu's own local placeholders with the submitted values layered on top, the submitted value winning a clash. */
-    private static Map<String, String> merge(Map<String, String> base, Map<String, String> overrides) {
-        if (base.isEmpty()) {
-            return overrides;
-        }
-        Map<String, String> merged = new LinkedHashMap<>(base);
-        merged.putAll(overrides);
-        return merged;
+    private void runOnSubmit(Player viewer, Shown shown, Map<String, String> values) {
+        MenuSpec spec = shown.spec();
+        // The submitted values are what the player typed, so they go in as typed locals: escaped in a line and never
+        // expanded as a template.
+        MenuContext submitCtx =
+                shown.ctx().withLocalPlaceholders(spec.placeholders()).withTypedLocals(values);
+        actions.run(submitCtx, spec.bedrock().orElseThrow().onSubmit(), ClickKind.LEFT, controlFor(viewer, shown));
     }
 }

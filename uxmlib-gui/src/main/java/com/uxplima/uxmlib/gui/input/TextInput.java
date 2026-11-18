@@ -140,7 +140,7 @@ public final class TextInput {
             sendInputForm(player, request, onSubmit, onCancel);
             return;
         }
-        InputMode mode = settings.modeFor(request.key());
+        InputMode mode = modeFor(settings.modeFor(request.key()), request.secret(), dialogBackend != null);
         TextInputBackend backend = backendFor(mode);
         Component prompt = buildPrompt(player, request.label(), request.placeholders(), mode);
         backend.open(
@@ -171,6 +171,25 @@ public final class TextInput {
             @Nullable String initialText,
             Consumer<String> onSubmit,
             Runnable onCancel) {
+        promptResolved(player, key, prompt, initialText, false, onSubmit, onCancel);
+    }
+
+    /**
+     * As {@link #promptResolved(Player, String, Component, String, Consumer, Runnable)}, for a line that may be a
+     * secret: a PIN or a password, which is then never asked for in chat or on a sign whatever the operator's mode for
+     * {@code key}, the same rule an {@link InputRequest#asSecret() InputRequest marked secret} follows. A Bedrock player
+     * still gets the form.
+     *
+     * @param secret whether the line is a secret
+     */
+    public void promptResolved(
+            Player player,
+            String key,
+            Component prompt,
+            @Nullable String initialText,
+            boolean secret,
+            Consumer<String> onSubmit,
+            Runnable onCancel) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(key, "key");
         Objects.requireNonNull(prompt, "prompt");
@@ -180,7 +199,7 @@ public final class TextInput {
             sendResolvedInputForm(player, prompt, initialText, onSubmit, onCancel);
             return;
         }
-        InputMode mode = settings.modeFor(key);
+        InputMode mode = modeFor(settings.modeFor(key), secret, dialogBackend != null);
         TextInputBackend backend = backendFor(mode);
         // A chat prompt has no cancel button, so it carries the abort hint; a screen backend (anvil/sign) shows the
         // prompt as its own title and needs none: the same rule buildPrompt applies to a catalog-resolved prompt.
@@ -190,6 +209,28 @@ public final class TextInput {
                 effective,
                 initialText,
                 result -> scheduler.entity(player, () -> route(player, result, onSubmit, onCancel)));
+    }
+
+    /**
+     * Drop {@code player}'s pending chat prompt, so their next line is chat again; neither callback of that prompt
+     * runs. A screen the player has open (an anvil, a sign, a dialog, a form) stays theirs to close.
+     */
+    public void cancel(Player player) {
+        Objects.requireNonNull(player, "player");
+        chatBackend.cancel(player.getUniqueId());
+    }
+
+    /**
+     * The mode a prompt opens in: the operator's, except that a secret is never asked for in chat or on a sign, whose
+     * lines other plugins receive (chat loggers, bridges, sign loggers). It goes to the dialog when one is wired, else
+     * the anvil; a dialog configured on a server without one goes to the anvil too, never to the sign a dialog
+     * otherwise falls back to.
+     */
+    static InputMode modeFor(InputMode configured, boolean secret, boolean dialogWired) {
+        if (!secret || configured == InputMode.ANVIL || (configured == InputMode.DIALOG && dialogWired)) {
+            return configured;
+        }
+        return dialogWired ? InputMode.DIALOG : InputMode.ANVIL;
     }
 
     /**

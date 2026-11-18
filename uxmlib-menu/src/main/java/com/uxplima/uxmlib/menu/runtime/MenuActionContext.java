@@ -2,10 +2,12 @@ package com.uxplima.uxmlib.menu.runtime;
 
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.UnaryOperator;
 
 import org.bukkit.entity.Player;
 
 import com.uxplima.uxmlib.menu.spec.ClickKind;
+import org.jspecify.annotations.Nullable;
 
 /**
  * What an action binding receives on a click: the per-open {@link MenuContext} plus the live {@link Player} and the
@@ -32,6 +34,13 @@ public final class MenuActionContext {
     private final MenuControl control;
 
     /**
+     * The arguments as the file wrote them, before any token was filled, when the engine built this context. It is what
+     * {@link #textArgs()} fills again for an action that sends its argument as words. Null for a context built from
+     * arguments already filled, which can no longer tell a typed value from a written one.
+     */
+    private final @Nullable Map<String, String> written;
+
+    /**
      * Whether the action refused. Written by the handler and read by the engine that called it, both on the same
      * thread and with nothing in between, so a plain field says exactly what happens.
      */
@@ -50,11 +59,35 @@ public final class MenuActionContext {
     /** The canonical constructor: the same context plus the engine's handle onto the menu the click fired in. */
     public MenuActionContext(
             MenuContext ctx, Player player, ClickKind clickKind, Map<String, String> args, MenuControl control) {
+        this(ctx, player, clickKind, Map.copyOf(Objects.requireNonNull(args, "args")), null, control);
+    }
+
+    private MenuActionContext(
+            MenuContext ctx,
+            Player player,
+            ClickKind clickKind,
+            Map<String, String> args,
+            @Nullable Map<String, String> written,
+            MenuControl control) {
         this.ctx = Objects.requireNonNull(ctx, "ctx");
         this.player = Objects.requireNonNull(player, "player");
         this.clickKind = Objects.requireNonNull(clickKind, "clickKind");
-        this.args = Map.copyOf(Objects.requireNonNull(args, "args"));
+        this.args = args;
+        this.written = written;
         this.control = Objects.requireNonNull(control, "control");
+    }
+
+    /**
+     * A context for an action ref whose arguments are {@code written} as the file wrote them. They are filled from
+     * {@code ctx} in one pass for {@link #args()}, as data, and kept so {@link #textArgs()} can fill them again as
+     * words. This is the form the engine uses.
+     */
+    public static MenuActionContext written(
+            MenuContext ctx, Player player, ClickKind clickKind, Map<String, String> written, MenuControl control) {
+        Map<String, String> asWritten = Map.copyOf(Objects.requireNonNull(written, "written"));
+        Objects.requireNonNull(ctx, "ctx");
+        return new MenuActionContext(
+                ctx, player, clickKind, Map.copyOf(ActionArguments.resolve(asWritten, ctx)), asWritten, control);
     }
 
     public Player viewer() {
@@ -107,6 +140,42 @@ public final class MenuActionContext {
     /** The single positional argument of an {@code id:value} action ref, or empty when the ref carried none. */
     public String arg() {
         return args.getOrDefault("value", "");
+    }
+
+    /**
+     * The arguments filled as a line of words rather than as data: every value a player typed escaped so MiniMessage
+     * reads it as what they typed, every value an operator wrote as written. An action that parses its argument as
+     * MiniMessage and sends it reads this instead of {@link #args()}, or a player who types a tag into a menu argument
+     * or a prompt has it drawn.
+     *
+     * <p>A context built from arguments already filled, through a public constructor rather than {@link #written},
+     * answers {@link #args()} unescaped: it no longer knows which part was typed, so escaping that is its builder's
+     * job.
+     */
+    public Map<String, String> textArgs() {
+        Map<String, String> source = written;
+        return source == null ? args : ActionArguments.resolveAsText(source, ctx);
+    }
+
+    /**
+     * The arguments filled with every value a player typed put through {@code typed}, and every value an operator
+     * wrote, or an argument the opener vouched for as markup, as written. An action that sends its argument in a format
+     * other than MiniMessage reads this with that format's escape: JSON string content for a JSON component, the colour
+     * codes taken out for a legacy line.
+     *
+     * <p>A context built from arguments already filled, through a public constructor rather than {@link #written},
+     * answers {@link #args()} unescaped and never calls {@code typed}: it no longer knows which part was typed, so
+     * escaping that is its builder's job.
+     */
+    public Map<String, String> args(UnaryOperator<String> typed) {
+        Objects.requireNonNull(typed, "typed");
+        Map<String, String> source = written;
+        return source == null ? args : ActionArguments.resolve(source, ctx, typed);
+    }
+
+    /** The single positional argument filled as words, as {@link #textArgs()} fills it. */
+    public String textArg() {
+        return textArgs().getOrDefault("value", "");
     }
 
     /**

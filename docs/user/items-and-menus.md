@@ -26,6 +26,10 @@ ItemStack button = ItemBuilder.of(Material.LEATHER_CHESTPLATE)
         .build();
 ```
 
+A head given by name never waits on Mojang, so it may be built on a server thread: a Mojang account the server
+already knows under the name is drawn as itself, and any other name is left for the client to draw. Resolve the
+texture with `SkullResolver` off the server thread when the head must show before the client fetches it.
+
 `ItemConfig` reads the same spec from HOCON, `hide-vanilla-tooltip = true` included, so an operator writing
 a menu file reaches for that rather than for the deprecated `HIDE_ADDITIONAL_TOOLTIP` flag. Leave it off for
 an item a player owns: on a kit sword or a vault icon the damage and enchantment lines are the point.
@@ -177,7 +181,9 @@ MenuSpec shop = MenuSpecs.loadOrBundled("menus/shop.conf", dataFolder, 6, log);
 menus.registerSpec("shop", shop);
 
 // A file that names an action, a condition, a placeholder, or a list source that nobody registered is
-// reported here, with every offending name, rather than on the click that would have reached it.
+// reported here, with every offending name, rather than on the click that would have reached it. What the
+// engine fills itself counts as known: %argument_<name>%, %input%, %drag_material%, %drag_amount%,
+// %drag_name%, and the field names of the menu's own bedrock form.
 List<String> problems = bindings.validate(List.of(shop));
 
 menus.open(player, "shop", null);                  // no subject
@@ -263,7 +269,23 @@ What the engine adds over a plain layout reader:
   something the verb that gives has to fold into itself. An action carrying a `delay` is waited off the
   chain and cannot stop it.
 - **Continuations.** An `input:` or a `confirm:` action splits the chain: the rest of it runs when the
-  viewer answers, through the same anvil, chat, sign, or dialog input `uxmlib-gui` installs.
+  viewer answers, through the same anvil, chat, sign, or dialog input `uxmlib-gui` installs. An
+  `input:` step written with `secret = true` asks for a PIN or a password, which never goes to chat or a
+  sign whatever the operator's mode; wire the listener with `MenuTextPrompt.through(...)` so it can.
+- **Private input.** A line typed in chat as input is taken from the first chat event Paper raises, legacy or
+  modern, and both are cancelled with the message emptied and the recipients dropped, so no chat logger or bridge
+  listening after it reads the line. A plugin marks a PIN or a password with `InputRequest.asSecret()`, and it is
+  then never asked for in chat or on a sign, whatever the operator's mode: a dialog when one is wired, else an
+  anvil. `TextInput.cancel(player)` drops a pending chat prompt.
+- **What a player typed stays words.** A menu argument (`%argument_<name>%`), a prompt's `%input%`, a
+  Bedrock form field and a dropped item's `%drag_name%` are escaped where they go into a line: in a line's
+  words, inside a quoted tag argument such as a click's command, and inside a `@key name=value` argument,
+  which is split as written before anything typed goes in. Each is filled once and never read again, so a
+  typed `%papi_player_ip%` reads as those words. A material, an amount, a condition and an action's
+  argument read it as typed; an action that sends its argument as words reads `ctx.textArg()`, as
+  `message:` does, and one that sends a format of its own, JSON or legacy codes, reads
+  `ctx.args(escape)` with that format's escape for what was typed. A plugin that fills an argument with its own markup names it on the open:
+  `menus.open(player, "profile", null, 0, Map.of("rank", rankMarkup), Set.of("rank"), Map.of())`.
 - **A property editor.** Text, number, toggle, enum, colour, and list properties over one object, each
   with its own picker window, so a plugin that edits a configuration object writes no menu for it.
 - **Icons from other plugins.** An icon spec may name a head, a serialized stack, or an item held by
@@ -272,6 +294,9 @@ What the engine adds over a plain layout reader:
   there.
 - **A Bedrock viewer sees a form.** When the spec carries a `bedrock` block and the viewer is a Bedrock
   player, the engine sends the native form instead of the chest. See [Bedrock forms](#bedrock-forms).
+  A form is gone once tapped, so an action that repaints the menu (`ctx.control().refresh()`) sends it again
+  from the menu's current state, once per tap. Dismissing a form runs the menu's close actions and fires
+  `MenuCloseEvent`, which a closed chest fires too, so a view that tracks whether its menu is open listens there.
 - **The file is written as well as read.** `MenuSpecWriter` turns a `MenuSpec` back into the HOCON the
   loader parses, so a plugin can ship an in-game menu editor without carrying a writer of its own. It is
   model faithful rather than byte faithful: see [Known gaps](#known-gaps).
@@ -322,10 +347,45 @@ button image, so a menu file that already names an icon needs no second Bedrock-
 
 Both interfaces follow one shape. Each has a `NONE` constant that names no SDK type and a `forServer`
 factory that returns a backed implementation only when Geyser or Floodgate is enabled. The backed
-implementations are package-private, so `org.geysermc` is named in exactly two files and reached only
-inside the enabled branch. On a Java-only server the factories answer `NONE`, no Geyser or Floodgate class
-is ever loaded, and a caller never has to guard the call itself. A response from Cumulus arrives off the
+implementations are package-private, so `org.geysermc` is named only there and in `CumulusForms`, and
+reached only inside the enabled branch. On a Java-only server the factories answer `NONE`, no Geyser or
+Floodgate class is ever loaded, and a caller never has to guard the call itself. A response from Cumulus arrives off the
 main thread, so a callback hops back onto the viewer's entity thread before it touches the world.
+
+Which plugin answers depends on what the server runs:
+
+- **Floodgate** on the server answers both questions, and wins when Geyser is there too.
+- **Geyser-Spigot without Floodgate** answers both as well: Geyser names the Bedrock connection, its
+  client and its xuid, and sends the form. A Bedrock player there signs in with a Java account, so their
+  name has no prefix.
+- **Geyser on the proxy without Floodgate** leaves the backend no Bedrock API of its own. A plugin with a
+  part on that proxy supplies both answers itself, as below. Without one those players get the chest menu.
+
+### A Bedrock backend a plugin supplies
+
+The proxy knows which players are Bedrock and can send them forms; the backend asks it. A plugin passes its
+own detector and screen as the fallback, and a plugin on the backend itself still wins:
+
+```java
+RelayedBedrockScreen relayed = new RelayedBedrockScreen((player, requestId, request) ->
+        bus.sendToProxy(player, requestId, BedrockFormCodec.encode(request)));   // false when not connected
+BedrockScreen screen = BedrockScreen.resolving(server, relayed);
+BedrockDetector bedrock = BedrockDetector.resolving(server, presenceFromProxy);   // your detector
+
+// On the proxy: build the form, send it with Geyser, and carry the answer back to the backend that asked.
+Form form = CumulusForms.toForm(BedrockFormCodec.decodeRequest(bytes),
+        answer -> bus.sendToBackend(origin, player, requestId, BedrockFormCodec.encode(answer)));
+GeyserApi.api().sendForm(player, form);
+
+// Back on the backend, when the answer arrives, and when the player leaves this server.
+relayed.receive(player, requestId, BedrockFormCodec.decodeResponse(bytes));
+relayed.forget(player);
+```
+
+`BedrockFormRequest` and `BedrockFormResponse` are the form and its answer as plain data. `BedrockFormCodec`
+writes them as bytes and refuses bytes it did not write. `RelayedBedrockScreen` takes an answer only for the
+player and request it sent, once. An answer can hold a secret, such as a PIN: the relay sends it from the proxy
+to the backend that asked and nowhere else, never back to the client, and never logs it.
 
 ## Known gaps
 

@@ -3,6 +3,7 @@ package com.uxplima.uxmlib.menu.binding;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,7 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.uxplima.uxmlib.bedrock.BedrockWidget;
 import com.uxplima.uxmlib.menu.eval.PageRequest;
 import com.uxplima.uxmlib.menu.eval.PagedResult;
 import com.uxplima.uxmlib.menu.providers.ContentProvider;
@@ -42,6 +44,15 @@ public final class MenuBindings {
 
     /** Matches a {@code %token%} placeholder; the captured group is the bare id a feature registers. */
     private static final Pattern PLACEHOLDER = Pattern.compile("%([a-zA-Z0-9_]+)%");
+
+    /** The prefix of a menu argument's token: {@code %argument_<name>%} reads the argument the menu opened with. */
+    private static final String ARGUMENT_PREFIX = "argument_";
+
+    /**
+     * The locals the engine fills while a menu runs: a prompt's answer, and a dropped item's material, amount and
+     * name. A form's fields are the third kind, named by the menu's own {@code bedrock} block.
+     */
+    private static final Set<String> ENGINE_LOCALS = Set.of("input", "drag_material", "drag_amount", "drag_name");
 
     private final ActionRegistry actions = new ActionRegistry();
 
@@ -205,9 +216,14 @@ public final class MenuBindings {
         addMissing(spec.openActions(), actions::has, missing);
         addMissing(spec.closeActions(), actions::has, missing);
         // A token this menu defines in its own placeholders {} block counts as known for this menu (it resolves local-
-        // first at render) so validation accepts it just as it accepts a registered built-in.
-        Predicate<String> placeholderKnown =
-                id -> placeholders.has(id) || spec.placeholders().containsKey(id);
+        // first at render) so validation accepts it just as it accepts a registered built-in. So does a token the
+        // engine fills itself: a menu argument, a prompt's answer, a dropped item, a field of this menu's form.
+        Set<String> formFields = formFields(spec);
+        Predicate<String> placeholderKnown = id -> placeholders.has(id)
+                || spec.placeholders().containsKey(id)
+                || isArgument(id)
+                || ENGINE_LOCALS.contains(id)
+                || formFields.contains(id);
         for (String id : extractPlaceholders(spec.title())) {
             if (!placeholderKnown.test(id)) {
                 missing.add(id);
@@ -223,6 +239,30 @@ public final class MenuBindings {
                         "menu '" + spec.title() + "' content region '" + region.id() + "' has no registered provider");
             }
         }
+    }
+
+    /** Whether {@code id} reads a menu argument: {@code argument_} followed by the argument's name. */
+    private static boolean isArgument(String id) {
+        return id.length() > ARGUMENT_PREFIX.length() && id.startsWith(ARGUMENT_PREFIX);
+    }
+
+    /** The names the fields of this menu's {@code bedrock} form answer under; a label answers nothing. */
+    private static Set<String> formFields(MenuSpec spec) {
+        Set<String> names = new HashSet<>();
+        spec.bedrock().ifPresent(form -> {
+            for (BedrockWidget widget : form.widgets()) {
+                switch (widget) {
+                    case BedrockWidget.Label ignored -> {
+                        // A label shows text and answers nothing.
+                    }
+                    case BedrockWidget.Input input -> names.add(input.name());
+                    case BedrockWidget.Dropdown dropdown -> names.add(dropdown.name());
+                    case BedrockWidget.Slider slider -> names.add(slider.name());
+                    case BedrockWidget.Toggle toggle -> names.add(toggle.name());
+                }
+            }
+        });
+        return names;
     }
 
     /**

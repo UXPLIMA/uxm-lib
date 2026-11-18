@@ -167,17 +167,18 @@ final class ItemMetaSupport {
     static void skull(SkullMeta meta, SkullData skull) {
         switch (skull) {
             case SkullData.ByUuid byUuid -> meta.setOwningPlayer(Bukkit.getOfflinePlayer(byUuid.uuid()));
-            case SkullData.ByName byName -> meta.setOwningPlayer(offlinePlayerByName(byName.name()));
+            case SkullData.ByName byName ->
+                NamedSkull.draw(
+                        byName.name(),
+                        Bukkit::getOfflinePlayerIfCached,
+                        OfflinePlayer::getUniqueId,
+                        meta::setOwningPlayer,
+                        name -> meta.setPlayerProfile(Bukkit.createProfile(null, name)));
             case SkullData.ByTexture byTexture -> {
                 PlayerProfile profile = Bukkit.createProfile(UUID.randomUUID());
                 profile.setProperty(new ProfileProperty("textures", byTexture.base64()));
                 meta.setPlayerProfile(profile);
             }
         }
-    }
-
-    @SuppressWarnings("deprecation") // name-based lookup is the only by-name option; documented on SkullData.ByName
-    private static OfflinePlayer offlinePlayerByName(String name) {
-        return Bukkit.getOfflinePlayer(name);
     }
 }

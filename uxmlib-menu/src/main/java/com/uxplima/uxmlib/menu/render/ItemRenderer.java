@@ -378,7 +378,8 @@ public final class ItemRenderer {
             out.add(resolveText(spec, ctx));
             return;
         }
-        String substituted = applyMath(substitutePlaceholders(dropMathWithMissingOperand(spec, ctx), ctx));
+        String substituted =
+                applyMath(substitutePlaceholders(dropMathWithMissingOperand(spec, ctx), ctx, ValueSpot.TEXT));
         for (String segment : substituted.split("\n", -1)) {
             out.add(guiText.render(segment));
         }
@@ -397,7 +398,7 @@ public final class ItemRenderer {
      * it is the same string.
      */
     private String resolveMaterialSpec(String raw, MenuContext ctx) {
-        return substitutePlaceholders(raw, ctx);
+        return substitutePlaceholders(raw, ctx, ValueSpot.DATA);
     }
 
     /**
@@ -442,12 +443,12 @@ public final class ItemRenderer {
     }
 
     /**
-     * Resolve one text line. Every {@code %token%} is substituted with its placeholder value first; then a line
-     * that originally began with {@code @} is looked up in the locale catalog (the rest is the message key),
-     * while any other line is rendered as an inline MiniMessage literal. A {@code tile:} line takes the second
-     * branch and is a tile rather than a literal, because {@link GuiText#renderFor} is handed the viewer a tile
-     * needs and reads the mark itself. An empty spec yields an empty component so the item simply has no
-     * name/lore line rather than a stray blank.
+     * Resolve one text line. A line that begins with {@code @} is looked up in the locale catalog (the rest is the
+     * message key and its written arguments, see {@link #keyLine}), while any other line has every {@code %token%}
+     * substituted and is rendered as an inline MiniMessage literal. A value a player typed is escaped on both paths.
+     * A {@code tile:} line takes the second branch and is a tile rather than a literal, because {@link
+     * GuiText#renderFor} is handed the viewer a tile needs and reads the mark itself. An empty spec yields an empty
+     * component so the item simply has no name/lore line rather than a stray blank.
      *
      * <p>Both branches are handed the same {@link LinePlaceholders}, which resolves a token when somebody asks for
      * it rather than resolving every registered handler first. A literal line carries its own words, so what it
@@ -459,25 +460,55 @@ public final class ItemRenderer {
         if (s.isEmpty()) {
             return Component.empty();
         }
-        String substituted = substitutePlaceholders(dropMathWithMissingOperand(s, ctx), ctx);
+        String source = dropMathWithMissingOperand(s, ctx);
         Map<String, String> arguments = namedPlaceholders(s, ctx);
         if (s.startsWith("@")) {
             // The catalog entry may carry {token} arguments (e.g. {sound}, {warp}); it fills them from the same
             // placeholders a %token% would use, so a per-entry list item shows that entry's value. It asks for the
             // ones it wants by name and they resolve then, rather than every handler running first in case. A line
             // may also write values after its key, @menu.price item=sword, and those answer first.
-            Optional<CatalogLine> named = CatalogLine.parse(substituted);
-            if (named.isPresent()) {
-                return guiText.text(
-                        ctx.viewer(),
-                        named.get().key(),
-                        writtenFirst(named.get().arguments(), arguments));
-            }
-            return guiText.text(ctx.viewer(), substituted.substring(1), arguments);
+            return keyLine(source, ctx, arguments);
         }
         // Not a key, so the words are in the line. The viewer goes with it anyway: a consumer whose files
         // carry a per-viewer shorthand answers here, and one that does not is handed straight to render.
+        String substituted = substitutePlaceholders(source, ctx, ValueSpot.TEXT);
         return guiText.renderFor(ctx.viewer(), applyMath(substituted), arguments);
+    }
+
+    /**
+     * A {@code @key name=value} line, split into its key and written arguments before a typed value goes into it.
+     *
+     * <p>The line is split as the operator wrote it and each written value is filled on its own. Filling the line
+     * first let a value a player typed decide where an argument ends: a space ended it and started another, a quote
+     * closed it, and the argument after it was whatever they wrote. A written value is MiniMessage to whoever fills
+     * the catalog entry with it, so a typed value goes in escaped, as it would in a line of words.
+     *
+     * <p>A token in the key is filled before the split, so {@code @shop.%argument_category%.title} still picks its
+     * entry, and a typed value there keeps only the characters a key may hold. A line whose arguments are themselves
+     * built from tokens cannot be split before it is filled; it is filled first as it always was, with a typed value
+     * cut to key characters so it cannot add an argument or end one.
+     */
+    private Component keyLine(String source, MenuContext ctx, Map<String, String> menu) {
+        int keyEnd = 1;
+        while (keyEnd < source.length() && !Character.isWhitespace(source.charAt(keyEnd))) {
+            keyEnd++;
+        }
+        String key = substitutePlaceholders(source.substring(1, keyEnd), ctx, ValueSpot.KEY);
+        Optional<CatalogLine> written = CatalogLine.parse("@" + key + source.substring(keyEnd));
+        if (written.isPresent()) {
+            Map<String, String> filled = new LinkedHashMap<>();
+            written.get()
+                    .arguments()
+                    .forEach((name, value) -> filled.put(name, substitutePlaceholders(value, ctx, ValueSpot.TEXT)));
+            return guiText.text(ctx.viewer(), written.get().key(), writtenFirst(filled, menu));
+        }
+        String substituted = substitutePlaceholders(source, ctx, ValueSpot.KEY);
+        Optional<CatalogLine> built = CatalogLine.parse(substituted);
+        if (built.isPresent()) {
+            return guiText.text(
+                    ctx.viewer(), built.get().key(), writtenFirst(built.get().arguments(), menu));
+        }
+        return guiText.text(ctx.viewer(), substituted.substring(1), menu);
     }
 
     /**
@@ -672,7 +703,7 @@ public final class ItemRenderer {
     private boolean hasMissingOperand(String expression, MenuContext ctx) {
         Matcher matcher = PLACEHOLDER.matcher(expression);
         while (matcher.find()) {
-            if (resolveToken(matcher.group(1), ctx).isBlank()) {
+            if (resolveToken(matcher.group(1), ctx, ValueSpot.DATA).isBlank()) {
                 return true;
             }
         }
@@ -689,12 +720,20 @@ public final class ItemRenderer {
         }
     }
 
-    /** Replace every {@code %token%} in {@code source} with its resolved value (argument or registry, or empty). */
-    private String substitutePlaceholders(String source, MenuContext ctx) {
+    /**
+     * Replace every {@code %token%} in {@code source} with its resolved value (argument, local or registry, or empty),
+     * in one pass: a value that spells a token is not read again, so a player who types {@code %argument_x%} or
+     * {@code %papi_player_ip%} reads those words back. {@code spot} is where {@code source} sits, which decides how a
+     * value a player typed goes in: escaped in a line's words, cut to key characters in a key, as written in data.
+     */
+    private String substitutePlaceholders(String source, MenuContext ctx, ValueSpot spot) {
+        if (source.indexOf('%') < 0) {
+            return source;
+        }
         Matcher matcher = PLACEHOLDER.matcher(source);
         StringBuilder out = new StringBuilder();
         while (matcher.find()) {
-            String value = resolveToken(matcher.group(1), ctx);
+            String value = resolveToken(matcher.group(1), ctx, spot.at(source, matcher.start()));
             matcher.appendReplacement(out, Matcher.quoteReplacement(value));
         }
         matcher.appendTail(out);
@@ -708,14 +747,19 @@ public final class ItemRenderer {
      * the shared registry, so a menu-scoped {@code %name%} overrides a built-in, data reader or global custom for this
      * menu alone; a local template is expanded through {@link #substituteLocal}. Any token the local block does not
      * define resolves through the placeholder registry exactly as before.
+     *
+     * <p>An argument and a local a player supplied are typed text, so {@code spot} fits them to where they go and a
+     * local of that kind is never expanded as a template. An argument the opener named as markup goes in as written.
      */
-    private String resolveToken(String token, MenuContext ctx) {
+    private String resolveToken(String token, MenuContext ctx, ValueSpot spot) {
         if (token.startsWith(ARGUMENT_PREFIX)) {
-            return ctx.arguments().getOrDefault(token.substring(ARGUMENT_PREFIX.length()), "");
+            String name = token.substring(ARGUMENT_PREFIX.length());
+            String value = ctx.arguments().getOrDefault(name, "");
+            return ctx.markupArguments().contains(name) ? value : spot.fit(value);
         }
         String local = ctx.localPlaceholders().get(token);
         if (local != null) {
-            return substituteLocal(local, ctx);
+            return ctx.typedLocals().contains(token) ? spot.fit(local) : substituteLocal(local, ctx, spot);
         }
         return resolveRegistered(token, ctx);
     }
@@ -751,20 +795,14 @@ public final class ItemRenderer {
      * evaluates it. The depth guard bounds recursion: at {@link #MAX_LOCAL_DEPTH} the template is returned unexpanded,
      * so a cycle ({@code a=%b%}, {@code b=%a%}) terminates instead of overflowing the stack.
      */
-    private String substituteLocal(String template, MenuContext ctx) {
+    private String substituteLocal(String template, MenuContext ctx, ValueSpot spot) {
         int[] depth = LOCAL_DEPTH.get();
         if (depth[0] >= MAX_LOCAL_DEPTH) {
             return template;
         }
         depth[0]++;
         try {
-            Matcher matcher = PLACEHOLDER.matcher(dropMathWithMissingOperand(template, ctx));
-            StringBuilder out = new StringBuilder();
-            while (matcher.find()) {
-                matcher.appendReplacement(out, Matcher.quoteReplacement(resolveToken(matcher.group(1), ctx)));
-            }
-            matcher.appendTail(out);
-            return out.toString();
+            return substitutePlaceholders(dropMathWithMissingOperand(template, ctx), ctx, spot);
         } finally {
             depth[0]--;
         }
@@ -793,7 +831,8 @@ public final class ItemRenderer {
         if (token.isEmpty()) {
             return decor.glow();
         }
-        String resolved = substitutePlaceholders(token.get(), ctx).strip();
+        String resolved =
+                substitutePlaceholders(token.get(), ctx, ValueSpot.DATA).strip();
         return resolved.equalsIgnoreCase("true") || resolved.equalsIgnoreCase("yes") || resolved.equals("1");
     }
 
@@ -821,6 +860,7 @@ public final class ItemRenderer {
 
     /** Resolve a {@code %token%} string through the placeholder path and parse it to an int, when both succeed. */
     private Optional<Integer> dynamicInt(Optional<String> token, MenuContext ctx) {
-        return token.map(raw -> substitutePlaceholders(raw, ctx)).flatMap(RichMetaWriter::parseInt);
+        return token.map(raw -> substitutePlaceholders(raw, ctx, ValueSpot.DATA))
+                .flatMap(RichMetaWriter::parseInt);
     }
 }
