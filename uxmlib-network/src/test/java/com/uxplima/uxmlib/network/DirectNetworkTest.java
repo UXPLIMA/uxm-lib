@@ -3,6 +3,9 @@ package com.uxplima.uxmlib.network;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
@@ -203,6 +206,50 @@ class DirectNetworkTest {
         }
 
         await(() -> heard.get() == (long) parts * part.length);
+    }
+
+    @Test
+    void aConnectionThatNeverProvesItsSecretIsClosed() throws Exception {
+        DirectBroker broker = limitedBroker(2, Duration.ofMillis(300));
+
+        try (Socket idle = new Socket(InetAddress.getLoopbackAddress(), broker.port())) {
+            assertThat(closedByBroker(idle)).isTrue();
+        }
+    }
+
+    @Test
+    void aConnectionPastTheHandshakeLimitIsClosedAndAServerJoinsOnceAPlaceFrees() throws Exception {
+        DirectBroker broker = limitedBroker(2, Duration.ofMinutes(1));
+        Socket first = new Socket(InetAddress.getLoopbackAddress(), broker.port());
+        Socket second = new Socket(InetAddress.getLoopbackAddress(), broker.port());
+
+        try (Socket third = new Socket(InetAddress.getLoopbackAddress(), broker.port())) {
+            assertThat(closedByBroker(third)).isTrue();
+        }
+
+        first.close();
+        second.close();
+        server(broker, "lobby", lobbySecret);
+        await(() -> broker.connected().contains("lobby"));
+    }
+
+    private DirectBroker limitedBroker(int maxHandshakes, Duration handshakeTimeout) throws IOException {
+        DirectBroker broker =
+                new DirectBroker("127.0.0.1", 0, Map.of("lobby", lobbySecret), LOG, maxHandshakes, handshakeTimeout);
+        open.add(broker);
+        return broker;
+    }
+
+    /** Whether the broker closes {@code socket} within the wait, read as an end of stream or a reset. */
+    private static boolean closedByBroker(Socket socket) throws IOException {
+        socket.setSoTimeout((int) WAIT.toMillis());
+        try {
+            return socket.getInputStream().read() == -1;
+        } catch (SocketTimeoutException stillOpen) {
+            return false;
+        } catch (IOException reset) {
+            return true;
+        }
     }
 
     @Test

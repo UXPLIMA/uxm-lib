@@ -8,11 +8,15 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
@@ -24,11 +28,24 @@ import java.util.function.Consumer;
  *
  * <p>The broker is a {@link Bus} itself under the id {@value #PROXY}, so the proxy plugin publishes and
  * subscribes like any server.
+ *
+ * <p>Each connection is served by platform threads (see {@link Wire#thread}), so a connection that has not proved
+ * its secret yet is bounded twice: at most {@value #MAX_HANDSHAKES} are served at once, and each has
+ * {@link #HANDSHAKE_TIMEOUT} to finish. Whoever reaches the port can therefore neither start threads without end
+ * nor keep the servers out by holding every place open.
  */
 public final class DirectBroker implements Bus {
 
     /** The id the broker speaks under. */
     public static final String PROXY = "proxy";
+
+    /** How many connections may be proving their secret at the same time; one past it is closed at once. */
+    static final int MAX_HANDSHAKES = 32;
+
+    /** How long a connection has to prove its secret before it is closed. */
+    static final Duration HANDSHAKE_TIMEOUT = Duration.ofSeconds(10);
+
+    private static final long REFUSAL_LOG_GAP_MILLIS = Duration.ofMinutes(1).toMillis();
 
     private final InetSocketAddress bind;
     private final Map<String, Signer> signers;
@@ -37,6 +54,10 @@ public final class DirectBroker implements Bus {
     private final Map<String, Link> links = new ConcurrentHashMap<>();
     private final ServerSocket listening;
     private final Thread acceptor;
+    private final int maxHandshakes;
+    private final Duration handshakeTimeout;
+    private final Semaphore handshakes;
+    private final AtomicLong lastRefusalLog = new AtomicLong(Long.MIN_VALUE);
     private volatile boolean open = true;
 
     /**
@@ -46,7 +67,25 @@ public final class DirectBroker implements Bus {
      * @throws IOException when the address cannot be bound
      */
     public DirectBroker(String host, int port, Map<String, String> secrets, System.Logger log) throws IOException {
+        this(host, port, secrets, log, MAX_HANDSHAKES, HANDSHAKE_TIMEOUT);
+    }
+
+    /** Start listening, with the handshake limits a test needs. */
+    DirectBroker(
+            String host,
+            int port,
+            Map<String, String> secrets,
+            System.Logger log,
+            int maxHandshakes,
+            Duration handshakeTimeout)
+            throws IOException {
         Objects.requireNonNull(secrets, "secrets");
+        if (maxHandshakes < 1) {
+            throw new IllegalArgumentException("maxHandshakes must be at least 1");
+        }
+        this.maxHandshakes = maxHandshakes;
+        this.handshakeTimeout = Objects.requireNonNull(handshakeTimeout, "handshakeTimeout");
+        this.handshakes = new Semaphore(maxHandshakes);
         this.log = Objects.requireNonNull(log, "log");
         this.handlers = new Handlers(log);
         Map<String, Signer> built = new ConcurrentHashMap<>();
@@ -125,6 +164,10 @@ public final class DirectBroker implements Bus {
         while (open) {
             try {
                 Socket socket = listening.accept();
+                if (!handshakes.tryAcquire()) {
+                    refuse(socket);
+                    continue;
+                }
                 Wire.thread("uxmlib-network-broker-reader", () -> serve(socket));
             } catch (IOException stopped) {
                 if (open) {
@@ -137,9 +180,30 @@ public final class DirectBroker implements Bus {
         }
     }
 
+    /** Close a connection that came while every handshake place was taken, and say so at most once a minute. */
+    private void refuse(Socket socket) {
+        try {
+            socket.close();
+        } catch (IOException ignored) {
+            // It is refused either way.
+        }
+        long now = System.currentTimeMillis();
+        long last = lastRefusalLog.get();
+        if ((last == Long.MIN_VALUE || now - last >= REFUSAL_LOG_GAP_MILLIS)
+                && lastRefusalLog.compareAndSet(last, now)) {
+            log.log(
+                    System.Logger.Level.WARNING,
+                    "The network broker refused a connection from " + socket.getRemoteSocketAddress() + ": "
+                            + maxHandshakes + " connections are already proving their secret.");
+        }
+    }
+
     private void serve(Socket socket) {
         String id = "?";
         Link link = null;
+        AtomicBoolean proving = new AtomicBoolean(true);
+        // A virtual thread only sleeps here; it touches no socket, so the Windows wakeup bug cannot reach it.
+        Thread deadline = Thread.ofVirtual().start(() -> closeIfStillProving(socket, proving));
         try (socket) {
             socket.setSoTimeout((int) Wire.READ_TIMEOUT.toMillis());
             socket.setTcpNoDelay(true);
@@ -176,6 +240,7 @@ public final class DirectBroker implements Bus {
             }
             out.write(signer.sign(brokerNonce, Wire.brokerProof(serverNonce)));
             out.flush();
+            proven(proving, deadline);
             link = new Link(id, socket, out, signer, serverNonce + 1);
             Link replaced = links.put(id, link);
             if (replaced != null) {
@@ -193,9 +258,38 @@ public final class DirectBroker implements Bus {
                 log.log(System.Logger.Level.INFO, "The server " + id + " left the network: " + lost.getMessage());
             }
         } finally {
+            proven(proving, deadline);
             if (link != null) {
                 links.remove(id, link);
             }
+        }
+    }
+
+    /**
+     * Close {@code socket} when it has not proved its secret within the handshake timeout. Whichever of this and
+     * {@link #proven} takes {@code proving} first gives the place back, so it is given back once.
+     */
+    private void closeIfStillProving(Socket socket, AtomicBoolean proving) {
+        try {
+            Thread.sleep(handshakeTimeout);
+        } catch (InterruptedException done) {
+            return;
+        }
+        if (proving.compareAndSet(true, false)) {
+            handshakes.release();
+            try {
+                socket.close();
+            } catch (IOException ignored) {
+                // The handshake fails either way.
+            }
+        }
+    }
+
+    /** The connection no longer holds a handshake place: it proved its secret, or it is gone. */
+    private void proven(AtomicBoolean proving, Thread deadline) {
+        if (proving.compareAndSet(true, false)) {
+            deadline.interrupt();
+            handshakes.release();
         }
     }
 
