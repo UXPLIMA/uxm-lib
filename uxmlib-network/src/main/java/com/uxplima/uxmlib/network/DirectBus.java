@@ -58,7 +58,7 @@ public final class DirectBus implements Bus {
         this.signer = new Signer(secret);
         this.log = Objects.requireNonNull(log, "log");
         this.handlers = new Handlers(log);
-        this.loop = Thread.ofVirtual().name("uxmlib-network-" + serverId).start(this::run);
+        this.loop = Wire.thread("uxmlib-network-" + serverId, this::run);
     }
 
     @Override
@@ -123,7 +123,7 @@ public final class DirectBus implements Bus {
                 connected = true;
                 pause = FIRST_PAUSE;
                 log.log(System.Logger.Level.INFO, "Connected to the network at " + where + ".");
-                Thread writer = Thread.ofVirtual().start(() -> write(out, sequences[0]));
+                Thread writer = Wire.thread("uxmlib-network-" + serverId + "-writer", () -> write(out, sequences[0]));
                 try {
                     read(in, sequences[1]);
                 } finally {

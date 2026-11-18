@@ -3,11 +3,15 @@ package com.uxplima.uxmlib.network;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BooleanSupplier;
 
 import org.junit.jupiter.api.AfterEach;
@@ -167,6 +171,85 @@ class DirectNetworkTest {
 
         Thread.sleep(200);
         assertThat(heard).isEmpty();
+    }
+
+    @Test
+    void aFileSentInLargeFramesReachesTheProxyWhole() throws Exception {
+        DirectBroker broker = broker();
+        DirectBus lobby = server(broker, "lobby", lobbySecret);
+        AtomicLong heard = new AtomicLong();
+        broker.subscribe("build", frame -> heard.addAndGet(frame.payload().length));
+        await(() -> broker.connected().contains("lobby"));
+
+        // More than a socket's buffers hold, so the sender has to wait for room while it also listens.
+        byte[] part = new byte[256 * 1024];
+        int parts = 40;
+        for (int index = 0; index < parts; index++) {
+            lobby.send(DirectBroker.PROXY, "build", part);
+        }
+
+        await(() -> heard.get() == (long) parts * part.length);
+    }
+
+    @Test
+    void aFileSentInLargeFramesReachesAServerWhole() throws Exception {
+        DirectBroker broker = broker();
+        DirectBus lobby = server(broker, "lobby", lobbySecret);
+        AtomicLong heard = new AtomicLong();
+        lobby.subscribe("build", frame -> heard.addAndGet(frame.payload().length));
+        await(() -> broker.connected().contains("lobby"));
+
+        byte[] part = new byte[256 * 1024];
+        int parts = 40;
+        for (int index = 0; index < parts; index++) {
+            broker.send("lobby", "build", part);
+        }
+
+        await(() -> heard.get() == (long) parts * part.length);
+    }
+
+    @Test
+    void aConnectionThatNeverProvesItsSecretIsClosed() throws Exception {
+        DirectBroker broker = limitedBroker(2, Duration.ofMillis(300));
+
+        try (Socket idle = new Socket(InetAddress.getLoopbackAddress(), broker.port())) {
+            assertThat(closedByBroker(idle)).isTrue();
+        }
+    }
+
+    @Test
+    void aConnectionPastTheHandshakeLimitIsClosedAndAServerJoinsOnceAPlaceFrees() throws Exception {
+        DirectBroker broker = limitedBroker(2, Duration.ofMinutes(1));
+        Socket first = new Socket(InetAddress.getLoopbackAddress(), broker.port());
+        Socket second = new Socket(InetAddress.getLoopbackAddress(), broker.port());
+
+        try (Socket third = new Socket(InetAddress.getLoopbackAddress(), broker.port())) {
+            assertThat(closedByBroker(third)).isTrue();
+        }
+
+        first.close();
+        second.close();
+        server(broker, "lobby", lobbySecret);
+        await(() -> broker.connected().contains("lobby"));
+    }
+
+    private DirectBroker limitedBroker(int maxHandshakes, Duration handshakeTimeout) throws IOException {
+        DirectBroker broker =
+                new DirectBroker("127.0.0.1", 0, Map.of("lobby", lobbySecret), LOG, maxHandshakes, handshakeTimeout);
+        open.add(broker);
+        return broker;
+    }
+
+    /** Whether the broker closes {@code socket} within the wait, read as an end of stream or a reset. */
+    private static boolean closedByBroker(Socket socket) throws IOException {
+        socket.setSoTimeout((int) WAIT.toMillis());
+        try {
+            return socket.getInputStream().read() == -1;
+        } catch (SocketTimeoutException stillOpen) {
+            return false;
+        } catch (IOException reset) {
+            return true;
+        }
     }
 
     @Test
