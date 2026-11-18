@@ -37,6 +37,39 @@ The PlaceholderAPI integration also has a write side: register a `PlaceholderPro
 leaderboard line, a tab-list entry and a hologram name; narrow it with `instanceof Player` when the answer
 needs a player who is here.
 
+### One `uxm` expansion for every plugin
+
+PlaceholderAPI keeps one expansion per identifier, and a second registration of `uxm` replaces the first. So a
+plugin does not register `uxm` itself: it joins the one expansion every UXM plugin shares, with a prefix of its
+own.
+
+```java
+PlaceholderRegistry registry = new PlaceholderRegistry()
+        .register("balance", (player, path) -> balanceOf(player))
+        .relational((viewer, target, path) -> canSee(viewer, target) ? "yes" : "no");
+
+SharedPlaceholders.join(plugin, "essentials", registry);   // %uxm_essentials_balance%, %rel_uxm_essentials_...%
+```
+
+The registry is asked with what follows `<prefix>_`. A prefix is one word of lower-case letters and digits. The
+first plugin to join registers the expansion, and every later one joins it. A plugin leaves when it is disabled,
+with nothing to call; `join` also hands back how to leave sooner. When the plugin that registered the expansion
+goes, the plugins that stay register their own in its place, and their placeholders keep answering. The expansion
+survives `/papi reload`, and a PlaceholderAPI that lost it gets it back when it loads its expansions again.
+
+A prefix another plugin holds is refused: the log names the plugin holding it, which keeps answering, and `join`
+answers empty. So does a `uxm` held by an expansion that is not the shared one, such as a plugin registering `uxm`
+on its own; that expansion is left in place. `PlaceholderExpansions.register(registry, author, version)`, which
+did exactly that, is deprecated. `PlaceholderExpansions` stays for an identifier of the plugin's own.
+
+Each plugin shades its own uxmLib, relocated and perhaps at another version, so no uxmLib class is the same class in
+two plugins: a service keyed by one, or a cast to one, fails between them. The plugins meet on types they all load
+from the server instead, with no reflection. The expansion PlaceholderAPI holds as `uxm` is a
+`java.util.function.Supplier` of the member table, a `ConcurrentMap` from prefix to member. Each member is a
+PlaceholderAPI `PlaceholderExpansion` that is never registered: its identifier is the prefix and its required
+plugin the plugin that joined. Every uxmLib version keeps this contract, so plugins built on different versions
+share one expansion.
+
 ## Update checker
 
 Notify-only: it logs to the console and shows a permission-gated message on join. It never self-downloads.

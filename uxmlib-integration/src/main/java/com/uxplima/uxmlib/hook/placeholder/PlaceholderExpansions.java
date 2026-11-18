@@ -13,10 +13,20 @@ import com.uxplima.uxmlib.hook.PlaceholderApi;
  * {@code me.clip} classes are touched solely when PlaceholderAPI is present: a server without it still
  * loads. {@link #register} is a no-op returning {@code false} when PlaceholderAPI is absent, so callers can
  * invoke it unconditionally at startup.
+ *
+ * <p>This registers an expansion of the plugin's own under an identifier it names. A plugin that follows the
+ * {@code %uxm_<plugin>_<path>%} convention joins the expansion every UXM plugin shares through
+ * {@link SharedPlaceholders#join} instead.
  */
 public final class PlaceholderExpansions {
 
-    /** The default PlaceholderAPI identifier, yielding {@code %uxm_...%} placeholders. */
+    /**
+     * The default PlaceholderAPI identifier, yielding {@code %uxm_...%} placeholders.
+     *
+     * @deprecated {@code uxm} is shared by every UXM plugin: join it with {@link SharedPlaceholders#join}, whose
+     *     identifier is {@link SharedPlaceholders#IDENTIFIER}
+     */
+    @Deprecated
     public static final String DEFAULT_IDENTIFIER = "uxm";
 
     private PlaceholderExpansions() {}
@@ -30,7 +40,12 @@ public final class PlaceholderExpansions {
      * take the default, the first one wins and the second's placeholders quietly resolve to nothing. A
      * plugin that ships to servers it does not control should name its own identifier through
      * {@link #register(String, PlaceholderRegistry, String, String)}: one per plugin, not one per library.
+     *
+     * @deprecated registering {@code uxm} alone replaces every other plugin's {@code %uxm_...%} placeholders: join
+     *     the shared expansion with {@link SharedPlaceholders#join} and a prefix of the plugin's own
      */
+    @Deprecated
+    @SuppressWarnings("InlineMeSuggester") // the replacement needs the plugin and a prefix, which this does not take
     public static boolean register(PlaceholderRegistry registry, String author, String version) {
         return register(DEFAULT_IDENTIFIER, registry, author, version);
     }
