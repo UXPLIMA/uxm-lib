@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.10.0...uxm-lib-v0.11.0) (2026-11-18)
+
+
+### Features
+
+* **board:** draw a stored head from a player's skin ([#118](https://github.com/UXPLIMA/uxm-lib/issues/118)) ([8b03f62](https://github.com/UXPLIMA/uxm-lib/commit/8b03f62cb51d9c7c6f9f7cfa1123920a8a1dde03)), closes [#113](https://github.com/UXPLIMA/uxm-lib/issues/113)
+
 ## [0.10.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.9.0...uxm-lib-v0.10.0) (2026-11-17)
 
 Nothing breaks a caller of 0.9.0. A menu `input:` step can now ask for a secret, and an action handler can escape
