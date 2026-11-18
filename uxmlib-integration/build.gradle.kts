@@ -47,6 +47,11 @@ dependencies {
     compileOnly(libs.claim.griefprevention) { isTransitive = false }
     compileOnly(libs.claim.simpleclaimsystem) { isTransitive = false }
     compileOnly(libs.claim.rclaim) { isTransitive = false }
+
+    // The shared expansion is tested as two plugins would meet it: Bukkit and PlaceholderAPI from the server, each
+    // plugin's own copy of this module in a class loader of its own.
+    testImplementation(libs.paper.api)
+    testImplementation(libs.placeholderapi)
 }
 
 // FastAsyncWorldEdit answers WorldEdit's API with its own copy of every com.sk89q class, and it does not honour
