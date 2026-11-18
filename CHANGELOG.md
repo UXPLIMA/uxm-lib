@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.11.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.10.0...uxm-lib-v0.11.0) (2026-11-18)
+
+
+Nothing breaks a caller of 0.10.0. A board can now draw an offline-mode or Bedrock player's head from the skin the
+plugin stored for them.
+
+### Added
+
+- `StoredSkin(value, signature)`: a stored Mojang `textures` value with an optional signature;
+  `StoredSkin.unsigned(value)` builds one without a signature.
+- A `BoardAnswers` constructor taking `Function<UUID, Optional<StoredSkin>>`, read from memory like the stored heads.
+  The existing constructors keep working and pass none.
+- `BoardAnswers.headComponent(reader, readerName, request)` answers `head` and `top_<board>_<period>_<n>_head` as
+  a head component for a component placeholder. A player with a stored skin is drawn from that skin alone, with no
+  name or id for the client to look up. Anyone else is drawn the way the `<head:...>` tag reads its argument, and a
+  place nobody holds is the empty head. `answer` and its text are unchanged. See `docs/user/boards.md`.
+
 ## [0.10.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.9.0...uxm-lib-v0.10.0) (2026-11-17)
 
 Nothing breaks a caller of 0.9.0. A menu `input:` step can now ask for a secret, and an action handler can escape
