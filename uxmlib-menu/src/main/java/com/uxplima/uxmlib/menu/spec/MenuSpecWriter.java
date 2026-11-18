@@ -623,6 +623,9 @@ public final class MenuSpecWriter {
                 setIfNotBlank(entry.node("prompt"), input.prompt());
                 setIfNotBlank(entry.node("default"), input.defaultText());
                 writeRefsIfAny(entry.node("deny"), input.onCancel());
+                if (input.secret()) {
+                    entry.node("secret").set(true);
+                }
             }
             case Continuation.Confirm confirm -> {
                 setIfNotBlank(entry.node("title"), confirm.title());

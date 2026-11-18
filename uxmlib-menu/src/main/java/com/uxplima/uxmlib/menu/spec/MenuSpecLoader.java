@@ -1215,13 +1215,18 @@ public final class MenuSpecLoader {
      * Build an {@code input:} step from its map entry. The point key is the token tail after {@code input:} (the key
      * the operator's per-key anvil/chat/sign mode is looked up by); {@code prompt}/{@code default} are the label and
      * pre-fill, carried verbatim for render-time resolution; {@code deny} is the ref list run on a cancel: read as a
-     * list here, unlike the scalar chance-fallback {@code deny} an ordinary action modifier map carries.
+     * list here, unlike the scalar chance-fallback {@code deny} an ordinary action modifier map carries. {@code secret}
+     * marks a PIN or a password, which is then never asked for in chat or on a sign.
      */
     private Continuation inputContinuation(String token, ConfigurationNode entry) {
         int colon = token.indexOf(':');
         String key = colon < 0 ? "" : token.substring(colon + 1).strip();
         return new Continuation.Input(
-                key, entry.node("prompt").getString(""), entry.node("default").getString(""), refs(entry.node("deny")));
+                key,
+                entry.node("prompt").getString(""),
+                entry.node("default").getString(""),
+                refs(entry.node("deny")),
+                entry.node("secret").getBoolean(false));
     }
 
     /** Build a {@code confirm:} step from its map entry: the title plus the {@code yes}/{@code no} ref lists. */

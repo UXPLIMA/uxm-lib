@@ -33,10 +33,13 @@ import org.jspecify.annotations.Nullable;
  * CREATE INDEX {prefix}board_player ON {prefix}board (player_id);
  * CREATE TABLE {prefix}name (
  *     player_id VARCHAR(36) NOT NULL,
- *     name      VARCHAR(32) NOT NULL,
+ *     name      VARCHAR(64) NOT NULL,   -- NAME_LENGTH: a Floodgate prefix and a long offline-mode name fit
  *     PRIMARY KEY (player_id)
  * );
  * }</pre>
+ *
+ * A name longer than {@link #NAME_LENGTH}, a blank one, or a uuid in place of a name is not kept: the name kept
+ * before stays, and a board names nobody by an id.
  *
  * A read that fails is written to the log and answers nothing, so a board shows empty for a refresh rather than
  * failing the timer that reads it. A write that fails is written to the log and dropped.
@@ -45,6 +48,9 @@ public final class SqlBoardStore implements BoardStore {
 
     private static final List<String> KEYS = List.of("board_name", "board_period", "window_start", "player_id");
     private static final List<String> NAME_COLUMNS = List.of("player_id", "name");
+
+    /** The longest name kept, and the width the plugin's {@code name} column must have. */
+    public static final int NAME_LENGTH = 64;
 
     private final Database database;
     private final Logger logger;
@@ -198,14 +204,32 @@ public final class SqlBoardStore implements BoardStore {
     public void name(UUID player, String name) {
         Objects.requireNonNull(player, "player");
         Objects.requireNonNull(name, "name");
+        String kept = name.strip();
+        if (!keepable(kept)) {
+            logger.log(Level.FINE, "Not keeping \"{0}\" as the name of {1}", new Object[] {kept, player});
+            return;
+        }
         String upsert = database.dialect().upsert(namesTable, "player_id", NAME_COLUMNS);
         try {
             database.inTransaction(sql -> sql.update(upsert, statement -> {
                 statement.setString(1, player.toString());
-                statement.setString(2, name);
+                statement.setString(2, kept);
             }));
         } catch (RuntimeException unwritable) {
             logger.log(Level.WARNING, "Cannot keep the name of " + player, unwritable);
+        }
+    }
+
+    /** Whether {@code name} fits the column and is a name at all, not an id a caller had in its place. */
+    private static boolean keepable(String name) {
+        if (name.isEmpty() || name.length() > NAME_LENGTH) {
+            return false;
+        }
+        try {
+            UUID.fromString(name);
+            return false;
+        } catch (IllegalArgumentException notAnId) {
+            return true;
         }
     }
 

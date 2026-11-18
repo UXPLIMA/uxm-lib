@@ -1,9 +1,11 @@
 package com.uxplima.uxmlib.menu.runtime;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import org.bukkit.entity.Player;
 
@@ -31,9 +33,10 @@ import org.jspecify.annotations.Nullable;
  * whose minimal spec carries none.
  *
  * <p>Immutable. {@link #withEntry}, {@link #withPage}, {@link #withPageCount}, {@link #withLocalPlaceholders}, {@link
- * #withPassthrough} and {@link #withPagedViews} return copies rather than mutating, because the same base context is
- * reused across every slot of a list page and must not leak one element's identity into the next; each copy carries the
- * open's arguments, local placeholders, passed-through values and paged-list snapshots through unchanged.
+ * #withTypedLocals}, {@link #withMarkupArguments}, {@link #withPassthrough} and {@link #withPagedViews} return copies
+ * rather than mutating, because the same base context is reused across every slot of a list page and must not leak one
+ * element's identity into the next; each copy carries the open's arguments, local placeholders, passed-through values
+ * and paged-list snapshots through unchanged.
  */
 public final class MenuContext {
 
@@ -71,6 +74,19 @@ public final class MenuContext {
      */
     private final Map<String, PagedListView> pagedViews;
 
+    /**
+     * The argument names whose values the opener vouches for as markup. Every other argument is text a player may
+     * have typed, so the renderer escapes it before it goes into a line; one named here goes in as written.
+     */
+    private final Set<String> markupArguments;
+
+    /**
+     * The local placeholder names whose values a player supplied rather than an operator wrote: a prompt answer, a
+     * form field, the name of an item a player dropped. Their values sit in {@link #localPlaceholders} with the rest,
+     * and this is what tells the renderer to treat them as typed text rather than as a template to expand.
+     */
+    private final Set<String> typedLocals;
+
     private MenuContext(
             Player viewer,
             @Nullable Object subject,
@@ -80,7 +96,9 @@ public final class MenuContext {
             Map<String, String> arguments,
             Map<String, String> localPlaceholders,
             Map<String, Object> passthrough,
-            Map<String, PagedListView> pagedViews) {
+            Map<String, PagedListView> pagedViews,
+            Set<String> markupArguments,
+            Set<String> typedLocals) {
         this.viewer = Objects.requireNonNull(viewer, "viewer");
         this.subject = subject;
         this.page = page;
@@ -90,6 +108,8 @@ public final class MenuContext {
         this.localPlaceholders = Objects.requireNonNull(localPlaceholders, "localPlaceholders");
         this.passthrough = Objects.requireNonNull(passthrough, "passthrough");
         this.pagedViews = Objects.requireNonNull(pagedViews, "pagedViews");
+        this.markupArguments = Objects.requireNonNull(markupArguments, "markupArguments");
+        this.typedLocals = Objects.requireNonNull(typedLocals, "typedLocals");
     }
 
     /** Opens a fresh context with no list element bound yet and a single-page count until the renderer knows better. */
@@ -104,7 +124,18 @@ public final class MenuContext {
      * placeholders start empty here; the engine attaches the open spec's block via {@link #withLocalPlaceholders}.
      */
     public static MenuContext of(Player viewer, @Nullable Object subject, int page, Map<String, String> arguments) {
-        return new MenuContext(viewer, subject, page, 1, null, Map.copyOf(arguments), Map.of(), Map.of(), Map.of());
+        return new MenuContext(
+                viewer,
+                subject,
+                page,
+                1,
+                null,
+                Map.copyOf(arguments),
+                Map.of(),
+                Map.of(),
+                Map.of(),
+                Set.of(),
+                Set.of());
     }
 
     public Player viewer() {
@@ -123,6 +154,10 @@ public final class MenuContext {
     /**
      * The typed command arguments the menu was opened with, keyed by argument name: empty for a menu not opened through
      * an argument-carrying command. The renderer reads it to expand {@code %argument_<name>%}; the map is immutable.
+     *
+     * <p>A value here is what a player typed, so the renderer escapes it where it goes into a line, unless {@link
+     * #markupArguments} names it, and keeps it as written where it is read as data: a material, an amount, a condition
+     * or an action's argument.
      */
     public Map<String, String> arguments() {
         return arguments;
@@ -182,19 +217,49 @@ public final class MenuContext {
     public MenuContext withEntry(Object entry) {
         Objects.requireNonNull(entry, "entry");
         return new MenuContext(
-                viewer, subject, page, pageCount, entry, arguments, localPlaceholders, passthrough, pagedViews);
+                viewer,
+                subject,
+                page,
+                pageCount,
+                entry,
+                arguments,
+                localPlaceholders,
+                passthrough,
+                pagedViews,
+                markupArguments,
+                typedLocals);
     }
 
     /** A copy on a new page, used when the renderer or listener advances pagination; resets nothing else. */
     public MenuContext withPage(int page) {
         return new MenuContext(
-                viewer, subject, page, pageCount, entry, arguments, localPlaceholders, passthrough, pagedViews);
+                viewer,
+                subject,
+                page,
+                pageCount,
+                entry,
+                arguments,
+                localPlaceholders,
+                passthrough,
+                pagedViews,
+                markupArguments,
+                typedLocals);
     }
 
     /** A copy carrying the page count the renderer computed, so a registered {@code %max_page%} can read it. */
     public MenuContext withPageCount(int pageCount) {
         return new MenuContext(
-                viewer, subject, page, pageCount, entry, arguments, localPlaceholders, passthrough, pagedViews);
+                viewer,
+                subject,
+                page,
+                pageCount,
+                entry,
+                arguments,
+                localPlaceholders,
+                passthrough,
+                pagedViews,
+                markupArguments,
+                typedLocals);
     }
 
     /**
@@ -213,7 +278,9 @@ public final class MenuContext {
                 arguments,
                 localPlaceholders,
                 passthrough,
-                Map.copyOf(pagedViews));
+                Map.copyOf(pagedViews),
+                markupArguments,
+                typedLocals);
     }
 
     /**
@@ -232,7 +299,76 @@ public final class MenuContext {
                 arguments,
                 Map.copyOf(localPlaceholders),
                 passthrough,
-                pagedViews);
+                pagedViews,
+                markupArguments,
+                typedLocals);
+    }
+
+    /**
+     * The argument names whose values the opener vouched for as markup: empty unless the open named some. The
+     * renderer puts these arguments into a line as written and escapes every other one, because an argument is
+     * otherwise text a player typed.
+     */
+    public Set<String> markupArguments() {
+        return markupArguments;
+    }
+
+    /**
+     * A copy in which the arguments under {@code names} are markup the opener vouches for rather than text a player
+     * typed. Only an opener that filled those arguments itself may say so: an argument a player typed and that is
+     * named here can carry a click event or any other tag into the menu. Every other field is untouched.
+     */
+    public MenuContext withMarkupArguments(Set<String> names) {
+        Objects.requireNonNull(names, "names");
+        return new MenuContext(
+                viewer,
+                subject,
+                page,
+                pageCount,
+                entry,
+                arguments,
+                localPlaceholders,
+                passthrough,
+                pagedViews,
+                Set.copyOf(names),
+                typedLocals);
+    }
+
+    /**
+     * The local placeholder names whose values a player supplied: empty unless a prompt, a form or a dropped item
+     * added some through {@link #withTypedLocals}. The renderer escapes these values in a line and never expands a
+     * {@code %token%} inside one, and an action reads them as they were typed.
+     */
+    public Set<String> typedLocals() {
+        return typedLocals;
+    }
+
+    /**
+     * A copy carrying {@code values} as local placeholders a player supplied, layered over the ones already here with
+     * the new value winning a clash. They resolve as {@code %name%} like any local placeholder, but as text: a value is
+     * never read again for the tokens or tags it contains. Every other field is untouched.
+     */
+    public MenuContext withTypedLocals(Map<String, String> values) {
+        Objects.requireNonNull(values, "values");
+        if (values.isEmpty()) {
+            return this;
+        }
+        Map<String, String> locals = new LinkedHashMap<>(localPlaceholders);
+        locals.putAll(values);
+        Set<String> typed = new HashSet<>(typedLocals);
+        typed.addAll(values.keySet());
+        return new MenuContext(
+                viewer,
+                subject,
+                page,
+                pageCount,
+                entry,
+                arguments,
+                Map.copyOf(locals),
+                passthrough,
+                pagedViews,
+                markupArguments,
+                Set.copyOf(typed));
     }
 
     /**
@@ -273,7 +409,17 @@ public final class MenuContext {
         Map<String, Object> merged = new LinkedHashMap<>(passthrough);
         merged.putAll(values);
         return new MenuContext(
-                viewer, subject, page, pageCount, entry, arguments, localPlaceholders, Map.copyOf(merged), pagedViews);
+                viewer,
+                subject,
+                page,
+                pageCount,
+                entry,
+                arguments,
+                localPlaceholders,
+                Map.copyOf(merged),
+                pagedViews,
+                markupArguments,
+                typedLocals);
     }
 
     /**
@@ -286,6 +432,16 @@ public final class MenuContext {
         Map<String, Object> merged = new LinkedHashMap<>(passthrough);
         merged.put(key, value);
         return new MenuContext(
-                viewer, subject, page, pageCount, entry, arguments, localPlaceholders, Map.copyOf(merged), pagedViews);
+                viewer,
+                subject,
+                page,
+                pageCount,
+                entry,
+                arguments,
+                localPlaceholders,
+                Map.copyOf(merged),
+                pagedViews,
+                markupArguments,
+                typedLocals);
     }
 }

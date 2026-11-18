@@ -1,5 +1,92 @@
 # Changelog
 
+## [0.11.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.10.0...uxm-lib-v0.11.0) (2026-11-18)
+
+
+Nothing breaks a caller of 0.10.0. A board can now draw an offline-mode or Bedrock player's head from the skin the
+plugin stored for them.
+
+### Added
+
+- `StoredSkin(value, signature)`: a stored Mojang `textures` value with an optional signature;
+  `StoredSkin.unsigned(value)` builds one without a signature.
+- A `BoardAnswers` constructor taking `Function<UUID, Optional<StoredSkin>>`, read from memory like the stored heads.
+  The existing constructors keep working and pass none.
+- `BoardAnswers.headComponent(reader, readerName, request)` answers `head` and `top_<board>_<period>_<n>_head` as
+  a head component for a component placeholder. A player with a stored skin is drawn from that skin alone, with no
+  name or id for the client to look up. Anyone else is drawn the way the `<head:...>` tag reads its argument, and a
+  place nobody holds is the empty head. `answer` and its text are unchanged. See `docs/user/boards.md`.
+
+## [0.10.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.9.0...uxm-lib-v0.10.0) (2026-11-17)
+
+Nothing breaks a caller of 0.9.0. A menu `input:` step can now ask for a secret, and an action handler can escape
+the values a player typed with its own function.
+
+### Added
+
+- `secret = true` on a menu `input:` step: the answer is asked in a dialog or an anvil, never in chat or on a sign,
+  and a Bedrock player still gets the form. `Continuation.Input` carries the flag (the four-argument constructor
+  stays); the loader reads it and the writer writes it back.
+- `TextInput.promptResolved(..., boolean secret, ...)`, a seven-argument `MenuTextPrompt.prompt` and
+  `MenuTextPrompt.through(Supplier<TextInput>)`. A prompt that does not override the secret form cancels a secret
+  step and logs `event=menu_secret_input_unsupported` rather than asking it in chat.
+- `MenuActionContext.args(UnaryOperator<String> typed)` and `ActionArguments.resolve(args, ctx, typed)`: one pass
+  that runs only typed arguments and typed locals through the caller's function, for a handler that needs another
+  escape than MiniMessage (JSON, legacy text). A context built from already filled arguments answers them as they
+  are, so escaping them is the builder's job.
+
+### Fixed
+
+- A menu whose title, item name or lore used `%argument_<name>%`, `%input%`, `%drag_*%` or a form field id was
+  skipped at load as referencing unknown ids. Misspelled ids are still reported.
+
+## [0.9.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.8.0...uxm-lib-v0.9.0) (2026-11-17)
+
+Upgrading: a menu argument is now drawn as text in a menu line. A plugin that passed markup in an argument on
+purpose names it in the new `Menus.open(viewer, id, subject, page, arguments, markupArguments, passthrough)`.
+Create the `board_name` table with `name VARCHAR(SqlBoardStore.NAME_LENGTH)` (64). Mark a PIN or password prompt
+with `InputRequest.asSecret()`. See `docs/user/items-and-menus.md` and `docs/user/boards.md`.
+
+### Added
+
+- Bedrock without Floodgate: with only Geyser-Spigot installed, `BedrockScreen.forServer` sends Cumulus forms
+  through Geyser and `GeyserBedrockDetector` reads the xuid. Floodgate still wins when both are installed.
+- `BedrockDetector.forServer(server, fallback)`, `BedrockScreen.forServer(server, fallback)` and `resolving(...)`:
+  a plugin can supply its own Bedrock backend when the server has neither Floodgate nor Geyser.
+- A relayable form model: `BedrockFormRequest`, `BedrockFormResponse`, `BedrockFormCodec`,
+  `RelayedBedrockScreen` over a plugin `Transport`, and `CumulusForms.toForm` for the proxy side.
+- `InputRequest.asSecret()`: a secret is asked in a dialog or an anvil, never in chat or on a sign.
+  `TextInput.cancel(Player)` drops a pending prompt.
+- `NameFill.intoConnected(line, name)` and `intoConnected(line, name, bedrockPrefix)` accept Floodgate-prefixed
+  names; `NameFill.isConnectedName`.
+- `BoardAnswers.headOf(UUID, String, String emptyHead)`, the instance `head(UUID, String)` and a constructor taking
+  stored heads per player.
+- `MenuCloseEvent`, fired when a chest menu closes for good or a Bedrock form is dismissed.
+- `render.ValueSpot`, `MenuContext.withTypedLocals` / `withMarkupArguments`, `MenuActionContext.written(...)` with
+  `textArg()` / `textArgs()`.
+
+### Changed
+
+- Menu arguments, prompt answers, Bedrock form values and `drag_*` values are escaped where they go into a menu line
+  and are never read again as a placeholder. They stay raw where they are read as data (materials, amounts,
+  conditions, action arguments). Actions resolve in one pass; open actions now also see menu locals.
+- The built-in `message:` action draws its argument as text; `command:` is unchanged.
+- `LastMenu.LastOpen` gains a `markupArguments` component; the three-argument constructor stays.
+- Chat input capture listens to both chat events at the lowest priority, takes the line from the first, then
+  cancels and empties both. It is best-effort hiding: use `asSecret()` for a real secret.
+- A tap on a Bedrock form view can refresh it, refresh a slot or reset pagination, as a chest view can.
+- The two-argument `BoardAnswers.headOf` is deprecated and returns Steve for accounts that are not Mojang accounts.
+
+### Fixed
+
+- Boards drew a stranger's head for an offline-mode or Bedrock holder.
+- `SqlBoardStore` kept names over 32 characters only if the column allowed it, and could store a uuid as a name;
+  it now keeps names of 1 to 64 characters and skips anything else.
+- A skull built by name blocked a server thread on an uncached Mojang lookup, and showed Steve on offline-mode
+  servers.
+- A captured chat line (a PIN, for example) reached legacy `AsyncPlayerChatEvent` listeners.
+- A packet write was left incomplete when a listener cancelled it.
+
 ## [0.8.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.7.0...uxm-lib-v0.8.0)
 
 Upgrading: replace `requires(Cmd.permission(node))` and `requires(Cmd.visibility(node))` with `Gate.permission`

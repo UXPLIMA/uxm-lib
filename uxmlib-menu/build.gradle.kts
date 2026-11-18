@@ -16,4 +16,7 @@ dependencies {
     compileOnly(libs.paper.api)
     compileOnly(libs.bundles.adventure)
     implementation(libs.configurate.hocon)
+
+    testImplementation(libs.paper.api)
+    testImplementation(libs.bundles.adventure)
 }

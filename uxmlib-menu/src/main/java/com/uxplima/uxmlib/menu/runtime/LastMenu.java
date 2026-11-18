@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -39,15 +40,22 @@ public final class LastMenu {
     private static final int MAX_DEPTH = 32;
 
     /**
-     * One remembered open: the menu id, the page it was shown on, and the typed command arguments it carried.
-     * Immutable: the arguments are defensively copied so a later mutation of the caller's map cannot rewrite a player's
-     * remembered open. Value equality (records) is what lets {@link #record} recognise a consecutive identical open and
-     * skip stacking a duplicate.
+     * One remembered open: the menu id, the page it was shown on, the typed command arguments it carried, and which of
+     * those the opener vouched for as markup, so a reopen draws them the way the first open did. Immutable: the
+     * arguments are defensively copied so a later mutation of the caller's map cannot rewrite a player's remembered
+     * open. Value equality (records) is what lets {@link #record} recognise a consecutive identical open and skip
+     * stacking a duplicate.
      */
-    public record LastOpen(String menuId, int page, Map<String, String> arguments) {
+    public record LastOpen(String menuId, int page, Map<String, String> arguments, Set<String> markupArguments) {
         public LastOpen {
             Objects.requireNonNull(menuId, "menuId");
             arguments = Map.copyOf(arguments);
+            markupArguments = Set.copyOf(markupArguments);
+        }
+
+        /** An open whose arguments are all text a player may have typed, which is every open but a host's own. */
+        public LastOpen(String menuId, int page, Map<String, String> arguments) {
+            this(menuId, page, arguments, Set.of());
         }
     }
 

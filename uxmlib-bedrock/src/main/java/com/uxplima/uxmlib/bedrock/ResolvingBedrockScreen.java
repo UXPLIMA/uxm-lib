@@ -12,16 +12,19 @@ import org.bukkit.entity.Player;
 import org.jspecify.annotations.Nullable;
 
 /**
- * A screen that asks {@link BedrockScreen#forServer} again until Floodgate answers, then keeps that one. The reason
- * is the one {@link ResolvingBedrockDetector} gives: a plugin enabled at {@code STARTUP} runs before Floodgate.
+ * A screen that asks {@link BedrockScreen#forServer} again until Floodgate or Geyser answers, then keeps that one.
+ * The reason is the one {@link ResolvingBedrockDetector} gives: a plugin enabled at {@code STARTUP} runs before
+ * either.
  */
 final class ResolvingBedrockScreen implements BedrockScreen {
 
     private final Server server;
+    private final BedrockScreen fallback;
     private volatile @Nullable BedrockScreen found;
 
-    ResolvingBedrockScreen(Server server) {
+    ResolvingBedrockScreen(Server server, BedrockScreen fallback) {
         this.server = Objects.requireNonNull(server, "server");
+        this.fallback = Objects.requireNonNull(fallback, "fallback");
     }
 
     private BedrockScreen current() {
@@ -30,9 +33,10 @@ final class ResolvingBedrockScreen implements BedrockScreen {
             return known;
         }
         BedrockScreen now = BedrockScreen.forServer(server);
-        if (now != NONE) {
-            found = now;
+        if (now == NONE) {
+            return fallback;
         }
+        found = now;
         return now;
     }
 

@@ -21,10 +21,10 @@ public sealed interface SkullData permits SkullData.ByUuid, SkullData.ByName, Sk
     }
 
     /**
-     * A head owned by the account with this name. Applying it resolves the name through
-     * {@code Bukkit.getOfflinePlayer(String)}, which is a <strong>blocking</strong> lookup: prefer
-     * {@link ByUuid} or {@link ByTexture} on the main thread, and use this only off-thread or for names
-     * already cached by the server.
+     * A head owned by the account with this name. Applying it never looks the name up, so it is safe on a server
+     * thread: an account Mojang made that the server already knows under the name is drawn as itself, and any other
+     * name is left for the client to draw as the Mojang account of that name. For the texture itself, resolve it off
+     * the server thread with {@link SkullResolver}.
      */
     record ByName(String name) implements SkullData {
         public ByName {

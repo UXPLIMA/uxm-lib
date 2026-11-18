@@ -33,14 +33,22 @@ public sealed interface Continuation permits Continuation.Input, Continuation.Co
      * @param prompt the prompt label shown to the viewer, resolved to a component at dispatch time
      * @param defaultText the pre-fill for the field, resolved at dispatch time; blank means an empty field
      * @param onCancel the refs run when the viewer cancels the prompt; the remaining chain is abandoned
+     * @param secret whether the line is a secret, a PIN or a password: it is then never asked for in chat or on a
+     *     sign, whose lines other plugins receive, whatever mode the operator chose for the key
      */
-    record Input(String key, String prompt, String defaultText, List<Ref> onCancel) implements Continuation {
+    record Input(String key, String prompt, String defaultText, List<Ref> onCancel, boolean secret)
+            implements Continuation {
 
         public Input {
             Objects.requireNonNull(key, "key");
             Objects.requireNonNull(prompt, "prompt");
             Objects.requireNonNull(defaultText, "defaultText");
             onCancel = List.copyOf(onCancel);
+        }
+
+        /** An {@code input:} step for a line that is not a secret. */
+        public Input(String key, String prompt, String defaultText, List<Ref> onCancel) {
+            this(key, prompt, defaultText, onCancel, false);
         }
     }
 
