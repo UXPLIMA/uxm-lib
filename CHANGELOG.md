@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.12.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.11.0...uxm-lib-v0.12.0) (2026-11-18)
+
+
+Nothing breaks a caller of 0.11.0. UXM plugins can now share the `%uxm_<plugin>_<path>%` placeholders side by side.
+
+### Added
+
+- `SharedPlaceholders.join(plugin, prefix, registry)`: one `uxm` PlaceholderAPI expansion that every UXM plugin
+  joins with its own prefix (`%uxm_essentials_...%`, `%uxm_chat_...%`). The first plugin registers it and later ones
+  join it, across plugins that each shade their own uxmLib. The others keep answering when the plugin that
+  registered it is disabled, `/papi reload` keeps it, and a prefix another plugin holds is refused with a log line.
+  See `docs/user/integrations.md`.
+
+### Changed
+
+- The direct network's socket threads are platform threads. On Windows, virtual threads that read and write one
+  socket could lose a write wakeup, so a frame larger than the socket buffers stalled until the link dropped.
+- The direct network broker serves at most 32 connections that have not proved their secret at once, and gives each
+  10 seconds to prove it.
+
+### Fixed
+
+- Bedrock form buttons show the texture Bedrock's own pack draws the item with: 1622 of 1658 items are matched from
+  a table, where the old name guess missed 1113. Items Bedrock draws as entities (banners, heads, shields) show no
+  picture instead of the missing texture.
+
+### Deprecated
+
+- `PlaceholderExpansions.DEFAULT_IDENTIFIER` and `PlaceholderExpansions.register(registry, author, version)`: a
+  plugin that registers `uxm` on its own replaces every other UXM plugin's placeholders. Use `SharedPlaceholders`.
+
 ## [0.11.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.10.0...uxm-lib-v0.11.0) (2026-11-18)
 
 
