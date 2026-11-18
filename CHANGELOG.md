@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.12.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.11.0...uxm-lib-v0.12.0) (2026-11-18)
+
+
+### Features
+
+* **integration:** share one uxm placeholder expansion between plugins ([#126](https://github.com/UXPLIMA/uxm-lib/issues/126)) ([a29428d](https://github.com/UXPLIMA/uxm-lib/commit/a29428d3dfd09d35c6544d9aec724db54741b357))
+
+
+### Bug Fixes
+
+* **bedrock:** match form icons to Bedrock textures ([#89](https://github.com/UXPLIMA/uxm-lib/issues/89)) ([00118a2](https://github.com/UXPLIMA/uxm-lib/commit/00118a2c36b9b675c14bfed5d4e43c249b85f628))
+* **network:** run socket threads as platform threads ([#91](https://github.com/UXPLIMA/uxm-lib/issues/91)) ([8d1b62c](https://github.com/UXPLIMA/uxm-lib/commit/8d1b62cbc7b34c40dd87f3409a43034603a2576a))
+
 ## [0.11.0](https://github.com/UXPLIMA/uxm-lib/compare/uxm-lib-v0.10.0...uxm-lib-v0.11.0) (2026-11-18)
 
 
