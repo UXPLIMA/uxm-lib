@@ -1,7 +1,15 @@
 package com.uxplima.uxmlib.bedrock;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -15,17 +23,19 @@ import org.jspecify.annotations.Nullable;
  *       avatar URL the Bedrock client fetches. {@code self} is the viewer; a plain player name or a UUID becomes
  *       {@code https://mc-heads.net/avatar/<who>}. A base64 texture, a skin URL, or a {@code basehead:} spec has no
  *       look-up key mc-heads understands, so it yields {@code null}. Best-effort: the button just shows no icon.
- *   <li>Any other spec is treated as a Bukkit material name → a best-effort Bedrock resource path
- *       {@code textures/<category>/<name>}. The name is lowercased; spawn eggs and music discs get the Bedrock stem
- *       remap ({@code spawn_<mob>} / {@code record_<name>}); the category is a small items-vs-blocks heuristic. AIR
- *       and a blank name have no icon → {@code null}.
+ *   <li>Any other spec is treated as a Bukkit material name or item id → the Bedrock texture path the client's own
+ *       pack draws that item with, from {@code uxmlib/bedrock-icons.txt}. Java and Bedrock name most textures
+ *       differently ({@code golden_apple} is {@code textures/items/apple_golden}), so the table is matched by pixels
+ *       from both games' art by {@code tools/bedrock-icons}. An item the table lists with no path (a banner, a head,
+ *       a shield: Bedrock draws those as entities) has no icon → {@code null}, as have AIR and a blank name.
+ *   <li>A name the table does not know, an item newer than the table, falls back to a guess:
+ *       {@code textures/<category>/<name>} with the spawn egg and music disc stems and an items-vs-blocks rule. A
+ *       guess that misses shows the client's missing texture, so the table is regenerated with each Minecraft
+ *       version.
  * </ul>
  *
- * <p>The material path is <em>best-effort</em>: this maps Java material names to Bedrock paths by a lowercase-plus-
- * heuristic rule, not the exact Bedrock ID table, so an irregular block (a coloured wool, a terracotta) may land on a
- * path that does not exist. That is harmless: the Bedrock client renders a fallback icon when a path misses, rather
- * than erroring. The {@code mc-heads} URL is likewise a plain string the client loads; the server makes no HTTP call.
- * This type is pure: it names no Bukkit or Cumulus class and does no I/O.
+ * <p>The {@code mc-heads} URL is a plain string the client loads; the server makes no HTTP call. This type names no
+ * Bukkit or Cumulus class; its only I/O is reading the table from the classpath once.
  */
 public final class BedrockIcons {
 
@@ -38,6 +48,15 @@ public final class BedrockIcons {
     private static final String AVATAR = "https://mc-heads.net/avatar/";
     private static final String SPAWN_EGG = "_SPAWN_EGG";
     private static final String MUSIC_DISC = "MUSIC_DISC_";
+    private static final String MINECRAFT = "minecraft:";
+    private static final String TABLE = "uxmlib/bedrock-icons.txt";
+
+    /** The matched table, read on first use: item id to its texture path, empty for an item with no picture. */
+    private static final class Table {
+        static final Map<String, Optional<String>> ICONS = load();
+
+        private Table() {}
+    }
 
     // Material names with no icon: a form button for one of these gets no image.
     private static final Set<String> AIR = Set.of("AIR", "CAVE_AIR", "VOID_AIR");
@@ -160,8 +179,16 @@ public final class BedrockIcons {
      */
     private static @Nullable BedrockImage materialPath(String spec) {
         String name = spec.trim().toUpperCase(Locale.ROOT);
+        if (name.startsWith(MINECRAFT.toUpperCase(Locale.ROOT))) {
+            name = name.substring(MINECRAFT.length());
+        }
         if (name.isEmpty() || AIR.contains(name)) {
             return null;
+        }
+        Optional<String> known = Table.ICONS.get(name.toLowerCase(Locale.ROOT));
+        if (known != null) {
+            return known.map(path -> new BedrockImage(BedrockImage.Kind.PATH, path))
+                    .orElse(null);
         }
         String remap = spawnEggOrDisc(name);
         if (remap != null) {
@@ -171,10 +198,10 @@ public final class BedrockIcons {
         return new BedrockImage(BedrockImage.Kind.PATH, path);
     }
 
-    /** A spawn egg → {@code spawn_<mob>}, a music disc → {@code record_<name>}, else {@code null} (no remap). */
+    /** A spawn egg → {@code spawn_eggs/spawn_egg_<mob>}, a music disc → {@code record_<name>}, else {@code null} (no remap). */
     private static @Nullable String spawnEggOrDisc(String name) {
         if (name.endsWith(SPAWN_EGG)) {
-            return "spawn_"
+            return "spawn_eggs/spawn_egg_"
                     + name.substring(0, name.length() - SPAWN_EGG.length()).toLowerCase(Locale.ROOT);
         }
         if (name.startsWith(MUSIC_DISC)) {
@@ -194,5 +221,42 @@ public final class BedrockIcons {
             }
         }
         return "items";
+    }
+
+    /**
+     * The table from the classpath, or an empty one when it is missing or will not read: a consumer whose shade
+     * configuration drops resources keeps the guess it had before the table.
+     */
+    private static Map<String, Optional<String>> load() {
+        InputStream stream = BedrockIcons.class.getClassLoader().getResourceAsStream(TABLE);
+        if (stream == null) {
+            return Map.of();
+        }
+        Map<String, Optional<String>> icons = new HashMap<>();
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream, StandardCharsets.UTF_8))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                read(line, icons);
+            }
+        } catch (IOException broken) {
+            return Map.of();
+        }
+        return Map.copyOf(icons);
+    }
+
+    /** One {@code <item> [<path>]} line of the table; blanks and {@code #} comments are skipped. */
+    private static void read(String line, Map<String, Optional<String>> icons) {
+        String trimmed = line.trim();
+        if (trimmed.isEmpty() || trimmed.charAt(0) == '#') {
+            return;
+        }
+        int gap = trimmed.indexOf(' ');
+        if (gap < 0) {
+            icons.put(trimmed, Optional.empty());
+        } else {
+            icons.put(
+                    trimmed.substring(0, gap),
+                    Optional.of(trimmed.substring(gap + 1).trim()));
+        }
     }
 }

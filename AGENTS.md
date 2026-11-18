@@ -21,6 +21,7 @@ version.
 - `gradle/libs.versions.toml`: libraries only uxmLib uses. Platform and tool versions come from the `uxm`
   catalog of `uxm-gradle`.
 - `tools/glyph-widths/`: measures the default font's glyph advances from the client jar.
+- `tools/bedrock-icons/`: matches each Java item to the Bedrock texture a form button shows, by pixels.
 
 ## Ways to hurt yourself
 
